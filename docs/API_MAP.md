@@ -373,7 +373,7 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 - **class UsdMeshConverter** (line 25): Converts MeshData to UsdGeomMesh with full feature support.
   - `def __init__(self, stage, settings, material_mgr)` (line 36): Initialize mesh converter.
   - `def create_mesh(self, mesh_data, mesh_path, time_code=None, bind_material=True)` (line 53): Create a UsdGeomMesh from MeshData.
-  - `def create_time_varying_mesh(self, mesh_data_sequence, mesh_path, time_codes, bind_material=True)` (line 285): Create a mesh with time-varying attributes.
+  - `def create_time_varying_mesh(self, mesh_data_sequence, mesh_path, time_codes, bind_material=True)` (line 288): Create a mesh with time-varying attributes.
 
 ## src/physiomotion4d/vtk_to_usd/usd_utils.py
 

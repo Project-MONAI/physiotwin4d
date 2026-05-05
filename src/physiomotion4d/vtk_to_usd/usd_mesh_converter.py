@@ -97,7 +97,8 @@ class UsdMeshConverter:
         # Set points (time-varying if time_code provided)
         points_attr = mesh.CreatePointsAttr()
         if time_code is not None:
-            points_attr.Set(usd_points)
+            if points_attr.Get() is None:
+                points_attr.Set(usd_points)
             points_attr.Set(usd_points, time_code)
         else:
             points_attr.Set(usd_points)
@@ -106,7 +107,8 @@ class UsdMeshConverter:
         extent = compute_mesh_extent(usd_points)
         extent_attr = mesh.CreateExtentAttr()
         if time_code is not None:
-            extent_attr.Set(extent)
+            if extent_attr.Get() is None:
+                extent_attr.Set(extent)
             extent_attr.Set(extent, time_code)
         else:
             extent_attr.Set(extent)
@@ -122,7 +124,8 @@ class UsdMeshConverter:
             normals_attr = mesh.CreateNormalsAttr()
             normals_attr.SetMetadata("interpolation", UsdGeom.Tokens.vertex)
             if time_code is not None:
-                normals_attr.Set(usd_normals)
+                if normals_attr.Get() is None:
+                    normals_attr.Set(usd_normals)
                 normals_attr.Set(usd_normals, time_code)
             else:
                 normals_attr.Set(usd_normals)

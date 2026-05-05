@@ -70,7 +70,7 @@ def ras_points_to_usd(points: NDArray) -> Vt.Vec3fArray:
     usd_points[:, 1] = points[:, 2] * 0.001
     usd_points[:, 2] = -points[:, 1] * 0.001
 
-    return Vt.Vec3fArray.FromNumpy(usd_points.astype(np.float32))
+    return Vt.Vec3fArray.FromNumpy(usd_points)
 
 
 def ras_normals_to_usd(normals: NDArray) -> Vt.Vec3fArray:
@@ -93,7 +93,7 @@ def ras_normals_to_usd(normals: NDArray) -> Vt.Vec3fArray:
     usd_normals[:, 1] = normals[:, 2]
     usd_normals[:, 2] = -normals[:, 1]
 
-    return Vt.Vec3fArray.FromNumpy(usd_normals.astype(np.float32))
+    return Vt.Vec3fArray.FromNumpy(usd_normals)
 
 
 def numpy_to_vt_array(array: NDArray, data_type: DataType) -> Any:
