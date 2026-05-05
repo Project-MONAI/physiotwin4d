@@ -273,8 +273,8 @@ class USDTools(PhysioMotion4DBase):
                 coordinate systems
 
         Note:
-            The merged file uses meters as the base unit (0.01 scale factor)
-            and Y-up axis orientation, which are standard for Omniverse.
+            The merged file stores coordinates in meters (metersPerUnit=1.0)
+            with Y-up axis orientation, which are standard for Omniverse.
             Time-varying data (animations) are preserved across all time samples.
 
         Example:

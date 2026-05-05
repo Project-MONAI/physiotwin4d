@@ -65,7 +65,7 @@ def ras_points_to_usd(points: NDArray) -> Vt.Vec3fArray:
         raise ValueError(f"Points must have shape (N, 3), got {points.shape}")
 
     # Vectorized: USD(x, y, z) = RAS(x, z, -y) * 0.001  (mm → m)
-    usd_points = np.empty_like(points)
+    usd_points = np.empty(points.shape, dtype=np.float32)
     usd_points[:, 0] = points[:, 0] * 0.001
     usd_points[:, 1] = points[:, 2] * 0.001
     usd_points[:, 2] = -points[:, 1] * 0.001
@@ -88,7 +88,7 @@ def ras_normals_to_usd(normals: NDArray) -> Vt.Vec3fArray:
     if normals.shape[1] != 3:
         raise ValueError(f"Normals must have shape (N, 3), got {normals.shape}")
 
-    usd_normals = np.empty_like(normals)
+    usd_normals = np.empty(normals.shape, dtype=np.float32)
     usd_normals[:, 0] = normals[:, 0]
     usd_normals[:, 1] = normals[:, 2]
     usd_normals[:, 2] = -normals[:, 1]
