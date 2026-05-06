@@ -120,9 +120,9 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
   - `def from_files(cls, data_basename, vtk_files, *, extract_surface=True, separate_by='none', times_per_second=24.0, solid_color=(0.8, 0.8, 0.8), time_codes=None, static_merge=False, mask_ids=None, log_level=logging.INFO)` (line 142): Create a converter by loading VTK files from disk.
   - `def supports_mesh_type(self, mesh)` (line 240): Check if mesh type is supported for conversion.
   - `def inspect_file(cls, vtk_file, *, extract_surface=True)` (line 269): Summarize a VTK file using the same low-level reader as conversion.
-  - `def list_available_arrays(self)` (line 335): List all point data arrays available across all time steps.
-  - `def set_colormap(self, color_by_array=None, colormap='plasma', intensity_range=None)` (line 381): Configure colormap for visualization.
-  - `def convert(self, output_usd_file, convert_to_surface=None, compute_normals=None)` (line 415): Convert VTK meshes to USD.
+  - `def list_available_arrays(self)` (line 341): List all point data arrays available across all time steps.
+  - `def set_colormap(self, color_by_array=None, colormap='plasma', intensity_range=None)` (line 387): Configure colormap for visualization.
+  - `def convert(self, output_usd_file, convert_to_surface=None, compute_normals=None)` (line 421): Convert VTK meshes to USD.
 
 ## src/physiomotion4d/image_tools.py
 
@@ -395,14 +395,14 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 ## src/physiomotion4d/vtk_to_usd/vtk_reader.py
 
 - **class VTKReader** (line 20): Base class for VTK file readers.
-- **class PolyDataReader** (line 222): Reader for VTK PolyData files (.vtp).
-  - `def read(filename)` (line 226): Read a VTP file and return MeshData.
-- **class LegacyVTKReader** (line 282): Reader for legacy VTK files (.vtk).
-  - `def read(filename, extract_surface=True)` (line 294): Read a legacy VTK file and return MeshData.
-- **class UnstructuredGridReader** (line 455): Reader for VTK UnstructuredGrid files (.vtu).
-  - `def read(filename, extract_surface=True)` (line 459): Read a VTU file and return MeshData.
-- `def read_vtk_file(filename, extract_surface=True)` (line 568): Auto-detect VTK file format and read appropriately.
-- `def validate_time_series_topology(mesh_data_sequence, filenames=None)` (line 596): Validate topology consistency across a time series of meshes.
+- **class PolyDataReader** (line 234): Reader for VTK PolyData files (.vtp).
+  - `def read(filename)` (line 238): Read a VTP file and return MeshData.
+- **class LegacyVTKReader** (line 294): Reader for legacy VTK files (.vtk).
+  - `def read(filename, extract_surface=True)` (line 306): Read a legacy VTK file and return MeshData.
+- **class UnstructuredGridReader** (line 467): Reader for VTK UnstructuredGrid files (.vtu).
+  - `def read(filename, extract_surface=True)` (line 471): Read a VTU file and return MeshData.
+- `def read_vtk_file(filename, extract_surface=True)` (line 580): Auto-detect VTK file format and read appropriately.
+- `def validate_time_series_topology(mesh_data_sequence, filenames=None)` (line 608): Validate topology consistency across a time series of meshes.
 
 ## src/physiomotion4d/workflow_convert_ct_to_vtk.py
 
@@ -724,18 +724,20 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
   - `def test_from_files_single_file_writes_static_mesh(self, tmp_path)` (line 120): A single-file converter writes a static mesh with no time range.
   - `def test_from_files_static_merge_writes_separate_meshes(self, tmp_path)` (line 132): static_merge=True treats files as static objects, not time samples.
 - **class TestSyntheticConversion** (line 151): Synthetic ConvertVTKToUSD tests that do not require downloaded data.
-  - `def test_file_primvar_preservation(self, tmp_path)` (line 154): Point arrays in a VTP file are preserved as USD primvars.
-  - `def test_time_series_conversion(self, tmp_path)` (line 173): Multiple VTP files write point time samples and stage time metadata.
-- **class TestVTKToUSDConversion** (line 197): Test ConvertVTKToUSD on optional real VTK data.
-  - `def test_single_file_conversion(self, test_directories, kcl_average_surface)` (line 200): Test converting a single VTK file to USD.
-  - `def test_conversion_with_material(self, test_directories, kcl_average_surface)` (line 219): Test conversion with a custom solid color material.
-  - `def test_conversion_settings(self, test_directories, kcl_average_surface)` (line 247): Test that ConvertVTKToUSD applies correct default stage metadata.
-- **class TestIntegration** (line 264): Integration tests combining multiple features.
-  - `def test_end_to_end_conversion(self, test_directories, kcl_average_surface)` (line 267): Test complete conversion workflow with all features.
-- **class TestUnitScaling** (line 290): Verify that VTK mm coordinates are converted to USD meter coordinates.
-  - `def test_mm_to_m_point_scaling(self, tmp_path)` (line 293): Points written to USD must be 0.001x their original mm values.
-  - `def test_normals_remain_unit_length(self, tmp_path)` (line 313): Normal vectors must not be scaled.
-  - `def test_stage_meters_per_unit(self, tmp_path)` (line 333): Stage metersPerUnit metadata must be 1.0.
+  - `def test_inspect_file_reports_public_summary(self, tmp_path)` (line 154): inspect_file() reports geometry, bounds, arrays, and cell types.
+  - `def test_inspect_file_reports_empty_mesh(self, tmp_path)` (line 174): inspect_file() reports empty meshes without raising.
+  - `def test_file_primvar_preservation(self, tmp_path)` (line 190): Point arrays in a VTP file are preserved as USD primvars.
+  - `def test_time_series_conversion(self, tmp_path)` (line 209): Multiple VTP files write point time samples and stage time metadata.
+- **class TestVTKToUSDConversion** (line 233): Test ConvertVTKToUSD on optional real VTK data.
+  - `def test_single_file_conversion(self, test_directories, kcl_average_surface)` (line 236): Test converting a single VTK file to USD.
+  - `def test_conversion_with_material(self, test_directories, kcl_average_surface)` (line 255): Test conversion with a custom solid color material.
+  - `def test_conversion_settings(self, test_directories, kcl_average_surface)` (line 283): Test that ConvertVTKToUSD applies correct default stage metadata.
+- **class TestIntegration** (line 300): Integration tests combining multiple features.
+  - `def test_end_to_end_conversion(self, test_directories, kcl_average_surface)` (line 303): Test complete conversion workflow with all features.
+- **class TestUnitScaling** (line 326): Verify that VTK mm coordinates are converted to USD meter coordinates.
+  - `def test_mm_to_m_point_scaling(self, tmp_path)` (line 329): Points written to USD must be 0.001x their original mm values.
+  - `def test_normals_remain_unit_length(self, tmp_path)` (line 349): Normal vectors must not be scaled.
+  - `def test_stage_meters_per_unit(self, tmp_path)` (line 369): Stage metersPerUnit metadata must be 1.0.
 
 ## utils/claude_github_reviews.py
 

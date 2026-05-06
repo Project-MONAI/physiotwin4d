@@ -151,6 +151,42 @@ class TestFromFilesValidation:
 class TestSyntheticConversion:
     """Synthetic ConvertVTKToUSD tests that do not require downloaded data."""
 
+    def test_inspect_file_reports_public_summary(self, tmp_path: Path) -> None:
+        """inspect_file() reports geometry, bounds, arrays, and cell types."""
+        mesh = pv.Plane(i_resolution=2, j_resolution=2)
+        mesh.point_data["pressure"] = np.linspace(
+            0.0, 1.0, mesh.n_points, dtype=np.float32
+        )
+        vtk_file = tmp_path / "inspect_plane.vtp"
+        mesh.save(str(vtk_file))
+
+        summary = ConvertVTKToUSD.inspect_file(vtk_file)
+
+        assert summary["is_empty"] is False
+        assert summary["points"] == mesh.n_points
+        assert summary["faces"] > 0
+        assert len(summary["bounds_min"]) == 3
+        assert len(summary["bounds_max"]) == 3
+        assert len(summary["bounds_size"]) == 3
+        assert summary["cell_types"]
+        assert any(array["name"] == "pressure" for array in summary["arrays"])
+
+    def test_inspect_file_reports_empty_mesh(self, tmp_path: Path) -> None:
+        """inspect_file() reports empty meshes without raising."""
+        vtk_file = tmp_path / "empty.vtp"
+        pv.PolyData().save(str(vtk_file))
+
+        summary = ConvertVTKToUSD.inspect_file(vtk_file)
+
+        assert summary["is_empty"] is True
+        assert summary["points"] == 0
+        assert summary["faces"] == 0
+        assert summary["bounds_min"] == (0.0, 0.0, 0.0)
+        assert summary["bounds_max"] == (0.0, 0.0, 0.0)
+        assert summary["bounds_size"] == (0.0, 0.0, 0.0)
+        assert summary["arrays"] == []
+        assert summary["cell_types"] == []
+
     def test_file_primvar_preservation(self, tmp_path: Path) -> None:
         """Point arrays in a VTP file are preserved as USD primvars."""
         mesh = pv.Plane(i_resolution=2, j_resolution=2)

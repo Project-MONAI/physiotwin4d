@@ -287,8 +287,13 @@ class ConvertVTKToUSD(PhysioMotion4DBase):
             surface cell type counts.
         """
         mesh_data = read_vtk_file(vtk_file, extract_surface=extract_surface)
-        bbox_min = np.min(mesh_data.points, axis=0)
-        bbox_max = np.max(mesh_data.points, axis=0)
+        is_empty = len(mesh_data.points) == 0
+        if is_empty:
+            bbox_min = np.zeros(3, dtype=np.float64)
+            bbox_max = np.zeros(3, dtype=np.float64)
+        else:
+            bbox_min = np.min(mesh_data.points, axis=0)
+            bbox_max = np.max(mesh_data.points, axis=0)
 
         unique_counts, num_each = np.unique(
             mesh_data.face_vertex_counts, return_counts=True
@@ -314,6 +319,7 @@ class ConvertVTKToUSD(PhysioMotion4DBase):
             )
 
         return {
+            "is_empty": is_empty,
             "points": len(mesh_data.points),
             "faces": len(mesh_data.face_vertex_counts),
             "has_normals": mesh_data.normals is not None,
