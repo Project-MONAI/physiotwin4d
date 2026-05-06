@@ -4,12 +4,13 @@ TetMesh USD Generation
 
 .. currentmodule:: physiomotion4d
 
-Tetrahedral mesh representation in USD for volumetric models.
+Volumetric VTK meshes are converted to USD surfaces with
+:class:`ConvertVTKToUSD` using surface extraction.
 
 Class Reference
 ===============
 
-.. autoclass:: ConvertVTKToUSDTetMesh
+.. autoclass:: ConvertVTKToUSD
    :members:
    :undoc-members:
    :show-inheritance:
@@ -17,4 +18,4 @@ Class Reference
 
 .. rubric:: Navigation
 
-:doc:`polymesh` | :doc:`index` | :doc:`../utilities/index`
+:doc:`vtk_conversion` | :doc:`index` | :doc:`../utilities/index`

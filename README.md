@@ -127,8 +127,8 @@ print(f"PhysioMotion4D version: {physiomotion4d.__version__}")
   - `ContourTools`: Mesh extraction and contour manipulation
 - **USD Conversion**: VTK to USD conversion for Omniverse visualization
   - `ConvertVTKToUSD`: High-level converter for PyVista/VTK objects with colormap support
-  - `vtk_to_usd` module: File-based conversion library
-    - `VTKToUSDConverter`: Core converter with time-series support
+  - `vtk_to_usd` module: Advanced low-level file conversion library
+    - `convert_vtk_file()`: Single-file VTK/VTP/VTU to USD facade
     - `read_vtk_file()`: Read VTK/VTP/VTU files into MeshData
     - `ConversionSettings`: Configurable conversion parameters
     - `MaterialData`: USD material definitions
@@ -307,7 +307,7 @@ forward_transform = results["forward_transform"]  # Moving to fixed
 
 ### VTK to USD Conversion
 
-PhysioMotion4D provides two APIs for converting VTK data to USD for NVIDIA Omniverse visualization:
+PhysioMotion4D provides two APIs for converting VTK data to USD for NVIDIA Omniverse visualization. Repository workflows, experiments, and CLIs use `ConvertVTKToUSD`; `vtk_to_usd` is a public advanced layer for users who need low-level file conversion primitives.
 
 #### Option 1: High-Level ConvertVTKToUSD (for PyVista/VTK objects)
 
@@ -336,11 +336,10 @@ converter.set_colormap(
 stage = converter.convert('cardiac_motion.usd')
 ```
 
-#### Option 2: File-Based vtk_to_usd Library
+#### Option 2: Advanced File-Based vtk_to_usd Facade
 
 ```python
 from physiomotion4d.vtk_to_usd import (
-    VTKToUSDConverter,
     ConversionSettings,
     MaterialData,
     convert_vtk_file,
@@ -349,11 +348,11 @@ from physiomotion4d.vtk_to_usd import (
 # Simple single-file conversion
 stage = convert_vtk_file('mesh.vtp', 'output.usd')
 
-# Advanced: Custom settings and materials
+# Advanced: custom settings and material
 settings = ConversionSettings(
     triangulate_meshes=True,
     compute_normals=True,
-    meters_per_unit=0.001,  # mm to meters
+    meters_per_unit=1.0,  # coordinates are authored in meters
     times_per_second=60.0,
 )
 
@@ -363,20 +362,19 @@ material = MaterialData(
     roughness=0.4,
 )
 
-converter = VTKToUSDConverter(settings)
-stage = converter.convert_file('heart.vtp', 'heart.usd', material=material)
-
-# Time-series conversion
-files = ['frame_000.vtp', 'frame_001.vtp', 'frame_002.vtp']
-time_codes = [0.0, 0.1, 0.2]
-stage = converter.convert_sequence(files, 'animated.usd', time_codes=time_codes)
+stage = convert_vtk_file(
+    'heart.vtp',
+    'heart.usd',
+    data_basename='Heart',
+    settings=settings,
+    material=material,
+)
 ```
 
 Features:
 - Automatic coordinate system conversion (RAS to Y-up)
 - Material system with UsdPreviewSurface
 - Preserves all VTK data arrays as USD primvars
-- Time-series animation support
 - Supports VTP, VTK, and VTU file formats
 
 ### Logging and Debug Control

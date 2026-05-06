@@ -1,15 +1,15 @@
 ====================================
-PolyMesh USD Generation
+Surface Mesh USD Generation
 ====================================
 
 .. currentmodule:: physiomotion4d
 
-Surface mesh (polygon mesh) representation in USD.
+Surface VTK meshes are converted with :class:`ConvertVTKToUSD`.
 
 Class Reference
 ===============
 
-.. autoclass:: ConvertVTKToUSDPolyMesh
+.. autoclass:: ConvertVTKToUSD
    :members:
    :undoc-members:
    :show-inheritance:
@@ -17,4 +17,4 @@ Class Reference
 
 .. rubric:: Navigation
 
-:doc:`vtk_conversion` | :doc:`index` | :doc:`tetmesh`
+:doc:`vtk_conversion` | :doc:`index`

@@ -191,18 +191,19 @@ Convert VTK mesh sequence to animated USD:
 
 .. code-block:: python
 
-   from physiomotion4d import ConvertVTKToUSDPolyMesh
+   from physiomotion4d import ConvertVTKToUSD
    import glob
 
    # Get VTK files
    vtk_files = sorted(glob.glob("heart_frame_*.vtp"))
 
-   # Convert
-   converter = ConvertVTKToUSDPolyMesh()
-   converter.set_input_filenames(vtk_files)
-   converter.set_output_filename("heart_animation.usd")
-   converter.set_frame_rate(30)  # FPS
-   converter.convert()
+   time_codes = [float(i) for i in range(len(vtk_files))]
+   stage = ConvertVTKToUSD.from_files(
+       data_basename="Heart",
+       vtk_files=vtk_files,
+       time_codes=time_codes,
+       times_per_second=30,
+   ).convert("heart_animation.usd")
 
    print("USD animation created: heart_animation.usd")
 
@@ -522,7 +523,7 @@ Mix and match different components:
        SegmentChestTotalSegmentator,
        RegisterImagesICON,
        TransformTools,
-       ConvertVTKToUSDPolyMesh,
+       ConvertVTKToUSD,
        ContourTools
    )
    import itk
@@ -558,11 +559,13 @@ Mix and match different components:
    for i, mesh in enumerate(meshes):
        mesh.save(f"heart_{i:03d}.vtp")
 
-   # Convert to USD
-   converter = ConvertVTKToUSDPolyMesh()
-   converter.set_input_filenames([f"heart_{i:03d}.vtp" for i in range(10)])
-   converter.set_output_filename("heart.usd")
-   converter.convert()
+   vtk_files = [f"heart_{i:03d}.vtp" for i in range(10)]
+   time_codes = [float(i) for i in range(len(vtk_files))]
+   stage = ConvertVTKToUSD.from_files(
+       data_basename="Heart",
+       vtk_files=vtk_files,
+       time_codes=time_codes,
+   ).convert("heart.usd")
 
 See Also
 ========

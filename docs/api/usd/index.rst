@@ -13,9 +13,7 @@ USD generation tools for creating animated 3D models from medical images:
 
 * **USD Tools**: Core USD file operations
 * **Anatomy Tools**: Anatomical structure handling
-* **VTK Conversion**: Convert VTK meshes to USD
-* **PolyMesh**: Surface mesh representation
-* **TetMesh**: Tetrahedral mesh representation
+* **VTK Conversion**: Convert VTK meshes to USD with :class:`ConvertVTKToUSD`
 
 Quick Links
 ===========
@@ -24,8 +22,6 @@ Quick Links
    * :doc:`tools` - Core USD utilities
    * :doc:`anatomy_tools` - Anatomical structure tools
    * :doc:`vtk_conversion` - VTK to USD conversion
-   * :doc:`polymesh` - Surface mesh USD
-   * :doc:`tetmesh` - Tetrahedral mesh USD
 
 Module Documentation
 ====================
@@ -36,8 +32,6 @@ Module Documentation
    tools
    anatomy_tools
    vtk_conversion
-   polymesh
-   tetmesh
 
 Quick Start
 ===========
@@ -49,16 +43,12 @@ Convert VTK to USD
 
    from physiomotion4d import ConvertVTKToUSD
    
-   converter = ConvertVTKToUSD(
-       output_file="animated_heart.usd",
-       colormap="rainbow",
-       verbose=True
-   )
-   
-   converter.convert(
+   converter = ConvertVTKToUSD.from_files(
+       data_basename="Heart",
        vtk_files=["heart_phase_00.vtk", "heart_phase_01.vtk"],
-       time_points=[0.0, 0.1, 0.2]
+       time_codes=[0.0, 1.0],
    )
+   stage = converter.convert("animated_heart.usd")
 
 Create Anatomical Scene
 -----------------------

@@ -1,61 +1,56 @@
-# CLAUDE.md — vtk_to_usd
+# CLAUDE.md - vtk_to_usd
 
-This subpackage is an **advanced internal library**. Understand this before touching it.
+This subpackage is a public advanced low-level library. Understand this before
+touching it.
 
-## Preferred API
+## Preferred In-Repo API
 
-**Do not add calls to `vtk_to_usd` from outside this subpackage.**
-
-The correct entry point for all VTK→USD conversion in PhysioMotion4D is:
+Do not add calls to `vtk_to_usd` from experiments, workflows, CLIs, or other
+top-level PhysioMotion4D modules. The in-repository entry point for VTK-to-USD
+conversion is:
 
 ```python
 from physiomotion4d.convert_vtk_to_usd import ConvertVTKToUSD
 ```
 
-`ConvertVTKToUSD` operates on in-memory PyVista objects, handles colormap overlays,
-multi-label anatomy, and animated time series, and is the only API that external users
-or other PhysioMotion4D modules should call.
+External advanced users may import `physiomotion4d.vtk_to_usd` directly.
 
-## Role of this subpackage
+## Role of This Subpackage
 
-`vtk_to_usd/` is called internally by `ConvertVTKToUSD`. It provides:
-- File-based VTK→USD conversion (reads `.vtk`, `.vtp`, `.vtu` from disk)
+`vtk_to_usd/` is the workhorse used by `ConvertVTKToUSD`. It provides:
+
+- `convert_vtk_file()` for single-file low-level conversion
+- VTK readers for `.vtk`, `.vtp`, and `.vtu`
 - Low-level data structures: `MeshData`, `ConversionSettings`, `MaterialData`
 - USD primitive writing: normals, primvars, time samples, materials
 
-Other PhysioMotion4D modules (workflow, segmentation, registration) should never
-import directly from `physiomotion4d.vtk_to_usd`; they must go through
-`ConvertVTKToUSD`. External library users may use the file-based API.
+## When To Edit This Subpackage
 
-## When to edit this subpackage
+Edit code here only when the change belongs in the file-based conversion layer
+itself: readers, USD writers, data structures, coordinate transforms, or the
+single-file facade. Otherwise, prefer `convert_vtk_to_usd.py`.
 
-Only edit code here when:
-1. `ConvertVTKToUSD` cannot expose the needed behavior through its own API, **and**
-2. The change is to the file-based conversion layer itself (readers, USD writers, data structures).
+## Module Responsibilities
 
-Always check whether the fix belongs in `convert_vtk_to_usd.py` first.
+| File | Responsibility |
+| --- | --- |
+| `converter.py` | `convert_vtk_file()` single-file facade |
+| `data_structures.py` | `MeshData`, `MaterialData`, etc. |
+| `vtk_reader.py` | Read `.vtk`, `.vtp`, `.vtu` files into `MeshData` |
+| `usd_utils.py` | Coordinate conversion and primvar helpers |
+| `material_manager.py` | `UsdPreviewSurface` creation and binding |
+| `usd_mesh_converter.py` | Write `MeshData` to a USD prim |
+| `mesh_utils.py` | Mesh splitting helpers |
 
-## Module responsibilities
+## Coordinate System
 
-| File                  | Responsibility                                      |
-|-----------------------|-----------------------------------------------------|
-| `data_structures.py`  | Data containers: `MeshData`, `MaterialData`, etc.   |
-| `vtk_reader.py`       | Read `.vtk`, `.vtp`, `.vtu` files into `MeshData`  |
-| `usd_utils.py`        | Coordinate conversion (RAS→Y-up), primvar helpers  |
-| `material_manager.py` | `UsdPreviewSurface` creation and binding            |
-| `usd_mesh_converter.py` | Write `MeshData` to a USD prim                   |
-| `converter.py`        | `VTKToUSDConverter` — high-level file-based API    |
+RAS-to-Y-up conversion: `USD(x, y, z) = RAS(x, z, -y) * 0.001`.
 
-## Coordinate system
+This conversion happens inside `usd_utils.ras_to_usd()` and
+`ras_points_to_usd()`. It must not be applied more than once.
 
-RAS→Y-up conversion: `USD(x, y, z) = RAS(x, z, -y)`
+## Testing Policy
 
-This conversion happens inside `usd_utils.ras_to_usd()` / `ras_points_to_usd()`.
-It must not be applied more than once. If you add a code path that produces USD
-geometry, verify the transform is applied exactly once.
-
-## What not to do
-
-- Do not expose new public symbols in `__init__.py` without a clear reason.
-- Do not call `vtk_to_usd` internals from `workflow_*.py` or any other top-level module.
-- Do not duplicate coordinate conversion logic outside `usd_utils.py`.
+Tests should exercise this subpackage through `ConvertVTKToUSD`. Do not add
+direct tests for `vtk_to_usd` internals unless the project explicitly changes
+this policy.

@@ -1,16 +1,18 @@
-"""Internal VTK-to-USD plumbing for PhysioMotion4D.
+"""Public advanced VTK-to-USD conversion layer for PhysioMotion4D.
 
-This subpackage is private. External code and all PhysioMotion4D modules must
-use ConvertVTKToUSD from physiomotion4d.convert_vtk_to_usd; they must not
-import from this package directly.
+This subpackage is a stable low-level API for advanced external users. Code in
+PhysioMotion4D experiments, workflows, and CLIs should use ConvertVTKToUSD from
+physiomotion4d.convert_vtk_to_usd instead of importing this package directly.
 
 Provides:
+- File facade: convert_vtk_file
 - Data containers: MeshData, ConversionSettings, MaterialData, etc.
 - VTK file readers (.vtk, .vtp, .vtu)
 - USD primitive writers: UsdMeshConverter, MaterialManager
-- Coordinate helpers (RAS → Y-up) and mesh splitting utilities
+- Coordinate helpers (RAS to Y-up) and mesh splitting utilities
 """
 
+from .converter import convert_vtk_file
 from .data_structures import (
     ConversionSettings,
     DataType,
@@ -46,6 +48,8 @@ from .vtk_reader import (
 )
 
 __all__ = [
+    # File facade
+    "convert_vtk_file",
     # Data structures
     "ConversionSettings",
     "DataType",
