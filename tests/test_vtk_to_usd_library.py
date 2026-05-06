@@ -598,3 +598,77 @@ class TestIntegration:
         print(f"  Size: {output_usd.stat().st_size / 1024:.1f} KB")
         print(f"  Points: {len(points):,}")
         print(f"  Primvars: {len(primvars)}")
+
+
+class TestUnitScaling:
+    """Verify that VTK mm coordinates are converted to USD meter coordinates."""
+
+    def test_mm_to_m_point_scaling(self, tmp_path: Path) -> None:
+        """Points written to USD must be 0.001× their original mm values."""
+        # Sphere with radius=100 mm — vertices should be near ±100 in VTK.
+        mesh = pv.Sphere(radius=100.0)
+        output_usd = tmp_path / "sphere.usd"
+
+        stage = ConvertVTKToUSD(
+            data_basename="Sphere",
+            input_polydata=[mesh],
+        ).convert(str(output_usd))
+
+        mesh_prim = stage.GetPrimAtPath("/World/Sphere/Mesh")
+        assert mesh_prim.IsValid(), "Mesh prim not found at expected path"
+
+        usd_mesh = UsdGeom.Mesh(mesh_prim)
+        usd_points = usd_mesh.GetPointsAttr().Get()
+        assert usd_points is not None and len(usd_points) > 0
+
+        coords = np.array(usd_points)
+        max_coord = float(np.abs(coords).max())
+
+        # In meters a 100 mm sphere has vertices ≤ 0.1 m (plus floating-point headroom).
+        assert max_coord < 0.15, (
+            f"Max coordinate {max_coord:.4f} is not in meters. "
+            "Expected < 0.15 m for a 100 mm radius sphere; "
+            "got a value that looks like millimeters."
+        )
+        # Sanity-check it's not collapsed to near zero (e.g., double-scaling).
+        assert max_coord > 0.05, (
+            f"Max coordinate {max_coord:.6f} is unexpectedly small."
+        )
+
+    def test_normals_remain_unit_length(self, tmp_path: Path) -> None:
+        """Normal vectors must not be scaled — they should remain unit length."""
+        mesh = pv.Sphere(radius=100.0)
+        mesh.compute_normals(inplace=True)
+        output_usd = tmp_path / "sphere_normals.usd"
+
+        stage = ConvertVTKToUSD(
+            data_basename="Sphere",
+            input_polydata=[mesh],
+        ).convert(str(output_usd))
+
+        mesh_prim = stage.GetPrimAtPath("/World/Sphere/Mesh")
+        usd_mesh = UsdGeom.Mesh(mesh_prim)
+        normals_attr = usd_mesh.GetNormalsAttr()
+
+        if normals_attr is None or normals_attr.Get() is None:
+            pytest.skip("No normals on this mesh")
+
+        normals = np.array(normals_attr.Get())
+        norms = np.linalg.norm(normals, axis=1)
+        # Every normal should be ≈ 1.0 (unit vector), not 0.001.
+        assert np.allclose(norms, 1.0, atol=1e-3), (
+            f"Normals are not unit length after conversion. "
+            f"Mean norm: {norms.mean():.6f}, expected ≈ 1.0"
+        )
+
+    def test_stage_meters_per_unit(self, tmp_path: Path) -> None:
+        """Stage metersPerUnit metadata must be 1.0 (coordinates stored in meters)."""
+        mesh = pv.Sphere(radius=100.0)
+        output_usd = tmp_path / "sphere_meta.usd"
+
+        stage = ConvertVTKToUSD(
+            data_basename="Sphere",
+            input_polydata=[mesh],
+        ).convert(str(output_usd))
+
+        assert UsdGeom.GetStageMetersPerUnit(stage) == 1.0

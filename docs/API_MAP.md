@@ -373,19 +373,19 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 - **class UsdMeshConverter** (line 25): Converts MeshData to UsdGeomMesh with full feature support.
   - `def __init__(self, stage, settings, material_mgr)` (line 36): Initialize mesh converter.
   - `def create_mesh(self, mesh_data, mesh_path, time_code=None, bind_material=True)` (line 53): Create a UsdGeomMesh from MeshData.
-  - `def create_time_varying_mesh(self, mesh_data_sequence, mesh_path, time_codes, bind_material=True)` (line 282): Create a mesh with time-varying attributes.
+  - `def create_time_varying_mesh(self, mesh_data_sequence, mesh_path, time_codes, bind_material=True)` (line 288): Create a mesh with time-varying attributes.
 
 ## src/physiomotion4d/vtk_to_usd/usd_utils.py
 
 - `def ras_to_usd(point)` (line 18): Convert RAS (Right-Anterior-Superior) coordinates to USD's right-handed Y-up system.
-- `def ras_points_to_usd(points)` (line 45): Convert array of RAS points to USD coordinates.
-- `def ras_normals_to_usd(normals)` (line 67): Convert array of RAS normals to USD coordinates.
-- `def numpy_to_vt_array(array, data_type)` (line 81): Convert numpy array to appropriate VtArray type.
-- `def get_sdf_value_type(data_type, num_components)` (line 153): Get appropriate SDF value type for primvar creation.
-- `def sanitize_primvar_name(name)` (line 200): Sanitize a name to be USD-compliant.
-- `def create_primvar(geom, array, array_name_prefix='', time_code=None)` (line 235): Create a USD primvar from a GenericArray.
-- `def triangulate_face(face_counts, face_indices)` (line 349): Triangulate polygonal faces.
-- `def compute_mesh_extent(points)` (line 389): Compute bounding box extent for a mesh.
+- `def ras_points_to_usd(points)` (line 53): Convert array of RAS points (mm) to USD coordinates (m).
+- `def ras_normals_to_usd(normals)` (line 76): Convert array of RAS normals to USD Y-up coordinates.
+- `def numpy_to_vt_array(array, data_type)` (line 99): Convert numpy array to appropriate VtArray type.
+- `def get_sdf_value_type(data_type, num_components)` (line 171): Get appropriate SDF value type for primvar creation.
+- `def sanitize_primvar_name(name)` (line 218): Sanitize a name to be USD-compliant.
+- `def create_primvar(geom, array, array_name_prefix='', time_code=None)` (line 253): Create a USD primvar from a GenericArray.
+- `def triangulate_face(face_counts, face_indices)` (line 367): Triangulate polygonal faces.
+- `def compute_mesh_extent(points)` (line 407): Compute bounding box extent for a mesh.
 
 ## src/physiomotion4d/vtk_to_usd/vtk_reader.py
 
@@ -741,6 +741,10 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
   - `def test_time_series_conversion(self, test_directories, kcl_average_surface)` (line 517): Test converting multiple VTK files as a time series.
 - **class TestIntegration** (line 557): Integration tests combining multiple features.
   - `def test_end_to_end_conversion(self, test_directories, kcl_average_surface)` (line 560): Test complete conversion workflow with all features.
+- **class TestUnitScaling** (line 603): Verify that VTK mm coordinates are converted to USD meter coordinates.
+  - `def test_mm_to_m_point_scaling(self, tmp_path)` (line 606): Points written to USD must be 0.001× their original mm values.
+  - `def test_normals_remain_unit_length(self, tmp_path)` (line 638): Normal vectors must not be scaled — they should remain unit length.
+  - `def test_stage_meters_per_unit(self, tmp_path)` (line 664): Stage metersPerUnit metadata must be 1.0 (coordinates stored in meters).
 
 ## utils/claude_github_reviews.py
 
