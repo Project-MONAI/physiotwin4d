@@ -297,6 +297,8 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
   - `def write_result_transform(self, transform, filename)` (line 155): Write the transform to the results directory.
   - `def compare_result_to_baseline_transform(self, filename, *, per_value_absolute_error_tol=0.0, max_number_of_values_above_tol=0, total_absolute_error_tol=0.0)` (line 161): Compare the transform to the baseline transform.
   - `def compare_result_to_baseline_image(self, filename, *, per_pixel_absolute_error_tol=0.0, max_number_of_pixels_above_tol=0, total_absolute_error_tol=0.0)` (line 239): Load a 3D result image and a 3D baseline image (.mha), compare the full
+  - `def save_screenshot_mesh(self, mesh, filename, *, camera_position='iso', window_size=(800, 600), color='pink', opacity=0.9)` (line 346): Render a PyVista mesh off-screen and save a PNG.
+  - `def save_screenshot_image_slice(self, image, filename, *, axis=0, slice_fraction=0.5, colormap='gray', vmin=None, vmax=None, overlay_mask=None, overlay_alpha=0.4)` (line 388): Extract one slice from an ITK image and save a PNG via matplotlib.
 
 ## src/physiomotion4d/transform_tools.py
 
@@ -373,7 +375,7 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 - **class UsdMeshConverter** (line 25): Converts MeshData to UsdGeomMesh with full feature support.
   - `def __init__(self, stage, settings, material_mgr)` (line 36): Initialize mesh converter.
   - `def create_mesh(self, mesh_data, mesh_path, time_code=None, bind_material=True)` (line 53): Create a UsdGeomMesh from MeshData.
-  - `def create_time_varying_mesh(self, mesh_data_sequence, mesh_path, time_codes, bind_material=True)` (line 282): Create a mesh with time-varying attributes.
+  - `def create_time_varying_mesh(self, mesh_data_sequence, mesh_path, time_codes, bind_material=True)` (line 286): Create a mesh with time-varying attributes.
 
 ## src/physiomotion4d/vtk_to_usd/usd_utils.py
 
@@ -679,6 +681,21 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
   - `def test_multiple_transform_applications(self, transform_tools, test_transforms, test_images)` (line 628): Test applying multiple transforms in sequence.
   - `def test_identity_transform(self, transform_tools, test_images)` (line 656): Test that identity transform doesn't change the image.
 
+## tests/test_tutorials.py
+
+- **class TestTutorial01HeartGatedCTToUSD** (line 66): End-to-end test for tutorial_01_heart_gated_ct_to_usd.py.
+  - `def test_run(self, test_directories)` (line 71)
+- **class TestTutorial02CTToVTK** (line 99): End-to-end test for tutorial_02_ct_to_vtk.py.
+  - `def test_run(self, test_directories)` (line 104)
+- **class TestTutorial03FitStatisticalModelToPatient** (line 131): End-to-end test for tutorial_03_fit_statistical_model_to_patient.py.
+  - `def test_run(self, test_directories)` (line 136)
+- **class TestTutorial04CreateStatisticalModel** (line 168): End-to-end test for tutorial_04_create_statistical_model.py.
+  - `def test_run(self, test_directories)` (line 173)
+- **class TestTutorial05VTKToUSD** (line 208): End-to-end test for tutorial_05_vtk_to_usd.py.
+  - `def test_run(self, test_directories)` (line 213)
+- **class TestTutorial06ReconstructHighres4DCT** (line 257): End-to-end test for tutorial_06_reconstruct_highres_4d_ct.py.
+  - `def test_run(self, test_directories)` (line 262)
+
 ## tests/test_usd_merge.py
 
 - `def analyze_usd_file(filepath)` (line 17): Analyze a USD file for materials and time samples.
@@ -741,6 +758,30 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
   - `def test_time_series_conversion(self, test_directories, kcl_average_surface)` (line 517): Test converting multiple VTK files as a time series.
 - **class TestIntegration** (line 557): Integration tests combining multiple features.
   - `def test_end_to_end_conversion(self, test_directories, kcl_average_surface)` (line 560): Test complete conversion workflow with all features.
+
+## tutorials/tutorial_01_heart_gated_ct_to_usd.py
+
+- `def run_tutorial(data_dir, output_dir, *, registration_method='ants', log_level=logging.INFO)` (line 99): Run Tutorial 1: Heart-Gated CT to Animated USD.
+
+## tutorials/tutorial_02_ct_to_vtk.py
+
+- `def run_tutorial(data_dir, output_dir, *, log_level=logging.INFO)` (line 90): Run Tutorial 2: CT Segmentation to VTK Surfaces.
+
+## tutorials/tutorial_03_fit_statistical_model_to_patient.py
+
+- `def run_tutorial(data_dir, output_dir, *, log_level=logging.INFO)` (line 93): Run Tutorial 3: Fit Statistical Shape Model to Patient Data.
+
+## tutorials/tutorial_04_create_statistical_model.py
+
+- `def run_tutorial(data_dir, output_dir, *, pca_components=10, max_samples=20, log_level=logging.INFO)` (line 93): Run Tutorial 4: Create a PCA Statistical Shape Model.
+
+## tutorials/tutorial_05_vtk_to_usd.py
+
+- `def run_tutorial(data_dir, output_dir, *, vtk_file=None, log_level=logging.INFO)` (line 80): Run Tutorial 5: VTK Surface Series to Animated USD.
+
+## tutorials/tutorial_06_reconstruct_highres_4d_ct.py
+
+- `def run_tutorial(data_dir, output_dir, *, case=1, max_frames=4, registration_method='ants', log_level=logging.INFO)` (line 89): Run Tutorial 6: Reconstruct High-Resolution 4D CT.
 
 ## utils/claude_github_reviews.py
 

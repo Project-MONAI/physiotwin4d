@@ -16,11 +16,11 @@ Inputs
 
 Outputs
 -------
-- ``output_dir/patient_surfaces.vtp`` — all anatomy surfaces in one file
-- ``output_dir/patient_meshes.vtu`` — all voxel meshes in one file
+- ``output_dir/patient_surfaces.vtp`` - all anatomy surfaces in one file
+- ``output_dir/patient_meshes.vtu`` - all voxel meshes in one file
 - Screenshots (PNG):
-  - ``segmentation_overlay.png`` — segmentation mask overlaid on axial CT slice
-  - ``vtk_surfaces.png`` — 3-D isometric view of the combined surface
+  - ``segmentation_overlay.png`` - segmentation mask overlaid on axial CT slice
+  - ``vtk_surfaces.png`` - 3-D isometric view of the combined surface
 
 Strengths
 ---------
@@ -66,7 +66,7 @@ See ``src/physiomotion4d/cli/convert_ct_to_vtk.py`` for full CLI documentation.
 Data Required
 -------------
 See data/README.md for download instructions and dataset licensing.
-Dataset: Slicer-Heart-CT — https://github.com/Slicer-Heart-CT/Slicer-Heart-CT
+Dataset: Slicer-Heart-CT - https://github.com/Slicer-Heart-CT/Slicer-Heart-CT
 Auto-download: the conftest fixture downloads
 ``data/test/TruncalValve_4DCT.seq.nrrd`` and extracts frames as
 ``data/test/slice_???.mha``. For this tutorial the full dataset is at
@@ -143,7 +143,7 @@ def run_tutorial(
         result["meshes"], str(output_dir), prefix="patient"
     )
 
-    # ── Screenshots ──────────────────────────────────────────────────────────
+    # Screenshots
     tt = TestTools(
         results_dir=output_dir,
         baselines_dir=output_dir / "baselines",

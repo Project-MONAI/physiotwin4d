@@ -20,12 +20,13 @@ Inputs
 
 Outputs
 -------
-- ``output_dir/cardiac_model_painted.usd`` — animated USD with anatomy materials
-- ``output_dir/<phase>_*.vtp`` — per-frame surface meshes (VTK PolyData)
+- ``output_dir/cardiac_model.dynamic_anatomy_painted.usd`` - animated USD with
+  anatomy materials
+- ``output_dir/<phase>_*.vtp`` - per-frame surface meshes (VTK PolyData)
 - Screenshots (PNG) for documentation and regression testing:
-  - ``reference_frame_axial.png`` — axial slice of the reference CT frame
-  - ``segmentation_overlay.png`` — segmentation mask overlaid on reference
-  - ``contours_3d.png`` — 3-D isometric view of the reference-frame contours
+  - ``reference_frame_axial.png`` - axial slice of the reference CT frame
+  - ``segmentation_overlay.png`` - segmentation mask overlaid on reference
+  - ``contours_3d.png`` - 3-D isometric view of the reference-frame contours
 
 Strengths
 ---------
@@ -37,7 +38,7 @@ Strengths
 Weaknesses / Limitations
 ------------------------
 - Requires a GPU for ICON registration (``registration_method='icon'``); use
-  ``registration_method='ants'`` for CPU-only environments (slower, ~10× longer).
+  ``registration_method='ants'`` for CPU-only environments (about 10x slower).
 - Segmentation quality depends on TotalSegmentator's training distribution;
   unusual pathologies or pediatric anatomy may degrade results.
 - Large 4D datasets (>20 phases, high resolution) can require 32 GB+ RAM.
@@ -45,8 +46,8 @@ Weaknesses / Limitations
 Classes Used
 ------------
 - WorkflowConvertHeartGatedCTToUSD (workflow_convert_heart_gated_ct_to_usd.py):
-    Orchestrates the full pipeline: 4D NRRD → segmentation → registration →
-    contour extraction → USD export.
+    Orchestrates the full pipeline: 4D NRRD -> segmentation -> registration ->
+    contour extraction -> USD export.
 - SegmentChestTotalSegmentator (segment_chest_total_segmentator.py):
     Deep-learning segmentation of 117 anatomical structures (used internally).
 - RegisterImagesICON / RegisterImagesANTs (register_images_icon.py / _ants.py):
@@ -74,10 +75,10 @@ documentation.
 Data Required
 -------------
 See data/README.md for download instructions and dataset licensing.
-Dataset: Slicer-Heart-CT — https://github.com/Slicer-Heart-CT/Slicer-Heart-CT
-Auto-download: the conftest fixture or the notebook
-``experiments/Heart-GatedCT_To_USD/0-download_and_convert_4d_to_3d.ipynb``
-will place the file at ``data/Slicer-Heart-CT/TruncalValve_4DCT.seq.nrrd``.
+Dataset: Slicer-Heart-CT - https://github.com/Slicer-Heart-CT/Slicer-Heart-CT
+This script expects the data to already exist at
+``data/Slicer-Heart-CT/TruncalValve_4DCT.seq.nrrd``. Run the repository data
+download notebook or download the file manually before running this tutorial.
 """
 
 from __future__ import annotations
@@ -135,9 +136,9 @@ def run_tutorial(
         log_level=log_level,
     )
 
-    usd_file = workflow.process()
+    usd_file = output_dir / workflow.process()
 
-    # ── Screenshots ──────────────────────────────────────────────────────────
+    # Screenshots
     tt = TestTools(
         results_dir=output_dir,
         baselines_dir=output_dir / "baselines",
@@ -195,7 +196,7 @@ def run_tutorial(
             )
         )
 
-    return {"usd_file": usd_file, "screenshots": screenshots}
+    return {"usd_file": str(usd_file), "screenshots": screenshots}
 
 
 if __name__ == "__main__":

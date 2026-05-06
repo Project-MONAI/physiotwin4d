@@ -18,9 +18,9 @@ Inputs
 
 Outputs
 -------
-- ``output_dir/surfaces.usd`` — USD file with anatomy materials applied
+- ``output_dir/surfaces.usd`` - USD file with anatomy materials applied
 - Screenshots (PNG):
-  - ``usd_mesh_rendering.png`` — PyVista off-screen render of the mesh
+  - ``usd_mesh_rendering.png`` - PyVista off-screen render of the mesh
 
 Strengths
 ---------
@@ -127,7 +127,7 @@ def run_tutorial(
     )
     usd_path = workflow.run()
 
-    # ── Screenshots ──────────────────────────────────────────────────────────
+    # Screenshots
     tt = TestTools(
         results_dir=output_dir,
         baselines_dir=output_dir / "baselines",

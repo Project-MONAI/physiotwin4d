@@ -19,12 +19,12 @@ Inputs
 
 Outputs
 -------
-- ``output_dir/pca_model.json`` — PCA model (eigenvectors, eigenvalues, mean)
-- ``output_dir/pca_mean_surface.vtp`` — mean shape as a surface
+- ``output_dir/pca_model.json`` - PCA model (eigenvectors, eigenvalues, mean)
+- ``output_dir/pca_mean_surface.vtp`` - mean shape as a surface
 - Screenshots (PNG):
-  - ``pca_mean_model.png`` — 3-D view of the PCA mean surface
-  - ``pca_mode_01.png`` — mean ± 2σ for the first PCA mode (side-by-side)
-  - ``pca_mode_02.png`` — mean ± 2σ for the second PCA mode
+  - ``pca_mean_model.png`` - 3-D view of the PCA mean surface
+  - ``pca_mode_01.png`` - mean +/- 2 sigma for the first PCA mode (side-by-side)
+  - ``pca_mode_02.png`` - mean +/- 2 sigma for the second PCA mode
 
 Strengths
 ---------
@@ -47,7 +47,7 @@ Weaknesses / Limitations
 Classes Used
 ------------
 - WorkflowCreateStatisticalModel (workflow_create_statistical_model.py):
-    Runs the full pipeline: ICP → deformable correspondence → PCA.
+    Runs the full pipeline: ICP -> deformable correspondence -> PCA.
 - RegisterModelsICP (register_models_icp.py):
     Aligns each sample to the reference (used internally).
 - RegisterModelsDistanceMaps (register_models_distance_maps.py):
@@ -69,7 +69,7 @@ documentation.
 Data Required
 -------------
 See data/README.md for download instructions and dataset licensing.
-Dataset: KCL-Heart-Model — manual download required.
+Dataset: KCL-Heart-Model - manual download required.
 Place files under ``data/KCL-Heart-Model/`` as described in data/README.md.
 """
 
@@ -79,7 +79,7 @@ import argparse
 import json
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import pyvista as pv
@@ -136,8 +136,8 @@ def run_tutorial(
             "See data/README.md for manual download instructions."
         )
 
-    reference_mesh = pv.read(str(reference_file))
-    sample_meshes = [pv.read(str(f)) for f in sample_files]
+    reference_mesh = cast(pv.DataSet, pv.read(str(reference_file)))
+    sample_meshes = [cast(pv.DataSet, pv.read(str(f))) for f in sample_files]
 
     workflow = WorkflowCreateStatisticalModel(
         sample_meshes=sample_meshes,
@@ -163,7 +163,7 @@ def run_tutorial(
     with open(model_file, "w") as fh:
         json.dump(json_safe, fh, indent=2)
 
-    # ── Screenshots ──────────────────────────────────────────────────────────
+    # Screenshots
     tt = TestTools(
         results_dir=output_dir,
         baselines_dir=output_dir / "baselines",
@@ -184,7 +184,7 @@ def run_tutorial(
         )
     )
 
-    # First two PCA modes: show mean ± 2σ side-by-side
+    # First two PCA modes: show mean +/- 2 sigma side-by-side
     eigenvectors: Any = pca_model.get("eigenvectors")
     eigenvalues: Any = pca_model.get("eigenvalues")
     mean_points = np.asarray(mean_surface.points)
@@ -208,7 +208,7 @@ def run_tutorial(
         plotter = pv.Plotter(off_screen=True, window_size=[1200, 500], shape=(1, 3))
         plotter.subplot(0, 0)
         plotter.add_mesh(minus_mesh, color="royalblue", opacity=0.9)
-        plotter.add_text("mean − 2σ", font_size=10)
+        plotter.add_text("mean - 2 sigma", font_size=10)
         plotter.camera_position = "iso"
         plotter.subplot(0, 1)
         plotter.add_mesh(mean_surface, color="steelblue", opacity=0.9)
@@ -216,7 +216,7 @@ def run_tutorial(
         plotter.camera_position = "iso"
         plotter.subplot(0, 2)
         plotter.add_mesh(plus_mesh, color="coral", opacity=0.9)
-        plotter.add_text("mean + 2σ", font_size=10)
+        plotter.add_text("mean + 2 sigma", font_size=10)
         plotter.camera_position = "iso"
 
         png_name = f"pca_mode_{mode_idx + 1:02d}.png"

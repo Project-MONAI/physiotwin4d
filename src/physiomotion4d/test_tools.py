@@ -11,7 +11,7 @@ from __future__ import annotations
 import logging
 import shutil
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 import itk
 import numpy as np
@@ -348,7 +348,7 @@ class TestTools(PhysioMotion4DBase):
         mesh: Any,  # pv.PolyData
         filename: str,
         *,
-        camera_position: str = "iso",
+        camera_position: Literal["xy", "xz", "yz", "yx", "zx", "zy", "iso"] = "iso",
         window_size: tuple[int, int] = (800, 600),
         color: str = "pink",
         opacity: float = 0.9,
@@ -402,9 +402,9 @@ class TestTools(PhysioMotion4DBase):
 
         The numpy array from ``itk.array_view_from_image`` has shape ``(Z, Y, X)``
         (ITK stores X fastest; numpy reverses the axis order). Axis indices:
-        - axis=0 → axial (constant-Z plane)
-        - axis=1 → coronal (constant-Y plane)
-        - axis=2 → sagittal (constant-X plane)
+        - axis=0: axial (constant-Z plane)
+        - axis=1: coronal (constant-Y plane)
+        - axis=2: sagittal (constant-X plane)
 
         Saves to results_dir/class_name/filename.
 
@@ -414,8 +414,8 @@ class TestTools(PhysioMotion4DBase):
             axis: Numpy axis along which to slice (0=axial, 1=coronal, 2=sagittal).
             slice_fraction: Fractional position along ``axis`` in [0, 1].
             colormap: Matplotlib colormap name for the base image.
-            vmin: Lower clamp for display; None → data minimum.
-            vmax: Upper clamp for display; None → data maximum.
+            vmin: Lower clamp for display; None means data minimum.
+            vmax: Upper clamp for display; None means data maximum.
             overlay_mask: Optional binary ITK mask rendered as a semi-transparent
                 overlay. Must have the same spatial extent as ``image``.
             overlay_alpha: Opacity of the mask overlay in [0, 1].

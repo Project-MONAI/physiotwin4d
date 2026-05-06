@@ -20,10 +20,10 @@ Inputs
 
 Outputs
 -------
-- ``output_dir/reconstructed_frame_<N>.mha`` — one reconstructed 3D image per frame
+- ``output_dir/reconstructed_frame_<N>.mha`` - one reconstructed 3D image per frame
 - Screenshots (PNG):
-  - ``reference_frame.png`` — axial slice of the high-resolution reference image
-  - ``reconstructed_frame.png`` — axial slice of the first reconstructed frame
+  - ``reference_frame.png`` - axial slice of the high-resolution reference image
+  - ``reconstructed_frame.png`` - axial slice of the first reconstructed frame
 
 Strengths
 ---------
@@ -38,7 +38,7 @@ Weaknesses / Limitations
 - ICON registration (default part of ``'ants_icon'``) requires a GPU.
 - Reconstruction quality is bounded by the accuracy of the registration; large
   respiratory excursion between phases can cause residual artefacts.
-- Runtime is proportional to the number of frames × registration cost.
+- Runtime is proportional to the number of frames times registration cost.
 
 Classes Used
 ------------
@@ -66,7 +66,7 @@ documentation.
 Data Required
 -------------
 See data/README.md for download instructions and dataset licensing.
-Dataset: DirLab 4D-CT — https://www.dir-lab.com/ReferenceData.html
+Dataset: DirLab 4D-CT - https://www.dir-lab.com/ReferenceData.html
 Manual download required. Place files under ``data/DirLab-4DCT/`` as described
 in data/README.md.
 """
@@ -151,7 +151,7 @@ def run_tutorial(
         itk.imwrite(vol, str(out_path), compression=True)
         reconstructed_files.append(out_path)
 
-    # ── Screenshots ──────────────────────────────────────────────────────────
+    # Screenshots
     tt = TestTools(
         results_dir=output_dir,
         baselines_dir=output_dir / "baselines",

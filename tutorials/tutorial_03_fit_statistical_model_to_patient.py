@@ -23,10 +23,10 @@ Inputs
 
 Outputs
 -------
-- ``output_dir/registered_template.vtp`` — template mesh fitted to patient
+- ``output_dir/registered_template.vtp`` - template mesh fitted to patient
 - Screenshots (PNG):
-  - ``model_before_registration.png`` — template and patient overlaid (pre-ICP)
-  - ``model_after_registration.png`` — registered template on patient
+  - ``model_before_registration.png`` - template and patient overlaid (pre-ICP)
+  - ``model_after_registration.png`` - registered template on patient
 
 Strengths
 ---------
@@ -40,7 +40,7 @@ Strengths
 Weaknesses / Limitations
 ------------------------
 - Requires the KCL-Heart-Model dataset (manual download; see data/README.md).
-- Deformable registration (ANTs) is the slowest stage (~5–15 min on CPU).
+- Deformable registration (ANTs) is the slowest stage (~5-15 min on CPU).
 - PCA mode is only beneficial when the template was trained on a population
   that includes the patient's anatomical variant.
 - ICON-based image refinement requires a GPU.
@@ -48,7 +48,7 @@ Weaknesses / Limitations
 Classes Used
 ------------
 - WorkflowFitStatisticalModelToPatient (workflow_fit_statistical_model_to_patient.py):
-    Orchestrates ICP → (optional PCA) → mask-to-mask → (optional image) pipeline.
+    Orchestrates ICP -> (optional PCA) -> mask-to-mask -> (optional image) pipeline.
 - RegisterModelsICP (register_models_icp.py):
     Centroid alignment followed by ICP affine registration (used internally).
 - RegisterModelsDistanceMaps (register_models_distance_maps.py):
@@ -71,7 +71,7 @@ CLI documentation.
 Data Required
 -------------
 See data/README.md for download instructions and dataset licensing.
-Dataset: KCL-Heart-Model — manual download required.
+Dataset: KCL-Heart-Model - manual download required.
 Place files under ``data/KCL-Heart-Model/`` as described in data/README.md.
 """
 
@@ -80,7 +80,7 @@ from __future__ import annotations
 import argparse
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pyvista as pv
 
@@ -121,6 +121,9 @@ def run_tutorial(
         )
 
     template_model = pv.read(str(template_file))
+    if not isinstance(template_model, pv.PolyData):
+        template_model = template_model.extract_surface()
+    template_model = cast(pv.PolyData, template_model)
 
     # Use a subset of sample meshes as stand-in patient models
     sample_files = sorted((kcl_dir / "sample_meshes").glob("*.vtu"))[:3]
@@ -131,7 +134,12 @@ def run_tutorial(
             f"No sample meshes found under {kcl_dir}.\n"
             "See data/README.md for manual download instructions."
         )
-    patient_models = [pv.read(str(f)) for f in sample_files]
+    patient_models = []
+    for sample_file in sample_files:
+        sample_model = pv.read(str(sample_file))
+        if not isinstance(sample_model, pv.PolyData):
+            sample_model = sample_model.extract_surface()
+        patient_models.append(cast(pv.PolyData, sample_model))
 
     workflow = WorkflowFitStatisticalModelToPatient(
         template_model=template_model,
@@ -144,7 +152,7 @@ def run_tutorial(
     registered_file = output_dir / "registered_template.vtp"
     registered_surface.save(str(registered_file))
 
-    # ── Screenshots ──────────────────────────────────────────────────────────
+    # Screenshots
     tt = TestTools(
         results_dir=output_dir,
         baselines_dir=output_dir / "baselines",

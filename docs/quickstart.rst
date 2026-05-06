@@ -23,12 +23,12 @@ can be imported as a module from the test suite.
      - Dataset
    * - 1
      - ``tutorial_01_heart_gated_ct_to_usd.py``
-     - Heart-gated CT → animated USD
-     - Slicer-Heart-CT (auto-download)
+     - Heart-gated CT to animated USD
+     - Slicer-Heart-CT (prepare first)
    * - 2
      - ``tutorial_02_ct_to_vtk.py``
-     - CT → VTK surfaces
-     - Slicer-Heart-CT (auto-download)
+     - CT to VTK surfaces
+     - Slicer-Heart-CT (prepare first)
    * - 3
      - ``tutorial_03_fit_statistical_model_to_patient.py``
      - Fit statistical model to patient
@@ -39,14 +39,14 @@ can be imported as a module from the test suite.
      - KCL-Heart-Model (manual)
    * - 5
      - ``tutorial_05_vtk_to_usd.py``
-     - VTK surfaces → animated USD
+     - VTK surfaces to animated USD
      - output of tutorial 2
    * - 6
      - ``tutorial_06_reconstruct_highres_4d_ct.py``
      - Reconstruct high-resolution 4D CT
      - DirLab-4DCT (manual)
 
-Run the first two tutorials (no manual download required):
+After preparing the Slicer-Heart-CT data, run the first two tutorials:
 
 .. code-block:: bash
 
@@ -63,7 +63,7 @@ recommended run order.
 
 Recommended run order:
 
-1. Tutorials 1 and 2 first (auto-download data).
+1. Tutorials 1 and 2 first, after preparing Slicer-Heart-CT data.
 2. Tutorial 5 after Tutorial 2 (consumes Tutorial 2 output).
 3. Tutorials 3 and 4 after downloading KCL-Heart-Model.
 4. Tutorial 6 after downloading DirLab-4DCT.
@@ -74,7 +74,7 @@ Prerequisites
 Before starting, ensure you have:
 
 * PhysioMotion4D installed (see :doc:`installation`)
-* NVIDIA GPU with CUDA 13 (default) or CUDA 12 — recommended for production performance; see :doc:`installation` for the ``[cuda13]`` and ``[cuda12]`` extras. A CPU-only install works for evaluation but is slow.
+* NVIDIA GPU with CUDA 13 (default) or CUDA 12 - recommended for production performance; see :doc:`installation` for the ``[cuda13]`` and ``[cuda12]`` extras. A CPU-only install works for evaluation but is slow.
 * 4D cardiac CT data or access to sample datasets
 
 Basic Workflow
@@ -284,7 +284,7 @@ In NVIDIA Omniverse
 
 1. Open NVIDIA Omniverse
 2. Launch USD Composer or USD Presenter
-3. File → Open → Select your generated `.usd` file
+3. File -> Open -> Select your generated `.usd` file
 4. Press Play to view the animation
 
 Using USD Viewer

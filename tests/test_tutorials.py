@@ -30,11 +30,11 @@ import pytest
 
 from physiomotion4d.test_tools import TestTools
 
-# Tolerances for screenshot comparison.  Loose to survive minor rendering
+# Tolerances for screenshot comparison. Loose to survive minor rendering
 # differences across OS / GPU / driver versions.
 _PX_TOL = 10.0  # per-pixel absolute error (0-255 range)
 _MAX_PX = 2000  # maximum number of pixels allowed above _PX_TOL
-_TOT_TOL = 0.0  # total absolute error (0 = use pixel-count criterion only)
+_TOT_TOL = float("inf")  # use the pixel-count criterion only
 
 
 def _compare_screenshots(
@@ -55,9 +55,9 @@ def _compare_screenshots(
         ), f"Screenshot baseline mismatch: {png_path.name}"
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Tutorial 1 — Heart-Gated CT to Animated USD
-# ─────────────────────────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
+# Tutorial 1 - Heart-Gated CT to Animated USD
+# -----------------------------------------------------------------------------
 
 
 @pytest.mark.experiment
@@ -88,9 +88,9 @@ class TestTutorial01HeartGatedCTToUSD:
         _compare_screenshots(results["screenshots"], tt)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Tutorial 2 — CT Segmentation to VTK
-# ─────────────────────────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
+# Tutorial 2 - CT Segmentation to VTK
+# -----------------------------------------------------------------------------
 
 
 @pytest.mark.experiment
@@ -120,9 +120,9 @@ class TestTutorial02CTToVTK:
         _compare_screenshots(results["screenshots"], tt)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Tutorial 3 — Fit Statistical Model to Patient
-# ─────────────────────────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
+# Tutorial 3 - Fit Statistical Model to Patient
+# -----------------------------------------------------------------------------
 
 
 @pytest.mark.experiment
@@ -157,9 +157,9 @@ class TestTutorial03FitStatisticalModelToPatient:
         _compare_screenshots(results["screenshots"], tt)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Tutorial 4 — Create Statistical Shape Model
-# ─────────────────────────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
+# Tutorial 4 - Create Statistical Shape Model
+# -----------------------------------------------------------------------------
 
 
 @pytest.mark.experiment
@@ -197,9 +197,9 @@ class TestTutorial04CreateStatisticalModel:
         _compare_screenshots(results["screenshots"], tt)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Tutorial 5 — VTK to USD
-# ─────────────────────────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
+# Tutorial 5 - VTK to USD
+# -----------------------------------------------------------------------------
 
 
 @pytest.mark.experiment
@@ -246,9 +246,9 @@ class TestTutorial05VTKToUSD:
         _compare_screenshots(results["screenshots"], tt)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Tutorial 6 — Reconstruct High-Resolution 4D CT
-# ─────────────────────────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
+# Tutorial 6 - Reconstruct High-Resolution 4D CT
+# -----------------------------------------------------------------------------
 
 
 @pytest.mark.experiment
