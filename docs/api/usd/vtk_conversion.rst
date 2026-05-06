@@ -17,4 +17,4 @@ Class Reference
 
 .. rubric:: Navigation
 
-:doc:`anatomy_tools` | :doc:`index` | :doc:`polymesh`
+:doc:`anatomy_tools` | :doc:`index`

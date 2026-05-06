@@ -352,7 +352,7 @@ stage = convert_vtk_file('mesh.vtp', 'output.usd')
 settings = ConversionSettings(
     triangulate_meshes=True,
     compute_normals=True,
-    meters_per_unit=1.0,  # coordinates are authored in meters
+    meters_per_unit=1.0,  # USD stage units after built-in mm-to-m scaling
     times_per_second=60.0,
 )
 

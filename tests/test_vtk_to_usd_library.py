@@ -35,13 +35,6 @@ def check_kcl_heart_data() -> bool:
     return vtk_file.exists()
 
 
-def check_valve4d_data() -> bool:
-    """Check if CHOP Valve4D data is available."""
-    data_dir = get_data_dir() / "CHOP-Valve4D"
-    alterra_dir = data_dir / "Alterra"
-    return alterra_dir.exists() and any(alterra_dir.glob("*.vtk"))
-
-
 def get_or_create_average_surface(test_directories: dict[str, Path]) -> Path:
     """
     Get or create average_surface.vtp from average_mesh.vtk.

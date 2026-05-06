@@ -12,7 +12,9 @@ containers, coordinate helpers, or USD writer primitives.
 - File support: legacy VTK (`.vtk`), XML PolyData (`.vtp`), XML
   UnstructuredGrid (`.vtu`)
 - Geometry: points, faces, topology, normals, vertex colors
-- Data arrays: VTK point and cell arrays as USD primvars
+- Data arrays: VTK point arrays as USD primvars; cell-array primvars are
+  limited by surface topology and controlled by
+  `ConversionSettings.preserve_cell_arrays`
 - Materials: `UsdPreviewSurface` materials
 - Coordinates: RAS millimeter coordinates converted to USD Y-up meters
 
