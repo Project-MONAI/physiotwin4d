@@ -1,12 +1,10 @@
 #!/usr/bin/env python
 """
-Tests for VTK-to-USD conversion via ConvertVTKToUSD.
+Tests for VTK-to-USD conversion through ConvertVTKToUSD.
 
-Covers:
-- VTK file reading (VTP, VTK, VTU formats) via internal vtk_to_usd helpers
-- ConvertVTKToUSD.from_files() — single file, time series, settings
-- Material and primvar preservation
-- Data structure validation (GenericArray, MeshData, etc.)
+The low-level physiomotion4d.vtk_to_usd package is exercised only through
+ConvertVTKToUSD here. It remains a public advanced API, but repository tests
+should validate the supported application entry point.
 
 Note: Tests marked requires_data need manually downloaded data:
 - KCL-Heart-Model: data/KCL-Heart-Model/
@@ -14,7 +12,6 @@ Note: Tests marked requires_data need manually downloaded data:
 """
 
 from pathlib import Path
-from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -22,15 +19,8 @@ import pyvista as pv
 from pxr import UsdGeom, UsdShade
 
 from physiomotion4d import ConvertVTKToUSD
-from physiomotion4d.vtk_to_usd import (
-    DataType,
-    GenericArray,
-    MeshData,
-    read_vtk_file,
-)
 
 
-# Helper to get data paths
 def get_data_dir() -> Path:
     """Get the data directory path."""
     tests_dir = Path(__file__).parent
@@ -45,55 +35,29 @@ def check_kcl_heart_data() -> bool:
     return vtk_file.exists()
 
 
-def check_valve4d_data() -> bool:
-    """Check if CHOP Valve4D data is available."""
-    data_dir = get_data_dir() / "CHOP-Valve4D"
-    alterra_dir = data_dir / "Alterra"
-    return alterra_dir.exists() and any(alterra_dir.glob("*.vtk"))
-
-
 def get_or_create_average_surface(test_directories: dict[str, Path]) -> Path:
     """
     Get or create average_surface.vtp from average_mesh.vtk.
 
-    This function extracts the surface from the volumetric mesh and caches it
-    in the test output directory for reuse across test runs.
-
     Args:
-        test_directories: Dictionary with 'output' key pointing to test output directory
+        test_directories: Dictionary with 'output' key pointing to test output
+            directory.
 
     Returns:
-        Path to the average_surface.vtp file
+        Path to the average_surface.vtp file.
     """
     output_dir = test_directories["output"] / "vtk_to_usd_library"
     output_dir.mkdir(parents=True, exist_ok=True)
 
     surface_file = output_dir / "average_surface.vtp"
-
-    # If surface file already exists, return it
     if surface_file.exists():
-        print(f"\nUsing cached surface file: {surface_file}")
         return surface_file
 
-    # Create surface from volumetric mesh
     data_dir = get_data_dir() / "KCL-Heart-Model"
     vtk_file = data_dir / "average_mesh.vtk"
-
-    print(f"\nCreating surface from: {vtk_file}")
-
-    # Load volumetric mesh
     vtk_mesh = pv.read(str(vtk_file))
-
-    # Extract surface
     surface = vtk_mesh.extract_surface(algorithm="dataset_surface")
-
-    # Save to output directory
     surface.save(str(surface_file))
-
-    print(f"Created and saved surface: {surface_file}")
-    print(f"  Points: {surface.n_points:,}")
-    print(f"  Faces: {surface.n_faces_strict:,}")
-
     return surface_file
 
 
@@ -102,122 +66,17 @@ def kcl_average_surface(test_directories: dict[str, Path]) -> Path:
     """
     Fixture providing the KCL average heart surface.
 
-    Generates average_surface.vtp from average_mesh.vtk if needed,
-    caching the result for subsequent test runs.
-
     Returns:
-        Path to average_surface.vtp file
+        Path to average_surface.vtp file.
     """
     if not check_kcl_heart_data():
-        pytest.skip("KCL-Heart-Model data not available (must be manually downloaded)")
+        pytest.skip("KCL-Heart-Model data not available")
 
     return get_or_create_average_surface(test_directories)
 
 
-class TestGenericArray:
-    """Test GenericArray data structure validation and reshaping."""
-
-    def test_scalar_1d_array(self) -> None:
-        """Test that 1D scalar arrays (num_components=1) are kept as-is."""
-        data = np.array([1.0, 2.0, 3.0, 4.0])
-        array = GenericArray(
-            name="test_scalar",
-            data=data,
-            num_components=1,
-            data_type=DataType.FLOAT,
-        )
-        assert array.data.ndim == 1
-        assert len(array.data) == 4
-        np.testing.assert_array_equal(array.data, data)
-
-    def test_flat_multicomponent_array_reshape(self) -> None:
-        """Test that flat 1D arrays with num_components>1 are reshaped to 2D."""
-        # 12 values that should reshape to (4, 3)
-        data = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], dtype=float)
-        array = GenericArray(
-            name="test_vector",
-            data=data,
-            num_components=3,
-            data_type=DataType.FLOAT,
-        )
-        assert array.data.ndim == 2
-        assert array.data.shape == (4, 3)
-        # Verify data is preserved correctly
-        expected = data.reshape(-1, 3)
-        np.testing.assert_array_equal(array.data, expected)
-
-    def test_2d_array_valid(self) -> None:
-        """Test that 2D arrays with correct shape are accepted."""
-        data = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]], dtype=float)
-        array = GenericArray(
-            name="test_vector",
-            data=data,
-            num_components=3,
-            data_type=DataType.FLOAT,
-        )
-        assert array.data.ndim == 2
-        assert array.data.shape == (4, 3)
-        np.testing.assert_array_equal(array.data, data)
-
-    def test_flat_array_not_divisible_raises_error(self) -> None:
-        """Test that flat arrays with length not divisible by num_components raise error."""
-        data = np.array([1, 2, 3, 4, 5], dtype=float)  # 5 values, not divisible by 3
-        with pytest.raises(ValueError, match="not divisible by num_components"):
-            GenericArray(
-                name="test_invalid",
-                data=data,
-                num_components=3,
-                data_type=DataType.FLOAT,
-            )
-
-    def test_2d_array_wrong_shape_raises_error(self) -> None:
-        """Test that 2D arrays with wrong shape raise error."""
-        data = np.array([[1, 2], [3, 4], [5, 6]], dtype=float)  # Shape (3, 2)
-        with pytest.raises(ValueError, match="incompatible with num_components"):
-            GenericArray(
-                name="test_invalid",
-                data=data,
-                num_components=3,  # Expects shape[1] == 3, got 2
-                data_type=DataType.FLOAT,
-            )
-
-    def test_3d_array_raises_error(self) -> None:
-        """Test that 3D arrays are rejected."""
-        data = np.ones((2, 3, 4), dtype=float)
-        with pytest.raises(ValueError, match="must be 1D or 2D"):
-            GenericArray(
-                name="test_invalid",
-                data=data,
-                num_components=3,
-                data_type=DataType.FLOAT,
-            )
-
-    def test_flat_array_large_components(self) -> None:
-        """Test reshaping with large num_components (e.g., 9 for 3x3 tensors)."""
-        # 18 values that should reshape to (2, 9)
-        data = np.arange(18, dtype=float)
-        array = GenericArray(
-            name="test_tensor",
-            data=data,
-            num_components=9,
-            data_type=DataType.FLOAT,
-        )
-        assert array.data.ndim == 2
-        assert array.data.shape == (2, 9)
-        np.testing.assert_array_equal(array.data, data.reshape(-1, 9))
-
-
 class TestFromFilesValidation:
-    """Synthetic tests for ConvertVTKToUSD.from_files() — no real data required.
-
-    Covers:
-    - Gap A: time_codes length and monotonicity validation
-    - Gap B: _cached_mesh_data population and reuse in _convert_unified()
-    """
-
-    # ------------------------------------------------------------------
-    # Gap A — time_codes validation
-    # ------------------------------------------------------------------
+    """Synthetic tests for ConvertVTKToUSD.from_files()."""
 
     def test_time_codes_length_mismatch_raises(self, tmp_path: Path) -> None:
         """from_files() must reject time_codes whose length != len(vtk_files)."""
@@ -246,141 +105,126 @@ class TestFromFilesValidation:
         f1 = tmp_path / "f1.vtp"
         sphere.save(str(f0))
         sphere.save(str(f1))
-        converter = ConvertVTKToUSD.from_files("X", [f0, f1], time_codes=[1.0, 1.0])
-        assert converter._time_codes == [1.0, 1.0]
+        stage = ConvertVTKToUSD.from_files(
+            "X", [f0, f1], time_codes=[1.0, 1.0]
+        ).convert(str(tmp_path / "out.usd"))
+        assert stage.GetPrimAtPath("/World/X/Mesh").IsValid()
 
-    # ------------------------------------------------------------------
-    # Gap B — topology cache population and reuse
-    # ------------------------------------------------------------------
-
-    def test_from_files_populates_cached_mesh_data(self, tmp_path: Path) -> None:
-        """from_files() with >1 frame must populate _cached_mesh_data."""
-        plane = pv.Plane(i_resolution=2, j_resolution=2)
-        files = []
-        for i in range(3):
-            p = tmp_path / f"p{i}.vtp"
-            plane.save(str(p))
-            files.append(p)
-        converter = ConvertVTKToUSD.from_files("Plane", files)
-        assert converter._cached_mesh_data is not None
-        assert len(converter._cached_mesh_data) == 3
-        assert all(isinstance(m, MeshData) for m in converter._cached_mesh_data)
-
-    def test_from_files_cache_reused_in_convert(self, tmp_path: Path) -> None:
-        """_convert_unified() must not call _vtk_to_mesh_data() when cache is populated."""
-        plane = pv.Plane(i_resolution=2, j_resolution=2)
-        files = []
-        for i in range(3):
-            p = tmp_path / f"p{i}.vtp"
-            plane.save(str(p))
-            files.append(p)
-        converter = ConvertVTKToUSD.from_files("Plane", files)
-        with patch.object(
-            converter, "_vtk_to_mesh_data", wraps=converter._vtk_to_mesh_data
-        ) as spy:
-            stage = converter.convert(str(tmp_path / "out.usd"))
-        assert spy.call_count == 0, (
-            f"_vtk_to_mesh_data called {spy.call_count} time(s); cache should have been used"
-        )
-        assert stage.GetPrimAtPath("/World/Plane/Mesh").IsValid()
-
-    def test_from_files_single_file_no_cache(self, tmp_path: Path) -> None:
-        """A single-file converter must not populate _cached_mesh_data."""
+    def test_from_files_single_file_writes_static_mesh(self, tmp_path: Path) -> None:
+        """A single-file converter writes a static mesh with no time range."""
         plane = pv.Plane(i_resolution=2, j_resolution=2)
         f0 = tmp_path / "p0.vtp"
         plane.save(str(f0))
-        converter = ConvertVTKToUSD.from_files("P", [f0])
-        assert converter._cached_mesh_data is None
 
-    def test_from_files_static_merge_no_cache(self, tmp_path: Path) -> None:
-        """static_merge=True must not populate _cached_mesh_data."""
+        stage = ConvertVTKToUSD.from_files("P", [f0]).convert(str(tmp_path / "p.usd"))
+
+        mesh = UsdGeom.Mesh(stage.GetPrimAtPath("/World/P/Mesh"))
+        assert len(mesh.GetPointsAttr().Get()) == plane.n_points
+        assert not stage.HasAuthoredTimeCodeRange()
+
+    def test_from_files_static_merge_writes_separate_meshes(
+        self, tmp_path: Path
+    ) -> None:
+        """static_merge=True treats files as static objects, not time samples."""
         plane = pv.Plane(i_resolution=2, j_resolution=2)
         f0 = tmp_path / "p0.vtp"
         f1 = tmp_path / "p1.vtp"
         plane.save(str(f0))
         plane.save(str(f1))
-        converter = ConvertVTKToUSD.from_files("P", [f0, f1], static_merge=True)
-        assert converter._cached_mesh_data is None
+
+        stage = ConvertVTKToUSD.from_files("P", [f0, f1], static_merge=True).convert(
+            str(tmp_path / "static.usd")
+        )
+
+        assert stage.GetPrimAtPath("/World/P/P_0").IsValid()
+        assert stage.GetPrimAtPath("/World/P/P_1").IsValid()
+        assert not stage.HasAuthoredTimeCodeRange()
 
 
-@pytest.mark.requires_data
-class TestVTKReader:
-    """Test VTK file reading capabilities."""
+class TestSyntheticConversion:
+    """Synthetic ConvertVTKToUSD tests that do not require downloaded data."""
 
-    def test_read_vtp_file(self, kcl_average_surface: Path) -> None:
-        """Test reading VTP (PolyData) files."""
-        vtp_file = kcl_average_surface
+    def test_inspect_file_reports_public_summary(self, tmp_path: Path) -> None:
+        """inspect_file() reports geometry, bounds, arrays, and cell types."""
+        mesh = pv.Plane(i_resolution=2, j_resolution=2)
+        mesh.point_data["pressure"] = np.linspace(
+            0.0, 1.0, mesh.n_points, dtype=np.float32
+        )
+        vtk_file = tmp_path / "inspect_plane.vtp"
+        mesh.save(str(vtk_file))
 
-        assert vtp_file.exists(), f"VTP file not found: {vtp_file}"
+        summary = ConvertVTKToUSD.inspect_file(vtk_file)
 
-        # Read the file
-        mesh_data = read_vtk_file(vtp_file)
+        assert summary["is_empty"] is False
+        assert summary["points"] == mesh.n_points
+        assert summary["faces"] > 0
+        assert len(summary["bounds_min"]) == 3
+        assert len(summary["bounds_max"]) == 3
+        assert len(summary["bounds_size"]) == 3
+        assert summary["cell_types"]
+        assert any(array["name"] == "pressure" for array in summary["arrays"])
 
-        # Verify mesh data structure
-        assert mesh_data is not None
-        assert mesh_data.points is not None
-        assert len(mesh_data.points) > 0
-        assert mesh_data.face_vertex_counts is not None
-        assert mesh_data.face_vertex_indices is not None
+    def test_inspect_file_reports_empty_mesh(self, tmp_path: Path) -> None:
+        """inspect_file() reports empty meshes without raising."""
+        vtk_file = tmp_path / "empty.vtp"
+        pv.PolyData().save(str(vtk_file))
 
-        print(f"\nRead VTP file: {vtp_file.name}")
-        print(f"  Points: {len(mesh_data.points):,}")
-        print(f"  Faces: {len(mesh_data.face_vertex_counts):,}")
-        print(f"  Data arrays: {len(mesh_data.generic_arrays)}")
+        summary = ConvertVTKToUSD.inspect_file(vtk_file)
 
-    def test_read_legacy_vtk_file(self) -> None:
-        """Test reading legacy VTK files."""
-        if not check_kcl_heart_data():
-            pytest.skip(
-                "KCL-Heart-Model data not available (must be manually downloaded)"
-            )
+        assert summary["is_empty"] is True
+        assert summary["points"] == 0
+        assert summary["faces"] == 0
+        assert summary["bounds_min"] == (0.0, 0.0, 0.0)
+        assert summary["bounds_max"] == (0.0, 0.0, 0.0)
+        assert summary["bounds_size"] == (0.0, 0.0, 0.0)
+        assert summary["arrays"] == []
+        assert summary["cell_types"] == []
 
-        data_dir = get_data_dir() / "KCL-Heart-Model"
-        vtk_file = data_dir / "average_mesh.vtk"
+    def test_file_primvar_preservation(self, tmp_path: Path) -> None:
+        """Point arrays in a VTP file are preserved as USD primvars."""
+        mesh = pv.Plane(i_resolution=2, j_resolution=2)
+        mesh.point_data["pressure"] = np.linspace(
+            0.0, 1.0, mesh.n_points, dtype=np.float32
+        )
+        vtk_file = tmp_path / "plane.vtp"
+        mesh.save(str(vtk_file))
 
-        assert vtk_file.exists(), f"VTK file not found: {vtk_file}"
+        stage = ConvertVTKToUSD.from_files(
+            data_basename="Plane",
+            vtk_files=[vtk_file],
+        ).convert(str(tmp_path / "plane.usd"))
 
-        # Read the file with surface extraction
-        mesh_data = read_vtk_file(vtk_file, extract_surface=True)
+        mesh_prim = stage.GetPrimAtPath("/World/Plane/Mesh")
+        primvars_api = UsdGeom.PrimvarsAPI(mesh_prim)
+        primvar_names = [p.GetPrimvarName() for p in primvars_api.GetPrimvars()]
+        assert "vtk_point_pressure" in primvar_names
 
-        # Verify mesh data structure
-        assert mesh_data is not None
-        assert mesh_data.points is not None
-        assert len(mesh_data.points) > 0
-        assert mesh_data.face_vertex_counts is not None
-        assert mesh_data.face_vertex_indices is not None
+    def test_time_series_conversion(self, tmp_path: Path) -> None:
+        """Multiple VTP files write point time samples and stage time metadata."""
+        files = []
+        for i in range(3):
+            mesh = pv.Plane(i_resolution=2, j_resolution=2)
+            mesh.points[:, 2] += float(i)
+            path = tmp_path / f"p{i}.vtp"
+            mesh.save(str(path))
+            files.append(path)
 
-        print(f"\nRead legacy VTK file: {vtk_file.name}")
-        print(f"  Points: {len(mesh_data.points):,}")
-        print(f"  Faces: {len(mesh_data.face_vertex_counts):,}")
-        print(f"  Data arrays: {len(mesh_data.generic_arrays)}")
+        time_codes = [0.0, 1.0, 2.0]
+        stage = ConvertVTKToUSD.from_files(
+            data_basename="Plane",
+            vtk_files=files,
+            time_codes=time_codes,
+        ).convert(str(tmp_path / "time.usd"))
 
-    def test_generic_arrays_preserved(self, kcl_average_surface: Path) -> None:
-        """Test that generic data arrays are preserved during reading."""
-        vtp_file = kcl_average_surface
-
-        mesh_data = read_vtk_file(vtp_file)
-
-        # Verify generic arrays
-        assert len(mesh_data.generic_arrays) > 0, "No data arrays found"
-
-        # Check array structure
-        for array in mesh_data.generic_arrays:
-            assert array.name is not None
-            assert array.data is not None
-            assert array.num_components > 0
-            assert array.interpolation in ["vertex", "uniform", "constant"]
-
-        print("\nGeneric arrays preserved:")
-        for array in mesh_data.generic_arrays:
-            print(
-                f"  - {array.name}: {array.num_components} components, {len(array.data):,} values"
-            )
+        mesh = UsdGeom.Mesh(stage.GetPrimAtPath("/World/Plane/Mesh"))
+        assert stage.GetStartTimeCode() == 0.0
+        assert stage.GetEndTimeCode() == 2.0
+        assert mesh.GetPointsAttr().GetTimeSamples() == time_codes
 
 
 @pytest.mark.requires_data
 class TestVTKToUSDConversion:
-    """Test VTK to USD conversion capabilities."""
+    """Test ConvertVTKToUSD on optional real VTK data."""
 
     def test_single_file_conversion(
         self, test_directories: dict[str, Path], kcl_average_surface: Path
@@ -389,30 +233,17 @@ class TestVTKToUSDConversion:
         output_dir = test_directories["output"] / "vtk_to_usd_library"
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        vtp_file = kcl_average_surface
         output_usd = output_dir / "heart_surface.usd"
-
         stage = ConvertVTKToUSD.from_files(
             data_basename="HeartSurface",
-            vtk_files=[vtp_file],
+            vtk_files=[kcl_average_surface],
         ).convert(str(output_usd))
 
         assert output_usd.exists()
-        assert stage is not None
-
-        # No split: mesh lives at /World/HeartSurface/Mesh
         mesh_prim = stage.GetPrimAtPath("/World/HeartSurface/Mesh")
         assert mesh_prim.IsValid()
         assert mesh_prim.IsA(UsdGeom.Mesh)
-
-        mesh = UsdGeom.Mesh(mesh_prim)
-        points = mesh.GetPointsAttr().Get()
-        assert len(points) > 0
-
-        print("\nConverted single file to USD")
-        print(f"  Input: {vtp_file.name}")
-        print(f"  Output: {output_usd}")
-        print(f"  Points: {len(points):,}")
+        assert len(UsdGeom.Mesh(mesh_prim).GetPointsAttr().Get()) > 0
 
     def test_conversion_with_material(
         self, test_directories: dict[str, Path], kcl_average_surface: Path
@@ -421,36 +252,26 @@ class TestVTKToUSDConversion:
         output_dir = test_directories["output"] / "vtk_to_usd_library"
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        vtp_file = kcl_average_surface
         output_usd = output_dir / "heart_with_material.usd"
-
         stage = ConvertVTKToUSD.from_files(
             data_basename="HeartSurface",
-            vtk_files=[vtp_file],
+            vtk_files=[kcl_average_surface],
             solid_color=(0.9, 0.3, 0.3),
         ).convert(str(output_usd))
 
-        # Material for the no-split case is named "Mesh_material"
         material_prim = stage.GetPrimAtPath("/World/Looks/Mesh_material")
         assert material_prim.IsValid()
         assert material_prim.IsA(UsdShade.Material)
 
-        # Verify material is bound to the mesh prim
         mesh_prim = stage.GetPrimAtPath("/World/HeartSurface/Mesh")
         binding_api = UsdShade.MaterialBindingAPI(mesh_prim)
         bound_material = binding_api.ComputeBoundMaterial()[0]
         assert bound_material.GetPrim().IsValid()
 
-        # Verify the shader's diffuseColor input carries the requested solid color
         shader_prim = stage.GetPrimAtPath("/World/Looks/Mesh_material/PreviewSurface")
-        assert shader_prim.IsValid()
         shader = UsdShade.Shader(shader_prim)
         diffuse_value = shader.GetInput("diffuseColor").Get()
-        assert diffuse_value is not None
         assert tuple(diffuse_value) == pytest.approx((0.9, 0.3, 0.3), abs=1e-5)
-
-        print("\nConverted with custom solid color material")
-        print("  Material path: /World/Looks/Mesh_material")
 
     def test_conversion_settings(
         self, test_directories: dict[str, Path], kcl_average_surface: Path
@@ -459,98 +280,13 @@ class TestVTKToUSDConversion:
         output_dir = test_directories["output"] / "vtk_to_usd_library"
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        vtp_file = kcl_average_surface
-        output_usd = output_dir / "heart_custom_settings.usd"
-
         stage = ConvertVTKToUSD.from_files(
             data_basename="Mesh",
-            vtk_files=[vtp_file],
-        ).convert(str(output_usd))
+            vtk_files=[kcl_average_surface],
+        ).convert(str(output_dir / "heart_custom_settings.usd"))
 
-        # ConvertVTKToUSD always uses meters_per_unit=1.0 and Y-up
         assert UsdGeom.GetStageMetersPerUnit(stage) == 1.0
         assert UsdGeom.GetStageUpAxis(stage) == UsdGeom.Tokens.y
-
-        print("\nVerified stage metadata defaults")
-        print(f"  Meters per unit: {UsdGeom.GetStageMetersPerUnit(stage)}")
-        print(f"  Up axis: {UsdGeom.GetStageUpAxis(stage)}")
-
-    def test_primvar_preservation(
-        self, test_directories: dict[str, Path], kcl_average_surface: Path
-    ) -> None:
-        """Test that VTK data arrays are preserved as USD primvars."""
-        output_dir = test_directories["output"] / "vtk_to_usd_library"
-        output_dir.mkdir(parents=True, exist_ok=True)
-
-        vtp_file = kcl_average_surface
-
-        # Read source to count arrays
-        mesh_data = read_vtk_file(vtp_file)
-        array_names = [arr.name for arr in mesh_data.generic_arrays]
-
-        output_usd = output_dir / "heart_with_primvars.usd"
-
-        stage = ConvertVTKToUSD.from_files(
-            data_basename="Mesh",
-            vtk_files=[vtp_file],
-        ).convert(str(output_usd))
-
-        # No split: mesh at /World/Mesh/Mesh
-        mesh_prim = stage.GetPrimAtPath("/World/Mesh/Mesh")
-        primvars_api = UsdGeom.PrimvarsAPI(mesh_prim)
-        primvars = primvars_api.GetPrimvars()
-
-        primvar_names = [pv.GetPrimvarName() for pv in primvars]
-        assert len(primvar_names) > 0
-
-        print("\nPrimvars preserved:")
-        print(f"  Source arrays: {len(array_names)}")
-        print(f"  USD primvars: {len(primvar_names)}")
-        for name in primvar_names[:5]:
-            print(f"    - {name}")
-
-
-@pytest.mark.requires_data
-class TestTimeSeriesConversion:
-    """Test time-series conversion capabilities."""
-
-    def test_time_series_conversion(
-        self, test_directories: dict[str, Path], kcl_average_surface: Path
-    ) -> None:
-        """Test converting multiple VTK files as a time series."""
-        output_dir = test_directories["output"] / "vtk_to_usd_library"
-        output_dir.mkdir(parents=True, exist_ok=True)
-
-        vtp_file = kcl_average_surface
-
-        # Use the same file three times to simulate a time series
-        vtk_files = [vtp_file] * 3
-        time_codes = [0.0, 1.0, 2.0]
-
-        output_usd = output_dir / "heart_time_series.usd"
-
-        stage = ConvertVTKToUSD.from_files(
-            data_basename="Mesh",
-            vtk_files=vtk_files,
-            time_codes=time_codes,
-        ).convert(str(output_usd))
-
-        assert stage.GetStartTimeCode() == 0.0
-        assert stage.GetEndTimeCode() == 2.0
-
-        # No split: mesh at /World/Mesh/Mesh
-        mesh_prim = stage.GetPrimAtPath("/World/Mesh/Mesh")
-        mesh = UsdGeom.Mesh(mesh_prim)
-        time_samples = mesh.GetPointsAttr().GetTimeSamples()
-        assert len(time_samples) == 3
-        assert time_samples == time_codes
-
-        print("\nConverted time series")
-        print(f"  Frames: {len(vtk_files)}")
-        print(f"  Time codes: {time_codes}")
-        print(
-            f"  Stage time range: {stage.GetStartTimeCode()} - {stage.GetEndTimeCode()}"
-        )
 
 
 @pytest.mark.slow
@@ -564,37 +300,73 @@ class TestIntegration:
         output_dir = test_directories["output"] / "vtk_to_usd_library"
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        vtp_file = kcl_average_surface
         output_usd = output_dir / "heart_complete.usd"
-
         stage = ConvertVTKToUSD.from_files(
             data_basename="CardiacModel",
-            vtk_files=[vtp_file],
+            vtk_files=[kcl_average_surface],
             solid_color=(0.85, 0.2, 0.2),
             times_per_second=24.0,
         ).convert(str(output_usd))
 
-        assert output_usd.exists()
-        assert stage is not None
-
-        # No split: mesh at /World/CardiacModel/Mesh
         mesh_prim = stage.GetPrimAtPath("/World/CardiacModel/Mesh")
+        assert output_usd.exists()
         assert mesh_prim.IsValid()
+        assert len(UsdGeom.Mesh(mesh_prim).GetPointsAttr().Get()) > 0
+        assert stage.GetPrimAtPath("/World/Looks/Mesh_material").IsValid()
+        assert UsdGeom.PrimvarsAPI(mesh_prim).GetPrimvars()
 
-        mesh = UsdGeom.Mesh(mesh_prim)
-        points = mesh.GetPointsAttr().Get()
-        assert len(points) > 0
 
-        # Material is auto-named "Mesh_material"
-        material_prim = stage.GetPrimAtPath("/World/Looks/Mesh_material")
-        assert material_prim.IsValid()
+class TestUnitScaling:
+    """Verify that VTK mm coordinates are converted to USD meter coordinates."""
 
-        primvars_api = UsdGeom.PrimvarsAPI(mesh_prim)
-        primvars = primvars_api.GetPrimvars()
-        assert len(primvars) > 0
+    def test_mm_to_m_point_scaling(self, tmp_path: Path) -> None:
+        """Points written to USD must be 0.001x their original mm values."""
+        mesh = pv.Sphere(radius=100.0)
+        output_usd = tmp_path / "sphere.usd"
 
-        print("\nEnd-to-end conversion complete")
-        print(f"  Output: {output_usd}")
-        print(f"  Size: {output_usd.stat().st_size / 1024:.1f} KB")
-        print(f"  Points: {len(points):,}")
-        print(f"  Primvars: {len(primvars)}")
+        stage = ConvertVTKToUSD(
+            data_basename="Sphere",
+            input_polydata=[mesh],
+        ).convert(str(output_usd))
+
+        mesh_prim = stage.GetPrimAtPath("/World/Sphere/Mesh")
+        usd_mesh = UsdGeom.Mesh(mesh_prim)
+        usd_points = usd_mesh.GetPointsAttr().Get()
+        assert usd_points is not None and len(usd_points) > 0
+
+        coords = np.array(usd_points)
+        max_coord = float(np.abs(coords).max())
+        assert max_coord < 0.15
+        assert max_coord > 0.05
+
+    def test_normals_remain_unit_length(self, tmp_path: Path) -> None:
+        """Normal vectors must not be scaled."""
+        mesh = pv.Sphere(radius=100.0)
+        mesh.compute_normals(inplace=True)
+        output_usd = tmp_path / "sphere_normals.usd"
+
+        stage = ConvertVTKToUSD(
+            data_basename="Sphere",
+            input_polydata=[mesh],
+        ).convert(str(output_usd))
+
+        mesh_prim = stage.GetPrimAtPath("/World/Sphere/Mesh")
+        normals_attr = UsdGeom.Mesh(mesh_prim).GetNormalsAttr()
+        if normals_attr is None or normals_attr.Get() is None:
+            pytest.skip("No normals on this mesh")
+
+        normals = np.array(normals_attr.Get())
+        norms = np.linalg.norm(normals, axis=1)
+        assert np.allclose(norms, 1.0, atol=1e-3)
+
+    def test_stage_meters_per_unit(self, tmp_path: Path) -> None:
+        """Stage metersPerUnit metadata must be 1.0."""
+        mesh = pv.Sphere(radius=100.0)
+        output_usd = tmp_path / "sphere_meta.usd"
+
+        stage = ConvertVTKToUSD(
+            data_basename="Sphere",
+            input_polydata=[mesh],
+        ).convert(str(output_usd))
+
+        assert UsdGeom.GetStageMetersPerUnit(stage) == 1.0

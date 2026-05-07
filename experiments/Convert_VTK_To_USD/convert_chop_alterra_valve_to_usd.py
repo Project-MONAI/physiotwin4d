@@ -29,8 +29,6 @@
 import re
 from pathlib import Path
 
-import numpy as np
-
 # Use as a test
 from physiomotion4d.notebook_utils import running_as_test
 
@@ -38,10 +36,6 @@ from physiomotion4d.notebook_utils import running_as_test
 from physiomotion4d.usd_tools import USDTools
 
 from physiomotion4d import ConvertVTKToUSD
-
-# cell_type_name_for_vertex_count and read_vtk_file are internal APIs used for diagnostics
-from physiomotion4d.vtk_to_usd import cell_type_name_for_vertex_count
-from physiomotion4d.vtk_to_usd.vtk_reader import read_vtk_file
 
 # %% [markdown]
 # ## 1. Discover and Organize Time-Series Files
@@ -95,42 +89,44 @@ alterra_series.sort(key=lambda x: x[0])
 # Examine the first time step to understand the data structure.
 
 # %%
-# Debuggin
+# Debugging
 first_file = alterra_series[0][1]
-mesh_data = read_vtk_file(first_file, extract_surface=True)
+mesh_info = ConvertVTKToUSD.inspect_file(first_file, extract_surface=True)
 
 print(f"\nFile: {first_file.name}")
 print("\nGeometry:")
-print(f"  Points: {len(mesh_data.points):,}")
-print(f"  Faces: {len(mesh_data.face_vertex_counts):,}")
-print(f"  Normals: {'Yes' if mesh_data.normals is not None else 'No'}")
-print(f"  Colors: {'Yes' if mesh_data.colors is not None else 'No'}")
+print(f"  Points: {mesh_info['points']:,}")
+print(f"  Faces: {mesh_info['faces']:,}")
+print(f"  Normals: {'Yes' if mesh_info['has_normals'] else 'No'}")
+print(f"  Colors: {'Yes' if mesh_info['has_colors'] else 'No'}")
 
 # Bounding box
-bbox_min = np.min(mesh_data.points, axis=0)
-bbox_max = np.max(mesh_data.points, axis=0)
-bbox_size = bbox_max - bbox_min
+bbox_min = mesh_info["bounds_min"]
+bbox_max = mesh_info["bounds_max"]
+bbox_size = mesh_info["bounds_size"]
 print("\nBounding Box:")
 print(f"  Min: [{bbox_min[0]:.3f}, {bbox_min[1]:.3f}, {bbox_min[2]:.3f}]")
 print(f"  Max: [{bbox_max[0]:.3f}, {bbox_max[1]:.3f}, {bbox_max[2]:.3f}]")
 print(f"  Size: [{bbox_size[0]:.3f}, {bbox_size[1]:.3f}, {bbox_size[2]:.3f}]")
 
-print(f"\nData Arrays ({len(mesh_data.generic_arrays)}):")
-for i, array in enumerate(mesh_data.generic_arrays, 1):
-    print(f"  {i}. {array.name}:")
-    print(f"     - Type: {array.data_type.value}")
-    print(f"     - Components: {array.num_components}")
-    print(f"     - Interpolation: {array.interpolation}")
-    print(f"     - Elements: {len(array.data):,}")
-    if array.data.size > 0:
-        print(f"     - Range: [{np.min(array.data):.6f}, {np.max(array.data):.6f}]")
+print(f"\nData Arrays ({len(mesh_info['arrays'])}):")
+for i, array in enumerate(mesh_info["arrays"], 1):
+    print(f"  {i}. {array['name']}:")
+    print(f"     - Type: {array['data_type']}")
+    print(f"     - Components: {array['num_components']}")
+    print(f"     - Interpolation: {array['interpolation']}")
+    print(f"     - Elements: {array['num_elements']:,}")
+    data_range = array["range"]
+    if data_range[0] is not None and data_range[1] is not None:
+        print(f"     - Range: [{data_range[0]:.6f}, {data_range[1]:.6f}]")
 
 # Cell types (face vertex count = triangle, quad, etc.)
-unique_counts, num_each = np.unique(mesh_data.face_vertex_counts, return_counts=True)
 print("\nCell types (faces by vertex count):")
-for u, n in zip(unique_counts, num_each):
-    name = cell_type_name_for_vertex_count(int(u))
-    print(f"  {name} ({u} vertices): {n:,} faces")
+for cell_type in mesh_info["cell_types"]:
+    print(
+        f"  {cell_type['name']} ({cell_type['vertex_count']} vertices): "
+        f"{cell_type['num_faces']:,} faces"
+    )
 
 # %% [markdown]
 # ## 3. Convert TPV25

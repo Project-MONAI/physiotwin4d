@@ -142,8 +142,20 @@ class VTKReader:
         """Extract points, face counts, and face indices from vtkPolyData."""
         # Get points
         vtk_points = polydata.GetPoints()
+        if vtk_points is None:
+            return (
+                np.empty((0, 3), dtype=np.float64),
+                np.empty((0,), dtype=np.int32),
+                np.empty((0,), dtype=np.int32),
+            )
         num_points = vtk_points.GetNumberOfPoints()
-        points = np.array([vtk_points.GetPoint(i) for i in range(num_points)])
+        if num_points == 0:
+            points = np.empty((0, 3), dtype=np.float64)
+        else:
+            points = np.array(
+                [vtk_points.GetPoint(i) for i in range(num_points)],
+                dtype=np.float64,
+            )
 
         # Get cells (faces)
         polys = polydata.GetPolys()

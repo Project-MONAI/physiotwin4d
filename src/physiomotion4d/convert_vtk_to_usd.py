@@ -14,7 +14,7 @@ Uses the vtk_to_usd library internally for core conversion functionality.
 import logging
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Literal, Optional, cast
+from typing import Any, Literal, Optional, Union, cast
 
 import numpy as np
 import pyvista as pv
@@ -30,8 +30,11 @@ from .vtk_to_usd import (
     MaterialManager,
     MeshData,
     UsdMeshConverter,
+    cell_type_name_for_vertex_count,
+    read_vtk_file,
     split_mesh_data_by_cell_type,
     split_mesh_data_by_connectivity,
+    validate_time_series_topology,
 )
 
 
@@ -221,8 +224,6 @@ class ConvertVTKToUSD(PhysioMotion4DBase):
         # converted MeshData so _convert_unified() can reuse it without a second
         # round of _vtk_to_mesh_data() calls.
         if len(meshes) > 1 and not static_merge:
-            from .vtk_to_usd.vtk_reader import validate_time_series_topology
-
             mesh_data_seq = [
                 instance._vtk_to_mesh_data(m, i) for i, m in enumerate(meshes)
             ]
@@ -263,6 +264,79 @@ class ConvertVTKToUSD(PhysioMotion4DBase):
                 pv.RectilinearGrid,
             ),
         )
+
+    @classmethod
+    def inspect_file(
+        cls,
+        vtk_file: Union[Path, str],
+        *,
+        extract_surface: bool = True,
+    ) -> dict[str, Any]:
+        """Summarize a VTK file using the same low-level reader as conversion.
+
+        This method is intended for experiments, workflows, and CLIs that need
+        diagnostics without importing the advanced vtk_to_usd subpackage
+        directly.
+
+        Args:
+            vtk_file: Path to a VTK file (.vtk, .vtp, or .vtu).
+            extract_surface: If True, extract surfaces from volumetric meshes.
+
+        Returns:
+            Dictionary containing geometry counts, bounds, data arrays, and
+            surface cell type counts.
+        """
+        mesh_data = read_vtk_file(vtk_file, extract_surface=extract_surface)
+        is_empty = len(mesh_data.points) == 0
+        if is_empty:
+            bbox_min = np.zeros(3, dtype=np.float64)
+            bbox_max = np.zeros(3, dtype=np.float64)
+        else:
+            bbox_min = np.min(mesh_data.points, axis=0)
+            bbox_max = np.max(mesh_data.points, axis=0)
+
+        unique_counts, num_each = np.unique(
+            mesh_data.face_vertex_counts, return_counts=True
+        )
+
+        arrays = []
+        for array in mesh_data.generic_arrays:
+            array_min = None
+            array_max = None
+            if array.data.size > 0:
+                array_min = float(np.min(array.data))
+                array_max = float(np.max(array.data))
+            arrays.append(
+                {
+                    "name": array.name,
+                    "data_type": array.data_type.value,
+                    "num_components": array.num_components,
+                    "interpolation": array.interpolation,
+                    "num_elements": len(array.data),
+                    "shape": tuple(array.data.shape),
+                    "range": (array_min, array_max),
+                }
+            )
+
+        return {
+            "is_empty": is_empty,
+            "points": len(mesh_data.points),
+            "faces": len(mesh_data.face_vertex_counts),
+            "has_normals": mesh_data.normals is not None,
+            "has_colors": mesh_data.colors is not None,
+            "bounds_min": tuple(float(v) for v in bbox_min),
+            "bounds_max": tuple(float(v) for v in bbox_max),
+            "bounds_size": tuple(float(v) for v in bbox_max - bbox_min),
+            "arrays": arrays,
+            "cell_types": [
+                {
+                    "name": cell_type_name_for_vertex_count(int(count)),
+                    "vertex_count": int(count),
+                    "num_faces": int(total),
+                }
+                for count, total in zip(unique_counts, num_each, strict=False)
+            ],
+        }
 
     def list_available_arrays(self) -> dict:
         """

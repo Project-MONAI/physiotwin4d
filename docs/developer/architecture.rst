@@ -103,9 +103,7 @@ Most PhysioMotion4D classes inherit from :class:`PhysioMotion4DBase`:
    │   │   └── RegisterImagesICON
    │   └── (Model registration classes)
    └── Conversion Classes
-       └── ConvertVTKToUSDBase
-           ├── ConvertVTKToUSDPolyMesh
-           └── ConvertVTKToUSDTetMesh
+       └── ConvertVTKToUSD
 
 The base class provides:
 

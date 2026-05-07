@@ -2,7 +2,7 @@
 # %% [markdown]
 # # VTK to USD Converter Test Notebook
 #
-# This notebook demonstrates the usage of the new `vtk_to_usd` library for converting VTK files to USD format.
+# This notebook demonstrates ConvertVTKToUSD for converting VTK files to USD format.
 #
 # The library is based on the ParaViewConnector architecture from Omniverse but simplified for file-based conversion only.
 #
@@ -31,9 +31,6 @@ import pyvista as pv
 from pxr import Usd, UsdGeom, UsdShade
 
 from physiomotion4d import ContourTools, ConvertVTKToUSD
-
-# read_vtk_file is internal API used here only for data inspection/diagnostics
-from physiomotion4d.vtk_to_usd.vtk_reader import read_vtk_file
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
@@ -86,49 +83,51 @@ print(f"  Default prim: {stage.GetDefaultPrim().GetPath()}")
 
 # %%
 # Read and inspect the VTP file
-mesh_data = read_vtk_file(vtp_file)
+mesh_info = ConvertVTKToUSD.inspect_file(vtp_file)
 
 print("=" * 60)
 print("VTP File (average_surface.vtp) Contents:")
 print("=" * 60)
 print("\nGeometry:")
-print(f"  Points: {len(mesh_data.points)}")
-print(f"  Faces: {len(mesh_data.face_vertex_counts)}")
-print(f"  Normals: {'Yes' if mesh_data.normals is not None else 'No'}")
-print(f"  Colors: {'Yes' if mesh_data.colors is not None else 'No'}")
+print(f"  Points: {mesh_info['points']}")
+print(f"  Faces: {mesh_info['faces']}")
+print(f"  Normals: {'Yes' if mesh_info['has_normals'] else 'No'}")
+print(f"  Colors: {'Yes' if mesh_info['has_colors'] else 'No'}")
 
-print(f"\nData Arrays ({len(mesh_data.generic_arrays)}):")
-for i, array in enumerate(mesh_data.generic_arrays, 1):
-    print(f"  {i}. {array.name}:")
-    print(f"     - Components: {array.num_components}")
-    print(f"     - Type: {array.data_type.value}")
-    print(f"     - Interpolation: {array.interpolation}")
-    print(f"     - Shape: {array.data.shape}")
-    if array.data.size > 0:
-        print(f"     - Range: [{np.min(array.data):.6f}, {np.max(array.data):.6f}]")
+print(f"\nData Arrays ({len(mesh_info['arrays'])}):")
+for i, array in enumerate(mesh_info["arrays"], 1):
+    print(f"  {i}. {array['name']}:")
+    print(f"     - Components: {array['num_components']}")
+    print(f"     - Type: {array['data_type']}")
+    print(f"     - Interpolation: {array['interpolation']}")
+    print(f"     - Shape: {array['shape']}")
+    data_range = array["range"]
+    if data_range[0] is not None and data_range[1] is not None:
+        print(f"     - Range: [{data_range[0]:.6f}, {data_range[1]:.6f}]")
 
 # %%
 # Read and inspect the VTK file
-mesh_data_vtk = read_vtk_file(vtk_file, extract_surface=True)
+mesh_info_vtk = ConvertVTKToUSD.inspect_file(vtk_file, extract_surface=True)
 
 print("=" * 60)
 print("VTK File (average_mesh.vtk) Contents:")
 print("=" * 60)
 print("\nGeometry:")
-print(f"  Points: {len(mesh_data_vtk.points)}")
-print(f"  Faces: {len(mesh_data_vtk.face_vertex_counts)}")
-print(f"  Normals: {'Yes' if mesh_data_vtk.normals is not None else 'No'}")
-print(f"  Colors: {'Yes' if mesh_data_vtk.colors is not None else 'No'}")
+print(f"  Points: {mesh_info_vtk['points']}")
+print(f"  Faces: {mesh_info_vtk['faces']}")
+print(f"  Normals: {'Yes' if mesh_info_vtk['has_normals'] else 'No'}")
+print(f"  Colors: {'Yes' if mesh_info_vtk['has_colors'] else 'No'}")
 
-print(f"\nData Arrays ({len(mesh_data_vtk.generic_arrays)}):")
-for i, array in enumerate(mesh_data_vtk.generic_arrays, 1):
-    print(f"  {i}. {array.name}:")
-    print(f"     - Components: {array.num_components}")
-    print(f"     - Type: {array.data_type.value}")
-    print(f"     - Interpolation: {array.interpolation}")
-    print(f"     - Shape: {array.data.shape}")
-    if array.data.size > 0:
-        print(f"     - Range: [{np.min(array.data):.6f}, {np.max(array.data):.6f}]")
+print(f"\nData Arrays ({len(mesh_info_vtk['arrays'])}):")
+for i, array in enumerate(mesh_info_vtk["arrays"], 1):
+    print(f"  {i}. {array['name']}:")
+    print(f"     - Components: {array['num_components']}")
+    print(f"     - Type: {array['data_type']}")
+    print(f"     - Interpolation: {array['interpolation']}")
+    print(f"     - Shape: {array['shape']}")
+    data_range = array["range"]
+    if data_range[0] is not None and data_range[1] is not None:
+        print(f"     - Range: [{data_range[0]:.6f}, {data_range[1]:.6f}]")
 
 # %% [markdown]
 # ## 3. Advanced Conversion with Custom Settings
@@ -367,7 +366,7 @@ print("=" * 60)
 # %% [markdown]
 # ## Conclusion
 #
-# This notebook demonstrated the comprehensive features of the new `vtk_to_usd` library:
+# This notebook demonstrated the comprehensive features of ConvertVTKToUSD:
 #
 # 1. **Simple Conversion**: One-line conversion of VTK files
 # 2. **Data Inspection**: Reading and analyzing VTK data arrays

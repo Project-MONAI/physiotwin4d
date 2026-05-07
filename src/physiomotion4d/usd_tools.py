@@ -170,8 +170,8 @@ class USDTools(PhysioMotion4DBase):
         n_rows = int(np.floor(np.sqrt(n_objects)))
         n_cols = int(np.ceil(n_objects / n_rows))
         self.log_info("Grid layout: %d rows x %d cols", n_rows, n_cols)
-        x_spacing = 400.0
-        y_spacing = 400.0
+        x_spacing = 0.4
+        y_spacing = 0.4
         x_offset = -x_spacing * (n_cols - 1) / 2
         y_offset = -y_spacing * (n_rows - 1) / 2
 
@@ -273,8 +273,8 @@ class USDTools(PhysioMotion4DBase):
                 coordinate systems
 
         Note:
-            The merged file uses meters as the base unit (0.01 scale factor)
-            and Y-up axis orientation, which are standard for Omniverse.
+            The merged file stores coordinates in meters (metersPerUnit=1.0)
+            with upAxis="Y", which are standard for Omniverse.
             Time-varying data (animations) are preserved across all time samples.
 
         Example:
@@ -285,7 +285,7 @@ class USDTools(PhysioMotion4DBase):
         """
         # Create new stage with meters as units (standard USD configuration)
         stage = Usd.Stage.CreateNew(output_filename)
-        stage.SetMetadata("metersPerUnit", 0.01)
+        stage.SetMetadata("metersPerUnit", 1.0)
         stage.SetMetadata("upAxis", "Y")
 
         # Define root prim for organization
@@ -478,7 +478,7 @@ class USDTools(PhysioMotion4DBase):
         temp_stage = Usd.Stage.CreateInMemory()
 
         # Set standard metadata (meters and Y-up for Omniverse)
-        temp_stage.SetMetadata("metersPerUnit", 0.01)
+        temp_stage.SetMetadata("metersPerUnit", 1.0)
         temp_stage.SetMetadata("upAxis", "Y")
 
         # Define root prim for organization

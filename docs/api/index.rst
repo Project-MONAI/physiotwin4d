@@ -49,8 +49,6 @@ This section provides detailed documentation for all PhysioMotion4D classes, fun
    usd/tools
    usd/anatomy_tools
    usd/vtk_conversion
-   usd/polymesh
-   usd/tetmesh
 
 .. toctree::
    :maxdepth: 2

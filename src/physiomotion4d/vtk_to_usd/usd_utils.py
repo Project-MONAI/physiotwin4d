@@ -28,54 +28,72 @@ def ras_to_usd(point: NDArray | tuple | list) -> Gf.Vec3f:
     - Y: up
     - Z: back (toward camera)
 
-    Conversion: USD(x, y, z) = RAS(x, z, -y)
+    Conversion: USD(x, y, z) = RAS(x, z, -y) * 0.001  (mm → m)
 
     Args:
-        point: Point in RAS coordinates [x, y, z]
+        point: Point in RAS coordinates [x, y, z] in millimeters
 
     Returns:
-        Gf.Vec3f: Point in USD coordinates
+        Gf.Vec3f: Point in USD coordinates in meters
     """
     if isinstance(point, (tuple, list)):
-        return Gf.Vec3f(float(point[0]), float(point[2]), float(-point[1]))
+        return Gf.Vec3f(
+            float(point[0]) * 0.001,
+            float(point[2]) * 0.001,
+            float(-point[1]) * 0.001,
+        )
     else:
-        return Gf.Vec3f(float(point[0]), float(point[2]), float(-point[1]))
+        return Gf.Vec3f(
+            float(point[0]) * 0.001,
+            float(point[2]) * 0.001,
+            float(-point[1]) * 0.001,
+        )
 
 
 def ras_points_to_usd(points: NDArray) -> Vt.Vec3fArray:
-    """Convert array of RAS points to USD coordinates.
+    """Convert array of RAS points (mm) to USD coordinates (m).
+
+    Applies axis swap RAS → Y-up and scales millimeters to meters (* 0.001).
 
     Args:
-        points: Array of points with shape (N, 3)
+        points: Array of points with shape (N, 3) in millimeters
 
     Returns:
-        Vt.Vec3fArray: Points in USD coordinates
+        Vt.Vec3fArray: Points in USD Y-up coordinates in meters
     """
     if points.shape[1] != 3:
         raise ValueError(f"Points must have shape (N, 3), got {points.shape}")
 
-    # Vectorized conversion: USD(x, y, z) = RAS(x, z, -y)
-    usd_points = np.empty_like(points)
-    usd_points[:, 0] = points[:, 0]  # X stays the same
-    usd_points[:, 1] = points[:, 2]  # Y = Z
-    usd_points[:, 2] = -points[:, 1]  # Z = -Y
+    # Vectorized: USD(x, y, z) = RAS(x, z, -y) * 0.001  (mm → m)
+    usd_points = np.empty(points.shape, dtype=np.float32)
+    usd_points[:, 0] = points[:, 0] * 0.001
+    usd_points[:, 1] = points[:, 2] * 0.001
+    usd_points[:, 2] = -points[:, 1] * 0.001
 
-    # Convert to USD Vec3fArray
-    return Vt.Vec3fArray.FromNumpy(usd_points.astype(np.float32))
+    return Vt.Vec3fArray.FromNumpy(usd_points)
 
 
 def ras_normals_to_usd(normals: NDArray) -> Vt.Vec3fArray:
-    """Convert array of RAS normals to USD coordinates.
+    """Convert array of RAS normals to USD Y-up coordinates.
 
-    Same transformation as points since normals are vectors.
+    Applies only the axis swap — normals are unit direction vectors and must
+    not be scaled by the mm→m factor.
 
     Args:
         normals: Array of normals with shape (N, 3)
 
     Returns:
-        Vt.Vec3fArray: Normals in USD coordinates
+        Vt.Vec3fArray: Normals in USD Y-up coordinates (unit length preserved)
     """
-    return ras_points_to_usd(normals)
+    if normals.shape[1] != 3:
+        raise ValueError(f"Normals must have shape (N, 3), got {normals.shape}")
+
+    usd_normals = np.empty(normals.shape, dtype=np.float32)
+    usd_normals[:, 0] = normals[:, 0]
+    usd_normals[:, 1] = normals[:, 2]
+    usd_normals[:, 2] = -normals[:, 1]
+
+    return Vt.Vec3fArray.FromNumpy(usd_normals)
 
 
 def numpy_to_vt_array(array: NDArray, data_type: DataType) -> Any:
