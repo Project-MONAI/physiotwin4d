@@ -299,7 +299,7 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
   - `def compare_result_to_baseline_transform(self, filename, *, per_value_absolute_error_tol=0.0, max_number_of_values_above_tol=0, total_absolute_error_tol=0.0)` (line 178): Compare the transform to the baseline transform.
   - `def compare_result_to_baseline_image(self, filename, *, per_pixel_absolute_error_tol=0.0, max_number_of_pixels_above_tol=0, total_absolute_error_tol=0.0)` (line 256): Load a 3D result image and a 3D baseline image (.mha), compare the full
   - `def save_screenshot_mesh(self, mesh, filename, *, camera_position='iso', window_size=(800, 600), color='pink', opacity=0.9)` (line 363): Render a PyVista mesh off-screen and save a PNG.
-  - `def save_screenshot_image_slice(self, image, filename, *, axis=0, slice_fraction=0.5, colormap='gray', vmin=None, vmax=None, overlay_mask=None, overlay_alpha=0.4)` (line 406): Extract one slice from an ITK image and save a PNG via matplotlib.
+  - `def save_screenshot_image_slice(self, image, filename, *, axis=0, slice_fraction=0.5, colormap='gray', vmin=None, vmax=None, overlay_mask=None, overlay_alpha=0.4)` (line 412): Extract one slice from an ITK image and save a PNG via matplotlib.
 
 ## src/physiomotion4d/transform_tools.py
 
@@ -688,24 +688,24 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 
 ## tests/test_tutorials.py
 
-- `def test_testtools_results_output_dir_override(tmp_path)` (line 75): Store result artifacts in an explicit directory when requested.
-- `def test_tutorial_01_contour_png_mesh_uses_current_run_results()` (line 100): Select current in-memory contours instead of disk VTP outputs.
-- `def test_tutorial_01_reference_png_uses_workflow_fixed_image(tmp_path)` (line 116): Select the actual workflow reference image over cached slice images.
-- `def test_tutorial_01_overlay_uses_workflow_fixed_segmentation(tmp_path)` (line 131): Select the current fixed labelmap over cached slice labelmaps.
-- `def test_tutorial_01_overlay_falls_back_to_fixed_image_mask(tmp_path)` (line 146): Read fixed_image_mask.mha before stale slice labelmap files.
-- **class TestTutorial01HeartGatedCTToUSD** (line 173): End-to-end test for tutorial_01_heart_gated_ct_to_usd.py.
-  - `def test_run(self, test_directories)` (line 178)
-- `def test_tutorial_03_extract_surface_uses_dataset_surface()` (line 204): Use the robust dataset_surface algorithm for VTK surface extraction.
-- **class TestTutorial02CTToVTK** (line 224): End-to-end test for tutorial_02_ct_to_vtk.py.
-  - `def test_run(self, test_directories)` (line 229)
-- **class TestTutorial03FitStatisticalModelToPatient** (line 257): End-to-end test for tutorial_03_fit_statistical_model_to_patient.py.
-  - `def test_run(self, test_directories)` (line 262)
-- **class TestTutorial04CreateStatisticalModel** (line 295): End-to-end test for tutorial_04_create_statistical_model.py.
-  - `def test_run(self, test_directories)` (line 300)
-- **class TestTutorial05VTKToUSD** (line 336): End-to-end test for tutorial_05_vtk_to_usd.py.
-  - `def test_run(self, test_directories)` (line 341)
-- **class TestTutorial06ReconstructHighres4DCT** (line 386): End-to-end test for tutorial_06_reconstruct_highres_4d_ct.py.
-  - `def test_run(self, test_directories)` (line 391)
+- `def test_testtools_results_output_dir_override(tmp_path)` (line 78): Store result artifacts in an explicit directory when requested.
+- `def test_tutorial_01_contour_png_mesh_uses_current_run_results()` (line 103): Select current in-memory contours instead of disk VTP outputs.
+- `def test_tutorial_01_reference_png_uses_workflow_fixed_image(tmp_path)` (line 119): Select the actual workflow reference image over cached slice images.
+- `def test_tutorial_01_overlay_uses_workflow_fixed_segmentation(tmp_path)` (line 134): Select the current fixed labelmap over cached slice labelmaps.
+- `def test_tutorial_01_overlay_falls_back_to_fixed_image_mask(tmp_path)` (line 149): Read fixed_image_mask.mha before stale slice labelmap files.
+- **class TestTutorial01HeartGatedCTToUSD** (line 176): End-to-end test for tutorial_01_heart_gated_ct_to_usd.py.
+  - `def test_run(self, test_directories)` (line 181)
+- `def test_tutorial_03_extract_surface_uses_dataset_surface()` (line 207): Use the robust dataset_surface algorithm for VTK surface extraction.
+- **class TestTutorial02CTToVTK** (line 227): End-to-end test for tutorial_02_ct_to_vtk.py.
+  - `def test_run(self, test_directories)` (line 232)
+- **class TestTutorial03FitStatisticalModelToPatient** (line 260): End-to-end test for tutorial_03_fit_statistical_model_to_patient.py.
+  - `def test_run(self, test_directories)` (line 265)
+- **class TestTutorial04CreateStatisticalModel** (line 298): End-to-end test for tutorial_04_create_statistical_model.py.
+  - `def test_run(self, test_directories)` (line 303)
+- **class TestTutorial05VTKToUSD** (line 339): End-to-end test for tutorial_05_vtk_to_usd.py.
+  - `def test_run(self, test_directories)` (line 344)
+- **class TestTutorial06ReconstructHighres4DCT** (line 389): End-to-end test for tutorial_06_reconstruct_highres_4d_ct.py.
+  - `def test_run(self, test_directories)` (line 394)
 
 ## tests/test_usd_merge.py
 

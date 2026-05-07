@@ -169,10 +169,14 @@ class WorkflowConvertHeartGatedCTToUSD(PhysioMotion4DBase):
             self.converter.load_nrrd_3d(self.input_filenames)
 
         self._num_time_points = self.converter.get_number_of_3d_images()
+        if self._num_time_points <= 0:
+            raise ValueError("No time-series images were produced from input data")
 
         # Load all time series images into memory
         for i in range(self._num_time_points):
             self._time_series_images.append(self.converter.get_3d_image(i))
+        if not self._time_series_images:
+            raise ValueError("No time-series images were loaded from input data")
 
         # Load reference image
         if self.reference_image_filename:

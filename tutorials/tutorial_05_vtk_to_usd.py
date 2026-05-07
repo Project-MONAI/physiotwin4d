@@ -102,7 +102,8 @@ def run_tutorial(
 
     if vtk_file is None:
         # Prefer Tutorial 2 output
-        candidate = Path("output") / "tutorial_02" / "patient_surfaces.vtp"
+        project_root = data_dir.parent
+        candidate = project_root / "output" / "tutorial_02" / "patient_surfaces.vtp"
         if candidate.exists():
             vtk_file = candidate
         else:

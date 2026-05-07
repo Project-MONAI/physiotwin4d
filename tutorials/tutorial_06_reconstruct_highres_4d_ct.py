@@ -127,11 +127,11 @@ def run_tutorial(
     case_dir = dirlab_dir / f"Case{case}"
 
     # Discover phase images (MetaImage .mhd or .mha)
-    phase_files = sorted(case_dir.glob("*.mhd")) + sorted(case_dir.glob("*.mha"))
+    phase_files = sorted(list(case_dir.glob("*.mhd")) + list(case_dir.glob("*.mha")))
     if not phase_files:
-        phase_pattern = f"Case{case}Pack_T*.mha"
-        phase_files = sorted(dirlab_dir.glob(f"Case{case}Pack_T*.mhd")) + sorted(
-            dirlab_dir.glob(phase_pattern)
+        phase_files = sorted(
+            list(dirlab_dir.glob(f"Case{case}Pack_T*.mhd"))
+            + list(dirlab_dir.glob(f"Case{case}Pack_T*.mha"))
         )
     if not phase_files:
         raise FileNotFoundError(

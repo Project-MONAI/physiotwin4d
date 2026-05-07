@@ -108,11 +108,16 @@ GPU tests require self-hosted runners with:
    sudo apt-get install nvidia-driver-535
    
    # Install CUDA toolkit 13.0
+   # CUDA 13.0 requires Ubuntu 22.04 LTS or later. These cuda-keyring_1.1-1_all.deb
+   # and cuda-toolkit-13 commands fail on Ubuntu 20.04 runners.
    wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
    sudo dpkg -i cuda-keyring_1.1-1_all.deb
    sudo apt-get update
-   sudo apt-get install cuda-toolkit-13-0
+   sudo apt-get install cuda-toolkit-13
    ```
+
+   Self-hosted GPU runners should be upgraded to Ubuntu 22.04 LTS or later
+   before installing CUDA 13.0.
 
 3. **Configure Runner Labels**:
    - Add labels: `self-hosted`, `linux`, `gpu`

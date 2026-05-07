@@ -61,6 +61,9 @@ def _compare_screenshots(
     tt: TestTools,
 ) -> None:
     """Read each PNG as itk.Image and compare against baseline."""
+    if not screenshots:
+        pytest.fail("No screenshots produced by run_tutorial")
+
     for png_path in screenshots:
         if not png_path.exists():
             pytest.fail(f"Screenshot not created: {png_path}")

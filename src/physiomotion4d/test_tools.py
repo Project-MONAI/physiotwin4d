@@ -389,17 +389,23 @@ class TestTools(PhysioMotion4DBase):
         """
         import pyvista as pv
 
+        xvfb_started = False
         try:
             pv.start_xvfb()
+            xvfb_started = True
         except Exception:
             pass
 
         output_path = self._results_dir / filename
         plotter = pv.Plotter(off_screen=True, window_size=list(window_size))
-        plotter.add_mesh(mesh, color=color, opacity=opacity)
-        plotter.camera_position = camera_position
-        plotter.screenshot(str(output_path))
-        plotter.close()
+        try:
+            plotter.add_mesh(mesh, color=color, opacity=opacity)
+            plotter.camera_position = camera_position
+            plotter.screenshot(str(output_path))
+        finally:
+            plotter.close()
+            if xvfb_started and hasattr(pv, "stop_xvfb"):
+                pv.stop_xvfb()
         self.log_info("Screenshot saved: %s", output_path)
         return output_path
 
@@ -442,7 +448,6 @@ class TestTools(PhysioMotion4DBase):
             Absolute Path to the saved PNG.
         """
         import matplotlib.pyplot as plt
-        import numpy as np
 
         arr = np.asarray(itk.array_view_from_image(image), dtype=np.float64)
         idx = int(arr.shape[axis] * slice_fraction)
@@ -452,24 +457,26 @@ class TestTools(PhysioMotion4DBase):
         slices[axis] = idx
         slice_data = arr[tuple(slices)]
 
-        fig, ax = plt.subplots(figsize=(6, 6))
-        ax.imshow(slice_data, cmap=colormap, vmin=vmin, vmax=vmax, origin="lower")
-
-        if overlay_mask is not None:
-            mask_arr = np.asarray(
-                itk.array_view_from_image(overlay_mask), dtype=np.float64
-            )
-            mask_slice = mask_arr[tuple(slices)]
-            ax.imshow(
-                np.ma.masked_where(mask_slice == 0, mask_slice),
-                cmap="autumn",
-                alpha=overlay_alpha,
-                origin="lower",
-            )
-
-        ax.axis("off")
         output_path = self._results_dir / filename
-        fig.savefig(str(output_path), bbox_inches="tight", dpi=100)
-        plt.close(fig)
+        fig, ax = plt.subplots(figsize=(6, 6))
+        try:
+            ax.imshow(slice_data, cmap=colormap, vmin=vmin, vmax=vmax, origin="lower")
+
+            if overlay_mask is not None:
+                mask_arr = np.asarray(
+                    itk.array_view_from_image(overlay_mask), dtype=np.float64
+                )
+                mask_slice = mask_arr[tuple(slices)]
+                ax.imshow(
+                    np.ma.masked_where(mask_slice == 0, mask_slice),
+                    cmap="autumn",
+                    alpha=overlay_alpha,
+                    origin="lower",
+                )
+
+            ax.axis("off")
+            fig.savefig(str(output_path), bbox_inches="tight", dpi=100)
+        finally:
+            plt.close(fig)
         self.log_info("Screenshot saved: %s", output_path)
         return output_path

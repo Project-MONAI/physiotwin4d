@@ -127,12 +127,15 @@ def run_tutorial(
         )
 
     sample_dir = kcl_dir / "sample_meshes"
-    sample_files = sorted(sample_dir.glob("*.vtu"))[:max_samples]
+    sample_files = sorted(sample_dir.glob("*.vtu"))
     if not sample_files:
-        sample_files = sorted(kcl_dir.glob("*.vtu"))[:max_samples]
+        sample_files = sorted(kcl_dir.glob("*.vtu"))
+    sample_files = [f for f in sample_files if f.name != "pca_mean.vtu"]
+    sample_files = sample_files[:max_samples]
     if len(sample_files) < 3:
         raise FileNotFoundError(
-            f"Need at least 3 sample meshes under {sample_dir}.\n"
+            f"Need at least 3 non-reference sample meshes under {sample_dir} "
+            f"or {kcl_dir}.\n"
             "See data/README.md for manual download instructions."
         )
 
@@ -190,13 +193,14 @@ def run_tutorial(
     eigenvalues: Any = pca_model.get("eigenvalues")
     mean_points = np.asarray(mean_surface.points)
 
+    try:
+        pv.start_xvfb()
+    except Exception:
+        pass
+
     for mode_idx in range(min(2, pca_components)):
         if eigenvectors is None or eigenvalues is None:
             break
-        try:
-            pv.start_xvfb()
-        except Exception:
-            pass
 
         sigma = float(np.sqrt(eigenvalues[mode_idx]))
         ev = np.asarray(eigenvectors[:, mode_idx]).reshape(-1, 3)

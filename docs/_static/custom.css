@@ -300,13 +300,21 @@ dt.sig {
     transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
 }
 
-.pm4d-card:hover,
-.pm4d-card:focus {
+.pm4d-card:hover {
     color: var(--pm4d-ink);
     text-decoration: none;
     border-color: var(--nvidia-green);
     box-shadow: 0 20px 42px rgba(17, 17, 17, 0.22);
     transform: translateY(-4px);
+}
+
+.pm4d-card:focus-visible {
+    color: var(--pm4d-ink);
+    text-decoration: none;
+    border-color: var(--nvidia-green);
+    outline: 3px solid #111111;
+    outline-offset: 3px;
+    box-shadow: 0 0 0 5px rgba(118, 185, 0, 0.35);
 }
 
 .pm4d-card__number {
@@ -373,13 +381,21 @@ dt.sig {
     transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
 }
 
-.pm4d-topic-card:hover,
-.pm4d-topic-card:focus {
+.pm4d-topic-card:hover {
     color: var(--pm4d-ink);
     text-decoration: none;
     border-color: var(--nvidia-green);
     box-shadow: 0 12px 26px rgba(17, 17, 17, 0.14);
     transform: translateY(-3px);
+}
+
+.pm4d-topic-card:focus-visible {
+    color: var(--pm4d-ink);
+    text-decoration: none;
+    border-color: var(--nvidia-green);
+    outline: 3px solid #111111;
+    outline-offset: 3px;
+    box-shadow: 0 0 0 5px rgba(118, 185, 0, 0.35);
 }
 
 .pm4d-topic-card h3 {

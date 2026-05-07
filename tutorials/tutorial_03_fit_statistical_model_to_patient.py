@@ -167,7 +167,7 @@ def run_tutorial(
         pass
     plotter = pv.Plotter(off_screen=True, window_size=[800, 600])
     plotter.add_mesh(
-        _extract_surface(template_model),
+        template_model,
         color="dodgerblue",
         opacity=0.6,
         label="Template",
