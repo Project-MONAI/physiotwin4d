@@ -25,7 +25,7 @@ Runs on every push and pull request to main branches. Includes:
     - Manually triggered via workflow_dispatch, OR
     - PR has the `run-gpu-tests` label
   - Requires self-hosted runner with `[self-hosted, linux, gpu]` labels
-  - Uses PyTorch with CUDA 12.6 support
+  - Uses PyTorch with CUDA 13.0 support
   - Timeout: 30 minutes
 
 - **code-quality**: Static code analysis
@@ -87,7 +87,7 @@ To run GPU tests, you must either:
 
 GPU tests require self-hosted runners with:
 - Linux OS
-- NVIDIA GPU with CUDA 12.6+ support
+- NVIDIA GPU with CUDA 13.0 support
 - Runner labels: `[self-hosted, linux, gpu]`
 
 **Why are GPU tests disabled by default?**
@@ -107,11 +107,11 @@ GPU tests require self-hosted runners with:
    # Install NVIDIA drivers
    sudo apt-get install nvidia-driver-535
    
-   # Install CUDA toolkit 12.6
-   wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.0-1_all.deb
-   sudo dpkg -i cuda-keyring_1.0-1_all.deb
+   # Install CUDA toolkit 13.0
+   wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
+   sudo dpkg -i cuda-keyring_1.1-1_all.deb
    sudo apt-get update
-   sudo apt-get install cuda-toolkit-12-6
+   sudo apt-get install cuda-toolkit-13-0
    ```
 
 3. **Configure Runner Labels**:
@@ -140,8 +140,7 @@ GPU tests require self-hosted runners with:
 **Option 3: Run Locally**
 ```bash
 # Install with CUDA support
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126
-pip install -e ".[test]"
+uv pip install -e ".[test,cuda13]"
 
 # Run GPU tests
 pytest tests/ -v -m "not slow"
@@ -214,8 +213,7 @@ pytest tests/ -m "unit and not requires_gpu" --cov=physiomotion4d
 ### GPU Tests
 ```bash
 # Install with CUDA support
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126
-pip install -e ".[test]"
+uv pip install -e ".[test,cuda13]"
 
 # Run all tests (including GPU)
 pytest tests/ -m "not slow"

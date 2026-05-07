@@ -148,6 +148,7 @@ def run_tutorial(
         results_dir=output_dir,
         baselines_dir=output_dir / "baselines",
         class_name="tutorial_02",
+        results_output_dir=output_dir,
         log_level=log_level,
     )
 

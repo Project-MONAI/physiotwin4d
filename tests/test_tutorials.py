@@ -6,10 +6,9 @@ to be present (see data/README.md).
 
 Screenshot comparison uses the existing ITK-based baseline infrastructure:
 
-1. The tutorial's ``run_tutorial()`` saves PNGs to the results directory.
-2. Each PNG is read back with ``itk.imread`` (ITK handles PNG natively).
-3. ``TestTools.write_result_image`` + ``compare_result_to_baseline_image`` compare
-   the PNG against a stored baseline with loose per-pixel tolerances.
+1. The tutorial's ``run_tutorial()`` saves PNGs directly to its ``output_dir``.
+2. ``TestTools.compare_result_to_baseline_image`` reads each PNG from that
+   directory and compares it against a stored baseline with loose tolerances.
 
 Run all tutorial tests::
 
@@ -23,9 +22,11 @@ Create baselines on first run::
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from types import SimpleNamespace
+from typing import Any, Optional
 
 import itk
+import numpy as np
 import pytest
 
 from physiomotion4d.test_tools import TestTools
@@ -37,6 +38,24 @@ _MAX_PX = 2000  # maximum number of pixels allowed above _PX_TOL
 _TOT_TOL = float("inf")  # use the pixel-count criterion only
 
 
+class _FakeMesh:
+    """Minimal mesh double for tutorial screenshot selection tests."""
+
+    def __init__(self, n_points: int) -> None:
+        self.n_points = n_points
+
+
+class _FakeSurfaceExtractable:
+    """Minimal mesh double that records PyVista extraction options."""
+
+    def __init__(self) -> None:
+        self.algorithm: Optional[str] = None
+
+    def extract_surface(self, *, algorithm: str) -> "_FakeSurfaceExtractable":
+        self.algorithm = algorithm
+        return self
+
+
 def _compare_screenshots(
     screenshots: list[Path],
     tt: TestTools,
@@ -45,8 +64,6 @@ def _compare_screenshots(
     for png_path in screenshots:
         if not png_path.exists():
             pytest.fail(f"Screenshot not created: {png_path}")
-        img = itk.imread(str(png_path))
-        tt.write_result_image(img, png_path.name)
         assert tt.compare_result_to_baseline_image(
             png_path.name,
             per_pixel_absolute_error_tol=_PX_TOL,
@@ -55,9 +72,99 @@ def _compare_screenshots(
         ), f"Screenshot baseline mismatch: {png_path.name}"
 
 
+def test_testtools_results_output_dir_override(tmp_path: Path) -> None:
+    """Store result artifacts in an explicit directory when requested."""
+    results_root = tmp_path / "results"
+    output_dir = tmp_path / "tutorial_output"
+    baselines_root = tmp_path / "baselines"
+    tt = TestTools(
+        results_dir=results_root,
+        baselines_dir=baselines_root,
+        class_name="tutorial_example",
+        results_output_dir=output_dir,
+    )
+
+    image = itk.image_from_array(np.zeros((2, 2, 2), dtype=np.uint8))
+    tt.write_result_image(image, "current.mha")
+
+    assert (output_dir / "current.mha").exists()
+    assert not (results_root / "tutorial_example" / "current.mha").exists()
+    assert (baselines_root / "tutorial_example").exists()
+
+
 # -----------------------------------------------------------------------------
 # Tutorial 1 - Heart-Gated CT to Animated USD
 # -----------------------------------------------------------------------------
+
+
+def test_tutorial_01_contour_png_mesh_uses_current_run_results() -> None:
+    """Select current in-memory contours instead of disk VTP outputs."""
+    from tutorials.tutorial_01_heart_gated_ct_to_usd import (
+        _first_current_contour_mesh,
+    )
+
+    transformed_mesh = _FakeMesh(4)
+    reference_mesh = _FakeMesh(8)
+    workflow: Any = SimpleNamespace(
+        _transformed_contours={"all": [transformed_mesh]},
+        _reference_contours={"all": reference_mesh},
+    )
+
+    assert _first_current_contour_mesh(workflow) is transformed_mesh
+
+
+def test_tutorial_01_reference_png_uses_workflow_fixed_image(
+    tmp_path: Path,
+) -> None:
+    """Select the actual workflow reference image over cached slice images."""
+    from tutorials.tutorial_01_heart_gated_ct_to_usd import (
+        _current_reference_image,
+    )
+
+    fixed_image = object()
+    workflow: Any = SimpleNamespace(_fixed_image=fixed_image)
+    (tmp_path / "slice_000.mha").touch()
+
+    assert _current_reference_image(workflow, tmp_path) is fixed_image
+
+
+def test_tutorial_01_overlay_uses_workflow_fixed_segmentation(
+    tmp_path: Path,
+) -> None:
+    """Select the current fixed labelmap over cached slice labelmaps."""
+    from tutorials.tutorial_01_heart_gated_ct_to_usd import (
+        _current_reference_segmentation,
+    )
+
+    labelmap = object()
+    workflow: Any = SimpleNamespace(_fixed_segmentation={"labelmap": labelmap})
+    (tmp_path / "slice_000_labelmap.mha").touch()
+
+    assert _current_reference_segmentation(workflow, tmp_path) is labelmap
+
+
+def test_tutorial_01_overlay_falls_back_to_fixed_image_mask(
+    tmp_path: Path,
+) -> None:
+    """Read fixed_image_mask.mha before stale slice labelmap files."""
+    from tutorials.tutorial_01_heart_gated_ct_to_usd import (
+        _current_reference_segmentation,
+    )
+
+    arr = np.array(
+        [[[1, 0], [0, 1]], [[0, 1], [1, 0]]],
+        dtype=np.uint8,
+    )
+    mask = itk.image_from_array(arr)
+    fixed_mask_path = tmp_path / "fixed_image_mask.mha"
+    itk.imwrite(mask, str(fixed_mask_path), compression=True)
+    (tmp_path / "slice_000_labelmap.mha").touch()
+
+    workflow: Any = SimpleNamespace()
+    selected = _current_reference_segmentation(workflow, tmp_path)
+
+    assert selected is not None
+    assert tuple(selected.GetLargestPossibleRegion().GetSize()) == (2, 2, 2)
 
 
 @pytest.mark.experiment
@@ -84,8 +191,26 @@ class TestTutorial01HeartGatedCTToUSD:
             class_name=self._class_name,
             results_dir=test_directories["output"],
             baselines_dir=test_directories["baselines"],
+            results_output_dir=out_dir,
         )
         _compare_screenshots(results["screenshots"], tt)
+
+
+# -----------------------------------------------------------------------------
+# Tutorial 3 - Fit Statistical Model to Patient
+# -----------------------------------------------------------------------------
+
+
+def test_tutorial_03_extract_surface_uses_dataset_surface() -> None:
+    """Use the robust dataset_surface algorithm for VTK surface extraction."""
+    from tutorials.tutorial_03_fit_statistical_model_to_patient import (
+        _extract_surface,
+    )
+
+    mesh: Any = _FakeSurfaceExtractable()
+
+    assert _extract_surface(mesh) is mesh
+    assert mesh.algorithm == "dataset_surface"
 
 
 # -----------------------------------------------------------------------------
@@ -116,6 +241,7 @@ class TestTutorial02CTToVTK:
             class_name=self._class_name,
             results_dir=test_directories["output"],
             baselines_dir=test_directories["baselines"],
+            results_output_dir=out_dir,
         )
         _compare_screenshots(results["screenshots"], tt)
 
@@ -153,6 +279,7 @@ class TestTutorial03FitStatisticalModelToPatient:
             class_name=self._class_name,
             results_dir=test_directories["output"],
             baselines_dir=test_directories["baselines"],
+            results_output_dir=out_dir,
         )
         _compare_screenshots(results["screenshots"], tt)
 
@@ -193,6 +320,7 @@ class TestTutorial04CreateStatisticalModel:
             class_name=self._class_name,
             results_dir=test_directories["output"],
             baselines_dir=test_directories["baselines"],
+            results_output_dir=out_dir,
         )
         _compare_screenshots(results["screenshots"], tt)
 
@@ -242,6 +370,7 @@ class TestTutorial05VTKToUSD:
             class_name=self._class_name,
             results_dir=test_directories["output"],
             baselines_dir=test_directories["baselines"],
+            results_output_dir=out_dir,
         )
         _compare_screenshots(results["screenshots"], tt)
 
@@ -286,5 +415,6 @@ class TestTutorial06ReconstructHighres4DCT:
             class_name=self._class_name,
             results_dir=test_directories["output"],
             baselines_dir=test_directories["baselines"],
+            results_output_dir=out_dir,
         )
         _compare_screenshots(results["screenshots"], tt)

@@ -42,17 +42,14 @@ returning ``False``, or runtime messages indicating a CUDA library version confl
 **Cause**: The installed ``cupy`` or PyTorch wheel was built for a different CUDA
 version than the one present on the system.
 
-**Solution**: Install the extra that matches your system CUDA version:
+**Solution**: Install the CUDA 13 extra:
 
 .. code-block:: bash
 
-   # CUDA 13
    uv pip install "physiomotion4d[cuda13]"
 
-   # CUDA 12
-   uv pip install "physiomotion4d[cuda12]"
-
-Each extra installs both CuPy and the correct CUDA-built PyTorch wheel.
+The extra installs CuPy. In uv-managed source environments, PyTorch resolves
+from the CUDA 13.0 wheel index.
 
 Verify the active CUDA version before reinstalling:
 

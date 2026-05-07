@@ -12,6 +12,13 @@
     /* Minimal border radius */
     --radius-sm: 0.25rem;
     --radius-md: 0.375rem;
+    --nvidia-green: #76b900;
+    --pm4d-ink: #111111;
+    --pm4d-charcoal: #1a1a1a;
+    --pm4d-muted: #5f6670;
+    --pm4d-line: #d9dee6;
+    --pm4d-surface: #ffffff;
+    --pm4d-page: #f4f6f8;
 }
 
 /* ==================== GLOBAL STYLES ==================== */
@@ -19,6 +26,8 @@
 /* Improved Typography - minimal override */
 body {
     line-height: 1.6;
+    background: var(--pm4d-page);
+    color: var(--pm4d-ink);
 }
 
 /* Smooth Scrolling */
@@ -36,6 +45,7 @@ h4,
 h5,
 h6 {
     line-height: 1.3;
+    color: var(--pm4d-ink);
 }
 
 /* ==================== LINKS ==================== */
@@ -80,8 +90,39 @@ table {
     border-radius: var(--radius-md);
 }
 
+.wy-side-nav-search {
+    background: var(--pm4d-ink);
+    border-bottom: 3px solid var(--nvidia-green);
+}
+
+.wy-side-nav-search > a,
+.wy-side-nav-search .wy-dropdown > a {
+    color: #ffffff;
+}
+
+.wy-side-nav-search img {
+    width: 148px;
+    border-radius: 0;
+    background: var(--nvidia-green);
+    padding: 8px 12px;
+}
+
+.wy-nav-side {
+    background: var(--pm4d-charcoal);
+}
+
+.wy-menu-vertical header,
+.wy-menu-vertical p.caption {
+    color: var(--nvidia-green);
+}
+
 .wy-menu-vertical a {
     border-radius: var(--radius-sm);
+}
+
+.wy-menu-vertical a:hover {
+    background: #2b2b2b;
+    color: #ffffff;
 }
 
 /* ==================== CONTENT AREA ==================== */
@@ -89,6 +130,7 @@ table {
 /* Use default content area styling */
 .wy-nav-content {
     max-width: 1200px;
+    background: var(--pm4d-surface);
 }
 
 /* ==================== BUTTONS ==================== */
@@ -191,6 +233,180 @@ dl.method {
 
 dt.sig {
     border-radius: var(--radius-md);
+}
+
+/* ==================== NVIDIA-STYLE TUTORIAL LANDING ==================== */
+
+.pm4d-hero {
+    margin: -1.618em -3.236em 2rem;
+    padding: 4rem 3.236em 4.5rem;
+    color: #ffffff;
+    background: #111111;
+    border-bottom: 6px solid var(--nvidia-green);
+}
+
+.pm4d-hero__brand img {
+    width: 150px;
+    border-radius: 0;
+    margin-bottom: 1.5rem;
+}
+
+.pm4d-kicker {
+    margin: 0 0 0.75rem;
+    color: var(--nvidia-green);
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.pm4d-hero h1 {
+    max-width: 780px;
+    margin: 0 0 1rem;
+    color: #ffffff;
+    font-size: 2.55rem;
+    line-height: 1.08;
+}
+
+.pm4d-hero p:not(.pm4d-kicker) {
+    max-width: 760px;
+    margin: 0;
+    color: #d8dde6;
+    font-size: 1.1rem;
+}
+
+.pm4d-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.15rem;
+    margin: -4rem 0 2.25rem;
+    position: relative;
+    z-index: 2;
+}
+
+.pm4d-card,
+.pm4d-card:visited {
+    display: flex;
+    min-height: 214px;
+    padding: 1.25rem;
+    color: var(--pm4d-ink);
+    text-decoration: none;
+    background: #ffffff;
+    border: 1px solid var(--pm4d-line);
+    border-top: 4px solid var(--nvidia-green);
+    border-radius: 8px;
+    box-shadow: 0 16px 34px rgba(17, 17, 17, 0.16);
+    flex-direction: column;
+    transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.pm4d-card:hover,
+.pm4d-card:focus {
+    color: var(--pm4d-ink);
+    text-decoration: none;
+    border-color: var(--nvidia-green);
+    box-shadow: 0 20px 42px rgba(17, 17, 17, 0.22);
+    transform: translateY(-4px);
+}
+
+.pm4d-card__number {
+    color: var(--nvidia-green);
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+}
+
+.pm4d-card h2 {
+    margin: 0.55rem 0 0.65rem;
+    color: var(--pm4d-ink);
+    font-size: 1.18rem;
+    line-height: 1.2;
+}
+
+.pm4d-card p {
+    margin: 0 0 1rem;
+    color: var(--pm4d-muted);
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.pm4d-card__meta {
+    margin-top: auto;
+    color: var(--pm4d-ink);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.pm4d-topic-section {
+    margin: 2.5rem 0 2.75rem;
+}
+
+.pm4d-section-heading {
+    margin-bottom: 1.25rem;
+}
+
+.pm4d-section-heading h2 {
+    margin: 0;
+    font-size: 1.75rem;
+}
+
+.pm4d-topic-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 1rem;
+}
+
+.pm4d-topic-card,
+.pm4d-topic-card:visited {
+    display: block;
+    min-height: 158px;
+    padding: 1.15rem;
+    color: var(--pm4d-ink);
+    text-decoration: none;
+    background: #ffffff;
+    border: 1px solid var(--pm4d-line);
+    border-left: 4px solid var(--nvidia-green);
+    border-radius: 8px;
+    box-shadow: 0 8px 20px rgba(17, 17, 17, 0.08);
+    transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.pm4d-topic-card:hover,
+.pm4d-topic-card:focus {
+    color: var(--pm4d-ink);
+    text-decoration: none;
+    border-color: var(--nvidia-green);
+    box-shadow: 0 12px 26px rgba(17, 17, 17, 0.14);
+    transform: translateY(-3px);
+}
+
+.pm4d-topic-card h3 {
+    margin: 0 0 0.6rem;
+    font-size: 1.05rem;
+}
+
+.pm4d-topic-card p {
+    margin: 0;
+    color: var(--pm4d-muted);
+    font-size: 0.92rem;
+    line-height: 1.5;
+}
+
+@media screen and (max-width: 768px) {
+    .pm4d-hero {
+        margin: -1.618em -1.618em 2rem;
+        padding: 3rem 1.618em 4.25rem;
+    }
+
+    .pm4d-hero h1 {
+        font-size: 2rem;
+    }
+
+    .pm4d-card-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* ==================== END ==================== */

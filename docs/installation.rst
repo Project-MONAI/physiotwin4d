@@ -11,7 +11,7 @@ System Requirements
 -------------------
 
 * **Python**: 3.10, 3.11, or 3.12
-* **GPU**: NVIDIA GPU with CUDA 13 (default) or CUDA 12 — recommended for production use; CPU-only installation is supported but will be slow and will emit a runtime warning
+* **GPU**: NVIDIA GPU with CUDA 13 — recommended for production use; CPU-only PyPI installation is supported but will be slow and will emit a runtime warning
 * **RAM**: 16GB minimum (32GB+ recommended for large datasets)
 * **Storage**: 10GB+ for package and model weights
 * **Visualization**: NVIDIA Omniverse (optional, for USD visualization)
@@ -22,7 +22,7 @@ Software Dependencies
 PhysioMotion4D relies on several key packages:
 
 * **Medical Imaging**: ITK, TubeTK, MONAI, nibabel, PyVista
-* **AI/ML**: PyTorch, CuPy (CUDA 13 default; CUDA 12 via ``[cuda12]`` extra), transformers, MONAI
+* **AI/ML**: PyTorch, CuPy (CUDA 13), transformers, MONAI
 * **Registration**: icon-registration, unigradicon
 * **Visualization**: USD-core, PyVista
 * **Segmentation**: TotalSegmentator
@@ -35,7 +35,7 @@ Method 1: Install from PyPI (Recommended)
 
 The simplest way to install PhysioMotion4D is from PyPI.
 
-CPU-only install (evaluation / no GPU):
+CPU-only PyPI install (evaluation / no GPU):
 
 .. code-block:: bash
 
@@ -50,7 +50,6 @@ import time (visible by default in all standard Python runs):
    slow. Re-install with uv to get CuPy and CUDA-enabled PyTorch in one step
    (pip alone will not select the correct CUDA wheel):
      uv pip install 'physiomotion4d[cuda13]'  # CUDA 13
-     uv pip install 'physiomotion4d[cuda12]'  # CUDA 12
 
 CUDA 13 install (recommended for production):
 
@@ -58,17 +57,9 @@ CUDA 13 install (recommended for production):
 
    uv pip install "physiomotion4d[cuda13]"
 
-CUDA 12 install:
-
-.. code-block:: bash
-
-   uv pip install "physiomotion4d[cuda12]"
-
-The ``[cuda13]`` and ``[cuda12]`` extras install both CuPy and the correct
-CUDA-built PyTorch wheel in one step. PyTorch is listed inside the extras so
-that uv's dependency resolver fetches the GPU wheel from the PyTorch index
-rather than the CPU wheel from PyPI. There is no need to install PyTorch
-separately.
+The ``[cuda13]`` extra installs CuPy. In uv-managed source environments,
+PyTorch, torchvision, and torchaudio resolve from the CUDA 13.0 PyTorch wheel
+index. There is no need to install PyTorch separately.
 
 For development with NVIDIA NIM cloud services:
 
@@ -114,23 +105,18 @@ For development or to get the latest features:
 
 **Step 4: Install PhysioMotion4D**
 
-CPU-only (evaluation / no GPU):
+Default uv-managed source install:
 
 .. code-block:: bash
 
    uv pip install -e "."
 
-With uv (CUDA 13, recommended for production):
+This uses the CUDA 13.0 PyTorch wheel index by default. To add CuPy for CUDA 13
+GPU acceleration:
 
 .. code-block:: bash
 
    uv pip install -e ".[cuda13]"
-
-With uv (CUDA 12):
-
-.. code-block:: bash
-
-   uv pip install -e ".[cuda12]"
 
 Optional Dependencies
 =====================
@@ -209,11 +195,10 @@ GPU Setup
 CUDA Installation
 -----------------
 
-An NVIDIA GPU is strongly recommended. Two CUDA versions are supported via
-optional extras:
+An NVIDIA GPU is strongly recommended. CUDA 13 is supported via the optional
+extra:
 
 * **CUDA 13** — installed when you use the ``[cuda13]`` extra (recommended)
-* **CUDA 12** — installed when you use the ``[cuda12]`` extra
 
 A plain ``pip install physiomotion4d`` installs a CPU-only build. It runs
 without error but emits a ``UserWarning`` at import time and will be
@@ -230,10 +215,8 @@ If CUDA is not yet installed, download the CUDA Toolkit from
 PyTorch with CUDA
 -----------------
 
-A plain install pulls a CPU-only PyTorch wheel from PyPI. The ``[cuda13]``
-extra sources PyTorch, torchvision, and torchaudio from the
-``https://download.pytorch.org/whl/cu130`` index. The ``[cuda12]`` extra
-sources them from ``https://download.pytorch.org/whl/cu128``. To verify the
+uv-managed source environments source PyTorch, torchvision, and torchaudio from
+the ``https://download.pytorch.org/whl/cu130`` index by default. To verify the
 active version:
 
 .. code-block:: python

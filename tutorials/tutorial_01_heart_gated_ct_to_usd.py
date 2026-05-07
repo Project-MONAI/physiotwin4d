@@ -22,11 +22,10 @@ Outputs
 -------
 - ``output_dir/cardiac_model.dynamic_anatomy_painted.usd`` - animated USD with
   anatomy materials
-- ``output_dir/<phase>_*.vtp`` - per-frame surface meshes (VTK PolyData)
 - Screenshots (PNG) for documentation and regression testing:
   - ``reference_frame_axial.png`` - axial slice of the reference CT frame
   - ``segmentation_overlay.png`` - segmentation mask overlaid on reference
-  - ``contours_3d.png`` - 3-D isometric view of the reference-frame contours
+  - ``contours_3d.png`` - 3-D isometric view of the current-run contours
 
 Strengths
 ---------
@@ -86,7 +85,7 @@ from __future__ import annotations
 import argparse
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import itk
 
@@ -94,6 +93,72 @@ from physiomotion4d.test_tools import TestTools
 from physiomotion4d.workflow_convert_heart_gated_ct_to_usd import (
     WorkflowConvertHeartGatedCTToUSD,
 )
+
+
+def _first_current_contour_mesh(
+    workflow: WorkflowConvertHeartGatedCTToUSD,
+) -> Optional[Any]:
+    """Return a contour mesh produced by the current workflow run.
+
+    Prefer transformed all-anatomy contours, because those are the meshes passed
+    into USD conversion for the current run. Fall back to reference contours only
+    if transformed contours are unavailable.
+    """
+    transformed_contours = getattr(workflow, "_transformed_contours", {})
+    if isinstance(transformed_contours, dict):
+        for mesh in transformed_contours.get("all", []):
+            if getattr(mesh, "n_points", 0) > 0:
+                return mesh
+
+    reference_contours = getattr(workflow, "_reference_contours", {})
+    if isinstance(reference_contours, dict):
+        mesh = reference_contours.get("all")
+        if mesh is not None and getattr(mesh, "n_points", 0) > 0:
+            return mesh
+
+    return None
+
+
+def _current_reference_image(
+    workflow: WorkflowConvertHeartGatedCTToUSD,
+    output_dir: Path,
+) -> Optional[Any]:
+    """Return the reference image used by the current workflow run."""
+    fixed_image = getattr(workflow, "_fixed_image", None)
+    if fixed_image is not None:
+        return fixed_image
+
+    fixed_image_file = output_dir / "fixed_image.mha"
+    if fixed_image_file.exists():
+        return itk.imread(str(fixed_image_file))
+
+    ref_frames = sorted(output_dir.glob("slice_???.mha"))
+    if ref_frames:
+        return itk.imread(str(ref_frames[0]))
+
+    return None
+
+
+def _current_reference_segmentation(
+    workflow: WorkflowConvertHeartGatedCTToUSD,
+    output_dir: Path,
+) -> Optional[Any]:
+    """Return the labelmap for the current workflow reference image."""
+    fixed_segmentation = getattr(workflow, "_fixed_segmentation", None)
+    if isinstance(fixed_segmentation, dict):
+        labelmap = fixed_segmentation.get("labelmap")
+        if labelmap is not None:
+            return labelmap
+
+    fixed_mask_file = output_dir / "fixed_image_mask.mha"
+    if fixed_mask_file.exists():
+        return itk.imread(str(fixed_mask_file))
+
+    label_files = sorted(output_dir.glob("slice_???_labelmap*.mha"))
+    if label_files:
+        return itk.imread(str(label_files[0]))
+
+    return None
 
 
 def run_tutorial(
@@ -116,6 +181,9 @@ def run_tutorial(
 
         - ``'usd_file'`` (str): path to the final painted USD.
         - ``'screenshots'`` (list[Path]): paths to saved PNG screenshots.
+          PNGs are rendered from data produced by this invocation, not from
+          previously saved VTK/VTP files in ``output_dir``. Reference-frame
+          screenshots use the workflow's selected fixed image.
     """
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -143,15 +211,15 @@ def run_tutorial(
         results_dir=output_dir,
         baselines_dir=output_dir / "baselines",
         class_name="tutorial_01",
+        results_output_dir=output_dir,
         log_level=log_level,
     )
 
     screenshots: list[Path] = []
 
-    # Reference frame: the workflow caches 3D frames in output_dir
-    ref_frames = sorted(output_dir.glob("slice_???.mha"))
-    if ref_frames:
-        ref_image = itk.imread(str(ref_frames[0]))
+    # Reference frame: use the workflow's selected fixed image for this run.
+    ref_image = _current_reference_image(workflow, output_dir)
+    if ref_image is not None:
         screenshots.append(
             tt.save_screenshot_image_slice(
                 ref_image,
@@ -164,9 +232,8 @@ def run_tutorial(
             )
         )
 
-        # Segmentation overlay: look for cached labelmap
-        label_files = sorted(output_dir.glob("slice_???_labelmap*.mha"))
-        overlay = itk.imread(str(label_files[0])) if label_files else None
+        # Segmentation overlay: align with the selected fixed image.
+        overlay = _current_reference_segmentation(workflow, output_dir)
         screenshots.append(
             tt.save_screenshot_image_slice(
                 ref_image,
@@ -180,15 +247,12 @@ def run_tutorial(
             )
         )
 
-    # 3-D contour view: any .vtp produced by the workflow
-    vtp_files = sorted(output_dir.glob("*.vtp"))
-    if vtp_files:
-        import pyvista as pv
-
-        merged = pv.read(str(vtp_files[0]))
+    # 3-D contour view: render the current run's in-memory contours.
+    contour_mesh = _first_current_contour_mesh(workflow)
+    if contour_mesh is not None:
         screenshots.append(
             tt.save_screenshot_mesh(
-                merged,
+                contour_mesh,
                 "contours_3d.png",
                 camera_position="iso",
                 color="tomato",

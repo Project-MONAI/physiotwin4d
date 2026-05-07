@@ -178,9 +178,9 @@ class WorkflowConvertHeartGatedCTToUSD(PhysioMotion4DBase):
         if self.reference_image_filename:
             self._fixed_image = itk.imread(self.reference_image_filename)
         else:
-            # Use 70% frame as reference if none specified
-            mid_frame = int(self._num_time_points * 0.7)
-            self._fixed_image = self._time_series_images[mid_frame]
+            # Use 70% frame as reference if none specified.
+            reference_frame = int(self._num_time_points * 0.7)
+            self._fixed_image = self._time_series_images[reference_frame]
             itk.imwrite(
                 self._fixed_image,
                 os.path.join(self.output_directory, "fixed_image.mha"),

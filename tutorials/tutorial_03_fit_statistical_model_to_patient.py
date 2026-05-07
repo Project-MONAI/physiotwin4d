@@ -84,10 +84,16 @@ from typing import Any, cast
 
 import pyvista as pv
 
-from physiomotion4d.test_tools import TestTools
 from physiomotion4d.workflow_fit_statistical_model_to_patient import (
     WorkflowFitStatisticalModelToPatient,
 )
+
+
+def _extract_surface(mesh: pv.DataSet) -> pv.PolyData:
+    """Extract a PolyData surface using the library's standard VTK algorithm."""
+    if isinstance(mesh, pv.PolyData):
+        return mesh
+    return cast(pv.PolyData, mesh.extract_surface(algorithm="dataset_surface"))
 
 
 def run_tutorial(
@@ -121,9 +127,7 @@ def run_tutorial(
         )
 
     template_model = pv.read(str(template_file))
-    if not isinstance(template_model, pv.PolyData):
-        template_model = template_model.extract_surface()
-    template_model = cast(pv.PolyData, template_model)
+    template_model = _extract_surface(template_model)
 
     # Use a subset of sample meshes as stand-in patient models
     sample_files = sorted((kcl_dir / "sample_meshes").glob("*.vtu"))[:3]
@@ -137,9 +141,7 @@ def run_tutorial(
     patient_models = []
     for sample_file in sample_files:
         sample_model = pv.read(str(sample_file))
-        if not isinstance(sample_model, pv.PolyData):
-            sample_model = sample_model.extract_surface()
-        patient_models.append(cast(pv.PolyData, sample_model))
+        patient_models.append(_extract_surface(sample_model))
 
     workflow = WorkflowFitStatisticalModelToPatient(
         template_model=template_model,
@@ -151,14 +153,6 @@ def run_tutorial(
     registered_surface: pv.PolyData = result["registered_template_model_surface"]
     registered_file = output_dir / "registered_template.vtp"
     registered_surface.save(str(registered_file))
-
-    # Screenshots
-    tt = TestTools(
-        results_dir=output_dir,
-        baselines_dir=output_dir / "baselines",
-        class_name="tutorial_03",
-        log_level=log_level,
-    )
 
     screenshots: list[Path] = []
 
@@ -173,16 +167,19 @@ def run_tutorial(
         pass
     plotter = pv.Plotter(off_screen=True, window_size=[800, 600])
     plotter.add_mesh(
-        template_model.extract_surface(),
+        _extract_surface(template_model),
         color="dodgerblue",
         opacity=0.6,
         label="Template",
     )
     plotter.add_mesh(
-        patient_combined.extract_surface(), color="tomato", opacity=0.6, label="Patient"
+        _extract_surface(patient_combined),
+        color="tomato",
+        opacity=0.6,
+        label="Patient",
     )
     plotter.camera_position = "iso"
-    before_path = tt._results_dir / "model_before_registration.png"
+    before_path = output_dir / "model_before_registration.png"
     before_path.parent.mkdir(parents=True, exist_ok=True)
     plotter.screenshot(str(before_path))
     plotter.close()
@@ -194,10 +191,13 @@ def run_tutorial(
         registered_surface, color="limegreen", opacity=0.7, label="Registered"
     )
     plotter2.add_mesh(
-        patient_combined.extract_surface(), color="tomato", opacity=0.4, label="Patient"
+        _extract_surface(patient_combined),
+        color="tomato",
+        opacity=0.4,
+        label="Patient",
     )
     plotter2.camera_position = "iso"
-    after_path = tt._results_dir / "model_after_registration.png"
+    after_path = output_dir / "model_after_registration.png"
     plotter2.screenshot(str(after_path))
     plotter2.close()
     screenshots.append(after_path)

@@ -168,6 +168,7 @@ def run_tutorial(
         results_dir=output_dir,
         baselines_dir=output_dir / "baselines",
         class_name="tutorial_04",
+        results_output_dir=output_dir,
         log_level=log_level,
     )
 
@@ -220,7 +221,7 @@ def run_tutorial(
         plotter.camera_position = "iso"
 
         png_name = f"pca_mode_{mode_idx + 1:02d}.png"
-        png_path = tt._results_dir / png_name
+        png_path = output_dir / png_name
         png_path.parent.mkdir(parents=True, exist_ok=True)
         plotter.screenshot(str(png_path))
         plotter.close()

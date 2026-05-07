@@ -33,9 +33,9 @@ def set_create_baseline_if_missing(value: bool) -> None:
 
 class TestTools(PhysioMotion4DBase):
     """
-    Utilities for pytest image comparison: baseline directory, results directory,
+    Utilities for pytest image comparison: baseline directory, result directory,
     and comparison with configurable tolerances. Inherits from PhysioMotion4DBase
-    for logging. All image I/O uses ITK .mha with compression.
+    for logging. All image I/O uses ITK with compression where supported.
     """
 
     # Prevent pytest from collecting this as a test class
@@ -47,11 +47,28 @@ class TestTools(PhysioMotion4DBase):
         baselines_dir: Path,
         class_name: str,
         *,
+        results_output_dir: Optional[Path] = None,
         log_level: int = logging.INFO,
     ) -> None:
+        """Initialize test helpers.
+
+        Args:
+            results_dir: Root directory for result artifacts.
+            baselines_dir: Root directory for baseline artifacts.
+            class_name: Subdirectory name for baselines and, by default, results.
+            results_output_dir: Optional exact directory for result artifacts.
+                When set, results are read and written there instead of
+                ``results_dir / class_name`` while baselines still use
+                ``baselines_dir / class_name``.
+            log_level: Logging level.
+        """
         super().__init__(class_name=class_name, log_level=log_level)
 
-        self._results_dir = results_dir / class_name
+        self._results_dir = (
+            results_output_dir
+            if results_output_dir is not None
+            else results_dir / class_name
+        )
         self._results_dir.mkdir(parents=True, exist_ok=True)
 
         self._baselines_dir = baselines_dir / class_name
@@ -149,11 +166,11 @@ class TestTools(PhysioMotion4DBase):
         return self._last_transform_difference_transform
 
     def write_result_image(self, image: Any, filename: str) -> None:
-        """Write the image to the results directory."""
+        """Write the image to the configured result artifact directory."""
         itk.imwrite(image, str(self._results_dir / filename), compression=True)
 
     def write_result_transform(self, transform: Any, filename: str) -> None:
-        """Write the transform to the results directory."""
+        """Write the transform to the configured result artifact directory."""
         itk.transformwrite(
             transform, str(self._results_dir / filename), compression=True
         )
@@ -355,12 +372,13 @@ class TestTools(PhysioMotion4DBase):
     ) -> Path:
         """Render a PyVista mesh off-screen and save a PNG.
 
-        Saves to results_dir/class_name/filename. On Linux headless environments,
-        calls pv.start_xvfb() before rendering (no-op when a display is present).
+        Saves to the configured result artifact directory. On Linux headless
+        environments, calls pv.start_xvfb() before rendering (no-op when a
+        display is present).
 
         Args:
             mesh: PyVista PolyData or compatible mesh object.
-            filename: Output PNG filename (relative to results/class_name dir).
+            filename: Output PNG filename, relative to the result artifact dir.
             camera_position: PyVista camera preset, e.g. ``'iso'``, ``'xy'``, ``'xz'``.
             window_size: Off-screen render size ``(width, height)`` in pixels.
             color: Mesh color string accepted by PyVista.
@@ -406,11 +424,11 @@ class TestTools(PhysioMotion4DBase):
         - axis=1: coronal (constant-Y plane)
         - axis=2: sagittal (constant-X plane)
 
-        Saves to results_dir/class_name/filename.
+        Saves to the configured result artifact directory.
 
         Args:
             image: 3-D ``itk.Image`` in RAS world space, axes X Y Z.
-            filename: Output PNG filename (relative to results/class_name dir).
+            filename: Output PNG filename, relative to the result artifact dir.
             axis: Numpy axis along which to slice (0=axial, 1=coronal, 2=sagittal).
             slice_fraction: Fractional position along ``axis`` in [0, 1].
             colormap: Matplotlib colormap name for the base image.

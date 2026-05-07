@@ -13,38 +13,8 @@ The ``tutorials/`` directory contains six end-to-end scripts, one per major
 workflow.  Each script is self-contained, includes its own ``argparse`` CLI, and
 can be imported as a module from the test suite.
 
-.. list-table:: Tutorial index
-   :header-rows: 1
-   :widths: 5 45 25 25
-
-   * - #
-     - Script
-     - Workflow
-     - Dataset
-   * - 1
-     - ``tutorial_01_heart_gated_ct_to_usd.py``
-     - Heart-gated CT to animated USD
-     - Slicer-Heart-CT (prepare first)
-   * - 2
-     - ``tutorial_02_ct_to_vtk.py``
-     - CT to VTK surfaces
-     - Slicer-Heart-CT (prepare first)
-   * - 3
-     - ``tutorial_03_fit_statistical_model_to_patient.py``
-     - Fit statistical model to patient
-     - KCL-Heart-Model (manual)
-   * - 4
-     - ``tutorial_04_create_statistical_model.py``
-     - Build PCA shape model
-     - KCL-Heart-Model (manual)
-   * - 5
-     - ``tutorial_05_vtk_to_usd.py``
-     - VTK surfaces to animated USD
-     - output of tutorial 2
-   * - 6
-     - ``tutorial_06_reconstruct_highres_4d_ct.py``
-     - Reconstruct high-resolution 4D CT
-     - DirLab-4DCT (manual)
+See :doc:`tutorials` for the NVIDIA-styled tutorial card index, dataset
+requirements, commands, and workflow details.
 
 After preparing the Slicer-Heart-CT data, run the first two tutorials:
 
@@ -74,7 +44,7 @@ Prerequisites
 Before starting, ensure you have:
 
 * PhysioMotion4D installed (see :doc:`installation`)
-* NVIDIA GPU with CUDA 13 (default) or CUDA 12 - recommended for production performance; see :doc:`installation` for the ``[cuda13]`` and ``[cuda12]`` extras. A CPU-only install works for evaluation but is slow.
+* NVIDIA GPU with CUDA 13 - recommended for production performance; see :doc:`installation` for the ``[cuda13]`` extra. A CPU-only PyPI install works for evaluation but is slow.
 * 4D cardiac CT data or access to sample datasets
 
 Basic Workflow

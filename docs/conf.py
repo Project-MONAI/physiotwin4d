@@ -12,7 +12,7 @@ from unittest.mock import MagicMock
 # Add the source directory to the path
 sys.path.insert(0, os.path.abspath("../src"))
 
-# Suppress the ImportWarning emitted when cupy is absent (CPU-only docs build)
+# Suppress the ImportWarning emitted when CuPy is absent during docs builds.
 warnings.filterwarnings("ignore", category=UserWarning, message="CuPy is not installed")
 
 
@@ -71,6 +71,7 @@ master_doc = "index"
 # -- Options for HTML output -------------------------------------------------
 html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
+html_logo = "_static/nvidia-logo.svg"
 
 html_theme_options = {
     "logo_only": False,
@@ -78,7 +79,7 @@ html_theme_options = {
     "prev_next_buttons_location": "both",  # Show navigation at top and bottom
     "style_external_links": False,
     "vcs_pageview_mode": "",
-    "style_nav_header_background": "#2980B9",
+    "style_nav_header_background": "#111111",
     # Toc options - optimized for module browsing
     "collapse_navigation": False,  # Keep sidebar expanded
     "sticky_navigation": True,  # Sidebar follows scroll

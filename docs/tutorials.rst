@@ -1,6 +1,6 @@
-.. PhysioMotion4D documentation master file
-
-.. title:: PhysioMotion4D Documentation
+=========
+Tutorials
+=========
 
 .. raw:: html
 
@@ -11,10 +11,10 @@
      <p class="pm4d-kicker">PhysioMotion4D tutorials</p>
      <h1>Build animated medical USD workflows for NVIDIA Omniverse</h1>
      <p>
-       PhysioMotion4D converts 3D and 4D medical scans into dynamic OpenUSD
-       assets for NVIDIA Omniverse. Start with the tutorial cards, then use the
-       documentation sections below for installation, CLI workflows, API
-       references, developer notes, and contribution guidance.
+       Six focused tutorials walk through CT segmentation, registration,
+       statistical model fitting, high-resolution 4D reconstruction, and USD
+       export. Each card links to implementation details, datasets, and the
+       command used to run the workflow.
      </p>
    </section>
 
@@ -55,51 +55,6 @@
        <p>Register respiratory CT phases and reconstruct a higher-resolution 4D volume series.</p>
        <span class="pm4d-card__meta">DirLab-4DCT</span>
      </a>
-   </section>
-
-   <section class="pm4d-topic-section" aria-label="Documentation topics">
-     <div class="pm4d-section-heading">
-       <p class="pm4d-kicker">Documentation</p>
-       <h2>Explore the rest of the docs</h2>
-     </div>
-     <div class="pm4d-topic-grid">
-       <a class="pm4d-topic-card" href="installation.html">
-         <h3>Installation</h3>
-         <p>Set up PhysioMotion4D with CUDA extras, CPU-only options, and required system tools.</p>
-       </a>
-       <a class="pm4d-topic-card" href="quickstart.html">
-         <h3>Getting Started</h3>
-         <p>Run your first workflow and understand the basic CT-to-USD processing path.</p>
-       </a>
-       <a class="pm4d-topic-card" href="examples.html">
-         <h3>Examples</h3>
-         <p>Review focused usage patterns for common cardiac, lung, segmentation, and USD tasks.</p>
-       </a>
-       <a class="pm4d-topic-card" href="cli_scripts/overview.html">
-         <h3>CLI Workflows</h3>
-         <p>Use production command-line workflows for conversion, reconstruction, modeling, and USD export.</p>
-       </a>
-       <a class="pm4d-topic-card" href="api/index.html">
-         <h3>API Reference</h3>
-         <p>Browse classes and modules for workflows, segmentation, registration, USD, and utilities.</p>
-       </a>
-       <a class="pm4d-topic-card" href="developer/architecture.html">
-         <h3>Developer Docs</h3>
-         <p>Understand architecture, extension points, coordinate transforms, and implementation boundaries.</p>
-       </a>
-       <a class="pm4d-topic-card" href="contributing.html">
-         <h3>Contributing</h3>
-         <p>Follow repository conventions for code style, testing, documentation, and pull requests.</p>
-       </a>
-       <a class="pm4d-topic-card" href="testing.html">
-         <h3>Testing</h3>
-         <p>Run the fast test suite, data-gated tutorial tests, and regression checks.</p>
-       </a>
-       <a class="pm4d-topic-card" href="troubleshooting.html">
-         <h3>Troubleshooting</h3>
-         <p>Diagnose environment, data, segmentation, registration, and USD playback issues.</p>
-       </a>
-     </div>
    </section>
 
 Recommended Run Order
@@ -246,82 +201,3 @@ Dataset Notes
 The repository-level ``tutorials/README.md`` has the most detailed dataset
 preparation notes. The tutorials are also exercised by ``tests/test_tutorials.py``
 behind the experiment marker.
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Getting Started
-   :hidden:
-
-   installation
-   quickstart
-   tutorials
-   examples
-
-.. toctree::
-   :maxdepth: 2
-   :caption: CLI & Scripts Guide
-   :hidden:
-
-   cli_scripts/overview
-   cli_scripts/heart_gated_ct
-   cli_scripts/create_statistical_model
-   cli_scripts/fit_statistical_model_to_patient
-   cli_scripts/lung_gated_ct
-   cli_scripts/4dct_reconstruction
-   cli_scripts/vtk_to_usd
-   cli_scripts/brain_vessel_modeling
-   cli_scripts/best_practices
-
-.. toctree::
-   :maxdepth: 2
-   :caption: API Reference
-   :hidden:
-
-   api/index
-   api/base
-   api/workflows
-   api/segmentation/index
-   api/registration/index
-   api/model_registration/index
-   api/usd/index
-   api/utilities/index
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Developer Guides
-   :hidden:
-
-   developer/architecture
-   developer/extending
-   developer/workflows
-   developer/core
-   developer/segmentation
-   developer/registration_images
-   developer/registration_models
-   developer/usd_generation
-   developer/utilities
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Contributing
-   :hidden:
-
-   contributing
-   testing
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Additional Resources
-   :hidden:
-
-   faq
-   troubleshooting
-   references
-   changelog
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`

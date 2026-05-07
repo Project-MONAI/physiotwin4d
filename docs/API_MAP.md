@@ -6,8 +6,8 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 ## docs/conf.py
 
 - **class Mock** (line 20)
-- `def autodoc_skip_member(app, what, name, obj, skip, options)` (line 215): Custom function to skip certain members during autodoc processing.
-- `def setup(app)` (line 223): Custom setup function for Sphinx.
+- `def autodoc_skip_member(app, what, name, obj, skip, options)` (line 216): Custom function to skip certain members during autodoc processing.
+- `def setup(app)` (line 224): Custom setup function for Sphinx.
 
 ## experiments/Colormap-VTK_To_USD/colormap_vtk_to_usd.py
 
@@ -286,20 +286,20 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 ## src/physiomotion4d/test_tools.py
 
 - `def set_create_baseline_if_missing(value)` (line 28): Set whether to create baseline files when missing (used by pytest conftest).
-- **class TestTools** (line 34): Utilities for pytest image comparison: baseline directory, results directory,
-  - `def __init__(self, results_dir, baselines_dir, class_name, *, log_level=logging.INFO)` (line 44)
-  - `def image_pass_fail_and_pixels_above_tolerance(self)` (line 78): Return (pass, value) for number of pixels above tolerance from the most
-  - `def image_pass_fail_and_total_absolute_error(self)` (line 93): Return (pass, value) for total absolute error from the most recent
-  - `def image_difference(self)` (line 108): Return the difference image (itk.Image) from the most recent
-  - `def transform_pass_fail_and_number_of_values_above_tolerance(self)` (line 115): Return (pass, value) for number of values above tolerance from the most recent compare_result_to_baseline_transform call.
-  - `def transform_pass_fail_and_total_absolute_error(self)` (line 131): Return (pass, value) for total absolute error from the most recent compare_result_to_baseline_transform call.
-  - `def transform_difference(self)` (line 145): Return the difference transform (itk.Transform) from the most recent compare_result_to_baseline_transform call.
-  - `def write_result_image(self, image, filename)` (line 151): Write the image to the results directory.
-  - `def write_result_transform(self, transform, filename)` (line 155): Write the transform to the results directory.
-  - `def compare_result_to_baseline_transform(self, filename, *, per_value_absolute_error_tol=0.0, max_number_of_values_above_tol=0, total_absolute_error_tol=0.0)` (line 161): Compare the transform to the baseline transform.
-  - `def compare_result_to_baseline_image(self, filename, *, per_pixel_absolute_error_tol=0.0, max_number_of_pixels_above_tol=0, total_absolute_error_tol=0.0)` (line 239): Load a 3D result image and a 3D baseline image (.mha), compare the full
-  - `def save_screenshot_mesh(self, mesh, filename, *, camera_position='iso', window_size=(800, 600), color='pink', opacity=0.9)` (line 346): Render a PyVista mesh off-screen and save a PNG.
-  - `def save_screenshot_image_slice(self, image, filename, *, axis=0, slice_fraction=0.5, colormap='gray', vmin=None, vmax=None, overlay_mask=None, overlay_alpha=0.4)` (line 388): Extract one slice from an ITK image and save a PNG via matplotlib.
+- **class TestTools** (line 34): Utilities for pytest image comparison: baseline directory, result directory,
+  - `def __init__(self, results_dir, baselines_dir, class_name, *, results_output_dir=None, log_level=logging.INFO)` (line 44): Initialize test helpers.
+  - `def image_pass_fail_and_pixels_above_tolerance(self)` (line 95): Return (pass, value) for number of pixels above tolerance from the most
+  - `def image_pass_fail_and_total_absolute_error(self)` (line 110): Return (pass, value) for total absolute error from the most recent
+  - `def image_difference(self)` (line 125): Return the difference image (itk.Image) from the most recent
+  - `def transform_pass_fail_and_number_of_values_above_tolerance(self)` (line 132): Return (pass, value) for number of values above tolerance from the most recent compare_result_to_baseline_transform call.
+  - `def transform_pass_fail_and_total_absolute_error(self)` (line 148): Return (pass, value) for total absolute error from the most recent compare_result_to_baseline_transform call.
+  - `def transform_difference(self)` (line 162): Return the difference transform (itk.Transform) from the most recent compare_result_to_baseline_transform call.
+  - `def write_result_image(self, image, filename)` (line 168): Write the image to the configured result artifact directory.
+  - `def write_result_transform(self, transform, filename)` (line 172): Write the transform to the configured result artifact directory.
+  - `def compare_result_to_baseline_transform(self, filename, *, per_value_absolute_error_tol=0.0, max_number_of_values_above_tol=0, total_absolute_error_tol=0.0)` (line 178): Compare the transform to the baseline transform.
+  - `def compare_result_to_baseline_image(self, filename, *, per_pixel_absolute_error_tol=0.0, max_number_of_pixels_above_tol=0, total_absolute_error_tol=0.0)` (line 256): Load a 3D result image and a 3D baseline image (.mha), compare the full
+  - `def save_screenshot_mesh(self, mesh, filename, *, camera_position='iso', window_size=(800, 600), color='pink', opacity=0.9)` (line 363): Render a PyVista mesh off-screen and save a PNG.
+  - `def save_screenshot_image_slice(self, image, filename, *, axis=0, slice_fraction=0.5, colormap='gray', vmin=None, vmax=None, overlay_mask=None, overlay_alpha=0.4)` (line 406): Extract one slice from an ITK image and save a PNG via matplotlib.
 
 ## src/physiomotion4d/transform_tools.py
 
@@ -380,7 +380,7 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 - **class UsdMeshConverter** (line 25): Converts MeshData to UsdGeomMesh with full feature support.
   - `def __init__(self, stage, settings, material_mgr)` (line 36): Initialize mesh converter.
   - `def create_mesh(self, mesh_data, mesh_path, time_code=None, bind_material=True)` (line 53): Create a UsdGeomMesh from MeshData.
-  - `def create_time_varying_mesh(self, mesh_data_sequence, mesh_path, time_codes, bind_material=True)` (line 288): Create a mesh with time-varying attributes.
+  - `def create_time_varying_mesh(self, mesh_data_sequence, mesh_path, time_codes, bind_material=True)` (line 289): Create a mesh with time-varying attributes.
 
 ## src/physiomotion4d/vtk_to_usd/usd_utils.py
 
@@ -688,18 +688,24 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 
 ## tests/test_tutorials.py
 
-- **class TestTutorial01HeartGatedCTToUSD** (line 66): End-to-end test for tutorial_01_heart_gated_ct_to_usd.py.
-  - `def test_run(self, test_directories)` (line 71)
-- **class TestTutorial02CTToVTK** (line 99): End-to-end test for tutorial_02_ct_to_vtk.py.
-  - `def test_run(self, test_directories)` (line 104)
-- **class TestTutorial03FitStatisticalModelToPatient** (line 131): End-to-end test for tutorial_03_fit_statistical_model_to_patient.py.
-  - `def test_run(self, test_directories)` (line 136)
-- **class TestTutorial04CreateStatisticalModel** (line 168): End-to-end test for tutorial_04_create_statistical_model.py.
-  - `def test_run(self, test_directories)` (line 173)
-- **class TestTutorial05VTKToUSD** (line 208): End-to-end test for tutorial_05_vtk_to_usd.py.
-  - `def test_run(self, test_directories)` (line 213)
-- **class TestTutorial06ReconstructHighres4DCT** (line 257): End-to-end test for tutorial_06_reconstruct_highres_4d_ct.py.
+- `def test_testtools_results_output_dir_override(tmp_path)` (line 75): Store result artifacts in an explicit directory when requested.
+- `def test_tutorial_01_contour_png_mesh_uses_current_run_results()` (line 100): Select current in-memory contours instead of disk VTP outputs.
+- `def test_tutorial_01_reference_png_uses_workflow_fixed_image(tmp_path)` (line 116): Select the actual workflow reference image over cached slice images.
+- `def test_tutorial_01_overlay_uses_workflow_fixed_segmentation(tmp_path)` (line 131): Select the current fixed labelmap over cached slice labelmaps.
+- `def test_tutorial_01_overlay_falls_back_to_fixed_image_mask(tmp_path)` (line 146): Read fixed_image_mask.mha before stale slice labelmap files.
+- **class TestTutorial01HeartGatedCTToUSD** (line 173): End-to-end test for tutorial_01_heart_gated_ct_to_usd.py.
+  - `def test_run(self, test_directories)` (line 178)
+- `def test_tutorial_03_extract_surface_uses_dataset_surface()` (line 204): Use the robust dataset_surface algorithm for VTK surface extraction.
+- **class TestTutorial02CTToVTK** (line 224): End-to-end test for tutorial_02_ct_to_vtk.py.
+  - `def test_run(self, test_directories)` (line 229)
+- **class TestTutorial03FitStatisticalModelToPatient** (line 257): End-to-end test for tutorial_03_fit_statistical_model_to_patient.py.
   - `def test_run(self, test_directories)` (line 262)
+- **class TestTutorial04CreateStatisticalModel** (line 295): End-to-end test for tutorial_04_create_statistical_model.py.
+  - `def test_run(self, test_directories)` (line 300)
+- **class TestTutorial05VTKToUSD** (line 336): End-to-end test for tutorial_05_vtk_to_usd.py.
+  - `def test_run(self, test_directories)` (line 341)
+- **class TestTutorial06ReconstructHighres4DCT** (line 386): End-to-end test for tutorial_06_reconstruct_highres_4d_ct.py.
+  - `def test_run(self, test_directories)` (line 391)
 
 ## tests/test_usd_merge.py
 
@@ -757,7 +763,7 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 
 ## tutorials/tutorial_01_heart_gated_ct_to_usd.py
 
-- `def run_tutorial(data_dir, output_dir, *, registration_method='ants', log_level=logging.INFO)` (line 99): Run Tutorial 1: Heart-Gated CT to Animated USD.
+- `def run_tutorial(data_dir, output_dir, *, registration_method='ants', log_level=logging.INFO)` (line 164): Run Tutorial 1: Heart-Gated CT to Animated USD.
 
 ## tutorials/tutorial_02_ct_to_vtk.py
 
@@ -765,7 +771,7 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 
 ## tutorials/tutorial_03_fit_statistical_model_to_patient.py
 
-- `def run_tutorial(data_dir, output_dir, *, log_level=logging.INFO)` (line 93): Run Tutorial 3: Fit Statistical Shape Model to Patient Data.
+- `def run_tutorial(data_dir, output_dir, *, log_level=logging.INFO)` (line 99): Run Tutorial 3: Fit Statistical Shape Model to Patient Data.
 
 ## tutorials/tutorial_04_create_statistical_model.py
 
@@ -777,7 +783,7 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 
 ## tutorials/tutorial_06_reconstruct_highres_4d_ct.py
 
-- `def run_tutorial(data_dir, output_dir, *, case=1, max_frames=4, registration_method='ants', log_level=logging.INFO)` (line 89): Run Tutorial 6: Reconstruct High-Resolution 4D CT.
+- `def run_tutorial(data_dir, output_dir, *, case=1, max_frames=4, registration_method='ants', log_level=logging.INFO)` (line 97): Run Tutorial 6: Reconstruct High-Resolution 4D CT.
 
 ## utils/claude_github_reviews.py
 

@@ -18,6 +18,14 @@ Inputs
   the target space for reconstruction.
   Expected location: ``data/DirLab-4DCT/Case1/`` (any phase used as reference).
 
+Note
+----
+The DirLab-4DCT sample data used by this tutorial does not include a separate
+high-resolution breath-hold reference image. For demonstration and regression
+testing, the tutorial uses one available DirLab respiratory phase as the fixed
+reference, so the reconstructed outputs inherit that phase image's resolution
+rather than true higher-resolution reference spacing.
+
 Outputs
 -------
 - ``output_dir/reconstructed_frame_<N>.mha`` - one reconstructed 3D image per frame
@@ -115,18 +123,20 @@ def run_tutorial(
     """
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    case_dir = data_dir / "DirLab-4DCT" / f"Case{case}"
-    if not case_dir.exists():
-        raise FileNotFoundError(
-            f"DirLab-4DCT case not found: {case_dir}\n"
-            "See data/README.md for manual download instructions."
-        )
+    dirlab_dir = data_dir / "DirLab-4DCT"
+    case_dir = dirlab_dir / f"Case{case}"
 
     # Discover phase images (MetaImage .mhd or .mha)
     phase_files = sorted(case_dir.glob("*.mhd")) + sorted(case_dir.glob("*.mha"))
     if not phase_files:
+        phase_pattern = f"Case{case}Pack_T*.mha"
+        phase_files = sorted(dirlab_dir.glob(f"Case{case}Pack_T*.mhd")) + sorted(
+            dirlab_dir.glob(phase_pattern)
+        )
+    if not phase_files:
         raise FileNotFoundError(
-            f"No .mhd / .mha files found under {case_dir}.\n"
+            f"No .mhd / .mha files found for DirLab-4DCT case {case} under "
+            f"{case_dir} or {dirlab_dir}.\n"
             "See data/README.md for manual download instructions."
         )
 
@@ -156,6 +166,7 @@ def run_tutorial(
         results_dir=output_dir,
         baselines_dir=output_dir / "baselines",
         class_name="tutorial_06",
+        results_output_dir=output_dir,
         log_level=log_level,
     )
 
