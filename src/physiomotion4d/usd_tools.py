@@ -10,6 +10,8 @@ The tools are specifically designed for medical imaging workflows where multiple
 anatomical structures need to be organized and visualized together.
 """
 
+from __future__ import annotations
+
 import logging
 from collections.abc import Sequence
 from typing import Any
@@ -737,6 +739,7 @@ class USDTools(PhysioMotion4DBase):
         visualization colors based on simulation data like stress or strain fields.
 
         Key features:
+
         - Handles multi-component data (vectors/tensors) by computing magnitude
         - Converts uniform (per-face) data to vertex data by averaging
         - Computes global value range across all time samples for consistent coloring
@@ -749,8 +752,8 @@ class USDTools(PhysioMotion4DBase):
             source_primvar: Name of primvar to visualize (e.g., "vtk_cell_stress")
             cmap: Matplotlib colormap name (default: "viridis")
             time_codes: List of time codes to process. If None, uses stage time range.
-            intensity_range: Optional (vmin, vmax) for colormap. If None, computed from
-            data.
+            intensity_range: Optional (vmin, vmax) for colormap. If None,
+                computed from data.
             use_sigmoid_scale: If True, use sigmoid scale for colormap normalization.
             write_default_at_t0: If True, also write default value at t=0
             bind_vertex_color_material: If True, create/bind material using displayColor

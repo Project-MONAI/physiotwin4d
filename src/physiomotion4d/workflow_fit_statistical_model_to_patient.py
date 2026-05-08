@@ -905,6 +905,7 @@ class WorkflowFitStatisticalModelToPatient(PhysioMotion4DBase):
         """Execute the complete multi-stage registration workflow.
 
         Runs registration stages in sequence:
+
         1. ICP alignment (RegisterModelsICP)
         2. PCA registration (PCA data was provided)
         3. Mask-to-mask deformable registration (RegisterModelsDistanceMaps)

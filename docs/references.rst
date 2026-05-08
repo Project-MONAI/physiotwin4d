@@ -28,7 +28,7 @@ Registration Methods
 **ICON (Inverse Consistent Optimization Network)**
 
 * Tian, L., et al. "ICON: Learning Inverse Consistent Deformation"
-* `Paper <https://arxiv.org/abs/2105.04459>`_
+* `ICON paper <https://arxiv.org/abs/2105.04459>`_
 
 Segmentation Methods
 --------------------
@@ -36,7 +36,7 @@ Segmentation Methods
 **TotalSegmentator**
 
 * Wasserthal, J., et al. "TotalSegmentator: Robust Segmentation of 104 Anatomical Structures in CT Images"
-* `Paper <https://arxiv.org/abs/2208.05868>`_
+* `TotalSegmentator paper <https://arxiv.org/abs/2208.05868>`_
 
 Datasets
 ========

@@ -1,32 +1,11 @@
-====================================
+==========================
 Model Registration Modules
-====================================
+==========================
 
 .. currentmodule:: physiomotion4d
 
-Register 3D anatomical models (meshes, point clouds) to each other or to images.
-
-Overview
-========
-
-Model registration methods for aligning anatomical models:
-
-* **ICP**: Iterative Closest Point (pure Python)
-* **ICP-ITK**: ICP using ITK backend
-* **Distance Maps**: Distance field-based registration
-* **PCA**: Principal component analysis-based alignment
-
-Quick Links
-===========
-
-**Registration Classes**:
-   * :doc:`icp` - Iterative Closest Point (Python)
-   * :doc:`icp_itk` - ICP with ITK
-   * :doc:`distance_maps` - Distance map-based
-   * :doc:`pca` - PCA-based registration
-
-Module Documentation
-====================
+Model registration classes align PyVista meshes and derived image masks. They
+are used by :class:`WorkflowFitStatisticalModelToPatient`.
 
 .. toctree::
    :maxdepth: 2
@@ -36,29 +15,37 @@ Module Documentation
    distance_maps
    pca
 
-Quick Start
-===========
+Available Classes
+=================
 
-ICP Registration
-----------------
+* :class:`RegisterModelsICP`: initial surface alignment.
+* :class:`RegisterModelsICPITK`: ITK point-set registration.
+* :class:`RegisterModelsDistanceMaps`: distance-map based deformable
+  registration.
+* :class:`RegisterModelsPCA`: statistical shape model fitting.
+
+Workflow-Level Use
+==================
+
+Most users should access model registration through the workflow:
 
 .. code-block:: python
 
-   from physiomotion4d import RegisterModelsICP
-   
-   registrar = RegisterModelsICP(verbose=True)
-   
-   transform = registrar.register(
-       fixed_model="reference_heart.vtk",
-       moving_model="template_heart.vtk"
+   import itk
+   import pyvista as pv
+
+   from physiomotion4d import WorkflowFitStatisticalModelToPatient
+
+   workflow = WorkflowFitStatisticalModelToPatient(
+       template_model=pv.read("template_heart.vtu"),
+       patient_models=[pv.read("lv.vtp"), pv.read("rv.vtp")],
+       patient_image=itk.imread("patient_ct.nii.gz"),
    )
+
+   result = workflow.run_workflow()
 
 See Also
 ========
 
-* :doc:`../registration/index` - Image registration
-* :doc:`../workflows` - Model-to-patient workflows
-
-.. rubric:: Navigation
-
-:doc:`../registration/time_series` | :doc:`../index` | :doc:`icp`
+* :doc:`../workflows`
+* :doc:`../../cli_scripts/fit_statistical_model_to_patient`

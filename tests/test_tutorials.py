@@ -1,7 +1,7 @@
-"""Experiment tests that run each tutorial end-to-end and compare screenshots.
+"""Tutorial tests that run each tutorial end-to-end and compare screenshots.
 
 Each test class maps to one tutorial script.  Tests are gated behind
-``--run-experiments`` (handled by conftest.py) and require the relevant dataset
+``--run-tutorials`` (handled by conftest.py) and require the relevant dataset
 to be present (see data/README.md).
 
 Screenshot comparison uses the existing ITK-based baseline infrastructure:
@@ -12,11 +12,11 @@ Screenshot comparison uses the existing ITK-based baseline infrastructure:
 
 Run all tutorial tests::
 
-    pytest tests/test_tutorials.py --run-experiments -v
+    pytest tests/test_tutorials.py --run-tutorials -v
 
 Create baselines on first run::
 
-    pytest tests/test_tutorials.py --run-experiments --create-baselines -v
+    pytest tests/test_tutorials.py --run-tutorials --create-baselines -v
 """
 
 from __future__ import annotations
@@ -170,7 +170,7 @@ def test_tutorial_01_overlay_falls_back_to_fixed_image_mask(
     assert tuple(selected.GetLargestPossibleRegion().GetSize()) == (2, 2, 2)
 
 
-@pytest.mark.experiment
+@pytest.mark.tutorial
 @pytest.mark.requires_data
 @pytest.mark.slow
 class TestTutorial01HeartGatedCTToUSD:
@@ -200,13 +200,13 @@ class TestTutorial01HeartGatedCTToUSD:
 
 
 # -----------------------------------------------------------------------------
-# Tutorial 3 - Fit Statistical Model to Patient
+# Tutorial 4 - Fit Statistical Model to Patient
 # -----------------------------------------------------------------------------
 
 
-def test_tutorial_03_extract_surface_uses_dataset_surface() -> None:
+def test_tutorial_04_extract_surface_uses_dataset_surface() -> None:
     """Use the robust dataset_surface algorithm for VTK surface extraction."""
-    from tutorials.tutorial_03_fit_statistical_model_to_patient import (
+    from tutorials.tutorial_04_fit_statistical_model_to_patient import (
         _extract_surface,
     )
 
@@ -221,7 +221,7 @@ def test_tutorial_03_extract_surface_uses_dataset_surface() -> None:
 # -----------------------------------------------------------------------------
 
 
-@pytest.mark.experiment
+@pytest.mark.tutorial
 @pytest.mark.requires_data
 @pytest.mark.slow
 class TestTutorial02CTToVTK:
@@ -250,17 +250,17 @@ class TestTutorial02CTToVTK:
 
 
 # -----------------------------------------------------------------------------
-# Tutorial 3 - Fit Statistical Model to Patient
+# Tutorial 3 - Create Statistical Shape Model
 # -----------------------------------------------------------------------------
 
 
-@pytest.mark.experiment
+@pytest.mark.tutorial
 @pytest.mark.requires_data
 @pytest.mark.slow
-class TestTutorial03FitStatisticalModelToPatient:
-    """End-to-end test for tutorial_03_fit_statistical_model_to_patient.py."""
+class TestTutorial03CreateStatisticalModel:
+    """End-to-end test for tutorial_03_create_statistical_model.py."""
 
-    _class_name = "tutorial_03_fit_statistical_model_to_patient"
+    _class_name = "tutorial_03_create_statistical_model"
 
     def test_run(self, test_directories: dict[str, Path]) -> None:
         kcl_dir = test_directories["data"] / "KCL-Heart-Model"
@@ -269,45 +269,7 @@ class TestTutorial03FitStatisticalModelToPatient:
                 "KCL-Heart-Model not downloaded. See data/README.md for instructions."
             )
 
-        from tutorials.tutorial_03_fit_statistical_model_to_patient import run_tutorial
-
-        out_dir = test_directories["output"] / self._class_name
-        results: dict[str, Any] = run_tutorial(
-            data_dir=test_directories["data"],
-            output_dir=out_dir,
-        )
-        assert results["registered_file"].exists(), "Registered VTP should exist"
-
-        tt = TestTools(
-            class_name=self._class_name,
-            results_dir=test_directories["output"],
-            baselines_dir=test_directories["baselines"],
-            results_output_dir=out_dir,
-        )
-        _compare_screenshots(results["screenshots"], tt)
-
-
-# -----------------------------------------------------------------------------
-# Tutorial 4 - Create Statistical Shape Model
-# -----------------------------------------------------------------------------
-
-
-@pytest.mark.experiment
-@pytest.mark.requires_data
-@pytest.mark.slow
-class TestTutorial04CreateStatisticalModel:
-    """End-to-end test for tutorial_04_create_statistical_model.py."""
-
-    _class_name = "tutorial_04_create_statistical_model"
-
-    def test_run(self, test_directories: dict[str, Path]) -> None:
-        kcl_dir = test_directories["data"] / "KCL-Heart-Model"
-        if not (kcl_dir / "pca_mean.vtu").exists():
-            pytest.skip(
-                "KCL-Heart-Model not downloaded. See data/README.md for instructions."
-            )
-
-        from tutorials.tutorial_04_create_statistical_model import run_tutorial
+        from tutorials.tutorial_03_create_statistical_model import run_tutorial
 
         out_dir = test_directories["output"] / self._class_name
         results: dict[str, Any] = run_tutorial(
@@ -329,11 +291,67 @@ class TestTutorial04CreateStatisticalModel:
 
 
 # -----------------------------------------------------------------------------
+# Tutorial 4 - Fit Statistical Model to Patient
+# -----------------------------------------------------------------------------
+
+
+@pytest.mark.tutorial
+@pytest.mark.requires_data
+@pytest.mark.slow
+class TestTutorial04FitStatisticalModelToPatient:
+    """End-to-end test for tutorial_04_fit_statistical_model_to_patient.py."""
+
+    _class_name = "tutorial_04_fit_statistical_model_to_patient"
+
+    def test_run(self, test_directories: dict[str, Path]) -> None:
+        kcl_dir = test_directories["data"] / "KCL-Heart-Model"
+        if not (kcl_dir / "pca_mean.vtu").exists():
+            pytest.skip(
+                "KCL-Heart-Model not downloaded. See data/README.md for instructions."
+            )
+
+        pca_json = (
+            test_directories["output"]
+            / "tutorial_03_create_statistical_model"
+            / "pca_model.json"
+        )
+        if not pca_json.exists():
+            from tutorials.tutorial_03_create_statistical_model import (
+                run_tutorial as run_tutorial_03,
+            )
+
+            run_tutorial_03(
+                data_dir=test_directories["data"],
+                output_dir=pca_json.parent,
+                pca_components=5,
+                max_samples=10,
+            )
+
+        from tutorials.tutorial_04_fit_statistical_model_to_patient import run_tutorial
+
+        out_dir = test_directories["output"] / self._class_name
+        results: dict[str, Any] = run_tutorial(
+            data_dir=test_directories["data"],
+            output_dir=out_dir,
+            pca_json=pca_json,
+        )
+        assert results["registered_file"].exists(), "Registered VTP should exist"
+
+        tt = TestTools(
+            class_name=self._class_name,
+            results_dir=test_directories["output"],
+            baselines_dir=test_directories["baselines"],
+            results_output_dir=out_dir,
+        )
+        _compare_screenshots(results["screenshots"], tt)
+
+
+# -----------------------------------------------------------------------------
 # Tutorial 5 - VTK to USD
 # -----------------------------------------------------------------------------
 
 
-@pytest.mark.experiment
+@pytest.mark.tutorial
 @pytest.mark.requires_data
 @pytest.mark.slow
 class TestTutorial05VTKToUSD:
@@ -383,7 +401,7 @@ class TestTutorial05VTKToUSD:
 # -----------------------------------------------------------------------------
 
 
-@pytest.mark.experiment
+@pytest.mark.tutorial
 @pytest.mark.requires_data
 @pytest.mark.slow
 class TestTutorial06ReconstructHighres4DCT:

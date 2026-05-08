@@ -47,7 +47,7 @@ password = pypi-AgENdGVzdC5weXBp...  # Your TestPyPI token
 Edit `pyproject.toml`:
 ```toml
 [tool.bumpver]
-current_version = "2025.05.0"  # Update this
+current_version = "2026.05.07"  # Update this
 ```
 
 Or use bumpver:
@@ -65,21 +65,10 @@ bumpver update --minor
 bumpver update --major
 ```
 
-### 2. Update CHANGELOG.md
+### 2. Update Release Notes
 
-Add release notes for the new version:
-```markdown
-## [2025.05.0] - 2025-10-07
-
-### Added
-- New features...
-
-### Changed
-- Updates...
-
-### Fixed
-- Bug fixes...
-```
+Add release notes for the new version in `docs/changelog.rst` and in the
+GitHub release description.
 
 ### 3. Run Code Quality Checks
 
@@ -129,8 +118,8 @@ python -m build
 ```
 
 This creates:
-- `dist/physiomotion4d-2025.05.0.tar.gz` (source distribution)
-- `dist/physiomotion4d-2025.05.0-py3-none-any.whl` (wheel distribution)
+- `dist/physiomotion4d-2026.05.07.tar.gz` (source distribution)
+- `dist/physiomotion4d-2026.05.07-py3-none-any.whl` (wheel distribution)
 
 ### 3. Verify Build Contents
 
@@ -170,9 +159,10 @@ Note: `--extra-index-url` is needed because dependencies are on PyPI, not TestPy
 ```python
 # Test imports
 import physiomotion4d
-from physiomotion4d import ProcessHeartGatedCT
+from physiomotion4d import WorkflowConvertHeartGatedCTToUSD
 
 print(f"Version: {physiomotion4d.__version__}")
+print(WorkflowConvertHeartGatedCTToUSD.__name__)
 ```
 
 ```bash
@@ -187,7 +177,7 @@ physiomotion4d-heart-gated-ct --help
 - [ ] All tests pass
 - [ ] TestPyPI installation works correctly
 - [ ] Version number is updated
-- [ ] CHANGELOG.md is updated
+- [ ] Release notes are updated
 - [ ] README.md has correct installation instructions
 - [ ] All files committed to git
 
@@ -220,15 +210,15 @@ python -c "import physiomotion4d; print(physiomotion4d.__version__)"
 ### 1. Tag the Release in Git
 
 ```bash
-git tag -a v2025.05.0 -m "Release version 2025.05.0"
-git push origin v2025.05.0
+git tag -a v2026.05.07 -m "Release version 2026.05.07"
+git push origin v2026.05.07
 ```
 
 ### 2. Create GitHub/GitLab Release
 
 Create a release on your repository with:
-- Tag: `v2025.05.0`
-- Release notes from CHANGELOG.md
+- Tag: `v2026.05.07`
+- Release notes from `docs/changelog.rst`
 - Attach distribution files (optional)
 
 ### 3. Update Documentation
@@ -304,7 +294,7 @@ python -m build --wheel
 python -m build --sdist
 
 # Install in editable mode with extras
-pip install -e ".[dev,test,nim]"
+pip install -e ".[dev,test]"
 
 # View package information
 python -m pip show physiomotion4d
@@ -314,7 +304,7 @@ python -m pip show physiomotion4d
 
 1. **Always test on TestPyPI first** before uploading to production PyPI
 2. **Use semantic/calendar versioning** consistently
-3. **Keep CHANGELOG.md updated** with every release
+3. **Keep release notes updated** with every release
 4. **Tag releases in git** for traceability
 5. **Test installation in clean environment** before releasing
 6. **Document breaking changes** clearly in release notes

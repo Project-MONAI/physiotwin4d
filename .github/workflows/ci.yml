@@ -370,7 +370,7 @@ jobs:
     - name: Type check with mypy
       run: |
         mypy src/
-      continue-on-error: true
+      continue-on-error: false
 
 # ==============================================================================
 # Notes on Excluded Tests

@@ -1,91 +1,81 @@
-====================================
+=====================
 VTK to USD Conversion
-====================================
+=====================
 
-.. note::
-   This script is planned for a future release. Documentation will be updated when available.
+The ``physiomotion4d-convert-vtk-to-usd`` command converts VTK, VTP, or VTU
+mesh files to USD for Omniverse visualization. Multiple input files are treated
+as a time series.
 
-Overview
-========
-
-The ``physiomotion4d-vtk-to-usd`` script will convert VTK anatomical mesh files to USD format with intelligent material painting based on anatomical structure names.
-
-Planned Features
-================
-
-Input Requirements
-------------------
-
-* **VTK Meshes**: Surface meshes (``.vtk``, ``.vtp``) or volume meshes (``.vtu``)
-* **Naming Convention**: Mesh names indicate anatomy (e.g., "heart_lv", "lung_left")
-* **Optional**: Scalar data arrays for colormap visualization
-* **Optional**: 4D time series VTK files
-
-Material Painting
------------------
-
-1. **Anatomical Recognition**
-   * Parse mesh names for anatomical structures
-   * Apply organ-specific materials
-   * Handle structure hierarchies
-
-2. **Material Library**
-   * Pre-defined materials for common organs
-   * Transparency and color by structure type
-   * Physically-based rendering properties
-
-3. **Colormap Support**
-   * Visualize scalar data (temperature, pressure, strain)
-   * Multiple colormap options (viridis, plasma, heat, etc.)
-   * Custom intensity ranges
-
-4. **Time-Varying Data**
-   * Convert 4D VTK sequences to animated USD
-   * Preserve temporal coherence
-   * Support dynamic colormaps
-
-Processing Options
-------------------
+Basic Usage
+===========
 
 .. code-block:: bash
 
-   # Basic conversion
-   physiomotion4d-vtk-to-usd meshes/*.vtk --output model.usd
+   physiomotion4d-convert-vtk-to-usd heart.vtp \
+       --output heart.usd
 
-   # With colormap for scalar data
-   physiomotion4d-vtk-to-usd mesh.vtk \
-       --scalar-array "Temperature" \
-       --colormap plasma \
-       --output temperature_viz.usd
+Time Series
+===========
 
-   # 4D time series
-   physiomotion4d-vtk-to-usd heart_4d.vtk \
-       --time-varying \
-       --output animated_heart.usd
+.. code-block:: bash
 
-Expected Outputs
-----------------
+   physiomotion4d-convert-vtk-to-usd heart_*.vtp \
+       --output heart_animation.usd \
+       --fps 30
 
-* USD file with painted anatomical models
-* Hierarchical scene organization
-* Time-varying geometry (if 4D input)
-* Material definitions and textures
+Appearance Options
+==================
 
-Use Cases
+Solid color:
+
+.. code-block:: bash
+
+   physiomotion4d-convert-vtk-to-usd heart.vtp \
+       --output heart_red.usd \
+       --appearance solid \
+       --color 1 0 0
+
+Anatomy material:
+
+.. code-block:: bash
+
+   physiomotion4d-convert-vtk-to-usd heart.vtp \
+       --output heart_material.usd \
+       --appearance anatomy \
+       --anatomy-type heart
+
+Colormap from a VTK point data array:
+
+.. code-block:: bash
+
+   physiomotion4d-convert-vtk-to-usd frame_*.vtk \
+       --output stress.usd \
+       --appearance colormap \
+       --primvar vtk_point_stress_c0 \
+       --cmap viridis \
+       --intensity-range 0 500
+
+Splitting
 =========
 
-* **Simulation Results**: Visualize CFD or FEA simulations in Omniverse
-* **Anatomical Models**: Convert segmentation meshes to USD
-* **Education**: Create anatomical teaching models
-* **Pipeline Integration**: Bridge VTK workflows to Omniverse
+By default, meshes are split by connected component. Use ``--no-split`` to keep
+one mesh, or ``--by-cell-type`` to split by cell type.
 
-Workflow Class
-==============
+.. code-block:: bash
 
-For Python API access, see :class:`physiomotion4d.WorkflowConvertVTKToUSD` in :doc:`../developer/workflows`.
+   physiomotion4d-convert-vtk-to-usd mesh.vtu \
+       --output mesh.usd \
+       --by-cell-type
 
-Related Scripts
-===============
+Python API
+==========
 
-* :doc:`heart_gated_ct` - Generates VTK meshes from CT
-* :doc:`lung_gated_ct` - Generates VTK meshes from lung CT
+Use :class:`physiomotion4d.WorkflowConvertVTKToUSD` for the workflow API and
+:class:`physiomotion4d.ConvertVTKToUSD` for direct in-memory conversion.
+
+Related Pages
+=============
+
+* :doc:`overview`
+* :doc:`../api/usd/vtk_conversion`
+* :doc:`../developer/usd_generation`

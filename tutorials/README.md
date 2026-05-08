@@ -15,8 +15,8 @@ dataset licensing, and expected directory layout.
 |---|--------|---------------|-------------|---------|
 | 1 | [tutorial_01_heart_gated_ct_to_usd.py](tutorial_01_heart_gated_ct_to_usd.py) | `WorkflowConvertHeartGatedCTToUSD` | `physiomotion4d-heart-gated-ct` | Slicer-Heart-CT (prepare first) |
 | 2 | [tutorial_02_ct_to_vtk.py](tutorial_02_ct_to_vtk.py) | `WorkflowConvertCTToVTK` | `physiomotion4d-convert-ct-to-vtk` | Slicer-Heart-CT (prepare first) |
-| 3 | [tutorial_03_fit_statistical_model_to_patient.py](tutorial_03_fit_statistical_model_to_patient.py) | `WorkflowFitStatisticalModelToPatient` | `physiomotion4d-fit-statistical-model-to-patient` | KCL-Heart-Model (manual) |
-| 4 | [tutorial_04_create_statistical_model.py](tutorial_04_create_statistical_model.py) | `WorkflowCreateStatisticalModel` | `physiomotion4d-create-statistical-model` | KCL-Heart-Model (manual) |
+| 3 | [tutorial_03_create_statistical_model.py](tutorial_03_create_statistical_model.py) | `WorkflowCreateStatisticalModel` | `physiomotion4d-create-statistical-model` | KCL-Heart-Model (manual) |
+| 4 | [tutorial_04_fit_statistical_model_to_patient.py](tutorial_04_fit_statistical_model_to_patient.py) | `WorkflowFitStatisticalModelToPatient` | `physiomotion4d-fit-statistical-model-to-patient` | KCL-Heart-Model plus Tutorial 3 output |
 | 5 | [tutorial_05_vtk_to_usd.py](tutorial_05_vtk_to_usd.py) | `WorkflowConvertVTKToUSD` | `physiomotion4d-convert-vtk-to-usd` | Output of tutorial 2 |
 | 6 | [tutorial_06_reconstruct_highres_4d_ct.py](tutorial_06_reconstruct_highres_4d_ct.py) | `WorkflowReconstructHighres4DCT` | `physiomotion4d-reconstruct-highres-4d-ct` | DirLab-4DCT (manual) |
 
@@ -33,28 +33,29 @@ python tutorials/tutorial_02_ct_to_vtk.py \
     --data-dir ./data --output-dir ./output
 ```
 
-## Running as Pytest Experiment Tests
+## Running as Pytest Tutorial Tests
 
-All tutorials are wired into the test suite under the `experiment` marker.
+All tutorials are wired into the test suite under the `tutorial` marker.
 They run end-to-end and compare generated screenshots against baselines:
 
 ```bash
 # Run all tutorial tests (requires data download first)
-pytest tests/test_tutorials.py --run-experiments -v
+pytest tests/test_tutorials.py --run-tutorials -v
 
 # Create baselines on first run
-pytest tests/test_tutorials.py --run-experiments --create-baselines -v
+pytest tests/test_tutorials.py --run-tutorials --create-baselines -v
 
 # Run a single tutorial test
-pytest tests/test_tutorials.py::TestTutorial01HeartGatedCTToUSD --run-experiments -v
+pytest tests/test_tutorials.py::TestTutorial01HeartGatedCTToUSD --run-tutorials -v
 ```
 
 ## Recommended Order
 
 1. **Tutorial 1** and **Tutorial 2** use Slicer-Heart-CT - prepare it per `data/README.md`, then start here.
 2. **Tutorial 5** uses the VTK surfaces produced by Tutorial 2 - run Tutorial 2 first.
-3. **Tutorials 3 and 4** require the KCL-Heart-Model - download it per `data/README.md`.
-4. **Tutorial 6** requires DirLab-4DCT - download it per `data/README.md`.
+3. **Tutorial 3** creates the PCA statistical model from KCL-Heart-Model.
+4. **Tutorial 4** applies the statistical model, consuming Tutorial 3 output.
+5. **Tutorial 6** requires DirLab-4DCT - download it per `data/README.md`.
 
 ## For Contributors
 

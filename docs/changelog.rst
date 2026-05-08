@@ -1,22 +1,18 @@
-=========
-Changelog
-=========
+=============
+Release Notes
+=============
 
-All notable changes to PhysioMotion4D are documented here.
+2026.05.07 Beta
+===============
 
-Version 2025.05.0
-=================
+PhysioMotion4D 2026.05.07 is a beta release focused on public packaging,
+documentation, tutorial workflows, and release automation.
 
-Current release.
+Highlights
+==========
 
-Features
---------
-
-* Complete 4D medical imaging pipeline
-* Multiple AI segmentation methods
-* Deep learning registration with ICON
-* USD export for Omniverse
-* Comprehensive documentation
-
-For detailed changelog, see `CHANGELOG.md <https://github.com/Project-MONAI/physiomotion4d/blob/main/CHANGELOG.md>`_.
-
+* CUDA 13 is the default GPU install path for uv-managed source environments.
+* Tutorial documentation is organized around the executable workflow scripts.
+* The documentation landing page includes tutorial cards and a clinical-use
+  notice.
+* Release automation builds wheel and source distributions for PyPI publishing.

@@ -102,7 +102,7 @@ This ensures that notebooks with dependencies run in the correct sequence.
 ### System Requirements
 
 - **CPU:** Multi-core processor (8+ cores recommended)
-- **RAM:** 32GB minimum (64GB recommended for VISTA-3D experiments)
+- **RAM:** 32GB minimum (64GB recommended for large experiments)
 - **GPU:** NVIDIA GPU with CUDA support (RTX 3090 or better recommended)
 - **Disk:** 100GB+ free space for data and outputs
 - **OS:** Linux (Ubuntu 20.04+) or Windows 10/11

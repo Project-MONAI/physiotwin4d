@@ -42,6 +42,12 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         help="Run experiment tests (extremely long-running notebook tests)",
     )
     parser.addoption(
+        "--run-tutorials",
+        action="store_true",
+        default=False,
+        help="Run tutorial tests (data/GPU gated tutorial scripts)",
+    )
+    parser.addoption(
         "--create-baselines",
         action="store_true",
         default=False,
@@ -64,6 +70,10 @@ def pytest_configure(config: pytest.Config) -> None:
         "markers",
         "experiment: marks tests that run experiment notebooks (extremely slow, manual only)",
     )
+    config.addinivalue_line(
+        "markers",
+        "tutorial: marks tests that run tutorial scripts (data/GPU gated, manual only)",
+    )
     # Initialize test timing storage
     config._test_timings = {  # type: ignore[attr-defined]
         "tests": [],
@@ -76,22 +86,25 @@ def pytest_collection_modifyitems(
     config: pytest.Config, items: list[pytest.Item]
 ) -> None:
     """
-    Automatically skip experiment tests unless --run-experiments is passed.
+    Automatically skip experiment and tutorial tests unless their opt-in flags
+    are passed.
 
     This ensures that experiment tests are opt-in only and won't run
     accidentally when running the normal test suite.
     """
-    if config.getoption("--run-experiments"):
-        # User explicitly requested experiment tests, let them run
-        return
-
-    # Skip all tests marked with @pytest.mark.experiment
-    skip_experiments = pytest.mark.skip(
-        reason="Experiment tests require --run-experiments flag to run"
-    )
     for item in items:
-        if "experiment" in item.keywords:
-            item.add_marker(skip_experiments)
+        if "experiment" in item.keywords and not config.getoption("--run-experiments"):
+            item.add_marker(
+                pytest.mark.skip(
+                    reason="Experiment tests require --run-experiments flag to run"
+                )
+            )
+        if "tutorial" in item.keywords and not config.getoption("--run-tutorials"):
+            item.add_marker(
+                pytest.mark.skip(
+                    reason="Tutorial tests require --run-tutorials flag to run"
+                )
+            )
 
 
 def pytest_runtest_logreport(report: pytest.TestReport) -> None:
@@ -112,6 +125,7 @@ def pytest_runtest_logreport(report: pytest.TestReport) -> None:
             "duration": report.duration,
             "outcome": report.outcome,
             "is_experiment": "experiment" in report.keywords,
+            "is_tutorial": "tutorial" in report.keywords,
         }
 
         _pytest_config._test_timings["tests"].append(test_info)  # type: ignore[attr-defined]
@@ -138,8 +152,11 @@ def pytest_terminal_summary(
     # Calculate session duration
     session_duration = datetime.now() - timings["start_time"]
 
-    # Separate regular and experiment tests
-    regular_tests = [t for t in tests if not t["is_experiment"]]
+    # Separate regular, tutorial, and experiment tests
+    regular_tests = [
+        t for t in tests if not t["is_experiment"] and not t["is_tutorial"]
+    ]
+    tutorial_tests = [t for t in tests if t["is_tutorial"]]
     experiment_tests = [t for t in tests if t["is_experiment"]]
 
     # Write the timing report
@@ -169,6 +186,27 @@ def pytest_terminal_summary(
         terminalreporter.write_line(
             f"Total Time: {timedelta(seconds=int(regular_total))}"
         )
+        terminalreporter.write_line("")
+
+    # Tutorial tests section
+    if tutorial_tests:
+        terminalreporter.write_sep("-", "Tutorial Tests", bold=True)
+        terminalreporter.write_line(f"Count: {len(tutorial_tests)}")
+        sorted_tutorials = sorted(
+            tutorial_tests, key=lambda x: x["duration"], reverse=True
+        )
+        tutorial_total = sum(t["duration"] for t in tutorial_tests)
+        terminalreporter.write_line(
+            f"Total Time: {timedelta(seconds=int(tutorial_total))}"
+        )
+        terminalreporter.write_line("")
+        terminalreporter.write_line("Individual Test Times:")
+        for test in sorted_tutorials:
+            outcome_symbol = "+" if test["outcome"] == "passed" else "x"
+            duration_str = _format_duration(test["duration"])
+            terminalreporter.write_line(
+                f"  {outcome_symbol} {duration_str:>10s}  {test['nodeid']}"
+            )
         terminalreporter.write_line("")
 
         # Show all regular tests with timing
@@ -216,7 +254,12 @@ def pytest_terminal_summary(
         for i, test in enumerate(sorted_all, 1):
             outcome_symbol = "+" if test["outcome"] == "passed" else "x"
             duration_str = _format_duration(test["duration"])
-            test_type = "[EXP]" if test["is_experiment"] else "[REG]"
+            if test["is_experiment"]:
+                test_type = "[EXP]"
+            elif test["is_tutorial"]:
+                test_type = "[TUT]"
+            else:
+                test_type = "[REG]"
             terminalreporter.write_line(
                 f"  {i:2d}. {outcome_symbol} {duration_str:>10s} {test_type} {test['nodeid']}"
             )

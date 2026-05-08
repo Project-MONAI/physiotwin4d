@@ -11,6 +11,8 @@ with support for:
 Uses the vtk_to_usd library internally for core conversion functionality.
 """
 
+from __future__ import annotations
+
 import logging
 from collections.abc import Sequence
 from pathlib import Path

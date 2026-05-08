@@ -9,7 +9,7 @@ for visualization in NVIDIA Omniverse. It provides comprehensive tools for image
 segmentation, registration, and USD file generation.
 
 Main Components:
-    - HeartGatedCTProcessor: Complete workflow processor for heart-gated CT data
+    - WorkflowConvertHeartGatedCTToUSD: Heart-gated CT to USD workflow
     - Segmentation classes: Multiple AI-based chest segmentation implementations
     - Registration tools: Deep learning-based image registration
     - Transform utilities: Tools for image and contour transformations
@@ -17,7 +17,7 @@ Main Components:
     - PhysioMotion4DBase: Base class with standardized logging and debug settings
 """
 
-__version__ = "2025.05.0"
+__version__ = "2026.05.07"
 
 import warnings as _warnings
 
@@ -28,8 +28,7 @@ except ImportError:
         "CuPy is not installed — GPU acceleration is unavailable and processing "
         "will be slow. Re-install with uv to get CuPy and CUDA-enabled PyTorch "
         "in one step (pip alone will not select the correct CUDA wheel):\n"
-        "  uv pip install 'physiomotion4d[cuda13]'  # CUDA 13\n"
-        "  uv pip install 'physiomotion4d[cuda12]'  # CUDA 12",
+        "  uv pip install 'physiomotion4d[cuda13]'  # CUDA 13",
         UserWarning,
         stacklevel=2,
     )

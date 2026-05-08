@@ -2,61 +2,95 @@
 Architecture
 ============
 
-Overview of PhysioMotion4D's system architecture and design principles.
+PhysioMotion4D is organized around explicit workflow classes and smaller
+registration, segmentation, geometry, and USD utilities. Runtime workflow
+classes inherit from :class:`PhysioMotion4DBase` for logging and common runtime
+configuration.
 
-.. note::
+.. warning::
 
-   **Implementation References:**
+   PhysioMotion4D 2026.05.07 beta is not validated for clinical use. It is a
+   research and visualization toolkit, not a medical device.
 
-   * **src/physiomotion4d/cli/** - See production implementations of the architectural patterns described here
-   * **experiments/** - See research prototypes showing evolution of these design principles
-
-System Overview
-===============
-
-PhysioMotion4D is designed as a modular pipeline for medical imaging processing:
+Data Flow
+=========
 
 .. code-block:: text
 
-   Input (4D CT) → Preprocessing → Registration → Segmentation
-                                                     ↓
-   USD (Omniverse) ← USD Export ← Transform ← Contour Extraction
+   4D CT / time-series CT
+          |
+          v
+   ConvertNRRD4DTo3D / ImageTools
+          |
+          v
+   RegisterTimeSeriesImages
+      |        |
+      |        +--> RegisterImagesANTs / RegisterImagesICON
+      v
+   SegmentChestTotalSegmentator / SegmentHeartSimpleware
+          |
+          v
+   ContourTools + TransformTools
+          |
+          v
+   WorkflowConvertCTToVTK / ConvertVTKToUSD / WorkflowConvertVTKToUSD
+          |
+          v
+   OpenUSD assets for NVIDIA Omniverse
 
-Core Components
-===============
-
-1. **Workflow Processors**
-
-   * :class:`ProcessHeartGatedCT`: Complete pipeline orchestration
-
-2. **Segmentation Module**
-
-   * Base class: :class:`SegmentAnatomyBase`
-   * Implementations: TotalSegmentator, Simpleware
-
-3. **Registration Module**
-
-   * Base class: :class:`RegisterImagesBase`
-   * Implementations: ICON, ANTs
-
-4. **Transform Module**
-
-   * :class:`TransformTools`: Apply deformation fields
-   * :class:`ContourTools`: Surface extraction and processing
-
-5. **USD Export Module**
-
-   * :class:`ConvertVTKToUSD`: VTK to USD conversion
-   * :class:`USDTools`: USD manipulation
-   * :class:`USDAnatomyTools`: Material application
-
-Design Principles
+Primary Workflows
 =================
 
-* **Modularity**: Components can be used independently
-* **Extensibility**: Easy to add new methods
-* **GPU Acceleration**: Leverage CUDA when available
-* **Type Safety**: Type hints throughout
-* **Error Handling**: Graceful degradation
+``WorkflowConvertHeartGatedCTToUSD``
+   Converts a 4D cardiac CT file or 3D CT time series into registered anatomy
+   contours and painted animated USD files.
 
-For implementation details, see the source code and :doc:`api/base`.
+``WorkflowConvertCTToVTK``
+   Segments a 3D CT image and exports anatomy groups as VTK surfaces and voxel
+   meshes.
+
+``WorkflowCreateStatisticalModel``
+   Aligns a population of meshes to a reference and builds a PCA statistical
+   shape model.
+
+``WorkflowFitStatisticalModelToPatient``
+   Fits a template/statistical model to patient-specific surfaces with ICP,
+   optional PCA fitting, mask-to-mask registration, and optional image
+   refinement.
+
+``WorkflowReconstructHighres4DCT``
+   Reconstructs higher-resolution 4D CT frames from a time series and a fixed
+   high-resolution reference image.
+
+``WorkflowConvertVTKToUSD``
+   Converts VTK files to animated USD scenes through the supported workflow
+   wrapper. The lower-level :mod:`physiomotion4d.vtk_to_usd` package exposes
+   advanced file conversion primitives.
+
+Component Boundaries
+====================
+
+Segmentation classes produce anatomy masks or labelmaps from ITK images.
+Registration classes produce ITK transforms or transformed meshes. Geometry
+utilities bridge ITK masks and PyVista meshes. USD tools are responsible for
+OpenUSD stage creation, material assignment, coordinate conversion, and time
+samples.
+
+The high-risk boundary is the ITK-to-PyVista-to-USD path. Image data remains in
+ITK image space until contours are extracted. Meshes are represented as PyVista
+objects before USD export. The VTK-to-USD layer applies the repository's
+RAS-to-Y-up coordinate transform during USD conversion.
+
+CLI Boundary
+============
+
+The installed CLI commands in ``pyproject.toml`` are thin wrappers around the
+workflow classes. They are the preferred examples for executable API usage:
+
+* ``physiomotion4d-heart-gated-ct``
+* ``physiomotion4d-convert-ct-to-vtk``
+* ``physiomotion4d-create-statistical-model``
+* ``physiomotion4d-fit-statistical-model-to-patient``
+* ``physiomotion4d-convert-vtk-to-usd``
+* ``physiomotion4d-reconstruct-highres-4d-ct``
+* ``physiomotion4d-visualize-pca-modes``

@@ -4,6 +4,12 @@ Quick Start
 
 This guide will help you get started with PhysioMotion4D quickly.
 
+.. warning::
+
+   **Not validated for clinical use.** PhysioMotion4D 2026.05.07 beta is a
+   research and visualization toolkit, not a medical device. Do not use it for
+   diagnosis, treatment planning, or clinical decision-making.
+
 .. _tutorials:
 
 Tutorials
@@ -35,8 +41,9 @@ Recommended run order:
 
 1. Tutorials 1 and 2 first, after preparing Slicer-Heart-CT data.
 2. Tutorial 5 after Tutorial 2 (consumes Tutorial 2 output).
-3. Tutorials 3 and 4 after downloading KCL-Heart-Model.
-4. Tutorial 6 after downloading DirLab-4DCT.
+3. Tutorial 3 after downloading KCL-Heart-Model.
+4. Tutorial 4 after Tutorial 3 because it can consume Tutorial 3 output.
+5. Tutorial 6 after downloading DirLab-4DCT.
 
 Prerequisites
 =============
@@ -49,6 +56,22 @@ Before starting, ensure you have:
 
 Basic Workflow
 ==============
+
+Minimal Slicer-Heart Quickstart
+-------------------------------
+
+The public Slicer-Heart 4D CT sample can be downloaded automatically and used
+as the smallest end-to-end cardiac workflow. Data downloading and a
+CUDA-capable GPU are required for practical runtime.
+
+.. code-block:: bash
+
+   python -c "import pathlib, urllib.request; pathlib.Path('data/test').mkdir(parents=True, exist_ok=True); urllib.request.urlretrieve('https://github.com/SlicerHeart/SlicerHeart/releases/download/TestingData/TruncalValve_4DCT.seq.nrrd', 'data/test/TruncalValve_4DCT.seq.nrrd')"
+
+   physiomotion4d-heart-gated-ct data/test/TruncalValve_4DCT.seq.nrrd \
+       --registration-method ants \
+       --output-dir output/quickstart \
+       --project-name slicer_heart_quickstart
 
 Command-Line Interface
 ----------------------
@@ -79,17 +102,18 @@ For more control, use the Python API:
 
 .. code-block:: python
 
-   from physiomotion4d import ProcessHeartGatedCT
+   from physiomotion4d import WorkflowConvertHeartGatedCTToUSD
 
 **Step 2: Initialize with your data**
 
 .. code-block:: python
 
-   processor = ProcessHeartGatedCT(
+   processor = WorkflowConvertHeartGatedCTToUSD(
        input_filenames=["path/to/cardiac_4d_ct.nrrd"],
        contrast_enhanced=True,
        output_directory="./results",
-       project_name="cardiac_model"
+       project_name="cardiac_model",
+       registration_method="ants",
    )
 
 **Step 3: Run the workflow**
@@ -116,29 +140,18 @@ For more control over individual steps:
 
 .. code-block:: python
 
-   from physiomotion4d import ProcessHeartGatedCT
+   from physiomotion4d import WorkflowConvertHeartGatedCTToUSD
 
-   # Initialize processor
-   processor = ProcessHeartGatedCT(
+   # Initialize workflow
+   workflow = WorkflowConvertHeartGatedCTToUSD(
        input_filenames=["cardiac_4d.nrrd"],
        contrast_enhanced=True,
-       output_directory="./results"
+       output_directory="./results",
+       project_name="cardiac_model",
+       registration_method="ants",
    )
 
-   # Step 1: Convert 4D to 3D frames
-   processor.convert_4d_to_3d()
-
-   # Step 2: Register images
-   processor.register_images()
-
-   # Step 3: Generate segmentation
-   processor.segment_reference_image()
-
-   # Step 4: Transform contours
-   processor.transform_contours()
-
-   # Step 5: Create USD models
-   final_usd = processor.create_usd_models()
+   final_usd = workflow.process()
 
 Working with Individual Components
 ===================================
@@ -160,12 +173,15 @@ If you only need segmentation:
    image = itk.imread("chest_ct.nrrd")
    masks = segmenter.segment(image, contrast_enhanced_study=True)
 
-   # Extract individual anatomy masks
-   heart_mask, vessels_mask, lungs_mask, bones_mask, \
-   soft_tissue_mask, contrast_mask, all_mask, dynamic_mask = masks
+   # Extract individual anatomy masks by key
+   heart_mask = masks["heart"]
+   vessels_mask = masks["major_vessels"]
+   lungs_mask = masks["lung"]
+   labelmap = masks["labelmap"]
 
    # Save results
    itk.imwrite(heart_mask, "heart_mask.nrrd")
+   itk.imwrite(labelmap, "labelmap.nrrd")
 
 Image Registration Only
 -----------------------
@@ -228,19 +244,11 @@ Download Sample Cardiac CT Data
    os.makedirs("sample_data", exist_ok=True)
 
    # Download sample from Slicer-Heart-CT
-   # (Replace with actual download link)
-   url = "https://example.com/sample_cardiac_ct.nrrd"
-   urllib.request.urlretrieve(url, "sample_data/cardiac_ct.nrrd")
+   url = "https://github.com/SlicerHeart/SlicerHeart/releases/download/TestingData/TruncalValve_4DCT.seq.nrrd"
+   urllib.request.urlretrieve(url, "sample_data/TruncalValve_4DCT.seq.nrrd")
 
-Or use the DirLab lung dataset:
-
-.. code-block:: python
-
-   from physiomotion4d.data import DirLab4DCT
-
-   # Download DirLab case
-   downloader = DirLab4DCT()
-   downloader.download_case(1)  # Downloads Case 1
+DirLab-4DCT data is manual-only; see ``data/README.md`` before running the
+high-resolution 4D CT reconstruction tutorial.
 
 Visualizing Results
 ===================
@@ -303,9 +311,9 @@ Common Issues
 
 **Out of memory errors**
 
-* Reduce image size: ``processor.set_downsample_factor(2)``
+* Resample or crop the input image before running the workflow
 * Process fewer frames at once
-* Use CPU registration: ``processor.set_registration_device('cpu')``
+* Use ANTs registration with ``--registration-method ants`` when CUDA is unavailable
 
 **Segmentation quality issues**
 
@@ -314,8 +322,7 @@ Common Issues
 
 **USD not animating**
 
-* Check time samples: ``processor.verify_time_samples()``
-* Ensure frame rate is set: ``processor.set_frame_rate(30)``
-* Validate USD: ``usdchecker final_model.usd``
+* Check that the input time series has more than one frame
+* Validate the generated USD with ``usdchecker final_model.usd``
 
 See :doc:`troubleshooting` for more solutions.

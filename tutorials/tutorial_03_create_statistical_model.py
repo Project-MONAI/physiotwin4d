@@ -1,12 +1,12 @@
 """
-Tutorial 4: Create a PCA Statistical Shape Model
+Tutorial 3: Create a PCA Statistical Shape Model
 
 Purpose
 -------
 Build a PCA (Principal Component Analysis) statistical shape model from a
 population of anatomical meshes aligned to a reference. The model captures
 the mean shape and the principal modes of geometric variation across the
-population. The resulting model can be used in Tutorial 3 to constrain
+population. The resulting model can be used in Tutorial 4 to constrain
 patient-specific fitting to anatomically plausible shapes.
 
 Inputs
@@ -19,7 +19,7 @@ Inputs
 
 Outputs
 -------
-- ``output_dir/pca_model.json`` - PCA model (eigenvectors, eigenvalues, mean)
+- ``output_dir/pca_model.json`` - PCA model (components and eigenvalues)
 - ``output_dir/pca_mean_surface.vtp`` - mean shape as a surface
 - Screenshots (PNG):
   - ``pca_mean_model.png`` - 3-D view of the PCA mean surface
@@ -30,7 +30,7 @@ Strengths
 ---------
 - Single call to ``WorkflowCreateStatisticalModel.run_workflow()`` covers the
   full pipeline: ICP alignment, deformable correspondence, and PCA.
-- Returns a pure-Python dict (eigenvectors as numpy arrays) compatible with
+- Returns a pure-Python dict (PCA components and eigenvalues) compatible with
   ``WorkflowFitStatisticalModelToPatient.set_use_pca_registration()``.
 - Surface-mode PCA (``solve_for_surface_pca=True``, default) is faster and
   sufficient for most cardiac applications.
@@ -61,7 +61,7 @@ The same main outputs (without screenshots) can be produced via the CLI::
         --sample-meshes-dir data/KCL-Heart-Model/sample_meshes \\
         --reference-mesh data/KCL-Heart-Model/pca_mean.vtu \\
         --pca-components 10 \\
-        --output-dir ./output/tutorial_04
+        --output-dir ./output/tutorial_03
 
 See ``src/physiomotion4d/cli/create_statistical_model.py`` for full CLI
 documentation.
@@ -98,7 +98,7 @@ def run_tutorial(
     max_samples: int = 20,
     log_level: int = logging.INFO,
 ) -> dict[str, Any]:
-    """Run Tutorial 4: Create a PCA Statistical Shape Model.
+    """Run Tutorial 3: Create a PCA Statistical Shape Model.
 
     Args:
         data_dir: Root of the ``data/`` directory (see data/README.md).
@@ -110,7 +110,7 @@ def run_tutorial(
     Returns:
         dict with keys:
 
-        - ``'pca_model'`` (dict): PCA model dict (eigenvectors, eigenvalues, mean).
+        - ``'pca_model'`` (dict): PCA model dict (components and eigenvalues).
         - ``'mean_surface'`` (pv.PolyData): mean shape surface.
         - ``'model_file'`` (Path): path to saved ``pca_model.json``.
         - ``'mean_surface_file'`` (Path): path to saved ``pca_mean_surface.vtp``.
@@ -170,7 +170,7 @@ def run_tutorial(
     tt = TestTools(
         results_dir=output_dir,
         baselines_dir=output_dir / "baselines",
-        class_name="tutorial_04",
+        class_name="tutorial_03",
         results_output_dir=output_dir,
         log_level=log_level,
     )
@@ -189,7 +189,7 @@ def run_tutorial(
     )
 
     # First two PCA modes: show mean +/- 2 sigma side-by-side
-    eigenvectors: Any = pca_model.get("eigenvectors")
+    components: Any = pca_model.get("components")
     eigenvalues: Any = pca_model.get("eigenvalues")
     mean_points = np.asarray(mean_surface.points)
 
@@ -199,11 +199,11 @@ def run_tutorial(
         pass
 
     for mode_idx in range(min(2, pca_components)):
-        if eigenvectors is None or eigenvalues is None:
+        if components is None or eigenvalues is None:
             break
 
         sigma = float(np.sqrt(eigenvalues[mode_idx]))
-        ev = np.asarray(eigenvectors[:, mode_idx]).reshape(-1, 3)
+        ev = np.asarray(components[mode_idx]).reshape(-1, 3)
 
         minus_mesh = mean_surface.copy()
         minus_mesh.points = mean_points - 2 * sigma * ev
@@ -254,8 +254,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("output") / "tutorial_04",
-        help="Output directory (default: ./output/tutorial_04)",
+        default=Path("output") / "tutorial_03",
+        help="Output directory (default: ./output/tutorial_03)",
     )
     parser.add_argument(
         "--pca-components",

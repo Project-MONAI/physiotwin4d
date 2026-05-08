@@ -61,12 +61,6 @@ The ``[cuda13]`` extra installs CuPy. In uv-managed source environments,
 PyTorch, torchvision, and torchaudio resolve from the CUDA 13.0 PyTorch wheel
 index. There is no need to install PyTorch separately.
 
-For development with NVIDIA NIM cloud services:
-
-.. code-block:: bash
-
-   pip install physiomotion4d[nim]
-
 Method 2: Install from Source
 ------------------------------
 
@@ -168,15 +162,17 @@ After installation, verify that PhysioMotion4D is correctly installed:
 .. code-block:: python
 
    import physiomotion4d
-   from physiomotion4d import ProcessHeartGatedCT
+   from physiomotion4d import WorkflowConvertHeartGatedCTToUSD
    
    print(f"PhysioMotion4D version: {physiomotion4d.__version__}")
+   print(WorkflowConvertHeartGatedCTToUSD.__name__)
 
 Expected output:
 
 .. code-block:: text
 
-   PhysioMotion4D version: 2025.05.0
+   PhysioMotion4D version: 2026.05.07
+   WorkflowConvertHeartGatedCTToUSD
 
 Command-Line Tools
 ==================

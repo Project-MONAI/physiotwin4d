@@ -34,8 +34,8 @@ copyright = f"{datetime.now().year}, Stephen R. Aylward, NVIDIA Corporation"
 author = "Stephen R. Aylward"
 
 # The full version, including alpha/beta/rc tags
-release = "2025.05.0"
-version = "2025.05.0"
+release = "2026.05.07"
+version = "2026.05.07"
 
 # -- General configuration ---------------------------------------------------
 extensions = [
@@ -57,7 +57,14 @@ templates_path = ["_templates"]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = [
+    "_build",
+    "Thumbs.db",
+    ".DS_Store",
+    "API_MAP.md",
+    "PYPI_RELEASE_GUIDE.md",
+    "README.md",
+]
 
 # The suffix(es) of source filenames.
 source_suffix = {
@@ -191,7 +198,6 @@ autodoc_mock_imports = [
     "cupy",
     "cupyx",
     "pxr",
-    "scipy",
     "matplotlib",
     "ants",
     "antspyx",

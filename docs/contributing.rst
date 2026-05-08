@@ -214,7 +214,7 @@ Pull Request Guidelines
 * **Reference issues**: Link related issues with #123
 * **Pass all tests**: CI must pass
 * **Update documentation**: Document new features
-* **Add changelog entry**: Update CHANGELOG.md
+* **Add release note**: Document user-facing changes in the pull request
 
 Testing
 =======
@@ -396,7 +396,7 @@ PhysioMotion4D uses calendar versioning: ``YYYY.0M.PATCH``
 * **0M**: Zero-padded month
 * **PATCH**: Patch number within month
 
-Example: ``2025.05.0``
+Example: ``2026.05.07``
 
 Making a Release
 ----------------
@@ -414,7 +414,8 @@ Maintainers only:
    # Upload to PyPI
    python -m twine upload dist/*
 
-See :doc:`PYPI_RELEASE_GUIDE` for detailed release instructions.
+See ``docs/PYPI_RELEASE_GUIDE.md`` for detailed maintainer release
+instructions.
 
 Community Guidelines
 ====================

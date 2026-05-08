@@ -35,7 +35,8 @@ def _extract_surface(mesh: pv.DataSet) -> pv.PolyData:
 class WorkflowCreateStatisticalModel(PhysioMotion4DBase):
     """Create a PCA statistical shape model from a sample of meshes aligned to a reference.
 
-    Pipeline (mirrors experiments/Heart-Create_Statistical_Model notebooks 1–5):
+    Pipeline:
+
     1. Extract surfaces from sample and reference meshes, or keep as meshes
     2. ICP alignment: align each sample surface to the reference (template) surface. Always
        extract surfaces for ICP alignment.

@@ -14,10 +14,8 @@ primitives.
 ConvertVTKToUSD
 ================
 
-.. autoclass:: physiomotion4d.ConvertVTKToUSD
-   :members:
-   :undoc-members:
-   :show-inheritance:
+Use :class:`physiomotion4d.ConvertVTKToUSD` for application-level conversion.
+The full API reference is in :doc:`../api/usd/vtk_conversion`.
 
 Single File
 -----------

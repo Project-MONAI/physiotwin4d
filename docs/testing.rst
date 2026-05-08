@@ -1,137 +1,62 @@
-========
+=======
 Testing
-========
+=======
 
-Guide to running and writing tests for PhysioMotion4D.
-
-Running Tests
-=============
-
-Basic Test Execution
---------------------
+Use the fast, no-real-data test subset during development:
 
 .. code-block:: bash
 
-   # Run all tests
-   pytest tests/
-
-   # Run with verbose output
-   pytest tests/ -v
-
-   # Run specific test file
-   pytest tests/test_usd_merge.py -v
-
-   # Run specific test
-   pytest tests/test_usd_merge.py::test_merge_basic -v
-
-Test Categories
----------------
-
-PhysioMotion4D uses pytest markers to categorize tests:
-
-.. code-block:: bash
-
-   # Fast tests only (recommended for development)
    pytest tests/ -m "not slow and not requires_data" -v
 
-   # Unit tests only
-   pytest tests/ -m unit
+Test Categories
+===============
 
-   # Integration tests only
-   pytest tests/ -m integration
-
-   # Skip slow tests (registration and segmentation)
-   pytest tests/ -m "not slow"
-
-   # Skip tests requiring external data
-   pytest tests/ -m "not requires_data"
-
-   # Skip GPU-dependent tests
-   pytest tests/ --ignore=tests/test_segment_chest_total_segmentator.py \
-                 --ignore=tests/test_register_images_icon.py
-
-Specific Test Modules
-----------------------
+PhysioMotion4D uses pytest markers and command-line flags to keep expensive
+work separate from normal development tests.
 
 .. code-block:: bash
 
-   # USD utilities (fast)
-   pytest tests/test_usd_merge.py -v
-   pytest tests/test_usd_time_preservation.py -v
+   # Fast development signal
+   pytest tests/ -m "not slow and not requires_data" -v
 
-   # Data conversion (fast)
-   pytest tests/test_convert_nrrd_4d_to_3d.py -v
-   pytest tests/test_convert_vtk_to_usd_polymesh.py -v
+   # Include tutorial execution tests
+   pytest tests/test_tutorials.py --run-tutorials -v
 
-   # Image tools (fast)
-   pytest tests/test_image_tools.py -v
-   pytest tests/test_contour_tools.py -v
-   pytest tests/test_transform_tools.py -v
+   # Include experiment tests
+   pytest tests/ --run-experiments -v
 
-   # Registration (slow, ~5-10 minutes each)
-   pytest tests/test_register_images_ants.py -v
-   pytest tests/test_register_images_greedy.py -v
-   pytest tests/test_register_images_icon.py -v
-   pytest tests/test_register_time_series_images.py -v
+   # CLI help smoke tests
+   pytest tests/test_cli_smoke.py -v
 
-   # Segmentation (GPU required, ~2-5 minutes each)
-   pytest tests/test_segment_chest_total_segmentator.py -v
+   # Public import surface
+   pytest tests/test_import_public_api.py -v
 
-Coverage Reports
-----------------
-
-.. code-block:: bash
-
-   # Generate coverage report
-   pytest tests/ --cov=src/physiomotion4d --cov-report=html
-
-   # View report
-   open htmlcov/index.html
-
-Test Structure
+Specific Areas
 ==============
 
-Tests are organized by functionality:
+.. code-block:: bash
 
-.. code-block:: text
+   pytest tests/test_convert_vtk_to_usd.py -v
+   pytest tests/test_convert_nrrd_4d_to_3d.py -v
+   pytest tests/test_contour_tools.py -v
+   pytest tests/test_transform_tools.py -v
+   pytest tests/test_image_tools.py -v
 
-   tests/
-   ├── Data Pipeline Tests
-   │   ├── test_download_heart_data.py           # Data download with fallback logic
-   │   └── test_convert_nrrd_4d_to_3d.py         # 4D to 3D conversion
-   │
-   ├── Segmentation Tests (GPU Required)
-   │   └── test_segment_chest_total_segmentator.py  # TotalSegmentator
-   │
-   ├── Registration Tests (Slow ~5-10 min)
-   │   ├── test_register_images_ants.py          # ANTs registration
-   │   ├── test_register_images_greedy.py        # Greedy registration
-   │   ├── test_register_images_icon.py          # Icon registration  
-   │   └── test_register_time_series_images.py   # Time series registration
-   │
-   ├── Geometry & Visualization Tests
-   │   ├── test_contour_tools.py                 # Mesh extraction and manipulation
-   │   ├── test_transform_tools.py               # Transform operations
-   │   ├── test_image_tools.py                   # Image processing utilities
-   │   └── test_convert_vtk_to_usd_polymesh.py # VTK to USD conversion
-   │
-   └── USD Utility Tests
-       ├── test_usd_merge.py                     # USD file merging
-       └── test_usd_time_preservation.py         # Time-varying data validation
+Real Data and GPU Tests
+=======================
 
-Writing Tests
-=============
-
-See :doc:`contributing` for guidelines on writing tests.
+Tests that require downloaded or manually prepared datasets are marked
+``requires_data``. Tutorial tests are opt-in through ``--run-tutorials`` and
+preserve tutorial dependencies, such as Tutorial 4 consuming Tutorial 3 output.
 
 Continuous Integration
 ======================
 
-Tests run automatically on:
+CI should run the fast subset by default and keep data-heavy tutorials and
+experiments behind explicit flags.
 
-* Pull requests
-* Merges to main branch
-* Tagged releases
+See Also
+========
 
-See the `.github/workflows/` directory for CI configuration.
-
+* :doc:`contributing`
+* :doc:`tutorials`

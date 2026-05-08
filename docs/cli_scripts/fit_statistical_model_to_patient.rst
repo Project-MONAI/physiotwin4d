@@ -70,17 +70,21 @@ Required Arguments
 ``--template-model PATH``
    Path to template/generic heart model file (.vtu, .vtk, .stl)
 
-``--template-labelmap PATH``
-   Path to template labelmap image (.nii.gz, .nrrd, .mha)
-
 ``--patient-models PATH [PATH ...]``
    Paths to patient-specific surface models (e.g., lv.vtp rv.vtp myo.vtp)
 
-``--patient-image PATH``
-   Path to patient CT/MRI image (.nii.gz, .nrrd, .mha)
-
 ``--output-dir DIR``
    Output directory for results
+
+Optional inputs:
+
+``--patient-image PATH``
+   Path to patient CT/MRI image (.nii.gz, .nrrd, .mha). If omitted, the
+   workflow creates a reference image from the patient surface models.
+
+``--template-labelmap PATH``
+   Path to template labelmap image (.nii.gz, .nrrd, .mha). Required only when
+   ``--mask-to-image`` is set.
 
 See :class:`physiomotion4d.WorkflowFitStatisticalModelToPatient` for API documentation.
 
@@ -102,9 +106,6 @@ PCA Registration Options
 ``--pca-json PATH``
    Path to PCA JSON file for shape-based registration (optional)
 
-``--pca-group-key KEY``
-   PCA group key in JSON file (default: All)
-
 ``--pca-number-of-modes NUM``
    Number of PCA modes to use (default: 0, uses all if PCA enabled)
 
@@ -114,8 +115,9 @@ Registration Configuration
 ``--no-mask-to-mask``
    Disable mask-to-mask deformable registration (default: enabled)
 
-``--no-mask-to-image``
-   Disable mask-to-image refinement registration (default: enabled)
+``--mask-to-image``
+   Enable mask-to-image refinement registration. Requires
+   ``--template-labelmap`` and template label IDs. Disabled by default.
 
 ``--use-icon-refinement``
    Enable ICON deep learning registration refinement (default: disabled)
@@ -131,7 +133,6 @@ Related Scripts
 
 * :doc:`heart_gated_ct` - Process cardiac gated CT data
 * :doc:`vtk_to_usd` - Convert model meshes to USD format
-* :doc:`lung_gated_ct` - Process lung gated CT data
 
 Examples
 ========

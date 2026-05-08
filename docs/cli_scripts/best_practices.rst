@@ -242,7 +242,7 @@ Ensuring Reproducible Results
 
    # processing_metadata.yaml
    patient_id: patient_001
-   physiomotion4d_version: 2025.05.0
+   physiomotion4d_version: 2026.05.07
    script: heart-gated-ct
    date: 2026-01-08
    

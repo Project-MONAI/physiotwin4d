@@ -3,6 +3,8 @@
 Provides helper functions for coordinate conversion, primvar creation, and USD type mapping.
 """
 
+from __future__ import annotations
+
 import logging
 from typing import Any
 

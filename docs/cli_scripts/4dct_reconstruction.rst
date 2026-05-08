@@ -1,71 +1,73 @@
 ====================================
-4D-CT Reconstruction
+High-Resolution 4D CT Reconstruction
 ====================================
 
-.. note::
-   This script is planned for a future release. Documentation will be updated when available.
+The ``physiomotion4d-reconstruct-highres-4d-ct`` command reconstructs a
+high-resolution 4D CT time series from ordered phase images and a
+high-resolution reference image.
 
-Overview
-========
+Input Requirements
+==================
 
-The ``physiomotion4d-4dct-reconstruction`` script will reconstruct 4D CT volumes from multiple 3D acquisitions taken at different physiological phases or time points.
+* Ordered 3D phase images, such as ``.mha``, ``.mhd``, ``.nrrd``, or
+  ``.nii.gz`` files.
+* A fixed high-resolution reference image.
+* Optional fixed and moving masks for registration focus.
 
-Planned Features
-================
+DirLab-4DCT data cannot be downloaded automatically by PhysioMotion4D. Prepare
+it manually before using the DirLab tutorial or examples.
 
-Input Data
-----------
+Basic Usage
+===========
 
-* **Multiple 3D CT Scans**: Acquired at different phases
-* **Phase Information**: Cardiac or respiratory phase labels
-* **Optional**: ECG or respiratory signals for phase assignment
+.. code-block:: bash
 
-Reconstruction Methods
-----------------------
+   physiomotion4d-reconstruct-highres-4d-ct \
+       --time-series-images frame_*.mha \
+       --fixed-image highres_reference.mha \
+       --output-dir ./results
 
-1. **Phase-Based Sorting**
-   * Sort slices/acquisitions by physiological phase
-   * Group into temporal bins
-   * Handle irregular sampling
-
-2. **Motion Estimation**
-   * Estimate motion between phases
-   * Build temporal motion model
-   * Interpolate missing data
-
-3. **4D Volume Assembly**
-   * Reconstruct complete 4D dataset
-   * Apply motion compensation
-   * Ensure temporal smoothness
-
-4. **Quality Control**
-   * Detect artifacts and inconsistencies
-   * Generate confidence maps
-   * Provide reconstruction metrics
-
-Expected Outputs
-----------------
-
-* Complete 4D NRRD volume
-* Motion vector fields
-* Phase-assignment maps
-* Quality metrics and reports
-
-Use Cases
-=========
-
-* **Cardiac Imaging**: Retrospective cardiac CT reconstruction
-* **Respiratory Imaging**: Build 4D-CT from helical acquisitions
-* **Research**: Study temporal resolution effects
-* **Clinical**: Improve motion characterization
-
-Workflow Class
-==============
-
-For Python API access, see :class:`physiomotion4d.WorkflowReconstructFourDCT` in :doc:`../developer/workflows`.
-
-Related Scripts
+With Upsampling
 ===============
 
-* :doc:`heart_gated_ct` - Process reconstructed cardiac 4D-CT
-* :doc:`lung_gated_ct` - Process reconstructed lung 4D-CT
+.. code-block:: bash
+
+   physiomotion4d-reconstruct-highres-4d-ct \
+       --time-series-images frame_000.mha frame_001.mha frame_002.mha \
+       --fixed-image highres_reference.mha \
+       --reference-frame 0 \
+       --upsample \
+       --output-dir ./results
+
+Registration Options
+====================
+
+.. code-block:: bash
+
+   physiomotion4d-reconstruct-highres-4d-ct \
+       --time-series-images frame_*.mha \
+       --fixed-image highres_reference.mha \
+       --registration-method ants \
+       --ants-iterations 30 15 7 3 \
+       --prior-weight 0.5 \
+       --output-dir ./results
+
+Outputs
+=======
+
+The command writes reconstructed images to ``--output-dir`` using
+``--output-prefix`` as the filename prefix. Use ``--save-transforms`` and
+``--save-losses`` when registration diagnostics are needed.
+
+Python API
+==========
+
+Use :class:`physiomotion4d.WorkflowReconstructHighres4DCT` for programmatic
+access.
+
+Related Pages
+=============
+
+* :doc:`../tutorials`
+* :doc:`overview`
+* :doc:`../api/workflows`

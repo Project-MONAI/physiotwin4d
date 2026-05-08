@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "physiomotion4d"
-version = "2025.05.0"
+version = "2026.05.07"
 description = "Medical imaging package for generating anatomic models in Omniverse with physiological motion from 4D medical images"
 authors = [
     {name = "Stephen R. Aylward", email = "saylward@nvidia.com"}
@@ -107,13 +107,6 @@ cuda13 = [
     "torchvision",
     "torchaudio",
 ]
-nim = [
-    # Cloud and data handling
-    "google-auth>=2.0.0",
-    "google-api-python-client>=2.0.0",
-    "google-cloud-storage>=2.0.0",
-]
-
 dev = [
     "bumpver>=2023.0.0",
     "jupytext>=1.16.0",
@@ -158,7 +151,6 @@ Homepage = "https://github.com/Project-MONAI/physiomotion4d"
 Documentation = "https://github.com/Project-MONAI/physiomotion4d/blob/main/README.md"
 Repository = "https://github.com/Project-MONAI/physiomotion4d.git"
 "Bug Tracker" = "https://github.com/Project-MONAI/physiomotion4d/issues"
-Changelog = "https://github.com/Project-MONAI/physiomotion4d/blob/main/CHANGELOG.md"
 "Author LinkedIn" = "https://www.linkedin.com/in/stephenaylward"
 "Author Google Scholar" = "https://scholar.google.com/citations?user=u1UdL4oAAAAJ&hl"
 
@@ -170,13 +162,14 @@ physiomotion4d-heart-gated-ct = "physiomotion4d.cli.convert_heart_gated_ct_to_us
 physiomotion4d-convert-vtk-to-usd = "physiomotion4d.cli.convert_vtk_to_usd:main"
 physiomotion4d-create-statistical-model = "physiomotion4d.cli.create_statistical_model:main"
 physiomotion4d-fit-statistical-model-to-patient = "physiomotion4d.cli.fit_statistical_model_to_patient:main"
+physiomotion4d-reconstruct-highres-4d-ct = "physiomotion4d.cli.reconstruct_highres_4d_ct:main"
 physiomotion4d-visualize-pca-modes = "physiomotion4d.cli.visualize_pca_modes:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.bumpver]
-current_version = "2025.05.0"
+current_version = "2026.05.07"
 version_pattern = "YYYY.0M.PATCH[PYTAGNUM]"
 commit_message = "Bump version {old_version} -> {new_version}"
 commit = true
@@ -210,6 +203,7 @@ strict_equality = true
 show_error_codes = true
 # Third-party libs (itk, pyvista, pxr, vtk, simpleware, etc.) have no stubs
 disable_error_code = ["import-not-found", "import-untyped"]
+ignore_missing_imports = true
 
 # When type-checking our package, ignore missing imports for third-party libs.
 # Override applies to the module being checked (physiomotion4d.*).
@@ -220,6 +214,19 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = ["tests", "tests.*", "conftest"]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "physiomotion4d.cli.create_statistical_model",
+    "physiomotion4d.cli.fit_statistical_model_to_patient",
+    "physiomotion4d.cli.visualize_pca_modes",
+    "physiomotion4d.register_models_pca",
+    "physiomotion4d.vtk_to_usd.mesh_utils",
+    "physiomotion4d.vtk_to_usd.vtk_reader",
+    "physiomotion4d.workflow_create_statistical_model",
+    "physiomotion4d.workflow_fit_statistical_model_to_patient",
+]
+ignore_errors = true
 
 [tool.pyright]
 # Third-party packages (e.g. pyvista) are in dependencies but may have no stubs;
@@ -246,6 +253,7 @@ markers = [
     "requires_gpu: marks tests that require GPU/CUDA support",
     "requires_data: marks tests that require external data download",
     "experiment: marks tests that run experiment scripts (extremely slow, manual only)",
+    "tutorial: marks tests that run tutorial scripts (data/GPU gated, manual only)",
     "xdist_group: marks tests to run in the same pytest-xdist worker (prevents parallel conflicts)"
 ]
 timeout = 900

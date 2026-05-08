@@ -31,17 +31,17 @@ Tutorials
        <p>Segment one CT phase and export patient anatomy as VTK PolyData surfaces.</p>
        <span class="pm4d-card__meta">Slicer-Heart-CT</span>
      </a>
-     <a class="pm4d-card" href="#tutorial-3-fit-statistical-model-to-patient">
+     <a class="pm4d-card" href="#tutorial-3-create-a-pca-shape-model">
        <span class="pm4d-card__number">03</span>
-       <h2>Fit Statistical Model to Patient</h2>
-       <p>Fit a PCA heart model to patient-specific anatomy for model-based reconstruction.</p>
-       <span class="pm4d-card__meta">KCL-Heart-Model</span>
-     </a>
-     <a class="pm4d-card" href="#tutorial-4-create-a-pca-shape-model">
-       <span class="pm4d-card__number">04</span>
        <h2>Create a PCA Shape Model</h2>
        <p>Build a statistical shape model from aligned cardiac meshes.</p>
        <span class="pm4d-card__meta">KCL-Heart-Model</span>
+     </a>
+     <a class="pm4d-card" href="#tutorial-4-fit-statistical-model-to-patient">
+       <span class="pm4d-card__number">04</span>
+       <h2>Fit Statistical Model to Patient</h2>
+       <p>Fit a PCA heart model to patient-specific anatomy for model-based reconstruction.</p>
+       <span class="pm4d-card__meta">Tutorial 3 output</span>
      </a>
      <a class="pm4d-card" href="#tutorial-5-vtk-surface-series-to-animated-usd">
        <span class="pm4d-card__number">05</span>
@@ -62,8 +62,9 @@ Recommended Run Order
 
 1. Run Tutorials 1 and 2 after preparing Slicer-Heart-CT data.
 2. Run Tutorial 5 after Tutorial 2 because it consumes Tutorial 2 output.
-3. Run Tutorials 3 and 4 after downloading KCL-Heart-Model.
-4. Run Tutorial 6 after downloading DirLab-4DCT.
+3. Run Tutorial 3 after downloading KCL-Heart-Model.
+4. Run Tutorial 4 after Tutorial 3 because it can consume the PCA model output.
+5. Run Tutorial 6 after downloading DirLab-4DCT.
 
 Tutorial 1: Heart-Gated CT to Animated USD
 ==========================================
@@ -109,32 +110,11 @@ Command
 Outputs
    Segmentation artifacts, VTK PolyData surfaces, and preview screenshots.
 
-Tutorial 3: Fit Statistical Model to Patient
-============================================
-
-Script
-   ``tutorials/tutorial_03_fit_statistical_model_to_patient.py``
-
-Workflow
-   ``WorkflowFitStatisticalModelToPatient``
-
-Dataset
-   KCL-Heart-Model, downloaded manually.
-
-Command
-   .. code-block:: bash
-
-      python tutorials/tutorial_03_fit_statistical_model_to_patient.py \
-          --data-dir ./data --output-dir ./output/tutorial_03
-
-Outputs
-   Patient-fitted statistical model surfaces and registration diagnostics.
-
-Tutorial 4: Create a PCA Shape Model
+Tutorial 3: Create a PCA Shape Model
 ====================================
 
 Script
-   ``tutorials/tutorial_04_create_statistical_model.py``
+   ``tutorials/tutorial_03_create_statistical_model.py``
 
 Workflow
    ``WorkflowCreateStatisticalModel``
@@ -145,11 +125,33 @@ Dataset
 Command
    .. code-block:: bash
 
-      python tutorials/tutorial_04_create_statistical_model.py \
-          --data-dir ./data --output-dir ./output/tutorial_04
+      python tutorials/tutorial_03_create_statistical_model.py \
+          --data-dir ./data --output-dir ./output/tutorial_03
 
 Outputs
    PCA model files, mean shape, and component diagnostics.
+
+Tutorial 4: Fit Statistical Model to Patient
+============================================
+
+Script
+   ``tutorials/tutorial_04_fit_statistical_model_to_patient.py``
+
+Workflow
+   ``WorkflowFitStatisticalModelToPatient``
+
+Dataset
+   KCL-Heart-Model, downloaded manually.
+
+Command
+   .. code-block:: bash
+
+      python tutorials/tutorial_04_fit_statistical_model_to_patient.py \
+          --data-dir ./data --output-dir ./output/tutorial_04 \
+          --pca-json ./output/tutorial_03/pca_model.json
+
+Outputs
+   Patient-fitted statistical model surfaces and registration diagnostics.
 
 Tutorial 5: VTK Surface Series to Animated USD
 ==============================================
@@ -200,4 +202,4 @@ Dataset Notes
 
 The repository-level ``tutorials/README.md`` has the most detailed dataset
 preparation notes. The tutorials are also exercised by ``tests/test_tutorials.py``
-behind the experiment marker.
+behind the ``--run-tutorials`` opt-in flag.

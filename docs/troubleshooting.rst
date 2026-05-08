@@ -14,24 +14,9 @@ CUDA Out of Memory
 
 **Solutions**:
 
-1. Reduce image size:
-
-   .. code-block:: python
-
-      processor.set_downsample_factor(2)
-
-2. Use CPU instead:
-
-   .. code-block:: python
-
-      processor.set_registration_device('cpu')
-      processor.set_segmentation_device('cpu')
-
-3. Reduce batch size:
-
-   .. code-block:: python
-
-      processor.set_batch_size(1)
+1. Resample or crop the input image before running the workflow.
+2. Use ``--registration-method ants`` when CUDA is unavailable.
+3. Process fewer frames per run.
 
 CUDA Version Mismatch
 ---------------------
@@ -84,27 +69,16 @@ Poor Segmentation Quality
 
 **Solutions**:
 
-1. Try different segmentation method:
+1. Check if image is contrast-enhanced:
 
    .. code-block:: python
 
-      processor.set_segmentation_method('simpleware_heart')
-
-2. Check if image is contrast-enhanced:
-
-   .. code-block:: python
-
-      processor = ProcessHeartGatedCT(
+      workflow = WorkflowConvertHeartGatedCTToUSD(
           ...,
           contrast_enhanced=True  # or False
       )
 
-3. Preprocess image:
-
-   .. code-block:: python
-
-      processor.set_intensity_normalization(True)
-      processor.set_denoise(True)
+2. Preprocess intensity, spacing, and field of view before invoking the workflow.
 
 Registration Not Converging
 ---------------------------
@@ -113,17 +87,13 @@ Registration Not Converging
 
 **Solutions**:
 
-1. Increase iterations:
-
-   .. code-block:: python
-
-      processor.set_registration_iterations(200)
+1. Increase ``--registration-iterations`` for the heart-gated CT CLI.
 
 2. Try different method:
 
-   .. code-block:: python
+   .. code-block:: bash
 
-      processor.set_registration_method('ants')
+      physiomotion4d-heart-gated-ct cardiac_4d.nrrd --registration-method ants
 
 3. Check image orientation and spacing
 
@@ -149,11 +119,7 @@ USD Not Animating
 
       usdview model.usd
 
-3. Verify frame rate:
-
-   .. code-block:: python
-
-      processor.set_frame_rate(30)
+3. Verify that the generated USD contains time samples.
 
 USD File Too Large
 ------------------
@@ -162,17 +128,8 @@ USD File Too Large
 
 **Solutions**:
 
-1. Reduce mesh complexity:
-
-   .. code-block:: python
-
-      processor.set_decimation_target(5000)  # Fewer triangles
-
-2. Flatten USD stage:
-
-   .. code-block:: python
-
-      processor.set_flatten_usd(True)
+1. Reduce mesh complexity before USD export.
+2. Export fewer anatomy groups or fewer time points.
 
 Performance Issues
 ==================
@@ -184,24 +141,9 @@ Slow Processing
 
 **Solutions**:
 
-1. Use GPU acceleration:
-
-   .. code-block:: python
-
-      processor.set_registration_device('cuda')
-      processor.set_segmentation_device('cuda')
-
-2. Use faster segmentation:
-
-   .. code-block:: python
-
-      processor.set_segmentation_method('totalsegmentator')
-
-3. Reduce registration iterations:
-
-   .. code-block:: python
-
-      processor.set_registration_iterations(50)
+1. Install ``physiomotion4d[cuda13]`` with uv for CUDA acceleration.
+2. Reduce ``--registration-iterations`` during exploratory runs.
+3. Run tutorial workflows with reduced frame counts where supported.
 
 Getting Help
 ============

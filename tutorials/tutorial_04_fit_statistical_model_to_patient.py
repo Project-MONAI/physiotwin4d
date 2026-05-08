@@ -1,5 +1,5 @@
 """
-Tutorial 3: Fit Statistical Shape Model to Patient Data
+Tutorial 4: Fit Statistical Shape Model to Patient Data
 
 Purpose
 -------
@@ -63,7 +63,8 @@ The same main outputs (without screenshots) can be produced via the CLI::
     physiomotion4d-fit-statistical-model-to-patient \\
         --template-model data/KCL-Heart-Model/pca_mean.vtu \\
         --patient-models data/KCL-Heart-Model/sample_meshes/sample_000.vtu \\
-        --output-dir ./output/tutorial_03
+        --pca-json ./output/tutorial_03/pca_model.json \\
+        --output-dir ./output/tutorial_04
 
 See ``src/physiomotion4d/cli/fit_statistical_model_to_patient.py`` for full
 CLI documentation.
@@ -78,9 +79,10 @@ Place files under ``data/KCL-Heart-Model/`` as described in data/README.md.
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Optional, cast
 
 import pyvista as pv
 
@@ -100,13 +102,15 @@ def run_tutorial(
     data_dir: Path,
     output_dir: Path,
     *,
+    pca_json: Optional[Path] = None,
     log_level: int = logging.INFO,
 ) -> dict[str, Any]:
-    """Run Tutorial 3: Fit Statistical Shape Model to Patient Data.
+    """Run Tutorial 4: Fit Statistical Shape Model to Patient Data.
 
     Args:
         data_dir: Root of the ``data/`` directory (see data/README.md).
         output_dir: Directory to write outputs and screenshots.
+        pca_json: Optional PCA model JSON produced by Tutorial 3.
         log_level: Python logging level.
 
     Returns:
@@ -148,6 +152,10 @@ def run_tutorial(
         patient_models=patient_models,
         log_level=log_level,
     )
+    if pca_json is not None and pca_json.exists():
+        with open(pca_json, encoding="utf-8") as f:
+            pca_model = json.load(f)
+        workflow.set_use_pca_registration(True, pca_model=pca_model)
     result = workflow.run_workflow()
 
     registered_surface: pv.PolyData = result["registered_template_model_surface"]
@@ -223,11 +231,17 @@ if __name__ == "__main__":
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("output") / "tutorial_03",
-        help="Output directory (default: ./output/tutorial_03)",
+        default=Path("output") / "tutorial_04",
+        help="Output directory (default: ./output/tutorial_04)",
+    )
+    parser.add_argument(
+        "--pca-json",
+        type=Path,
+        default=Path("output") / "tutorial_03" / "pca_model.json",
+        help="Optional PCA model JSON produced by Tutorial 3",
     )
     args = parser.parse_args()
 
-    results = run_tutorial(args.data_dir, args.output_dir)
+    results = run_tutorial(args.data_dir, args.output_dir, pca_json=args.pca_json)
     print(f"Registered model: {results['registered_file']}")
     print(f"Screenshots:      {[str(p) for p in results['screenshots']]}")

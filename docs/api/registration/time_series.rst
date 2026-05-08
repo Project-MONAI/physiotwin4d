@@ -1,10 +1,11 @@
-====================================
-Time Series Registration
-====================================
+========================
+Time-Series Registration
+========================
 
 .. currentmodule:: physiomotion4d
 
-Register 4D medical image sequences (cardiac-gated, respiratory-gated).
+``RegisterTimeSeriesImages`` registers ordered 3D image phases to a reference
+frame using ANTs, ICON, or the combined ``ants_icon`` method.
 
 Class Reference
 ===============
@@ -13,53 +14,33 @@ Class Reference
    :members:
    :undoc-members:
    :show-inheritance:
-   :inherited-members:
+   :exclude-members: registration_method
 
-Overview
-========
-
-Specialized registration for 4D sequences, tracking motion through time with temporal consistency constraints.
-
-**Key Features**:
-   * Handles multi-phase cardiac or respiratory cycles
-   * Temporal smoothness constraints
-   * Efficient batch processing
-   * Supports both ANTs and Icon backends
-
-Usage Examples
-==============
-
-Register Cardiac Sequence
---------------------------
+Basic Usage
+===========
 
 .. code-block:: python
 
+   import itk
+
    from physiomotion4d import RegisterTimeSeriesImages
-   
-   registrar = RegisterTimeSeriesImages(
-       method="icon",
-       device="cuda:0",
-       temporal_smoothing=True,
-       verbose=True
+
+   images = [itk.imread(f"phase_{idx:02d}.mha") for idx in range(10)]
+
+   registrar = RegisterTimeSeriesImages(registration_method="ants")
+   registrar.set_fixed_image(images[0])
+
+   result = registrar.register_time_series(
+       moving_images=images,
+       reference_frame=0,
+       register_reference=False,
    )
-   
-   transforms = registrar.register_sequence(
-       image_files=[
-           "cardiac_phase_00.nrrd",
-           "cardiac_phase_01.nrrd",
-           "cardiac_phase_02.nrrd",
-           # ... more phases
-       ],
-       reference_index=0  # Use first phase as reference
-   )
+   forward_transforms = result["forward_transforms"]
+   inverse_transforms = result["inverse_transforms"]
 
 See Also
 ========
 
-* :doc:`index` - Registration overview
-* :doc:`icon` - Icon backend
-* :doc:`../workflows` - Complete 4D workflows
-
-.. rubric:: Navigation
-
-:doc:`icon` | :doc:`index` | :doc:`../model_registration/index`
+* :doc:`ants`
+* :doc:`icon`
+* :doc:`../../cli_scripts/4dct_reconstruction`

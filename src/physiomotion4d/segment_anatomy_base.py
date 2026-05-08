@@ -578,7 +578,7 @@ class SegmentAnatomyBase(PhysioMotion4DBase):
         Abstract method for image segmentation - must be implemented by subclasses.
 
         This method should contain the core segmentation algorithm specific to
-        each implementation (e.g., TotalSegmentator, VISTA-3D).
+        each implementation (e.g., TotalSegmentator).
 
         Args:
             preprocessed_image (itk.image): The preprocessed input image

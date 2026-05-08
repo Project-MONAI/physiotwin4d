@@ -30,8 +30,8 @@ Runs on every push and pull request to main branches. Includes:
 
 - **code-quality**: Static code analysis
   - Ruff formatting and linting checks
-  - mypy type checking (continue-on-error: true)
-  - Ruff checks will fail the build if code style issues are found
+  - mypy type checking
+  - Ruff and mypy checks fail the build if issues are found
 
 ### `test-slow.yml` - Long-Running Tests
 
@@ -60,6 +60,12 @@ Two-job workflow for building and deploying Sphinx documentation:
 - No gh-pages branch needed (modern deployment workflow)
 
 This separation ensures PRs can build and validate docs without triggering environment protection rules.
+
+### `release.yml` - Build and Publish Distributions
+
+Builds the wheel and source distribution, validates them with Twine, and
+publishes to TestPyPI or PyPI using trusted publishing. It runs manually via
+`workflow_dispatch` or automatically when a GitHub release is published.
 
 ## Caching Strategy
 

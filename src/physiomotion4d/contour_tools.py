@@ -2,6 +2,8 @@
 Tools for creating and manipulating contours.
 """
 
+from __future__ import annotations
+
 import logging
 from typing import cast
 

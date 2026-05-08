@@ -1,10 +1,11 @@
-====================================
+=================
 ANTs Registration
-====================================
+=================
 
 .. currentmodule:: physiomotion4d
 
-Traditional optimization-based image registration using ANTs (Advanced Normalization Tools).
+``RegisterImagesANTs`` provides optimization-based deformable image
+registration through ANTs.
 
 Class Reference
 ===============
@@ -13,44 +14,33 @@ Class Reference
    :members:
    :undoc-members:
    :show-inheritance:
-   :inherited-members:
-
-Overview
-========
-
-ANTs provides robust, accurate registration using iterative optimization. Best for high-precision registration where processing time is less critical.
-
-**Key Features**:
-   * Excellent accuracy with traditional methods
-   * Multi-resolution pyramid optimization
-   * Multiple similarity metrics (MI, CC, MSQ)
-   * Rigid, affine, and deformable registration
-   * Well-established and validated
-
-Usage Examples
-==============
 
 Basic Registration
-------------------
+==================
 
 .. code-block:: python
 
+   import itk
+
    from physiomotion4d import RegisterImagesANTs
-   
-   registrar = RegisterImagesANTs(verbose=True)
-   
-   transform = registrar.register(
-       fixed_image="reference.nrrd",
-       moving_image="moving.nrrd",
-       transform_type="SyN"  # Symmetric normalization
-   )
+
+   fixed = itk.imread("reference.mha")
+   moving = itk.imread("moving.mha")
+
+   registrar = RegisterImagesANTs()
+   registrar.set_modality("ct")
+   registrar.set_transform_type("SyN")
+   registrar.set_number_of_iterations([30, 15, 7])
+   registrar.set_fixed_image(fixed)
+
+   result = registrar.register(moving)
+
+   forward_transform = result["forward_transform"]
+   inverse_transform = result["inverse_transform"]
+   registered = registrar.get_registered_image()
 
 See Also
 ========
 
-* :doc:`index` - Registration overview
-* :doc:`icon` - Faster deep learning alternative
-
-.. rubric:: Navigation
-
-:doc:`base` | :doc:`index` | :doc:`icon`
+* :doc:`icon`
+* :doc:`time_series`

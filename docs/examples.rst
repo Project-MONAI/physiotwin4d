@@ -27,44 +27,50 @@ Complete end-to-end cardiac CT processing:
 
 .. code-block:: python
 
-   from physiomotion4d import ProcessHeartGatedCT
+   from physiomotion4d import WorkflowConvertHeartGatedCTToUSD
 
-   # Initialize processor
-   processor = ProcessHeartGatedCT(
+   # Initialize workflow
+   workflow = WorkflowConvertHeartGatedCTToUSD(
        input_filenames=["cardiac_4d.nrrd"],
        contrast_enhanced=True,
        output_directory="./results",
-       project_name="patient_001"
+       project_name="patient_001",
+       registration_method="ants",
    )
 
    # Run complete workflow
-   final_usd = processor.process()
+   final_usd = workflow.process()
    print(f"Generated USD model: {final_usd}")
 
-Lung 4D-CT Processing
-----------------------
+Lung 4D-CT Reconstruction
+--------------------------
 
-Process respiratory motion from 4D-CT:
+Reconstruct a high-resolution 4D CT sequence from manually prepared respiratory
+phase images:
 
 .. code-block:: python
 
-   from physiomotion4d import ProcessHeartGatedCT
-   from physiomotion4d.data import DirLab4DCT
+   from pathlib import Path
 
-   # Download DirLab case
-   downloader = DirLab4DCT()
-   downloader.download_case(1, output_dir="./data")
+   import itk
 
-   # Process with respiratory parameters
-   processor = ProcessHeartGatedCT(
-       input_filenames=["./data/DirLab/case1/case1_T00.mha",
-                       "./data/DirLab/case1/case1_T50.mha"],
-       contrast_enhanced=False,
-       output_directory="./results/lung",
-       project_name="lung_case1"
+   from physiomotion4d import WorkflowReconstructHighres4DCT
+
+   # DirLab-4DCT data is manual-only. Place phase images under ./data/DirLab.
+   phase_dir = Path("./data/DirLab/case1")
+   phase_files = sorted(list(phase_dir.glob("*.mhd")) + list(phase_dir.glob("*.mha")))
+   time_series_images = [itk.imread(str(path)) for path in phase_files]
+
+   fixed_image = time_series_images[0]
+   workflow = WorkflowReconstructHighres4DCT(
+       time_series_images=time_series_images,
+       fixed_image=fixed_image,
+       reference_frame=0,
+       registration_method="ants",
    )
 
-   final_usd = processor.process()
+   result = workflow.run_workflow(upsample_to_fixed_resolution=True)
+   reconstructed_images = result["reconstructed_images"]
 
 Segmentation Examples
 =====================
@@ -86,12 +92,17 @@ Quick segmentation with TotalSegmentator:
    segmenter = SegmentChestTotalSegmentator()
    masks = segmenter.segment(image, contrast_enhanced_study=True)
 
-   # Extract masks
-   heart, vessels, lungs, bones, soft_tissue, contrast, all_organs, dynamic = masks
+   # Extract masks by anatomy group
+   heart = masks["heart"]
+   lungs = masks["lung"]
+   vessels = masks["major_vessels"]
+   labelmap = masks["labelmap"]
 
    # Save results
    itk.imwrite(heart, "heart_mask.nrrd")
    itk.imwrite(lungs, "lungs_mask.nrrd")
+   itk.imwrite(vessels, "major_vessels_mask.nrrd")
+   itk.imwrite(labelmap, "labelmap.nrrd")
 
 Registration Examples
 =====================
@@ -109,8 +120,7 @@ Fast GPU-accelerated registration:
    # Initialize
    registerer = RegisterImagesICON()
    registerer.set_modality('ct')
-   registerer.set_device('cuda')
-   registerer.set_iterations(100)
+   registerer.set_number_of_iterations(100)
 
    # Load images
    fixed = itk.imread("frame_000.mha")
@@ -123,7 +133,7 @@ Fast GPU-accelerated registration:
    # Get results
    inverse_transform = results["inverse_transform"]
    forward_transform = results["forward_transform"]
-   registered = results["registered_image"]
+   registered = registerer.get_registered_image()
 
    # Save
    itk.imwrite(registered, "registered.mha")
@@ -157,7 +167,7 @@ Register all cardiac phases to reference:
        results = registerer.register(moving)
        transforms.append(results["inverse_transform"])
 
-       print(f"Registered {frame_file}: similarity = {results['similarity_score']:.3f}")
+       print(f"Registered {frame_file}: loss = {results['loss']:.3f}")
 
 ANTs Multi-Stage Registration
 ------------------------------
@@ -226,11 +236,7 @@ Combine separate anatomical structures:
        "bones_static.usd"
    ]
 
-   tools.merge_usd_files(
-       input_files=files,
-       output_file="complete_thorax.usd",
-       flatten=True
-   )
+   tools.merge_usd_files("complete_thorax.usd", files)
 
 Apply Materials to USD
 ----------------------
@@ -240,21 +246,18 @@ Add anatomical materials and colors:
 .. code-block:: python
 
    from physiomotion4d import USDAnatomyTools
+   from pxr import Usd
 
-   painter = USDAnatomyTools()
+   stage = Usd.Stage.Open("thorax_model.usd")
+   painter = USDAnatomyTools(stage)
 
-   painter.paint_usd_file(
-       input_usd="thorax_model.usd",
-       output_usd="thorax_painted.usd",
-       anatomy_mapping={
-           "/World/Heart": "cardiac_muscle",
-           "/World/Aorta": "arterial_vessel",
-           "/World/VenaCava": "venous_vessel",
-           "/World/LeftLung": "lung_tissue",
-           "/World/RightLung": "lung_tissue",
-           "/World/Ribs": "cortical_bone"
-       }
-   )
+   painter.apply_anatomy_material_to_mesh("/World/Heart", "heart")
+   painter.apply_anatomy_material_to_mesh("/World/Aorta", "major_vessels")
+   painter.apply_anatomy_material_to_mesh("/World/LeftLung", "lung")
+   painter.apply_anatomy_material_to_mesh("/World/RightLung", "lung")
+   painter.apply_anatomy_material_to_mesh("/World/Ribs", "bone")
+
+   stage.Export("thorax_painted.usd")
 
 Transform and Contour Examples
 ===============================
@@ -271,12 +274,13 @@ Warp images using deformation fields:
 
    tools = TransformTools()
 
-   # Load deformation field and image
-   phi = itk.imread("deformation_field.mha")
+   # Load transform, moving image, and reference image
+   phi = itk.transformread("transform_forward.hdf")
    moving_image = itk.imread("moving_image.mha")
+   reference_image = itk.imread("reference_image.mha")
 
    # Apply transform
-   warped = tools.apply_transform_to_image(moving_image, phi)
+   warped = tools.transform_image(moving_image, phi, reference_image)
 
    # Save result
    itk.imwrite(warped, "warped_image.mha")
@@ -299,8 +303,8 @@ Propagate segmentation contours across time:
 
    # Transform to each time point
    for t in range(1, 10):
-       phi = itk.imread(f"transform_t0_to_t{t}.mha")
-       warped_mesh = tools.apply_transform_to_contour(reference_mesh, phi)
+       phi = itk.transformread(f"transform_t0_to_t{t}.hdf")
+       warped_mesh = tools.transform_pvcontour(reference_mesh, phi)
        warped_mesh.save(f"heart_t{t}.vtp")
 
 Extract Surface from Segmentation
@@ -318,13 +322,8 @@ Convert segmentation masks to meshes:
    # Load segmentation
    mask = itk.imread("heart_segmentation.nrrd")
 
-   # Extract smooth surface
-   mesh = tools.extract_surface(
-       mask,
-       threshold=0.5,
-       smoothing_iterations=20,
-       decimate_target=10000  # Target triangle count
-   )
+   # Extract smoothed contour surface
+   mesh = tools.extract_contours(mask)
 
    # Save mesh
    mesh.save("heart_surface.vtp")
@@ -368,8 +367,8 @@ Create animation from mesh sequence:
    # Load mesh sequence
    mesh_files = sorted(glob.glob("heart_t*.vtp"))
 
-   # Create plotter
    pl = pv.Plotter()
+   pl.open_gif("heart_animation.gif")
 
    # Animate
    meshes = [pv.read(f) for f in mesh_files]
@@ -391,7 +390,7 @@ Batch process multiple datasets:
 
 .. code-block:: python
 
-   from physiomotion4d import ProcessHeartGatedCT
+   from physiomotion4d import WorkflowConvertHeartGatedCTToUSD
    import glob
    import os
 
@@ -407,15 +406,16 @@ Batch process multiple datasets:
 
        print(f"Processing {patient_id}...")
 
-       processor = ProcessHeartGatedCT(
+       workflow = WorkflowConvertHeartGatedCTToUSD(
            input_filenames=[input_file],
            contrast_enhanced=True,
            output_directory=f"results/{patient_id}",
-           project_name=patient_id
+           project_name=patient_id,
+           registration_method="ants",
        )
 
        try:
-           final_usd = processor.process()
+           final_usd = workflow.process()
            print(f"  ✓ Complete: {final_usd}")
        except Exception as e:
            print(f"  ✗ Failed: {e}")
@@ -444,8 +444,9 @@ Segment multiple images in parallel:
 
    # Process in parallel
    image_files = glob.glob("data/*.nrrd")
+   max_workers = 1  # Increase only when each worker has enough CPU/GPU memory.
 
-   with ProcessPoolExecutor(max_workers=4) as executor:
+   with ProcessPoolExecutor(max_workers=max_workers) as executor:
        results = list(executor.map(segment_image, image_files))
 
    print(f"Segmented {len(results)} images")
@@ -453,62 +454,41 @@ Segment multiple images in parallel:
 Data Download Examples
 ======================
 
-Download DirLab Dataset
------------------------
+Download Slicer-Heart Dataset
+-----------------------------
 
 .. code-block:: python
 
-   from physiomotion4d.data import DirLab4DCT
+   from pathlib import Path
+   from urllib.request import urlretrieve
 
-   downloader = DirLab4DCT()
+   data_dir = Path("data/Slicer-Heart-CT")
+   data_dir.mkdir(parents=True, exist_ok=True)
 
-   # Download all 10 cases
-   for case_num in range(1, 11):
-       print(f"Downloading case {case_num}...")
-       downloader.download_case(case_num, output_dir="./data/DirLab")
-
-   # Load case for processing
-   case_data = downloader.load_case(1)
-   inhale_image = case_data["inhale"]
-   exhale_image = case_data["exhale"]
+   url = "https://github.com/SlicerHeart/SlicerHeart/releases/download/TestingData/TruncalValve_4DCT.seq.nrrd"
+   urlretrieve(url, data_dir / "TruncalValve_4DCT.seq.nrrd")
 
 Custom Workflow Examples
 =========================
 
-Step-by-Step Processing
-------------------------
+Complete Workflow Processing
+----------------------------
 
-Manual control over each step:
+Run the supported end-to-end workflow API:
 
 .. code-block:: python
 
-   from physiomotion4d import ProcessHeartGatedCT
+   from physiomotion4d import WorkflowConvertHeartGatedCTToUSD
 
-   processor = ProcessHeartGatedCT(
+   workflow = WorkflowConvertHeartGatedCTToUSD(
        input_filenames=["cardiac_4d.nrrd"],
        contrast_enhanced=True,
-       output_directory="./results"
+       output_directory="./results",
+       project_name="cardiac_model",
+       registration_method="ants",
    )
 
-   # Step 1: Convert 4D to 3D frames
-   print("Converting 4D to 3D...")
-   processor.convert_4d_to_3d()
-
-   # Step 2: Register images
-   print("Registering images...")
-   processor.register_images()
-
-   # Step 3: Segment reference
-   print("Segmenting...")
-   processor.segment_reference_image()
-
-   # Step 4: Transform contours
-   print("Transforming contours...")
-   processor.transform_contours()
-
-   # Step 5: Create USD
-   print("Creating USD models...")
-   final_usd = processor.create_usd_models()
+   final_usd = workflow.process()
 
    print(f"Complete: {final_usd}")
 
@@ -539,17 +519,18 @@ Mix and match different components:
 
    # Extract reference contour
    contour_tools = ContourTools()
-   reference_mesh = contour_tools.extract_surface(heart_mask)
+   reference_mesh = contour_tools.extract_contours(heart_mask)
 
    # Register and transform
    registerer = RegisterImagesICON()
+   registerer.set_modality('ct')
    registerer.set_fixed_image(reference)
    transform_tools = TransformTools()
 
    meshes = [reference_mesh]
    for frame in frames[1:]:
        results = registerer.register(frame)
-       warped_mesh = transform_tools.apply_transform_to_contour(
+       warped_mesh = transform_tools.transform_pvcontour(
            reference_mesh,
            results["inverse_transform"]
        )

@@ -18,6 +18,13 @@
      </p>
    </section>
 
+   <section class="pm4d-clinical-notice" role="note" aria-label="Clinical use notice">
+     <strong>Not validated for clinical use.</strong>
+     PhysioMotion4D 2026.05.07 beta is a research and visualization toolkit,
+     not a medical device. Do not use it for diagnosis, treatment planning, or
+     clinical decision-making.
+   </section>
+
    <section class="pm4d-card-grid" aria-label="Tutorial cards">
      <a class="pm4d-card" href="tutorials.html#tutorial-1-heart-gated-ct-to-animated-usd">
        <span class="pm4d-card__number">01</span>
@@ -31,17 +38,17 @@
        <p>Segment one CT phase and export patient anatomy as VTK PolyData surfaces.</p>
        <span class="pm4d-card__meta">Slicer-Heart-CT</span>
      </a>
-     <a class="pm4d-card" href="tutorials.html#tutorial-3-fit-statistical-model-to-patient">
+     <a class="pm4d-card" href="tutorials.html#tutorial-3-create-a-pca-shape-model">
        <span class="pm4d-card__number">03</span>
-       <h2>Fit Statistical Model to Patient</h2>
-       <p>Fit a PCA heart model to patient-specific anatomy for model-based reconstruction.</p>
-       <span class="pm4d-card__meta">KCL-Heart-Model</span>
-     </a>
-     <a class="pm4d-card" href="tutorials.html#tutorial-4-create-a-pca-shape-model">
-       <span class="pm4d-card__number">04</span>
        <h2>Create a PCA Shape Model</h2>
        <p>Build a statistical shape model from aligned cardiac meshes.</p>
        <span class="pm4d-card__meta">KCL-Heart-Model</span>
+     </a>
+     <a class="pm4d-card" href="tutorials.html#tutorial-4-fit-statistical-model-to-patient">
+       <span class="pm4d-card__number">04</span>
+       <h2>Fit Statistical Model to Patient</h2>
+       <p>Fit a PCA heart model to patient-specific anatomy for model-based reconstruction.</p>
+       <span class="pm4d-card__meta">Tutorial 3 output</span>
      </a>
      <a class="pm4d-card" href="tutorials.html#tutorial-5-vtk-surface-series-to-animated-usd">
        <span class="pm4d-card__number">05</span>
@@ -83,10 +90,14 @@
          <h3>API Reference</h3>
          <p>Browse classes and modules for workflows, segmentation, registration, USD, and utilities.</p>
        </a>
-       <a class="pm4d-topic-card" href="developer/architecture.html">
-         <h3>Developer Docs</h3>
-         <p>Understand architecture, extension points, coordinate transforms, and implementation boundaries.</p>
-       </a>
+     <a class="pm4d-topic-card" href="developer/architecture.html">
+       <h3>Developer Docs</h3>
+       <p>Understand architecture, extension points, coordinate transforms, and implementation boundaries.</p>
+     </a>
+      <a class="pm4d-topic-card" href="architecture.html">
+        <h3>Architecture</h3>
+        <p>Trace the actual workflow classes and data flow from CT inputs to USD outputs.</p>
+      </a>
        <a class="pm4d-topic-card" href="contributing.html">
          <h3>Contributing</h3>
          <p>Follow repository conventions for code style, testing, documentation, and pull requests.</p>
@@ -117,6 +128,7 @@ per-tutorial implementation details.
    quickstart
    tutorials
    examples
+   architecture
 
 .. toctree::
    :maxdepth: 2
@@ -127,10 +139,8 @@ per-tutorial implementation details.
    cli_scripts/heart_gated_ct
    cli_scripts/create_statistical_model
    cli_scripts/fit_statistical_model_to_patient
-   cli_scripts/lung_gated_ct
    cli_scripts/4dct_reconstruction
    cli_scripts/vtk_to_usd
-   cli_scripts/brain_vessel_modeling
    cli_scripts/best_practices
 
 .. toctree::
@@ -139,13 +149,6 @@ per-tutorial implementation details.
    :hidden:
 
    api/index
-   api/base
-   api/workflows
-   api/segmentation/index
-   api/registration/index
-   api/model_registration/index
-   api/usd/index
-   api/utilities/index
 
 .. toctree::
    :maxdepth: 2

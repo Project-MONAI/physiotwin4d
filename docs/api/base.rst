@@ -1,23 +1,11 @@
 ====================================
-Base Class (PhysioMotion4DBase)
+Base Class
 ====================================
 
 .. currentmodule:: physiomotion4d
 
-The :class:`PhysioMotion4DBase` class provides foundational functionality for all PhysioMotion4D components.
-
-Overview
-========
-
-All major PhysioMotion4D classes inherit from :class:`PhysioMotion4DBase`, which provides:
-
-* Structured logging with configurable verbosity
-* Parameter validation and management
-* File path handling and organization
-* Common image I/O operations
-* Error handling patterns
-
-This inheritance ensures consistent behavior across the package.
+``PhysioMotion4DBase`` provides the shared logging behavior used by workflow,
+segmentation, registration, transform, contour, and USD helper classes.
 
 Class Reference
 ===============
@@ -26,77 +14,46 @@ Class Reference
    :members:
    :undoc-members:
    :show-inheritance:
-   :inherited-members:
 
-Key Features
-============
+Logging
+=======
 
-Logging Infrastructure
-----------------------
-
-The base class provides sophisticated logging with multiple levels (DEBUG, INFO, WARNING, ERROR, CRITICAL) and outputs to both console and log files.
-
-**Example:**
+Runtime classes should call ``log_info()``, ``log_debug()``, and
+``log_warning()`` instead of printing directly. The base class also supports
+global log filtering by class name.
 
 .. code-block:: python
+
+   import logging
 
    from physiomotion4d import PhysioMotion4DBase
-   
+
    class MyProcessor(PhysioMotion4DBase):
-       def __init__(self):
-           super().__init__(verbose=True)
-       
-       def process(self):
-           self.log("Starting processing", level="INFO")
-           self.log("Detailed info", level="DEBUG")
-           self.log("Warning message", level="WARNING")
+       def __init__(self) -> None:
+           super().__init__(class_name="MyProcessor", log_level=logging.INFO)
 
-Parameter Management
---------------------
+       def process(self) -> None:
+           self.log_info("Starting processing")
+           self.log_debug("Detailed diagnostic state")
+           self.log_warning("Recoverable issue")
 
-Parameters are validated and stored systematically with built-in validation methods.
+   processor = MyProcessor()
+   processor.process()
 
-**Example:**
+   PhysioMotion4DBase.set_log_classes(["MyProcessor"])
+   PhysioMotion4DBase.set_log_all_classes()
 
-.. code-block:: python
+Extension Notes
+===============
 
-   class MyWorkflow(PhysioMotion4DBase):
-       def __init__(self, input_file, output_dir="./results"):
-           super().__init__()
-           
-           self.input_file = self.validate_file_exists(input_file)
-           self.output_dir = self.ensure_directory(output_dir)
-
-File Path Utilities
--------------------
-
-Consistent file path handling with automatic directory creation and path generation.
-
-**Example:**
-
-.. code-block:: python
-
-   class MyWorkflow(PhysioMotion4DBase):
-       def save_results(self, data, name):
-           output_path = self.get_output_path(name, ".mha")
-           self.save_image(data, output_path)
-           self.log(f"Saved to {output_path}")
-
-Best Practices
-==============
-
-1. **Always call super().__init__()** in derived class constructors
-2. **Use logging, not print statements** for all output
-3. **Validate inputs early** in __init__ or method entry points
-4. **Document parameters clearly** using docstrings
+New runtime classes should inherit from ``PhysioMotion4DBase`` and pass a
+``class_name`` plus ``log_level`` to ``super().__init__``. Standalone scripts,
+data containers, and small pure utility functions do not need to inherit from
+the base class.
 
 See Also
 ========
 
-* :doc:`workflows` - Workflow classes that build on this base
-* :doc:`../developer/extending` - Guide to creating new classes
-* :doc:`../developer/architecture` - Overall system architecture
-
-.. rubric:: Navigation
-
-:doc:`index` | :doc:`workflows`
+* :doc:`workflows`
+* :doc:`../developer/architecture`
+* :doc:`../developer/extending`

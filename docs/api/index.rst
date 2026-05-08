@@ -12,53 +12,11 @@ This section provides detailed documentation for all PhysioMotion4D classes, fun
 
    base
    workflows
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Segmentation
-
    segmentation/index
-   segmentation/base
-   segmentation/totalsegmentator
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Image Registration
-
    registration/index
-   registration/base
-   registration/ants
-   registration/icon
-   registration/time_series
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Model Registration
-
    model_registration/index
-   model_registration/icp
-   model_registration/icp_itk
-   model_registration/distance_maps
-   model_registration/pca
-
-.. toctree::
-   :maxdepth: 2
-   :caption: USD Generation
-
    usd/index
-   usd/tools
-   usd/anatomy_tools
-   usd/vtk_conversion
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Utilities
-
    utilities/index
-   utilities/image_tools
-   utilities/transform_tools
-   utilities/contour_tools
-   utilities/nrrd_conversion
 
 Quick Navigation
 ================

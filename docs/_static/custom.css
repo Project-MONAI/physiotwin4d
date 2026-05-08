@@ -284,6 +284,24 @@ dt.sig {
     z-index: 2;
 }
 
+.pm4d-clinical-notice {
+    margin: -3.5rem 0 2rem;
+    padding: 1rem 1.25rem;
+    position: relative;
+    z-index: 3;
+    color: #111111;
+    background: #fff7d1;
+    border: 2px solid #8a6500;
+    border-left: 6px solid #8a6500;
+    border-radius: 8px;
+    box-shadow: 0 12px 28px rgba(17, 17, 17, 0.14);
+}
+
+.pm4d-clinical-notice strong {
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
 .pm4d-card,
 .pm4d-card:visited {
     display: flex;

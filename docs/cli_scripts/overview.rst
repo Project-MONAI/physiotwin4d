@@ -4,24 +4,26 @@ CLI & Scripts Overview
 
 This section provides comprehensive guides for using PhysioMotion4D's command-line tools to process medical imaging data. These tools are designed for medical imaging experts and physiological simulation researchers who need efficient, reproducible pipelines for converting 4D medical images into dynamic anatomical models for NVIDIA Omniverse.
 
-.. important::
+How to Use These Resources
+==========================
 
-   **CLI Commands: Your Definitive Resource** ⭐
+PhysioMotion4D exposes the same toolkit through three user-facing layers:
 
-   The examples and workflows documented here are based on production-ready CLI commands
-   (``physiomotion4d-heart-gated-ct``, ``physiomotion4d-create-statistical-model``,
-   ``physiomotion4d-fit-statistical-model-to-patient``) and their
-   implementations in ``src/physiomotion4d/cli/``. These are your **primary resource** for:
+* **Workflows** are Python classes that orchestrate complete processing
+  pipelines. Use them when integrating PhysioMotion4D into Python applications
+  or when you need programmatic control over inputs, outputs, and parameters.
+* **CLIs** are installed command-line wrappers around workflow classes. Use them
+  for repeatable processing runs, batch jobs, and environment validation without
+  writing Python glue code.
+* **Tutorials** are repository scripts that demonstrate each major workflow with
+  concrete data preparation, commands, and expected outputs. Use them when first
+  learning the toolkit or validating a local installation.
 
-   * Production-ready workflow implementations
-   * Proper class usage patterns and parameter specifications
-   * Complete error handling and validation
-   * Tested, reliable processing pipelines
-
-   The repository also contains an ``experiments/`` directory with research prototypes. While these
-   experiments demonstrate conceptual approaches for adapting workflows to new anatomical regions
-   and digital twin applications, they should **not** be used as usage examples. Always refer to
-   the CLI commands and their implementations in ``src/physiomotion4d/cli/`` for proper guidance.
+The ``experiments/`` directory tracks prior and ongoing research experiments
+that helped define this toolkit. Those experiments are useful historical and
+design context, but they are not intended to be examples for users or
+developers. For supported usage patterns, start with the tutorials, CLIs, and
+workflow API documentation.
 
 Target Audience
 ===============
@@ -49,30 +51,18 @@ Current Scripts
      - Description
    * - :doc:`heart_gated_ct`
      - Process cardiac gated CT to animated heart models with physiological motion
+   * - ``physiomotion4d-convert-ct-to-vtk``
+     - Segment one CT image and export anatomy-group VTK surfaces and meshes
    * - :doc:`create_statistical_model`
      - Build a PCA statistical shape model from sample meshes aligned to a reference
    * - :doc:`fit_statistical_model_to_patient`
      - Register generic heart models to patient-specific imaging data and surface models
-
-Upcoming Scripts
-----------------
-
-The following scripts are planned for future releases:
-
-.. list-table::
-   :widths: 30 70
-   :header-rows: 1
-
-   * - Script
-     - Description
-   * - :doc:`lung_gated_ct`
-     - Process respiratory-gated CT to animated lung models
    * - :doc:`4dct_reconstruction`
-     - Reconstruct 4D CT from multiple 3D acquisitions
+     - Reconstruct high-resolution 4D CT from time-series images and a reference
    * - :doc:`vtk_to_usd`
      - Convert VTK anatomical models to USD format with material painting
-   * - :doc:`brain_vessel_modeling`
-     - Extract and model brain vasculature from angiography data
+   * - ``physiomotion4d-visualize-pca-modes``
+     - Render PCA model mode visualizations
 
 Installation
 ============
@@ -104,10 +94,10 @@ Typical Command Structure
 
 .. code-block:: bash
 
-   physiomotion4d-<script-name> input_files [options]
-       --output-dir <directory>
-       --project-name <name>
-       [script-specific options]
+   physiomotion4d-<command> --help
+
+Use each command's ``--help`` output as the source of truth for required
+arguments and script-specific options.
 
 Output Organization
 -------------------
