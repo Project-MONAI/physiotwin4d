@@ -2,6 +2,9 @@
 
 Project guidance for Claude Code in this repository.
 
+Codex and other AI agents should use `AGENTS.md` as the primary shared
+instructions file. Claude-specific behavior and slash-command usage remain here.
+
 ## Commands
 
 **Python launcher:** Use `py` on this Windows system (not `python`).
@@ -82,8 +85,9 @@ Breaking changes are acceptable. Backward-compatibility shims are not.
 
 ## Agents and Skills
 
-Role-specific subagents live in `.claude/agents/`; slash-command skills in `.claude/skills/`.
-See `AGENTS.md` for role-based guidance that applies across all AI tooling.
+Role-specific subagents live in `.agents/agents/`; slash-command skills in
+`.agents/skills/`. See `AGENTS.md` for role-based guidance that applies across
+Claude, Codex, and other AI tooling.
 
 - `/plan` — inspect files, summarize design, produce a numbered plan (no code changes)
 - `/impl` — read → summarize → plan → implement in small diffs

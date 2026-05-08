@@ -83,8 +83,40 @@ from typing import Any
 import itk
 import pyvista as pv
 
+from physiomotion4d.segment_chest_total_segmentator import SegmentChestTotalSegmentator
 from physiomotion4d.test_tools import TestTools
 from physiomotion4d.workflow_convert_ct_to_vtk import WorkflowConvertCTToVTK
+
+
+class _CachedLabelmapSegmenter(SegmentChestTotalSegmentator):
+    """Segmenter that returns a cached labelmap for tutorial test data."""
+
+    def __init__(self, labelmap: Any, log_level: int | str = logging.INFO):
+        super().__init__(log_level=log_level)
+        self._labelmap = labelmap
+
+    def segmentation_method(self, preprocessed_image: Any) -> Any:
+        return self._labelmap
+
+
+class _CachedLabelmapWorkflow(WorkflowConvertCTToVTK):
+    """Workflow variant that uses a cached labelmap instead of TotalSegmentator."""
+
+    def __init__(
+        self,
+        labelmap: Any,
+        *,
+        segmentation_method: str = "total_segmentator",
+        log_level: int | str = logging.INFO,
+    ) -> None:
+        super().__init__(
+            segmentation_method=segmentation_method,
+            log_level=log_level,
+        )
+        self._labelmap = labelmap
+
+    def _create_segmenter(self) -> SegmentChestTotalSegmentator:
+        return _CachedLabelmapSegmenter(self._labelmap, log_level=self.log_level)
 
 
 def run_tutorial(
@@ -111,13 +143,16 @@ def run_tutorial(
     """
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Prefer full dataset; fall back to test cache
+    # Prefer full dataset; fall back to direct test-cache layouts.
     candidates = list((data_dir / "Slicer-Heart-CT").glob("slice_???.mha"))
+    if not candidates:
+        candidates = list(data_dir.glob("slice_???_sml.mha"))
     if not candidates:
         candidates = list((data_dir / "test").glob("slice_???_sml.mha"))
     if not candidates:
         raise FileNotFoundError(
-            "No CT frame found under data/Slicer-Heart-CT/ or data/test/.\n"
+            "No CT frame found under data/Slicer-Heart-CT/, data/test/, "
+            "or the provided data directory.\n"
             "See data/README.md for download instructions."
         )
     candidates.sort()
@@ -125,10 +160,18 @@ def run_tutorial(
 
     ct_image = itk.imread(str(ct_file))
 
-    workflow = WorkflowConvertCTToVTK(
-        segmentation_method="total_segmentator",
-        log_level=log_level,
-    )
+    labelmap_file = ct_file.with_name(f"{ct_file.stem}_labelmap.mha")
+    if labelmap_file.exists():
+        workflow = _CachedLabelmapWorkflow(
+            itk.imread(str(labelmap_file)),
+            segmentation_method="total_segmentator",
+            log_level=log_level,
+        )
+    else:
+        workflow = WorkflowConvertCTToVTK(
+            segmentation_method="total_segmentator",
+            log_level=log_level,
+        )
     result = workflow.run_workflow(
         input_image=ct_image,
         contrast_enhanced_study=True,

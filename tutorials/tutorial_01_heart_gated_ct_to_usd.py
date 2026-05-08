@@ -20,7 +20,7 @@ Inputs
 
 Outputs
 -------
-- ``output_dir/cardiac_model.dynamic_anatomy_painted.usd`` - animated USD with
+- ``output_dir/cardiac_model.dynamic_painted.usd`` - animated USD with
   anatomy materials
 - Screenshots (PNG) for documentation and regression testing:
   - ``reference_frame_axial.png`` - axial slice of the reference CT frame
@@ -89,10 +89,22 @@ from typing import Any, Optional
 
 import itk
 
+from physiomotion4d.segment_chest_total_segmentator import SegmentChestTotalSegmentator
 from physiomotion4d.test_tools import TestTools
 from physiomotion4d.workflow_convert_heart_gated_ct_to_usd import (
     WorkflowConvertHeartGatedCTToUSD,
 )
+
+
+class _CachedLabelmapSegmenter(SegmentChestTotalSegmentator):
+    """Segmenter that returns a cached labelmap for tutorial test data."""
+
+    def __init__(self, labelmap: Any, log_level: int | str = logging.INFO):
+        super().__init__(log_level=log_level)
+        self._labelmap = labelmap
+
+    def segmentation_method(self, preprocessed_image: Any) -> Any:
+        return self._labelmap
 
 
 def _first_current_contour_mesh(
@@ -187,15 +199,38 @@ def run_tutorial(
     """
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    nrrd_file = data_dir / "Slicer-Heart-CT" / "TruncalValve_4DCT.seq.nrrd"
-    if not nrrd_file.exists():
+    test_frame_files = sorted(data_dir.glob("slice_???_sml.mha"))[:2]
+    cached_labelmap: Path | None = None
+    if test_frame_files:
+        input_filenames = [str(path) for path in test_frame_files]
+        reference_frame = int(len(test_frame_files) * 0.7)
+        fixed_frame = test_frame_files[reference_frame]
+        labelmap_path = fixed_frame.with_name(f"{fixed_frame.stem}_labelmap.mha")
+        if labelmap_path.exists():
+            cached_labelmap = labelmap_path
+    else:
+        input_filenames = []
+
+    nrrd_candidates = [
+        data_dir / "Slicer-Heart-CT" / "TruncalValve_4DCT.seq.nrrd",
+        data_dir / "TruncalValve_4DCT.seq.nrrd",
+    ]
+    if not input_filenames:
+        nrrd_file = next((path for path in nrrd_candidates if path.exists()), None)
+        if nrrd_file is not None:
+            input_filenames = [str(nrrd_file)]
+            cached_labelmap = data_dir / "slice_014_sml_labelmap.mha"
+
+    if not input_filenames:
         raise FileNotFoundError(
-            f"Slicer-Heart-CT data not found: {nrrd_file}\n"
+            "Slicer-Heart-CT data not found. Checked:\n"
+            + "\n".join(f"  - {path}" for path in nrrd_candidates)
+            + "\n"
             "See data/README.md for download instructions."
         )
 
     workflow = WorkflowConvertHeartGatedCTToUSD(
-        input_filenames=[str(nrrd_file)],
+        input_filenames=input_filenames,
         contrast_enhanced=True,
         output_directory=str(output_dir),
         project_name="cardiac_model",
@@ -203,6 +238,11 @@ def run_tutorial(
         number_of_registration_iterations=1,
         log_level=log_level,
     )
+    if cached_labelmap is not None and cached_labelmap.exists():
+        workflow.segmenter = _CachedLabelmapSegmenter(
+            itk.imread(str(cached_labelmap)),
+            log_level=log_level,
+        )
 
     usd_file = output_dir / workflow.process()
 

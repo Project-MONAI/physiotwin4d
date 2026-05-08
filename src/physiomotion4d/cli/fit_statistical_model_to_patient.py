@@ -13,11 +13,6 @@ import os
 import sys
 import traceback
 
-import itk
-import pyvista as pv
-
-from physiomotion4d import WorkflowFitStatisticalModelToPatient
-
 
 def main() -> int:
     """Command-line interface for heart model to patient registration."""
@@ -186,6 +181,9 @@ Examples:
     # Load input data
     print("\nLoading input data...")
     try:
+        import itk
+        import pyvista as pv
+
         print(f"  Loading template model: {args.template_model}")
         template_model_raw = pv.read(args.template_model)
         assert isinstance(template_model_raw, pv.UnstructuredGrid), (
@@ -221,6 +219,8 @@ Examples:
     # Initialize workflow
     print("\nInitializing heart model to patient registration workflow...")
     try:
+        from physiomotion4d import WorkflowFitStatisticalModelToPatient
+
         workflow = WorkflowFitStatisticalModelToPatient(
             template_model=template_model,
             patient_models=patient_models,

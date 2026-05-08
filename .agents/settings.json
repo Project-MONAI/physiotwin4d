@@ -1,8 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Edit(.claude/**)",
-      "Write(.claude/**)",
+      "Edit(.agents/**)",
+      "Write(.agents/**)",
       "Write(pr_*.md)"
     ],
     "deny": []

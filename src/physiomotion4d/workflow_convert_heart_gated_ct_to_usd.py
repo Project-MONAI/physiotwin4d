@@ -89,7 +89,7 @@ class WorkflowConvertHeartGatedCTToUSD(PhysioMotion4DBase):
             self.log_info("Initializing ANTs registration...")
             ants_registrar = RegisterImagesANTs(log_level=log_level)
             ants_registrar.set_modality("ct")
-            ants_registrar.set_transform_type("SyN")
+            ants_registrar.set_transform_type("Deformable")
             if (
                 number_of_registration_iterations is not None
                 and number_of_registration_iterations > 0
@@ -151,7 +151,7 @@ class WorkflowConvertHeartGatedCTToUSD(PhysioMotion4DBase):
         self._create_usd_files()
 
         self.log_info("Processing pipeline completed successfully")
-        return f"{self.project_name}.dynamic_anatomy_painted.usd"
+        return f"{self.project_name}.dynamic_painted.usd"
 
     def _load_time_series(self) -> None:
         """Load and convert 4D data to time series images."""

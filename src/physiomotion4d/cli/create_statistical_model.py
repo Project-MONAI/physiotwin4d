@@ -15,10 +15,6 @@ import sys
 import traceback
 from pathlib import Path
 
-import pyvista as pv
-
-from physiomotion4d import WorkflowCreateStatisticalModel
-
 
 def main() -> int:
     """Command-line interface for create statistical model workflow."""
@@ -118,6 +114,8 @@ Examples:
     # Load meshes
     print("\nLoading meshes...")
     try:
+        import pyvista as pv
+
         print(f"  Reference mesh: {args.reference_mesh}")
         reference_mesh = pv.read(args.reference_mesh)
         print(f"  Sample meshes: {len(sample_paths)} files")
@@ -130,6 +128,8 @@ Examples:
     # Run workflow
     print("\nInitializing create statistical model workflow...")
     try:
+        from physiomotion4d import WorkflowCreateStatisticalModel
+
         workflow = WorkflowCreateStatisticalModel(
             sample_meshes=sample_meshes,
             reference_mesh=reference_mesh,

@@ -10,9 +10,17 @@ import os
 import sys
 import traceback
 
-import itk
+ANATOMY_GROUPS = (
+    "heart",
+    "lung",
+    "major_vessels",
+    "bone",
+    "soft_tissue",
+    "other",
+    "contrast",
+)
 
-from physiomotion4d import WorkflowConvertCTToVTK
+SEGMENTATION_METHODS = ("total_segmentator", "simpleware_heart")
 
 
 def main() -> int:
@@ -75,7 +83,7 @@ Examples
     parser.add_argument(
         "--segmentation-method",
         default="total_segmentator",
-        choices=list(WorkflowConvertCTToVTK.SEGMENTATION_METHODS),
+        choices=list(SEGMENTATION_METHODS),
         help=("Segmentation backend.  total_segmentator (default) | simpleware_heart"),
     )
     parser.add_argument(
@@ -88,11 +96,11 @@ Examples
         "--anatomy-groups",
         nargs="+",
         metavar="GROUP",
-        choices=list(WorkflowConvertCTToVTK.ANATOMY_GROUPS),
+        choices=list(ANATOMY_GROUPS),
         default=None,
         help=(
             "Anatomy groups to extract.  Default: all non-empty groups.  "
-            "Choices: " + " ".join(WorkflowConvertCTToVTK.ANATOMY_GROUPS)
+            "Choices: " + " ".join(ANATOMY_GROUPS)
         ),
     )
 
@@ -128,6 +136,8 @@ Examples
     # ── Load image ─────────────────────────────────────────────────────────
     print(f"Loading input image: {args.input_image}")
     try:
+        import itk
+
         input_image = itk.imread(args.input_image)
     except (FileNotFoundError, OSError, RuntimeError) as exc:
         print(f"Error loading image: {exc}")
@@ -141,6 +151,8 @@ Examples
     print("=" * 70)
 
     try:
+        from physiomotion4d import WorkflowConvertCTToVTK
+
         workflow = WorkflowConvertCTToVTK(
             segmentation_method=args.segmentation_method,
         )

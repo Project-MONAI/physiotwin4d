@@ -10,8 +10,6 @@ import argparse
 import os
 import sys
 
-from physiomotion4d import WorkflowConvertHeartGatedCTToUSD
-
 
 def main() -> int:
     """Command-line interface for Heart-gated CT processing."""
@@ -78,6 +76,8 @@ Examples:
     # Initialize processor
     print("Initializing Heart-gated CT processor...")
     try:
+        from physiomotion4d import WorkflowConvertHeartGatedCTToUSD
+
         processor = WorkflowConvertHeartGatedCTToUSD(
             input_filenames=args.input_files,
             contrast_enhanced=args.contrast,
@@ -100,9 +100,9 @@ Examples:
         print("\n" + "=" * 60)
         print("Processing completed successfully!")
         print(f"\nOutput files created in: {args.output_dir}")
-        print(f"  - {args.project_name}.dynamic_anatomy_painted.usd")
-        print(f"  - {args.project_name}.static_anatomy_painted.usd")
-        print(f"  - {args.project_name}.all_anatomy_painted.usd")
+        print(f"  - {args.project_name}.dynamic_painted.usd")
+        print(f"  - {args.project_name}.static_painted.usd")
+        print(f"  - {args.project_name}.all_painted.usd")
         print("\nYou can now open these files in NVIDIA Omniverse.")
 
         return 0

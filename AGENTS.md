@@ -8,11 +8,14 @@ Breaking changes are acceptable. Backward compatibility is not a goal.
 
 ## Developer tool prerequisites
 
-Two non-Python tools are required for contributor workflows:
+Non-Python tools used by contributor workflows:
 
-- **Claude Code CLI** (`claude`) — powers all slash skills and `claude_github_reviews.py`.
+- **Codex CLI** (`codex`) — can run the `.agents/` slash skills and
+  is the default PR-review agent for `ai_agent_github_reviews.py`.
+- **Claude Code CLI** (`claude`) — can run the `.agents/` slash skills and
+  `ai_agent_github_reviews.py --agent claude`.
   Install: `winget install Anthropic.ClaudeCode`
-- **gh CLI** (`gh`) — required by `claude_github_reviews.py` to fetch PR review data.
+- **gh CLI** (`gh`) — required by `ai_agent_github_reviews.py` to fetch PR review data.
   Install: `winget install GitHub.cli` then `gh auth login`
   Not installable via pip/uv — it is a compiled Go binary.
 

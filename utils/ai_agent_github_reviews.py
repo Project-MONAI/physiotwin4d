@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-claude_github_reviews.py — Screen GitHub PR review comments with Claude.
+ai_agent_github_reviews.py — Screen GitHub PR review comments with an AI agent.
 
 Workflow:
   1. Fetch all inline review threads and PR-level review bodies via gh CLI
@@ -8,21 +8,23 @@ Workflow:
      as resolved are skipped automatically.
   2. Build a structured prompt that includes file paths, line numbers, diff
      hunks, and suggestion blocks for every comment.
-  3. Invoke Claude Code non-interactively; Claude reads CLAUDE.md and AGENTS.md,
-     reads the referenced source files for context, and for each comment decides
-     APPLY / REVISE / REJECT with explicit reasoning against project conventions.
+  3. Invoke Claude Code or Codex non-interactively. The selected agent reads
+     AGENTS.md plus its tool-specific guidance, reads the referenced source
+     files for context, and for each comment decides APPLY / REVISE / REJECT
+     with explicit reasoning against project conventions.
   4. Accepted edits are applied as pending working-tree changes (not committed).
   5. Each processed inline-comment thread is marked as resolved on GitHub
      (unless --no-resolve is passed).
   6. A Markdown summary tagged by PR number is written to the repo root.
 
 Usage:
-  py utils/claude_github_reviews.py --pr 42
-  py utils/claude_github_reviews.py --pr 42 --repo owner/repo
-  py utils/claude_github_reviews.py --pr 42 --prompt-only
-  py utils/claude_github_reviews.py --pr 42 --since-last-push --prompt-only
-  py utils/claude_github_reviews.py --pr 42 --no-resolve
-  py utils/claude_github_reviews.py --pr 42 --prompt-only --mark-resolved
+  py utils/ai_agent_github_reviews.py --pr 42
+  py utils/ai_agent_github_reviews.py --pr 42 --repo owner/repo
+  py utils/ai_agent_github_reviews.py --pr 42 --agent claude
+  py utils/ai_agent_github_reviews.py --pr 42 --prompt-only
+  py utils/ai_agent_github_reviews.py --pr 42 --since-last-push --prompt-only
+  py utils/ai_agent_github_reviews.py --pr 42 --no-resolve
+  py utils/ai_agent_github_reviews.py --pr 42 --prompt-only --mark-resolved
   # --no-resolve and --mark-resolved are mutually exclusive
 
   With --since-last-push, only inline comments and PR-level reviews created after
@@ -31,10 +33,10 @@ Usage:
   necessarily the exact server push timestamp.
 
   With --no-resolve, inline-comment threads are NOT marked as resolved after
-  Claude processes them (useful for dry-runs or re-processing).
+  the selected agent processes them (useful for dry-runs or re-processing).
 
   With --mark-resolved, threads are marked as resolved even when --prompt-only is
-  set (no Claude invocation).  Useful for bulk-dismissing comments you have
+  set (no agent invocation).  Useful for bulk-dismissing comments you have
   already handled manually.
 
   --no-resolve and --mark-resolved are mutually exclusive; passing both is an error.
@@ -45,6 +47,7 @@ Requirements:
       Then authenticate: gh auth login
   - Claude Code CLI — https://claude.ai/code
       Windows: winget install Anthropic.ClaudeCode
+  - Codex CLI — default agent
 """
 
 from __future__ import annotations
@@ -57,6 +60,7 @@ import sys
 import textwrap
 from datetime import datetime
 from pathlib import Path
+from typing import cast
 
 
 # ---------------------------------------------------------------------------
@@ -248,7 +252,7 @@ def _gh_api(endpoint: str, *, paginate: bool = False) -> list | dict:
         except json.JSONDecodeError:
             pass  # Fall through to standard parse
 
-    return json.loads(raw)
+    return cast(list | dict, json.loads(raw))
 
 
 def _gh_graphql(query: str, variables: dict) -> dict:
@@ -582,8 +586,9 @@ def build_prompt(
         ## Step 1 — Read project standards
 
         Before assessing any comment, read these files:
-        - `CLAUDE.md` — coding standards, architecture, working process
-        - `AGENTS.md` — role expectations for this codebase
+        - `AGENTS.md` — shared coding standards, architecture, working process,
+          and role expectations for this codebase
+        - `CLAUDE.md` — Claude-specific guidance when running under Claude Code
         - If any comment touches `vtk_to_usd/`:
           `src/physiomotion4d/vtk_to_usd/CLAUDE.md`
 
@@ -594,17 +599,17 @@ def build_prompt(
         1. Read the referenced source file (`path`, near `line`) to understand
            the full context — do not rely solely on the diff hunk.
         2. Decide:
-           - **APPLY** — suggestion is correct and consistent with CLAUDE.md.
-             Apply it as-is using the Edit tool.
+           - **APPLY** — suggestion is correct and consistent with agent guidance.
+             Apply it as-is.
            - **REVISE** — directionally right but conflicts with repo conventions.
-             Apply your corrected version using the Edit tool.
+             Apply your corrected version.
            - **REJECT** — wrong, unnecessary, or conflicts with explicit project rules.
              Do not edit the file. State the specific rule or reason.
-        3. For APPLY / REVISE: use the Edit tool to make the change.
+        3. For APPLY / REVISE: edit the file to make the change.
            Do NOT run git add, git commit, or any git staging commands.
            Leave all edits as pending working-tree modifications only.
 
-        Rejection triggers (from CLAUDE.md — treat these as hard rules):
+        Rejection triggers (from AGENTS.md / CLAUDE.md — treat these as hard rules):
         - Introduces `X | None` instead of `Optional[X]` (ruff UP007 is suppressed)
         - Adds backward-compat shims, re-exports, or removed-symbol stubs
         - Adds error handling for internal states that cannot happen
@@ -643,8 +648,8 @@ def build_prompt(
 
         ## Rejected suggestions
 
-        For each REJECTED item: what was suggested, and the specific CLAUDE.md
-        rule or reasoning that led to rejection.
+        For each REJECTED item: what was suggested, and the specific agent
+        guidance rule or reasoning that led to rejection.
 
         ## Observations
 
@@ -659,8 +664,18 @@ def build_prompt(
 
 
 # ---------------------------------------------------------------------------
-# Claude invocation
+# AI agent invocation
 # ---------------------------------------------------------------------------
+
+
+def invoke_ai_agent(prompt: str, repo_root: Path, agent: str) -> None:
+    """Invoke the selected AI agent non-interactively."""
+    if agent == "claude":
+        invoke_claude(prompt, repo_root)
+    elif agent == "codex":
+        invoke_codex(prompt, repo_root)
+    else:
+        raise ValueError(f"Unsupported AI agent: {agent}")
 
 
 def invoke_claude(prompt: str, repo_root: Path) -> None:
@@ -672,7 +687,7 @@ def invoke_claude(prompt: str, repo_root: Path) -> None:
     terminal so the developer can follow along.
     """
     print("[*] Invoking Claude Code to screen review comments...")
-    print("    Claude will read source files, assess each suggestion, apply")
+    print("    Claude Code will read source files, assess each suggestion, apply")
     print("    accepted edits, and write the summary. This may take a minute.\n")
 
     try:
@@ -687,23 +702,71 @@ def invoke_claude(prompt: str, repo_root: Path) -> None:
     except FileNotFoundError:
         print('[ERROR] "claude" CLI not found.')
         print("        Install Claude Code: https://claude.ai/code")
-        _save_prompt_fallback(prompt, repo_root)
+        _save_prompt_fallback(prompt, repo_root, agent="claude")
         sys.exit(1)
     except subprocess.CalledProcessError as exc:
         print(f'[ERROR] "claude" exited with status {exc.returncode}.')
-        _save_prompt_fallback(prompt, repo_root)
+        _save_prompt_fallback(prompt, repo_root, agent="claude")
         sys.exit(exc.returncode)
 
 
-def _save_prompt_fallback(prompt: str, repo_root: Path) -> None:
-    fallback = repo_root / ".claude_review_prompt.txt"
+def invoke_codex(prompt: str, repo_root: Path) -> None:
+    """
+    Invoke Codex CLI non-interactively.
+
+    The full review prompt is saved to a repo-local file first so the command
+    line remains short on Windows.
+    """
+    prompt_path = _save_prompt_file(prompt, repo_root)
+    instruction = (
+        f"Read {prompt_path.name} in the repository root and carry out the "
+        "GitHub review workflow exactly as described there. Apply accepted "
+        "edits as pending working-tree changes only, write the requested "
+        "summary, and do not stage or commit files."
+    )
+
+    print("[*] Invoking Codex to screen review comments...")
+    print(f"    Review prompt saved to {prompt_path.name}.")
+    print("    Codex will read source files, assess each suggestion, apply")
+    print("    accepted edits, and write the summary. This may take a minute.\n")
+
+    try:
+        subprocess.run(
+            ["codex", "exec", instruction],
+            text=True,
+            encoding="utf-8",
+            cwd=repo_root,
+            check=True,
+        )
+    except FileNotFoundError:
+        print('[ERROR] "codex" CLI not found.')
+        _save_prompt_fallback(prompt, repo_root, agent="codex")
+        sys.exit(1)
+    except subprocess.CalledProcessError as exc:
+        print(f'[ERROR] "codex" exited with status {exc.returncode}.')
+        _save_prompt_fallback(prompt, repo_root, agent="codex")
+        sys.exit(exc.returncode)
+
+
+def _save_prompt_file(prompt: str, repo_root: Path) -> Path:
+    fallback = repo_root / ".github_review_prompt.txt"
     fallback.write_text(prompt, encoding="utf-8")
-    print("[*] Prompt saved to .claude_review_prompt.txt")
-    print("    Run manually with:")
+    return fallback
+
+
+def _save_prompt_fallback(prompt: str, repo_root: Path, *, agent: str) -> None:
+    fallback = _save_prompt_file(prompt, repo_root)
+    print(f"[*] Prompt saved to {fallback.name}")
+    print("    Run manually with one of:")
     print(
         '      claude --print --allowedTools "Read,Write,Edit,Glob,Grep" '
-        "< .claude_review_prompt.txt"
+        f"< {fallback.name}"
     )
+    print(
+        f'      codex exec "Read {fallback.name} and carry out the review '
+        'workflow described there."'
+    )
+    print(f"    Requested agent was: {agent}")
 
 
 # ---------------------------------------------------------------------------
@@ -713,9 +776,9 @@ def _save_prompt_fallback(prompt: str, repo_root: Path) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        prog="claude_github_reviews.py",
+        prog="ai_agent_github_reviews.py",
         description=(
-            "Screen GitHub PR review comments with Claude Code and apply "
+            "Screen GitHub PR review comments with Claude Code or Codex and apply "
             "accepted suggestions as pending working-tree changes."
         ),
     )
@@ -736,11 +799,17 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--agent",
+        choices=("claude", "codex"),
+        default="codex",
+        help="AI agent to invoke for review processing (default: codex)",
+    )
+    parser.add_argument(
         "--prompt-only",
         "--dry-run",
         dest="prompt_only",
         action="store_true",
-        help="Print the prompt that would be sent to Claude and exit without changes",
+        help="Print the prompt that would be sent to the agent and exit without changes",
     )
     parser.add_argument(
         "--since-last-push",
@@ -762,7 +831,7 @@ def parse_args() -> argparse.Namespace:
         "--no-resolve",
         dest="no_resolve",
         action="store_true",
-        help="Do not mark inline-comment threads as resolved after Claude processes them",
+        help="Do not mark inline-comment threads as resolved after the agent processes them",
     )
     resolve_group.add_argument(
         "--mark-resolved",
@@ -770,7 +839,7 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help=(
             "Mark threads as resolved even when --prompt-only is set "
-            "(no Claude invocation required)"
+            "(no agent invocation required)"
         ),
     )
     return parser.parse_args()
@@ -882,7 +951,7 @@ def main() -> None:
                 "(full prompt follows)."
             )
         print(f"\n{separator}")
-        print("PROMPT (prompt-only — not sent to Claude)")
+        print(f"PROMPT (prompt-only — not sent to {args.agent})")
         print(separator)
         print(prompt)
         print(separator)
@@ -892,7 +961,7 @@ def main() -> None:
             resolve_review_threads(thread_ids, repo)
         sys.exit(0)
 
-    invoke_claude(prompt, repo_root)
+    invoke_ai_agent(prompt, repo_root, args.agent)
 
     if not args.no_resolve and thread_ids:
         resolve_review_threads(thread_ids, repo)
@@ -904,7 +973,7 @@ def main() -> None:
     if summary_path.exists():
         print(f"[✓] Summary written : {summary_filename}")
     else:
-        print("[!] Summary file not found — check Claude output above.")
+        print("[!] Summary file not found — check agent output above.")
     print("[*] Inspect changes : git diff")
     print("[*] Stage selectively: git add -p")
 

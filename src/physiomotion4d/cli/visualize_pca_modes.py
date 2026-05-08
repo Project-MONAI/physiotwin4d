@@ -17,19 +17,19 @@ import json
 import sys
 import traceback
 from pathlib import Path
-
-import numpy as np
-import pyvista as pv
+from typing import Any
 
 
 def _shape_at_sigma(
-    mean_shape: np.ndarray,
+    mean_shape: Any,
     components: list,
     eigenvalues: list,
     pc_index: int,
     sigma: float,
-) -> np.ndarray:
+) -> Any:
     """Return (n_points, 3) mesh points for mean + sigma * std_dev * component."""
+    import numpy as np
+
     pc = np.asarray(components[pc_index], dtype=np.float64)
     std_dev = np.sqrt(eigenvalues[pc_index])
     variation = mean_shape + (sigma * std_dev * pc)
@@ -38,13 +38,13 @@ def _shape_at_sigma(
 
 
 def _generate_pc_variation(
-    mean_mesh: pv.PolyData,
-    mean_shape: np.ndarray,
+    mean_mesh: Any,
+    mean_shape: Any,
     components: list,
     eigenvalues: list,
     pc_index: int,
     std_dev_multiplier: float = 3.0,
-) -> tuple[pv.PolyData, pv.PolyData, pv.PolyData]:
+) -> tuple[Any, Any, Any]:
     """Generate shape variations along a principal component.
 
     Parameters
@@ -66,6 +66,8 @@ def _generate_pc_variation(
     -------
     tuple of (negative_mesh, mean_mesh, positive_mesh)
     """
+    import numpy as np
+
     pc = np.asarray(components[pc_index], dtype=np.float64)
     std_dev = np.sqrt(eigenvalues[pc_index])
 
@@ -134,6 +136,8 @@ Examples:
         return 1
 
     try:
+        import pyvista as pv
+
         mean_mesh = pv.read(str(args.pca_mean_surface))
     except (OSError, RuntimeError) as e:
         print(f"Error loading PCA mean surface: {e}")
@@ -177,6 +181,8 @@ Examples:
             f"but PCA components have {len(components[0])} entries. Shapes must match."
         )
         return 1
+
+    import numpy as np
 
     mean_shape = mean_mesh.points.astype(np.float64).flatten()
     n_points = mean_shape.size // 3

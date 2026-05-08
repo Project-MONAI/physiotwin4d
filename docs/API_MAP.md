@@ -65,31 +65,31 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 
 ## src/physiomotion4d/cli/convert_ct_to_vtk.py
 
-- `def main()` (line 18): CLI entry point for CT to VTK conversion.
+- `def main()` (line 26): CLI entry point for CT to VTK conversion.
 
 ## src/physiomotion4d/cli/convert_heart_gated_ct_to_usd.py
 
-- `def main()` (line 16): Command-line interface for Heart-gated CT processing.
+- `def main()` (line 14): Command-line interface for Heart-gated CT processing.
 
 ## src/physiomotion4d/cli/convert_vtk_to_usd.py
 
-- `def main()` (line 30): Command-line interface for VTK to USD conversion.
+- `def main()` (line 28): Command-line interface for VTK to USD conversion.
 
 ## src/physiomotion4d/cli/create_statistical_model.py
 
-- `def main()` (line 23): Command-line interface for create statistical model workflow.
+- `def main()` (line 19): Command-line interface for create statistical model workflow.
 
 ## src/physiomotion4d/cli/fit_statistical_model_to_patient.py
 
-- `def main()` (line 22): Command-line interface for heart model to patient registration.
+- `def main()` (line 17): Command-line interface for heart model to patient registration.
 
 ## src/physiomotion4d/cli/reconstruct_highres_4d_ct.py
 
-- `def main()` (line 21): Command-line interface for high-resolution 4D CT reconstruction.
+- `def main()` (line 17): Command-line interface for high-resolution 4D CT reconstruction.
 
 ## src/physiomotion4d/cli/visualize_pca_modes.py
 
-- `def main()` (line 92): Command-line interface for visualizing PCA modes.
+- `def main()` (line 94): Command-line interface for visualizing PCA modes.
 
 ## src/physiomotion4d/contour_tools.py
 
@@ -474,18 +474,18 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 - `def pytest_collection_modifyitems(config, items)` (line 85): Automatically skip experiment and tutorial tests unless their opt-in flags
 - `def pytest_runtest_logreport(report)` (line 110): Collect test timing information after each test completes.
 - `def pytest_terminal_summary(terminalreporter, exitstatus, config)` (line 135): Print comprehensive test timing report after all tests complete.
-- `def test_directories()` (line 302): Set up test directories for data and results.
-- `def download_test_data(test_directories)` (line 317): Download TruncalValve 4D CT data.
-- `def test_images(download_test_data, test_directories)` (line 353): Convert and resample 4D NRRD data; return pre-resampled time points.
-- `def test_labelmaps(segmenter_total_segmentator, test_images, test_directories)` (line 405): Segment each time point with TotalSegmentator and return result dicts.
-- `def test_transforms(registrar_ants, test_images, test_directories)` (line 446): Perform ANTs registration and return results.
-- `def segmenter_total_segmentator()` (line 502): Create a SegmentChestTotalSegmentator instance.
-- `def segmenter_simpleware()` (line 508): Create a SegmentHeartSimpleware instance.
-- `def contour_tools()` (line 514): Create a ContourTools instance.
-- `def registrar_ants()` (line 520): Create a RegisterImagesANTs instance.
-- `def registrar_greedy()` (line 526): Create a RegisterImagesGreedy instance.
-- `def registrar_icon()` (line 532): Create a RegisterImagesICON instance.
-- `def transform_tools()` (line 538): Create a TransformTools instance.
+- `def test_directories()` (line 299): Set up test directories for data and results.
+- `def download_test_data(test_directories)` (line 314): Download TruncalValve 4D CT data.
+- `def test_images(download_test_data, test_directories)` (line 350): Convert and resample 4D NRRD data; return pre-resampled time points.
+- `def test_labelmaps(segmenter_total_segmentator, test_images, test_directories)` (line 402): Segment each time point with TotalSegmentator and return result dicts.
+- `def test_transforms(registrar_ants, test_images, test_directories)` (line 443): Perform ANTs registration and return results.
+- `def segmenter_total_segmentator()` (line 499): Create a SegmentChestTotalSegmentator instance.
+- `def segmenter_simpleware()` (line 505): Create a SegmentHeartSimpleware instance.
+- `def contour_tools()` (line 511): Create a ContourTools instance.
+- `def registrar_ants()` (line 517): Create a RegisterImagesANTs instance.
+- `def registrar_greedy()` (line 523): Create a RegisterImagesGreedy instance.
+- `def registrar_icon()` (line 529): Create a RegisterImagesICON instance.
+- `def transform_tools()` (line 535): Create a TransformTools instance.
 
 ## tests/test_cli_smoke.py
 
@@ -771,11 +771,11 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 
 ## tutorials/tutorial_01_heart_gated_ct_to_usd.py
 
-- `def run_tutorial(data_dir, output_dir, *, registration_method='ants', log_level=logging.INFO)` (line 164): Run Tutorial 1: Heart-Gated CT to Animated USD.
+- `def run_tutorial(data_dir, output_dir, *, registration_method='ants', log_level=logging.INFO)` (line 176): Run Tutorial 1: Heart-Gated CT to Animated USD.
 
 ## tutorials/tutorial_02_ct_to_vtk.py
 
-- `def run_tutorial(data_dir, output_dir, *, log_level=logging.INFO)` (line 90): Run Tutorial 2: CT Segmentation to VTK Surfaces.
+- `def run_tutorial(data_dir, output_dir, *, log_level=logging.INFO)` (line 122): Run Tutorial 2: CT Segmentation to VTK Surfaces.
 
 ## tutorials/tutorial_03_create_statistical_model.py
 
@@ -793,22 +793,24 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 
 - `def run_tutorial(data_dir, output_dir, *, case=1, max_frames=4, registration_method='ants', log_level=logging.INFO)` (line 97): Run Tutorial 6: Reconstruct High-Resolution 4D CT.
 
-## utils/claude_github_reviews.py
+## utils/ai_agent_github_reviews.py
 
-- `def git_fetch(repo_root, remote, branch)` (line 67): Run ``git fetch <remote> <branch>``, printing progress.
-- `def get_repo_root()` (line 81)
-- `def get_repo_slug(repo_root)` (line 95): Derive owner/repo from the git remote URL (upstream, falling back to origin).
-- `def parse_github_datetime(iso_str)` (line 120): Parse GitHub API timestamps (may end with Z).
-- `def get_remote_reflog_cutoff(repo_root, remote, head_ref)` (line 136): Latest reflog time for refs/remotes/<remote>/<head_ref> (when the ref last
-- `def filter_since_cutoff(thread_comments, reviews, cutoff)` (line 176): Keep thread comments with created_at > cutoff and reviews with
-- `def fetch_review_threads(pr_number, repo)` (line 390): Return all review threads for a PR via GraphQL, paginating both the
-- `def fetch_pr_data(pr_number, repo)` (line 449)
-- `def fetch_reviews(pr_number, repo)` (line 455)
-- `def resolve_review_threads(thread_ids, repo)` (line 460): Mark each thread in *thread_ids* as resolved via the GitHub GraphQL API.
-- `def build_prompt(pr_number, pr_data, reviews, thread_comments, summary_filename)` (line 549)
-- `def invoke_claude(prompt, repo_root)` (line 666): Invoke Claude Code non-interactively via stdin.
-- `def parse_args()` (line 714)
-- `def main()` (line 779)
+- `def git_fetch(repo_root, remote, branch)` (line 71): Run ``git fetch <remote> <branch>``, printing progress.
+- `def get_repo_root()` (line 85)
+- `def get_repo_slug(repo_root)` (line 99): Derive owner/repo from the git remote URL (upstream, falling back to origin).
+- `def parse_github_datetime(iso_str)` (line 124): Parse GitHub API timestamps (may end with Z).
+- `def get_remote_reflog_cutoff(repo_root, remote, head_ref)` (line 140): Latest reflog time for refs/remotes/<remote>/<head_ref> (when the ref last
+- `def filter_since_cutoff(thread_comments, reviews, cutoff)` (line 180): Keep thread comments with created_at > cutoff and reviews with
+- `def fetch_review_threads(pr_number, repo)` (line 394): Return all review threads for a PR via GraphQL, paginating both the
+- `def fetch_pr_data(pr_number, repo)` (line 453)
+- `def fetch_reviews(pr_number, repo)` (line 459)
+- `def resolve_review_threads(thread_ids, repo)` (line 464): Mark each thread in *thread_ids* as resolved via the GitHub GraphQL API.
+- `def build_prompt(pr_number, pr_data, reviews, thread_comments, summary_filename)` (line 553)
+- `def invoke_ai_agent(prompt, repo_root, agent)` (line 671): Invoke the selected AI agent non-interactively.
+- `def invoke_claude(prompt, repo_root)` (line 681): Invoke Claude Code non-interactively via stdin.
+- `def invoke_codex(prompt, repo_root)` (line 713): Invoke Codex CLI non-interactively.
+- `def parse_args()` (line 777)
+- `def main()` (line 848)
 
 ## utils/generate_api_map.py
 

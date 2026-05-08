@@ -171,15 +171,12 @@ def pytest_terminal_summary(
     terminalreporter.write_line(f"Total Tests: {len(tests)}")
     terminalreporter.write_line("")
 
+    sorted_regular = sorted(regular_tests, key=lambda x: x["duration"], reverse=True)
+
     # Regular tests section
     if regular_tests:
         terminalreporter.write_sep("-", "Regular Tests", bold=True)
         terminalreporter.write_line(f"Count: {len(regular_tests)}")
-
-        # Sort by duration (longest first)
-        sorted_regular = sorted(
-            regular_tests, key=lambda x: x["duration"], reverse=True
-        )
 
         # Calculate total time
         regular_total = sum(t["duration"] for t in regular_tests)

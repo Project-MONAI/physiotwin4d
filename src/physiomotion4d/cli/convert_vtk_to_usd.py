@@ -11,8 +11,6 @@ import argparse
 import os
 import sys
 
-from physiomotion4d import WorkflowConvertVTKToUSD
-
 ANATOMY_TYPES = [
     "heart",
     "lung",
@@ -201,6 +199,8 @@ Examples:
             return 1
 
     try:
+        from physiomotion4d import WorkflowConvertVTKToUSD
+
         workflow = WorkflowConvertVTKToUSD(
             vtk_files=args.vtk_files,
             output_usd=args.output_usd,

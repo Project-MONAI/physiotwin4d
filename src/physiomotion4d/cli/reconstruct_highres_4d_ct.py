@@ -13,10 +13,6 @@ import os
 import sys
 import traceback
 
-import itk
-
-from physiomotion4d import WorkflowReconstructHighres4DCT
-
 
 def main() -> int:
     """Command-line interface for high-resolution 4D CT reconstruction."""
@@ -237,6 +233,8 @@ Examples:
     # Load input data
     print("\nLoading input data...")
     try:
+        import itk
+
         print(f"  Loading {len(time_series_files)} time-series images...")
         time_series_images = []
         for i, ts_file in enumerate(time_series_files):
@@ -271,6 +269,8 @@ Examples:
     # Initialize workflow
     print("\nInitializing high-resolution 4D CT reconstruction workflow...")
     try:
+        from physiomotion4d import WorkflowReconstructHighres4DCT
+
         workflow = WorkflowReconstructHighres4DCT(
             time_series_images=time_series_images,
             fixed_image=fixed_image,
