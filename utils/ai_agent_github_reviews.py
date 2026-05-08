@@ -60,7 +60,7 @@ import sys
 import textwrap
 from datetime import datetime
 from pathlib import Path
-from typing import cast
+from typing import Union, cast
 
 
 # ---------------------------------------------------------------------------
@@ -252,7 +252,7 @@ def _gh_api(endpoint: str, *, paginate: bool = False) -> list | dict:
         except json.JSONDecodeError:
             pass  # Fall through to standard parse
 
-    return cast(list | dict, json.loads(raw))
+    return cast(Union[list, dict], json.loads(raw))
 
 
 def _gh_graphql(query: str, variables: dict) -> dict:
@@ -732,7 +732,15 @@ def invoke_codex(prompt: str, repo_root: Path) -> None:
 
     try:
         subprocess.run(
-            ["codex", "exec", instruction],
+            [
+                "codex",
+                "--ask-for-approval",
+                "never",
+                "exec",
+                "--sandbox",
+                "workspace-write",
+                instruction,
+            ],
             text=True,
             encoding="utf-8",
             cwd=repo_root,
@@ -763,7 +771,8 @@ def _save_prompt_fallback(prompt: str, repo_root: Path, *, agent: str) -> None:
         f"< {fallback.name}"
     )
     print(
-        f'      codex exec "Read {fallback.name} and carry out the review '
+        f"      codex --ask-for-approval never exec --sandbox workspace-write "
+        f'"Read {fallback.name} and carry out the review '
         'workflow described there."'
     )
     print(f"    Requested agent was: {agent}")

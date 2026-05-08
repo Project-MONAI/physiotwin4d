@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import subprocess
+import importlib
 import sys
 
 import pytest
@@ -20,15 +20,18 @@ CLI_MODULES = [
 
 
 @pytest.mark.parametrize("module_name", CLI_MODULES)
-def test_cli_help(module_name: str) -> None:
+def test_cli_help(
+    module_name: str,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     """Each CLI module exits successfully for --help."""
-    result = subprocess.run(
-        [sys.executable, "-m", module_name, "--help"],
-        check=False,
-        capture_output=True,
-        text=True,
-        timeout=30,
-    )
+    module = importlib.import_module(module_name)
+    monkeypatch.setattr(sys, "argv", [module_name, "--help"])
 
-    assert result.returncode == 0, result.stderr
-    assert "usage:" in result.stdout.lower()
+    with pytest.raises(SystemExit) as exc_info:
+        module.main()
+
+    captured = capsys.readouterr()
+    assert exc_info.value.code == 0
+    assert "usage:" in captured.out.lower()

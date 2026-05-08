@@ -184,6 +184,14 @@ def pytest_terminal_summary(
             f"Total Time: {timedelta(seconds=int(regular_total))}"
         )
         terminalreporter.write_line("")
+        terminalreporter.write_line("Individual Test Times:")
+        for test in sorted_regular:
+            outcome_symbol = "+" if test["outcome"] == "passed" else "x"
+            duration_str = _format_duration(test["duration"])
+            terminalreporter.write_line(
+                f"  {outcome_symbol} {duration_str:>10s}  {test['nodeid']}"
+            )
+        terminalreporter.write_line("")
 
     # Tutorial tests section
     if tutorial_tests:
@@ -199,16 +207,6 @@ def pytest_terminal_summary(
         terminalreporter.write_line("")
         terminalreporter.write_line("Individual Test Times:")
         for test in sorted_tutorials:
-            outcome_symbol = "+" if test["outcome"] == "passed" else "x"
-            duration_str = _format_duration(test["duration"])
-            terminalreporter.write_line(
-                f"  {outcome_symbol} {duration_str:>10s}  {test['nodeid']}"
-            )
-        terminalreporter.write_line("")
-
-        # Show all regular tests with timing
-        terminalreporter.write_line("Individual Test Times:")
-        for test in sorted_regular:
             outcome_symbol = "+" if test["outcome"] == "passed" else "x"
             duration_str = _format_duration(test["duration"])
             terminalreporter.write_line(

@@ -643,37 +643,33 @@ class ConvertVTKToUSD(PhysioMotion4DBase):
 
             # Convert to USD
             mesh_path = f"{root_path}/{label_name}"
-            if len(label_mesh_sequence) == 1:
-                label_mesh_sequence[0].material_id = material.name
-                material_mgr.get_or_create_material(material)
-                mesh_converter.create_mesh(
-                    label_mesh_sequence[0], mesh_path, bind_material=True
-                )
+            if self._time_codes is not None:
+                label_time_codes = [self._time_codes[i] for i in label_frame_indices]
             else:
-                if self._time_codes is not None:
-                    label_time_codes = [
-                        self._time_codes[i] for i in label_frame_indices
-                    ]
-                else:
-                    label_time_codes = [float(i) for i in label_frame_indices]
-                for md in label_mesh_sequence:
-                    md.material_id = material.name
-                material_mgr.get_or_create_material(material)
-                mesh_converter.create_time_varying_mesh(
-                    label_mesh_sequence, mesh_path, label_time_codes, bind_material=True
-                )
+                label_time_codes = [float(i) for i in label_frame_indices]
+            for md in label_mesh_sequence:
+                md.material_id = material.name
+            material_mgr.get_or_create_material(material)
+            mesh_converter.create_time_varying_mesh(
+                label_mesh_sequence, mesh_path, label_time_codes, bind_material=True
+            )
 
     def _vtk_to_mesh_data(
         self, vtk_mesh: pv.DataSet | vtk.vtkDataSet, time_idx: int
     ) -> MeshData:
         """Convert VTK/PyVista mesh to MeshData."""
         # Wrap VTK objects
-        if isinstance(vtk_mesh, (vtk.vtkPolyData, vtk.vtkUnstructuredGrid)):
+        if isinstance(vtk_mesh, vtk.vtkDataSet):
             vtk_mesh = pv.wrap(vtk_mesh)
 
         # Extract surface if needed
-        if isinstance(vtk_mesh, pv.UnstructuredGrid) and self.convert_to_surface:
-            vtk_mesh = vtk_mesh.extract_surface(algorithm="dataset_surface")
+        if self.convert_to_surface and not isinstance(vtk_mesh, pv.PolyData):
+            if isinstance(vtk_mesh, pv.UnstructuredGrid):
+                vtk_mesh = vtk_mesh.extract_surface(algorithm="dataset_surface")
+            elif hasattr(vtk_mesh, "extract_surface"):
+                vtk_mesh = vtk_mesh.extract_surface(algorithm="dataset_surface")
+            elif hasattr(vtk_mesh, "extract_geometry"):
+                vtk_mesh = vtk_mesh.extract_geometry()
 
         # Get points
         points = np.array(vtk_mesh.points, dtype=np.float64)
@@ -681,6 +677,8 @@ class ConvertVTKToUSD(PhysioMotion4DBase):
         # Get faces
         if hasattr(vtk_mesh, "faces"):
             faces = vtk_mesh.faces
+            if len(faces) == 0 and not self.convert_to_surface:
+                raise ValueError("Mesh has no faces - surface extraction may be needed")
             # Parse VTK face format: [n_points, i0, i1, ..., n_points, j0, j1, ...]
             face_counts_list: list[int] = []
             face_indices_list: list[int] = []
@@ -692,6 +690,9 @@ class ConvertVTKToUSD(PhysioMotion4DBase):
                 idx += n + 1
             face_counts = np.array(face_counts_list, dtype=np.int32)
             face_indices = np.array(face_indices_list, dtype=np.int32)
+        elif self.convert_to_surface:
+            face_counts = np.array([], dtype=np.int32)
+            face_indices = np.array([], dtype=np.int32)
         else:
             # No faces - might be point cloud or volumetric
             raise ValueError("Mesh has no faces - surface extraction may be needed")

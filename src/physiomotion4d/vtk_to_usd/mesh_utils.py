@@ -109,9 +109,9 @@ def split_mesh_data_by_cell_type(
 
         # Subset generic arrays: vertex by point index, uniform by face index
         new_arrays: list[GenericArray] = []
-        for arr in mesh_data.generic_arrays:
-            data = np.asarray(arr.data)
-            if arr.interpolation == "vertex":
+        for generic_array in mesh_data.generic_arrays:
+            data = np.asarray(generic_array.data)
+            if generic_array.interpolation == "vertex":
                 if data.shape[0] == n_points:
                     new_data = data[unique_pts]
                 else:
@@ -123,11 +123,11 @@ def split_mesh_data_by_cell_type(
                     continue
             new_arrays.append(
                 GenericArray(
-                    name=arr.name,
+                    name=generic_array.name,
                     data=new_data,
-                    num_components=arr.num_components,
-                    data_type=arr.data_type,
-                    interpolation=arr.interpolation,
+                    num_components=generic_array.num_components,
+                    data_type=generic_array.data_type,
+                    interpolation=generic_array.interpolation,
                 )
             )
 
@@ -243,9 +243,9 @@ def _extract_mesh_part_by_face_indices(
             new_colors = arr[unique_pts]
 
     new_arrays: list[GenericArray] = []
-    for arr in mesh_data.generic_arrays:
-        data = np.asarray(arr.data)
-        if arr.interpolation == "vertex":
+    for generic_array in mesh_data.generic_arrays:
+        data = np.asarray(generic_array.data)
+        if generic_array.interpolation == "vertex":
             if data.shape[0] == n_points:
                 new_data = data[unique_pts]
             else:
@@ -257,11 +257,11 @@ def _extract_mesh_part_by_face_indices(
                 continue
         new_arrays.append(
             GenericArray(
-                name=arr.name,
+                name=generic_array.name,
                 data=new_data,
-                num_components=arr.num_components,
-                data_type=arr.data_type,
-                interpolation=arr.interpolation,
+                num_components=generic_array.num_components,
+                data_type=generic_array.data_type,
+                interpolation=generic_array.interpolation,
             )
         )
 

@@ -500,8 +500,26 @@ class TestSyntheticConversion:
         assert atrium.IsValid(), "atrium prim not found"
         assert ventricle.IsA(UsdGeom.Mesh)
         assert atrium.IsA(UsdGeom.Mesh)
+        assert list(UsdGeom.Mesh(ventricle).GetPointsAttr().GetTimeSamples()) == [0.0]
+        assert list(UsdGeom.Mesh(atrium).GetPointsAttr().GetTimeSamples()) == [0.0]
         # Unified prim must NOT exist when mask_ids is active
         assert not stage.GetPrimAtPath("/World/Heart/Mesh").IsValid()
+
+    def test_structured_grid_extracts_surface(self, tmp_path: Path) -> None:
+        """StructuredGrid input is surface-extracted when convert_to_surface is true."""
+        x, y, z = np.meshgrid([0.0, 1.0], [0.0, 1.0], [0.0, 1.0], indexing="ij")
+        grid = pv.StructuredGrid(x, y, z)
+        converter = ConvertVTKToUSD(
+            data_basename="Grid",
+            input_polydata=[grid],
+            convert_to_surface=True,
+        )
+        stage = converter.convert(str(tmp_path / "grid.usd"))
+
+        mesh = UsdGeom.Mesh(stage.GetPrimAtPath("/World/Grid/Mesh"))
+        face_counts = mesh.GetFaceVertexCountsAttr().Get()
+        assert face_counts is not None
+        assert len(face_counts) > 0
 
     def test_mask_ids_missing_label_filters_time_codes(self, tmp_path: Path) -> None:
         """Time codes for a label must be filtered to frames where it actually appears.

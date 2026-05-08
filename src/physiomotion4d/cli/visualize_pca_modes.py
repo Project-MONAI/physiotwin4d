@@ -17,16 +17,21 @@ import json
 import sys
 import traceback
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, cast
+
+if TYPE_CHECKING:
+    import numpy as np
+    import numpy.typing as npt
+    import pyvista as pv
 
 
 def _shape_at_sigma(
-    mean_shape: Any,
-    components: list,
-    eigenvalues: list,
+    mean_shape: "npt.NDArray[np.float64]",
+    components: list["npt.NDArray[np.float64]"],
+    eigenvalues: "npt.NDArray[np.float64]",
     pc_index: int,
     sigma: float,
-) -> Any:
+) -> "npt.NDArray[np.float64]":
     """Return (n_points, 3) mesh points for mean + sigma * std_dev * component."""
     import numpy as np
 
@@ -34,17 +39,17 @@ def _shape_at_sigma(
     std_dev = np.sqrt(eigenvalues[pc_index])
     variation = mean_shape + (sigma * std_dev * pc)
     n_points = mean_shape.size // 3
-    return variation.reshape(n_points, 3)
+    return cast("npt.NDArray[np.float64]", variation.reshape(n_points, 3))
 
 
 def _generate_pc_variation(
-    mean_mesh: Any,
-    mean_shape: Any,
-    components: list,
-    eigenvalues: list,
+    mean_mesh: "pv.DataSet",
+    mean_shape: "npt.NDArray[np.float64]",
+    components: list["npt.NDArray[np.float64]"],
+    eigenvalues: "npt.NDArray[np.float64]",
     pc_index: int,
     std_dev_multiplier: float = 3.0,
-) -> tuple[Any, Any, Any]:
+) -> tuple["pv.DataSet", "pv.DataSet", "pv.DataSet"]:
     """Generate shape variations along a principal component.
 
     Parameters
@@ -75,9 +80,13 @@ def _generate_pc_variation(
     positive_variation = mean_shape + (std_dev_multiplier * std_dev * pc)
 
     n_points = mean_shape.size // 3
-    negative_points = negative_variation.reshape(n_points, 3)
-    positive_points = positive_variation.reshape(n_points, 3)
-    mean_points = mean_shape.reshape(n_points, 3)
+    negative_points = cast(
+        "npt.NDArray[np.float64]", negative_variation.reshape(n_points, 3)
+    )
+    positive_points = cast(
+        "npt.NDArray[np.float64]", positive_variation.reshape(n_points, 3)
+    )
+    mean_points = cast("npt.NDArray[np.float64]", mean_shape.reshape(n_points, 3))
 
     negative_mesh = mean_mesh.copy()
     negative_mesh.points = negative_points
@@ -164,31 +173,35 @@ Examples:
             print(f"Error: PCA model JSON must contain '{key}'.")
             return 1
 
-    components = pca_model["components"]
-    eigenvalues = pca_model["eigenvalues"]
+    raw_components = pca_model["components"]
+    raw_eigenvalues = pca_model["eigenvalues"]
 
-    if len(components) < 3:
+    if len(raw_components) < 3:
         print(
-            f"Error: PCA model has only {len(components)} component(s); need at least 3 for visualization."
+            f"Error: PCA model has only {len(raw_components)} component(s); need at least 3 for visualization."
         )
         return 1
 
     n_points = mean_mesh.n_points
     n_features = n_points * 3
-    if len(components[0]) != n_features:
+    if len(raw_components[0]) != n_features:
         print(
             f"Error: Mean surface has {n_points} points ({n_features} features), "
-            f"but PCA components have {len(components[0])} entries. Shapes must match."
+            f"but PCA components have {len(raw_components[0])} entries. Shapes must match."
         )
         return 1
 
     import numpy as np
 
+    components = [
+        np.asarray(component, dtype=np.float64) for component in raw_components
+    ]
+    eigenvalues = np.asarray(raw_eigenvalues, dtype=np.float64)
     mean_shape = mean_mesh.points.astype(np.float64).flatten()
     n_points = mean_shape.size // 3
 
     # Precompute component arrays for slider updates
-    pc_arrays = [np.asarray(components[i], dtype=np.float64) for i in range(3)]
+    pc_arrays = components[:3]
     std_devs = [np.sqrt(eigenvalues[i]) for i in range(3)]
 
     plotter = pv.Plotter(shape=(1, 3))
@@ -201,8 +214,8 @@ Examples:
     mean_ref.points = mean_shape.reshape(n_points, 3)
 
     # Per subplot: mean (static), +sigma mesh, -sigma mesh (updated by slider)
-    plus_meshes: list[pv.PolyData] = []
-    minus_meshes: list[pv.PolyData] = []
+    plus_meshes: list[pv.DataSet] = []
+    minus_meshes: list[pv.DataSet] = []
     for col, pc_index in enumerate(range(3)):
         points_plus = _shape_at_sigma(
             mean_shape, components, eigenvalues, pc_index, initial_sigma
@@ -214,8 +227,8 @@ Examples:
         mesh_plus.points = points_plus
         mesh_minus = mean_mesh.copy()
         mesh_minus.points = points_minus
-        plus_meshes.append(mesh_plus)
-        minus_meshes.append(mesh_minus)
+        plus_meshes.append(cast(pv.DataSet, mesh_plus))
+        minus_meshes.append(cast(pv.DataSet, mesh_minus))
         plotter.subplot(0, col)
         plotter.add_mesh(
             mean_ref.copy(),

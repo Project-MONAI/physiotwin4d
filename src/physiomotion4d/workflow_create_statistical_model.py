@@ -9,7 +9,7 @@ Returns a dictionary of surfaces, meshes, and PCA model structure (no file I/O).
 """
 
 import logging
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 import itk
 import numpy as np
@@ -89,16 +89,16 @@ class WorkflowCreateStatisticalModel(PhysioMotion4DBase):
         self.transform_tools = TransformTools()
 
         # Set by pipeline
-        self.reference_model: Optional[pv.PolyData] = None
-        self.sample_models: list[pv.PolyData] = []
+        self.reference_model: Optional[pv.DataSet] = None
+        self.sample_models: list[pv.DataSet] = []
         self.sample_ids: list[str] = []
-        self.aligned_models: list[pv.PolyData] = []
+        self.aligned_models: list[pv.DataSet] = []
         self.forward_transforms: list = []
         self.inverse_transforms: list = []
-        self.pca_input_models: list[pv.PolyData] = []
+        self.pca_input_models: list[pv.DataSet] = []
         self.pca_fitted: Optional[PCA] = None
         self.pca_mean_surface: Optional[pv.PolyData] = None
-        self.pca_mean_mesh: Optional[pv.UnstructuredGrid] = None
+        self.pca_mean_mesh: Optional[pv.DataSet] = None
 
     def set_pca_number_of_components(self, n: int) -> None:
         """Set number of PCA components to retain."""
@@ -120,6 +120,7 @@ class WorkflowCreateStatisticalModel(PhysioMotion4DBase):
         self.sample_models = []
         self.sample_ids = []
         for i, mesh in enumerate(self.sample_meshes):
+            model: pv.DataSet
             if self.solve_for_surface_pca:
                 model = _extract_surface(mesh)
             else:
@@ -136,18 +137,13 @@ class WorkflowCreateStatisticalModel(PhysioMotion4DBase):
         self.forward_transforms = []
         self.inverse_transforms = []
 
-        if self.solve_for_surface_pca:
-            reference_surface = self.reference_model
-        else:
-            reference_surface = self.reference_model.extract_surface(
-                algorithm="dataset_surface"
-            )
+        reference_surface = _extract_surface(self.reference_model)
         for i, (sid, moving) in enumerate(zip(self.sample_ids, self.sample_models)):
             self.log_info(
                 "ICP aligning %s (%d/%d)", sid, i + 1, len(self.sample_models)
             )
             # Always extract surfaces for ICP alignment
-            moving_surface = moving.extract_surface(algorithm="dataset_surface")
+            moving_surface = _extract_surface(moving)
             registrar = RegisterModelsICP(fixed_model=reference_surface)
             result = registrar.register(
                 moving_model=moving_surface,
@@ -158,7 +154,7 @@ class WorkflowCreateStatisticalModel(PhysioMotion4DBase):
                 aligned_model = result["registered_model"]
             else:
                 aligned_model = self.contour_tools.transform_contours(
-                    moving,
+                    cast(pv.PolyData, moving),
                     tfm=result["forward_point_transform"],
                     with_deformation_magnitude=False,
                 )
@@ -189,8 +185,8 @@ class WorkflowCreateStatisticalModel(PhysioMotion4DBase):
                 len(self.aligned_models),
             )
             registrar = RegisterModelsDistanceMaps(
-                moving_model=moving,
-                fixed_model=self.reference_model,
+                moving_model=cast(pv.PolyData, moving),
+                fixed_model=cast(pv.PolyData, self.reference_model),
                 reference_image=reference_image,
             )
             result = registrar.register(
@@ -221,7 +217,9 @@ class WorkflowCreateStatisticalModel(PhysioMotion4DBase):
         self.pca_input_models = []
         for fwd_tfm in self.forward_transforms:
             pca_input_model = self.contour_tools.transform_contours(
-                self.reference_model, tfm=fwd_tfm, with_deformation_magnitude=False
+                cast(pv.PolyData, self.reference_model),
+                tfm=fwd_tfm,
+                with_deformation_magnitude=False,
             )
             self.pca_input_models.append(pca_input_model)
         self.log_info(
@@ -235,15 +233,15 @@ class WorkflowCreateStatisticalModel(PhysioMotion4DBase):
         template = self.reference_model
         n_points = template.n_points
 
-        data_matrix = []
+        data_rows: list[np.ndarray] = []
         for i, model in enumerate(self.pca_input_models):
             if model.n_points != n_points:
                 raise ValueError(
                     f"Sample {self.sample_ids[i]} has {model.n_points} points, "
                     f"expected {n_points}. Topology must match."
                 )
-            data_matrix.append(model.points.flatten())
-        data_matrix = np.array(data_matrix)
+            data_rows.append(model.points.flatten())
+        data_matrix = np.array(data_rows)
 
         if data_matrix.shape[0] - 1 < 2:
             raise ValueError(
@@ -286,11 +284,11 @@ class WorkflowCreateStatisticalModel(PhysioMotion4DBase):
         mean_deformation_transform.SetDisplacementField(mean_deformation_field)
         if self.solve_for_surface_pca:
             self.pca_mean_mesh = self.contour_tools.transform_contours(
-                self.reference_model,
+                cast(pv.PolyData, self.reference_model),
                 tfm=mean_deformation_transform,
                 with_deformation_magnitude=False,
             )
-            self.pca_mean_surface = pca_mean_model
+            self.pca_mean_surface = cast(pv.PolyData, pca_mean_model)
         else:
             self.pca_mean_mesh = pca_mean_model
             self.pca_mean_surface = pca_mean_model.extract_surface(

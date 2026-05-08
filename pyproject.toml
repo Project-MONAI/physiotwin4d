@@ -148,7 +148,7 @@ test = [
 
 [project.urls]
 Homepage = "https://github.com/Project-MONAI/physiomotion4d"
-Documentation = "https://github.com/Project-MONAI/physiomotion4d/blob/main/README.md"
+Documentation = "https://project-monai.github.io/physiomotion4d/"
 Repository = "https://github.com/Project-MONAI/physiomotion4d.git"
 "Bug Tracker" = "https://github.com/Project-MONAI/physiomotion4d/issues"
 "Author LinkedIn" = "https://www.linkedin.com/in/stephenaylward"
@@ -220,13 +220,10 @@ module = [
     "physiomotion4d.cli.create_statistical_model",
     "physiomotion4d.cli.fit_statistical_model_to_patient",
     "physiomotion4d.cli.visualize_pca_modes",
-    "physiomotion4d.register_models_pca",
     "physiomotion4d.vtk_to_usd.mesh_utils",
     "physiomotion4d.vtk_to_usd.vtk_reader",
-    "physiomotion4d.workflow_create_statistical_model",
-    "physiomotion4d.workflow_fit_statistical_model_to_patient",
 ]
-ignore_errors = true
+disable_error_code = ["import-not-found", "import-untyped"]
 
 [tool.pyright]
 # Third-party packages (e.g. pyvista) are in dependencies but may have no stubs;

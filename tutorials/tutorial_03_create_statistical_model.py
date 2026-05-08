@@ -198,10 +198,12 @@ def run_tutorial(
     except Exception:
         pass
 
-    for mode_idx in range(min(2, pca_components)):
-        if components is None or eigenvalues is None:
-            break
+    if components is None or eigenvalues is None:
+        mode_count = 0
+    else:
+        mode_count = min(2, pca_components, len(components), len(eigenvalues))
 
+    for mode_idx in range(mode_count):
         sigma = float(np.sqrt(eigenvalues[mode_idx]))
         ev = np.asarray(components[mode_idx]).reshape(-1, 3)
 

@@ -24,7 +24,7 @@ Runs on every push and pull request to main branches. Includes:
   - **DISABLED BY DEFAULT** - Only runs when:
     - Manually triggered via workflow_dispatch, OR
     - PR has the `run-gpu-tests` label
-  - Requires self-hosted runner with `[self-hosted, linux, gpu]` labels
+  - Requires self-hosted runner with `[self-hosted, Windows, X64, gpu]` labels
   - Uses PyTorch with CUDA 13.0 support
   - Timeout: 30 minutes
 
@@ -94,7 +94,7 @@ To run GPU tests, you must either:
 GPU tests require self-hosted runners with:
 - Linux OS
 - NVIDIA GPU with CUDA 13.0 support
-- Runner labels: `[self-hosted, linux, gpu]`
+- Runner labels: `[self-hosted, Windows, X64, gpu]`
 
 **Why are GPU tests disabled by default?**
 - GitHub Actions jobs wait indefinitely for a self-hosted runner if none are available
@@ -126,7 +126,7 @@ GPU tests require self-hosted runners with:
    before installing CUDA 13.0.
 
 3. **Configure Runner Labels**:
-   - Add labels: `self-hosted`, `linux`, `gpu`
+   - Add labels: `self-hosted`, `Windows`, `X64`, `gpu`
    - Verify GPU is accessible: `nvidia-smi`
 
 4. **Start the Runner**:
@@ -247,7 +247,7 @@ Coverage reports are:
 GPU tests are disabled by default. If you want to run them:
 1. **Check if GPU tests should run**: They only run on manual trigger or with `run-gpu-tests` label
 2. **Verify self-hosted runner is online**: Settings > Actions > Runners
-3. **Check runner labels**: Runner must have `self-hosted`, `linux`, and `gpu` labels
+3. **Check runner labels**: Runner must have `self-hosted`, `Windows`, `X64`, and `gpu` labels
 4. **Verify GPU accessibility**: Run `nvidia-smi` on the runner machine
 5. **Check workflow logs**: Look for "Waiting for a runner" or "runner assignment" messages
 

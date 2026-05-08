@@ -149,13 +149,14 @@ class VTKReader:
                 np.empty((0,), dtype=np.int32),
             )
         num_points = vtk_points.GetNumberOfPoints()
+        points: NDArray[np.float64]
         if num_points == 0:
             points = np.empty((0, 3), dtype=np.float64)
         else:
-            points = np.array(
+            points = np.asarray(
                 [vtk_points.GetPoint(i) for i in range(num_points)],
                 dtype=np.float64,
-            )
+            ).reshape(-1, 3)
 
         # Get cells (faces)
         polys = polydata.GetPolys()

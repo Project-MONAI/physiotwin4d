@@ -192,10 +192,14 @@ Examples:
         template_model: pv.UnstructuredGrid = template_model_raw
 
         print("  Loading patient models:")
-        patient_models = []
+        patient_models: list[pv.DataSet] = []
         for patient_model_file in args.patient_models:
             print(f"    - {patient_model_file}")
-            patient_models.append(pv.read(patient_model_file))
+            patient_model_raw = pv.read(patient_model_file)
+            assert isinstance(patient_model_raw, pv.DataSet), (
+                f"Patient model must be a PyVista dataset: {patient_model_file}"
+            )
+            patient_models.append(patient_model_raw)
 
         if args.patient_image is not None:
             print(f"  Loading patient image: {args.patient_image}")

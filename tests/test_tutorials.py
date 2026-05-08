@@ -200,23 +200,6 @@ class TestTutorial01HeartGatedCTToUSD:
 
 
 # -----------------------------------------------------------------------------
-# Tutorial 4 - Fit Statistical Model to Patient
-# -----------------------------------------------------------------------------
-
-
-def test_tutorial_04_extract_surface_uses_dataset_surface() -> None:
-    """Use the robust dataset_surface algorithm for VTK surface extraction."""
-    from tutorials.tutorial_04_fit_statistical_model_to_patient import (
-        _extract_surface,
-    )
-
-    mesh: Any = _FakeSurfaceExtractable()
-
-    assert _extract_surface(mesh) is mesh
-    assert mesh.algorithm == "dataset_surface"
-
-
-# -----------------------------------------------------------------------------
 # Tutorial 2 - CT Segmentation to VTK
 # -----------------------------------------------------------------------------
 
@@ -295,6 +278,18 @@ class TestTutorial03CreateStatisticalModel:
 # -----------------------------------------------------------------------------
 
 
+def test_tutorial_04_extract_surface_uses_dataset_surface() -> None:
+    """Use the robust dataset_surface algorithm for VTK surface extraction."""
+    from tutorials.tutorial_04_fit_statistical_model_to_patient import (
+        _extract_surface,
+    )
+
+    mesh: Any = _FakeSurfaceExtractable()
+
+    assert _extract_surface(mesh) is mesh
+    assert mesh.algorithm == "dataset_surface"
+
+
 @pytest.mark.tutorial
 @pytest.mark.requires_data
 @pytest.mark.slow
@@ -325,6 +320,10 @@ class TestTutorial04FitStatisticalModelToPatient:
                 output_dir=pca_json.parent,
                 pca_components=5,
                 max_samples=10,
+            )
+            assert pca_json.exists(), (
+                "Tutorial 3 bootstrap did not create the expected PCA model file: "
+                f"{pca_json}"
             )
 
         from tutorials.tutorial_04_fit_statistical_model_to_patient import run_tutorial
