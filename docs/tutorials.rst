@@ -168,7 +168,7 @@ Command
 
       python tutorials/tutorial_05_vtk_to_usd.py \
           --data-dir ./data --output-dir ./output/tutorial_05 \
-          --input output/tutorial_02/patient_surfaces.vtp
+          --vtk-file output/tutorial_02/patient_surfaces.vtp
 
 Outputs
    Time-sampled USD scene and conversion logs for Omniverse inspection.
