@@ -9,6 +9,7 @@ the repository tutorials, experiments, and tests.
 from __future__ import annotations
 
 import shutil
+import tempfile
 import urllib.request
 from pathlib import Path
 from typing import Union
@@ -42,18 +43,25 @@ class DataDownloadTools:
         if data_file.exists() and data_file.stat().st_size > 0:
             return data_file
 
-        # Stream to a temp file with an explicit timeout, then atomically
-        # replace the target on success. Avoids leaving partial files behind
-        # on interrupt and avoids the indefinite hang that urlretrieve has
-        # without a timeout.
-        tmp_file = data_file.with_suffix(data_file.suffix + ".tmp")
+        # Stream to a unique temp file in the same directory with an explicit
+        # timeout, then atomically replace the target on success. The temp
+        # name is unique so concurrent callers do not clobber each other.
+        # Avoids partial files on interrupt and the indefinite hang that
+        # urlretrieve has without a timeout.
+        tmp_handle = tempfile.NamedTemporaryFile(
+            dir=str(data_dir),
+            prefix=f".{DataDownloadTools.SLICER_HEART_CT_FILENAME}.",
+            suffix=".tmp",
+            delete=False,
+        )
+        tmp_file = Path(tmp_handle.name)
         try:
             with (
                 urllib.request.urlopen(  # noqa: S310
                     DataDownloadTools.SLICER_HEART_CT_URL,
                     timeout=_DOWNLOAD_TIMEOUT_SECONDS,
                 ) as response,
-                tmp_file.open("wb") as out,
+                tmp_handle as out,
             ):
                 shutil.copyfileobj(response, out)
             if tmp_file.stat().st_size == 0:
@@ -62,6 +70,7 @@ class DataDownloadTools:
                 )
             tmp_file.replace(data_file)
         except BaseException:
+            tmp_handle.close()
             if tmp_file.exists():
                 tmp_file.unlink()
             raise

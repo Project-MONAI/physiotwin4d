@@ -476,27 +476,29 @@ class TestTools(PhysioMotion4DBase):
             pv.start_xvfb()
             xvfb_started = True
 
-        output_path = self._results_dir / filename
-        mesh = USDTools().load_usd_as_vtk(
-            usd_file, prim_path=prim_path, time_code=time_code
-        )
-        plotter = pv.Plotter(off_screen=True, window_size=[800, 600])
         try:
-            if "openusd_rgb" in mesh.point_data:
-                plotter.add_mesh(mesh, scalars="openusd_rgb", rgb=True)
-            else:
-                plotter.add_mesh(mesh, color="red")
-            plotter.camera_position = "iso"
-            # pyvista wraps reset_camera in a descriptor that mypy can't
-            # resolve as a bound method (see pyvista issue with _Wrapped).
-            # Cast through Any to keep the call expression valid for mypy
-            # without resorting to a # type: ignore comment, which flips
-            # between "missing self" and "unused ignore" depending on
-            # check scope.
-            cast(Any, plotter).reset_camera()
-            plotter.screenshot(str(output_path))
+            output_path = self._results_dir / filename
+            mesh = USDTools().load_usd_as_vtk(
+                usd_file, prim_path=prim_path, time_code=time_code
+            )
+            plotter = pv.Plotter(off_screen=True, window_size=[800, 600])
+            try:
+                if "openusd_rgb" in mesh.point_data:
+                    plotter.add_mesh(mesh, scalars="openusd_rgb", rgb=True)
+                else:
+                    plotter.add_mesh(mesh, color="red")
+                plotter.camera_position = "iso"
+                # pyvista wraps reset_camera in a descriptor that mypy can't
+                # resolve as a bound method (see pyvista issue with _Wrapped).
+                # Cast through Any to keep the call expression valid for mypy
+                # without resorting to a # type: ignore comment, which flips
+                # between "missing self" and "unused ignore" depending on
+                # check scope.
+                cast(Any, plotter).reset_camera()
+                plotter.screenshot(str(output_path))
+            finally:
+                plotter.close()
         finally:
-            plotter.close()
             if xvfb_started and hasattr(pv, "stop_xvfb"):
                 pv.stop_xvfb()
         self.log_info("OpenUSD screenshot saved: %s", output_path)

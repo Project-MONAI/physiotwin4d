@@ -126,12 +126,12 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 
 ## src/physiomotion4d/data_download_tools.py
 
-- **class DataDownloadTools** (line 19): Download and verify optional PhysioMotion4D example datasets.
-  - `def DownloadSlicerHeartCTData(dirname)` (line 29): Download the Slicer-Heart-CT 4-D CT sample into ``dirname``.
-  - `def VerifySlicerHeartCTData(dirname)` (line 71): Return True when Slicer-Heart-CT has the expected 4-D CT file.
-  - `def VerifyCHOPValve4DData(dirname)` (line 76): Return True when CHOP-Valve4D files referenced by the repo exist.
-  - `def VerifyDirLab4DCTData(dirname)` (line 98): Return True when a supported DirLab-4DCT case layout exists.
-  - `def VerifyKCLHeartModelData(dirname)` (line 113): Return True when KCL-Heart-Model has its expected mesh inputs.
+- **class DataDownloadTools** (line 20): Download and verify optional PhysioMotion4D example datasets.
+  - `def DownloadSlicerHeartCTData(dirname)` (line 30): Download the Slicer-Heart-CT 4-D CT sample into ``dirname``.
+  - `def VerifySlicerHeartCTData(dirname)` (line 80): Return True when Slicer-Heart-CT has the expected 4-D CT file.
+  - `def VerifyCHOPValve4DData(dirname)` (line 85): Return True when CHOP-Valve4D files referenced by the repo exist.
+  - `def VerifyDirLab4DCTData(dirname)` (line 107): Return True when a supported DirLab-4DCT case layout exists.
+  - `def VerifyKCLHeartModelData(dirname)` (line 122): Return True when KCL-Heart-Model has its expected mesh inputs.
 
 ## src/physiomotion4d/image_tools.py
 
@@ -306,7 +306,7 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
   - `def compare_result_to_baseline_image(self, filename, *, per_pixel_absolute_error_tol=0.0, max_number_of_pixels_above_tol=0, total_absolute_error_tol=0.0)` (line 282): Load a 3D result image and a 3D baseline image (.mha), compare the full
   - `def save_screenshot_mesh(self, mesh, filename, *, camera_position='iso', window_size=(800, 600), color='pink', opacity=0.9)` (line 389): Render a PyVista mesh off-screen and save a PNG.
   - `def save_screenshot_openusd(self, usd_file, filename, *, prim_path='/World', time_code=None)` (line 438): Render USD mesh geometry off-screen and save a PNG.
-  - `def save_screenshot_image_slice(self, image, filename, *, axis=0, slice_fraction=0.5, colormap='gray', vmin=None, vmax=None, overlay_mask=None, overlay_alpha=0.4)` (line 505): Extract one slice from an ITK image and save a PNG via matplotlib.
+  - `def save_screenshot_image_slice(self, image, filename, *, axis=0, slice_fraction=0.5, colormap='gray', vmin=None, vmax=None, overlay_mask=None, overlay_alpha=0.4)` (line 507): Extract one slice from an ITK image and save a PNG via matplotlib.
 
 ## src/physiomotion4d/transform_tools.py
 
