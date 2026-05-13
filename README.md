@@ -49,7 +49,7 @@ includes:
 
 ### Prerequisites
 
-- Python 3.10+ (Python 3.10, 3.11, or 3.12 recommended)
+- Python 3.11+ (Python 3.11 or 3.12 recommended)
 - NVIDIA GPU with CUDA 13 — recommended for production use; CPU-only installation is supported but slow
 - 16GB+ RAM (32GB+ recommended for large datasets)
 - NVIDIA Omniverse (for USD visualization)

@@ -63,7 +63,7 @@ torchvision, and torchaudio are sourced from
 What Python version is required?
 ---------------------------------
 
-Python 3.10, 3.11, or 3.12 are supported.
+Python 3.11 or 3.12 are supported.
 
 Usage Questions
 ===============

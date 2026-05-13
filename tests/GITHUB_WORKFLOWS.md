@@ -251,7 +251,7 @@ These tests run automatically on a schedule via `.github/workflows/test-slow.yml
 
 ### Unit Tests Coverage
 - **Flag**: `unittests`
-- **When**: Ubuntu + Python 3.10 only
+- **When**: Ubuntu + Python 3.11 only
 - **Upload**: After unit tests complete
 
 ### Integration Tests Coverage
@@ -261,7 +261,7 @@ These tests run automatically on a schedule via `.github/workflows/test-slow.yml
 
 ### GPU Tests Coverage
 - **Flag**: `gpu-tests`
-- **When**: Python 3.10 on self-hosted GPU runners
+- **When**: Python 3.11 on self-hosted GPU runners
 - **Upload**: After GPU tests complete
 
 ### Slow Tests Coverage
@@ -285,14 +285,14 @@ Pull Request Created
 ┌───────────────────────────────────────────────┐
 │ Unit Tests (test job)                         │
 │ - Runs on Ubuntu, Windows, macOS              │
-│ - Python 3.10, 3.11, 3.12                    │
+│ - Python 3.11, 3.12                          │
 │ - Fast, no external data                      │
 └───────────────────────────────────────────────┘
     ↓
 ┌───────────────────────────────────────────────┐
 │ Integration Tests (test-with-data job)        │
 │ - Runs on Ubuntu only                         │
-│ - Python 3.10                                 │
+│ - Python 3.11                                 │
 │                                               │
 │ 1. Cache Check (tests/data/, tests/results/) │
 │    ↓                                          │

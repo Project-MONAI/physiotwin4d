@@ -121,7 +121,7 @@ First-Time Setup Checklist
 
 After cloning the repository:
 
-1. ✅ Install Python 3.10+ and create virtual environment
+1. ✅ Install Python 3.11+ and create virtual environment
 2. ✅ Install development dependencies: ``pip install -e ".[dev]"``,
    or install all extras with
    ``uv pip install -e ".[cuda13,docs,test,dev]"`` or

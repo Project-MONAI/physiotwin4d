@@ -10,7 +10,7 @@ Runs on every push and pull request to main branches. Includes:
 
 - **unit-tests**: Cross-platform unit tests
   - Runs on Ubuntu and Windows
-  - Python 3.10, 3.11, and 3.12
+  - Python 3.11 and 3.12
   - Uses PyTorch CPU version to avoid GPU dependencies
   - Excludes slow tests and tests requiring external data
   - Generates coverage reports

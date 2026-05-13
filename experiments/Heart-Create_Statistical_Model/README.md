@@ -163,7 +163,7 @@ registered_mesh = workflow.run_workflow()
 ## Requirements
 
 ### Software
-- Python 3.10+ with PhysioMotion4D installed
+- Python 3.11+ with PhysioMotion4D installed
 - Jupyter Lab or Jupyter Notebook
 - ITK, VTK, PyVista (included with PhysioMotion4D)
 - ANTs (Advanced Normalization Tools) - installed automatically with PhysioMotion4D
