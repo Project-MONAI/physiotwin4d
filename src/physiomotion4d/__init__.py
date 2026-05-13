@@ -17,7 +17,7 @@ Main Components:
     - PhysioMotion4DBase: Base class with standardized logging and debug settings
 """
 
-__version__ = "2026.05.07"
+__version__ = "2026.05.8"
 
 import warnings as _warnings
 
