@@ -165,9 +165,11 @@ reasonable time.
 
 Use either of these:
 
-**Option 1 - inline (no extra import):**
+**Option 1 - inline (stdlib only):**
 
 ```python
+import os
+
 running_as_test = os.environ.get("PHYSIOMOTION_RUNNING_AS_TEST", "").lower() in ("1", "true", "yes")
 ```
 

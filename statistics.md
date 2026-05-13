@@ -33,7 +33,7 @@ This report summarizes development effort, code quality, and project maturity.
 | **Test Suite (`tests/`)**            | 24 files  | 7,669         | 18.4%      |
 | **Experiment Scripts (`experiments/`)** | 35 files | 6,687        | 16.1%      |
 | **Tutorial Scripts (`tutorials/`)**  | 10 files  | 1,690         | 4.1%       |
-| **Documentation (`docs/` + repo READMEs)** | ~90 files | ~6,300 rst + ~7,800 md | 14.1%   |
+| **Documentation (`docs/` + repo READMEs)** | ~90 files | ~6,300 rst + ~6,700 md (~13,000 total) | 31%   |
 | **TOTAL**                            | **~210 files** | **~42,000** | **100%**  |
 
 All experiment and tutorial sources are plain `.py` files. Each uses `# %%`

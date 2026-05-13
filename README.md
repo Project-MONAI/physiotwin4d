@@ -809,7 +809,7 @@ without writing any code.
 /plan redesign the segmentation return type to use a dataclass instead of a tuple
 ```
 
-## Documentation
+## Additional Documentation
 
 The canonical documentation is published at
 https://project-monai.github.io/physiomotion4d/.

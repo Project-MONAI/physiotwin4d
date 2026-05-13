@@ -280,6 +280,7 @@ Data provided by Jolley Lab at CHOP (Children's Hospital of Philadelphia):
 **Important**: Always cite the original data sources in publications and respect any usage restrictions.
 
 ### Summary of Download Methods
+
 | Dataset         | Auto-Download | Manual Required | License         | Source              | Used in Tests            |
 | --------------- | ------------- | --------------- | --------------- | ------------------- | ------------------------ |
 | Slicer-Heart-CT | Yes         | No              | Public          | GitHub              | Yes                      |

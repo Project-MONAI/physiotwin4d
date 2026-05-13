@@ -155,7 +155,7 @@ pytest tests/test_experiments.py -v -n auto --run-experiments
 
 Scripts in the same subdirectory often have dependencies:
 
-```
+```text
 0-download.py -> 1-process.py -> 2-analyze.py -> 3-visualize.py
 ```
 
