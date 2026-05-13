@@ -64,7 +64,10 @@ def _compare_screenshots(
 
 def _run_tutorial_script(script_name: str) -> dict[str, Any]:
     """Run a tutorial script with no command-line arguments."""
-    namespace = runpy.run_path(str(_REPO_ROOT / "tutorials" / script_name))
+    namespace = runpy.run_path(
+        str(_REPO_ROOT / "tutorials" / script_name),
+        run_name="__main__",
+    )
     results = namespace.get("tutorial_results")
     assert isinstance(results, dict), f"{script_name} did not set tutorial_results"
     return results
@@ -88,7 +91,7 @@ class TestTutorial01HeartGatedCTToUSD:
         tt = TestTools(
             class_name=self._class_name,
             results_dir=out_dir,
-            baselines_dir=test_directories["baselines"],
+            baselines_dir=test_directories["baselines"] / self._class_name,
         )
         _compare_screenshots(results["screenshots"], tt)
 
@@ -114,9 +117,8 @@ class TestTutorial02CTToVTK:
 
         tt = TestTools(
             class_name=self._class_name,
-            results_dir=test_directories["output"],
-            baselines_dir=test_directories["baselines"],
-            results_output_dir=out_dir,
+            results_dir=out_dir,
+            baselines_dir=test_directories["baselines"] / self._class_name,
         )
         _compare_screenshots(results["screenshots"], tt)
 
@@ -148,9 +150,8 @@ class TestTutorial03CreateStatisticalModel:
 
         tt = TestTools(
             class_name=self._class_name,
-            results_dir=test_directories["output"],
-            baselines_dir=test_directories["baselines"],
-            results_output_dir=out_dir,
+            results_dir=out_dir,
+            baselines_dir=test_directories["baselines"] / self._class_name,
         )
         _compare_screenshots(results["screenshots"], tt)
 
@@ -188,9 +189,8 @@ class TestTutorial04FitStatisticalModelToPatient:
 
         tt = TestTools(
             class_name=self._class_name,
-            results_dir=test_directories["output"],
-            baselines_dir=test_directories["baselines"],
-            results_output_dir=out_dir,
+            results_dir=out_dir,
+            baselines_dir=test_directories["baselines"] / self._class_name,
         )
         _compare_screenshots(results["screenshots"], tt)
 
@@ -230,9 +230,8 @@ class TestTutorial05VTKToUSD:
 
         tt = TestTools(
             class_name=self._class_name,
-            results_dir=test_directories["output"],
-            baselines_dir=test_directories["baselines"],
-            results_output_dir=out_dir,
+            results_dir=out_dir,
+            baselines_dir=test_directories["baselines"] / self._class_name,
         )
         _compare_screenshots(results["screenshots"], tt)
 
@@ -267,8 +266,7 @@ class TestTutorial06ReconstructHighres4DCT:
 
         tt = TestTools(
             class_name=self._class_name,
-            results_dir=test_directories["output"],
-            baselines_dir=test_directories["baselines"],
-            results_output_dir=out_dir,
+            results_dir=out_dir,
+            baselines_dir=test_directories["baselines"] / self._class_name,
         )
         _compare_screenshots(results["screenshots"], tt)

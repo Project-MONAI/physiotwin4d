@@ -165,8 +165,8 @@ class TestRegisterTimeSeriesImages:
 
         test_tools = TestTools(
             class_name=self._class_name,
-            results_dir=test_directories["output"],
-            baselines_dir=test_directories["baselines"],
+            results_dir=test_directories["output"] / self._class_name,
+            baselines_dir=test_directories["baselines"] / self._class_name,
         )
 
         test_tools.write_result_transform(
@@ -226,8 +226,8 @@ class TestRegisterTimeSeriesImages:
 
         test_tools = TestTools(
             class_name=self._class_name,
-            results_dir=test_directories["output"],
-            baselines_dir=test_directories["baselines"],
+            results_dir=test_directories["output"] / self._class_name,
+            baselines_dir=test_directories["baselines"] / self._class_name,
         )
 
         test_tools.write_result_transform(
@@ -400,8 +400,8 @@ class TestRegisterTimeSeriesImages:
         # Save registered image
         test_tools = TestTools(
             class_name=self._class_name,
-            results_dir=test_directories["output"],
-            baselines_dir=test_directories["baselines"],
+            results_dir=test_directories["output"] / self._class_name,
+            baselines_dir=test_directories["baselines"] / self._class_name,
         )
 
         test_tools.write_result_image(

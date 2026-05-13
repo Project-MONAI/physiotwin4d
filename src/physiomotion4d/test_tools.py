@@ -48,36 +48,37 @@ class TestTools(PhysioMotion4DBase):
         results_dir: Optional[Path] = None,
         baselines_dir: Optional[Path] = None,
         *,
-        results_output_dir: Optional[Path] = None,
         log_level: int = logging.INFO,
     ) -> None:
         """Initialize test helpers.
 
         Args:
-            class_name: Subdirectory name for baselines and default results.
-            results_dir: Root directory for result artifacts.
-            baselines_dir: Root directory for baseline artifacts.
-            results_output_dir: Optional exact directory for written result
-                artifacts. Useful when tutorial outputs should live beside
-                tutorial files while baselines remain under ``baselines_dir``.
+            class_name: Identifier used for the default results/baselines
+                subdirectory and the logger name. Callers that supply
+                ``results_dir`` or ``baselines_dir`` explicitly are
+                responsible for including ``class_name`` in the path if they
+                want a per-test subdirectory.
+            results_dir: Exact directory for written result artifacts. Used
+                as-is. Defaults to ``<repo>/tests/results/<class_name>`` when
+                ``None``.
+            baselines_dir: Exact directory for baseline artifacts. Used
+                as-is. Defaults to ``<repo>/tests/baselines/<class_name>``
+                when ``None``.
             log_level: Logging level.
         """
         super().__init__(class_name=class_name, log_level=log_level)
 
         self._tests_dir = _REPO_ROOT / "tests"
-        if results_output_dir is not None:
-            self._results_dir = results_output_dir
-        elif results_dir is not None:
+        if results_dir is not None:
             self._results_dir = results_dir
         else:
             self._results_dir = self._tests_dir / "results" / class_name
         self._results_dir.mkdir(parents=True, exist_ok=True)
 
-        if not baselines_dir:
-            baselines_dir = self._tests_dir / "baselines" / class_name
+        if baselines_dir is not None:
+            self._baselines_dir = baselines_dir
         else:
-            baselines_dir = baselines_dir / class_name
-        self._baselines_dir = baselines_dir
+            self._baselines_dir = self._tests_dir / "baselines" / class_name
         self._baselines_dir.mkdir(parents=True, exist_ok=True)
 
         self._last_image_per_pixel_absolute_error_tol: float | None = None

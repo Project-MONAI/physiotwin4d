@@ -50,17 +50,17 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 
 ## src/physiomotion4d/anatomy_taxonomy.py
 
-- **class AnatomyGroup** (line 23): One named anatomy group together with the organ labels it contains.
-- **class AnatomyTaxonomy** (line 35): Mapping of anatomical groups to the organs each group contains.
-  - `def __init__(self)` (line 55)
-  - `def add_group(self, name)` (line 58): Ensure a group exists and return it.
-  - `def add_organ(self, group, label_id, organ_name)` (line 71): Add one organ label to the named group.
-  - `def group_names(self)` (line 87): Return group names in the order they were first added.
-  - `def labels_in_group(self, group)` (line 91): Return ``{label_id: organ_name}`` for *group*; empty dict if absent.
-  - `def all_labels(self)` (line 96): Return the union of every group's organs as a single id→name dict.
-  - `def group_for_label(self, label_name)` (line 103): Return the group containing *label_name*.
-  - `def group_for_id(self, label_id)` (line 115): Return the group containing *label_id*; :data:`OTHER_GROUP` if absent.
-  - `def fill_other_group(self, id_range=range(1, 256), name_template='other_{id}')` (line 122): Populate the ``other`` group with any ids not already claimed.
+- **class AnatomyGroup** (line 26): One named anatomy group together with the organ labels it contains.
+- **class AnatomyTaxonomy** (line 38): Mapping of anatomical groups to the organs each group contains.
+  - `def __init__(self)` (line 58)
+  - `def add_group(self, name)` (line 61): Ensure a group exists and return it.
+  - `def add_organ(self, group, label_id, organ_name)` (line 74): Add one organ label to the named group.
+  - `def group_names(self)` (line 104): Return group names in the order they were first added.
+  - `def labels_in_group(self, group)` (line 108): Return ``{label_id: organ_name}`` for *group*; empty dict if absent.
+  - `def all_labels(self)` (line 113): Return the union of every group's organs as a single id→name dict.
+  - `def group_for_label(self, label_name)` (line 120): Return the group containing *label_name*.
+  - `def group_for_id(self, label_id)` (line 132): Return the group containing *label_id*; :data:`OTHER_GROUP` if absent.
+  - `def fill_other_group(self, id_range=range(1, 256), name_template='other_{id}')` (line 139): Populate the ``other`` group with any ids not already claimed.
 
 ## src/physiomotion4d/cli/convert_ct_to_vtk.py
 
@@ -126,12 +126,12 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 
 ## src/physiomotion4d/data_download_tools.py
 
-- **class DataDownloadTools** (line 16): Download and verify optional PhysioMotion4D example datasets.
-  - `def DownloadSlicerHeartCTData(dirname)` (line 26): Download the Slicer-Heart-CT 4-D CT sample into ``dirname``.
-  - `def VerifySlicerHeartCTData(dirname)` (line 49): Return True when Slicer-Heart-CT has the expected 4-D CT file.
-  - `def VerifyCHOPValve4DData(dirname)` (line 54): Return True when CHOP-Valve4D files referenced by the repo exist.
-  - `def VerifyDirLab4DCTData(dirname)` (line 76): Return True when a supported DirLab-4DCT case layout exists.
-  - `def VerifyKCLHeartModelData(dirname)` (line 91): Return True when KCL-Heart-Model has its expected mesh inputs.
+- **class DataDownloadTools** (line 19): Download and verify optional PhysioMotion4D example datasets.
+  - `def DownloadSlicerHeartCTData(dirname)` (line 29): Download the Slicer-Heart-CT 4-D CT sample into ``dirname``.
+  - `def VerifySlicerHeartCTData(dirname)` (line 71): Return True when Slicer-Heart-CT has the expected 4-D CT file.
+  - `def VerifyCHOPValve4DData(dirname)` (line 76): Return True when CHOP-Valve4D files referenced by the repo exist.
+  - `def VerifyDirLab4DCTData(dirname)` (line 98): Return True when a supported DirLab-4DCT case layout exists.
+  - `def VerifyKCLHeartModelData(dirname)` (line 113): Return True when KCL-Heart-Model has its expected mesh inputs.
 
 ## src/physiomotion4d/image_tools.py
 
@@ -292,21 +292,21 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 
 - `def set_create_baseline_if_missing(value)` (line 29): Set whether to create baseline files when missing (used by pytest conftest).
 - **class TestTools** (line 35): Utilities for pytest image comparison: baseline directory, result directory,
-  - `def __init__(self, class_name, results_dir=None, baselines_dir=None, *, results_output_dir=None, log_level=logging.INFO)` (line 45): Initialize test helpers.
-  - `def running_as_test()` (line 102): True when the script is run as a test (e.g. by pytest experiment tests).
-  - `def image_pass_fail_and_pixels_above_tolerance(self)` (line 120): Return (pass, value) for number of pixels above tolerance from the most
-  - `def image_pass_fail_and_total_absolute_error(self)` (line 135): Return (pass, value) for total absolute error from the most recent
-  - `def image_difference(self)` (line 150): Return the difference image (itk.Image) from the most recent
-  - `def transform_pass_fail_and_number_of_values_above_tolerance(self)` (line 157): Return (pass, value) for number of values above tolerance from the most recent compare_result_to_baseline_transform call.
-  - `def transform_pass_fail_and_total_absolute_error(self)` (line 173): Return (pass, value) for total absolute error from the most recent compare_result_to_baseline_transform call.
-  - `def transform_difference(self)` (line 187): Return the difference transform (itk.Transform) from the most recent compare_result_to_baseline_transform call.
-  - `def write_result_image(self, image, filename)` (line 193): Write the image to the configured result artifact directory.
-  - `def write_result_transform(self, transform, filename)` (line 197): Write the transform to the configured result artifact directory.
-  - `def compare_result_to_baseline_transform(self, filename, *, per_value_absolute_error_tol=0.0, max_number_of_values_above_tol=0, total_absolute_error_tol=0.0)` (line 203): Compare the transform to the baseline transform.
-  - `def compare_result_to_baseline_image(self, filename, *, per_pixel_absolute_error_tol=0.0, max_number_of_pixels_above_tol=0, total_absolute_error_tol=0.0)` (line 281): Load a 3D result image and a 3D baseline image (.mha), compare the full
-  - `def save_screenshot_mesh(self, mesh, filename, *, camera_position='iso', window_size=(800, 600), color='pink', opacity=0.9)` (line 388): Render a PyVista mesh off-screen and save a PNG.
-  - `def save_screenshot_openusd(self, usd_file, filename, *, prim_path='/World', time_code=None)` (line 437): Render USD mesh geometry off-screen and save a PNG.
-  - `def save_screenshot_image_slice(self, image, filename, *, axis=0, slice_fraction=0.5, colormap='gray', vmin=None, vmax=None, overlay_mask=None, overlay_alpha=0.4)` (line 504): Extract one slice from an ITK image and save a PNG via matplotlib.
+  - `def __init__(self, class_name, results_dir=None, baselines_dir=None, *, log_level=logging.INFO)` (line 45): Initialize test helpers.
+  - `def running_as_test()` (line 103): True when the script is run as a test (e.g. by pytest experiment tests).
+  - `def image_pass_fail_and_pixels_above_tolerance(self)` (line 121): Return (pass, value) for number of pixels above tolerance from the most
+  - `def image_pass_fail_and_total_absolute_error(self)` (line 136): Return (pass, value) for total absolute error from the most recent
+  - `def image_difference(self)` (line 151): Return the difference image (itk.Image) from the most recent
+  - `def transform_pass_fail_and_number_of_values_above_tolerance(self)` (line 158): Return (pass, value) for number of values above tolerance from the most recent compare_result_to_baseline_transform call.
+  - `def transform_pass_fail_and_total_absolute_error(self)` (line 174): Return (pass, value) for total absolute error from the most recent compare_result_to_baseline_transform call.
+  - `def transform_difference(self)` (line 188): Return the difference transform (itk.Transform) from the most recent compare_result_to_baseline_transform call.
+  - `def write_result_image(self, image, filename)` (line 194): Write the image to the configured result artifact directory.
+  - `def write_result_transform(self, transform, filename)` (line 198): Write the transform to the configured result artifact directory.
+  - `def compare_result_to_baseline_transform(self, filename, *, per_value_absolute_error_tol=0.0, max_number_of_values_above_tol=0, total_absolute_error_tol=0.0)` (line 204): Compare the transform to the baseline transform.
+  - `def compare_result_to_baseline_image(self, filename, *, per_pixel_absolute_error_tol=0.0, max_number_of_pixels_above_tol=0, total_absolute_error_tol=0.0)` (line 282): Load a 3D result image and a 3D baseline image (.mha), compare the full
+  - `def save_screenshot_mesh(self, mesh, filename, *, camera_position='iso', window_size=(800, 600), color='pink', opacity=0.9)` (line 389): Render a PyVista mesh off-screen and save a PNG.
+  - `def save_screenshot_openusd(self, usd_file, filename, *, prim_path='/World', time_code=None)` (line 438): Render USD mesh geometry off-screen and save a PNG.
+  - `def save_screenshot_image_slice(self, image, filename, *, axis=0, slice_fraction=0.5, colormap='gray', vmin=None, vmax=None, overlay_mask=None, overlay_alpha=0.4)` (line 505): Extract one slice from an ITK image and save a PNG via matplotlib.
 
 ## src/physiomotion4d/transform_tools.py
 
@@ -395,7 +395,7 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 - **class UsdMeshConverter** (line 25): Converts MeshData to UsdGeomMesh with full feature support.
   - `def __init__(self, stage, settings, material_mgr)` (line 36): Initialize mesh converter.
   - `def create_mesh(self, mesh_data, mesh_path, time_code=None, bind_material=True)` (line 57): Create a UsdGeomMesh from MeshData.
-  - `def create_time_varying_mesh(self, mesh_data_sequence, mesh_path, time_codes, bind_material=True)` (line 325): Create a mesh with time-varying attributes.
+  - `def create_time_varying_mesh(self, mesh_data_sequence, mesh_path, time_codes, bind_material=True)` (line 329): Create a mesh with time-varying attributes.
 
 ## src/physiomotion4d/vtk_to_usd/usd_utils.py
 
@@ -741,18 +741,18 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 
 ## tests/test_tutorials.py
 
-- **class TestTutorial01HeartGatedCTToUSD** (line 76): End-to-end test for tutorial_01_heart_gated_ct_to_usd.py.
-  - `def test_run(self, test_directories)` (line 81)
-- **class TestTutorial02CTToVTK** (line 104): End-to-end test for tutorial_02_ct_to_vtk.py.
-  - `def test_run(self, test_directories)` (line 109)
-- **class TestTutorial03CreateStatisticalModel** (line 132): End-to-end test for tutorial_03_create_statistical_model.py.
-  - `def test_run(self, test_directories)` (line 137)
-- **class TestTutorial04FitStatisticalModelToPatient** (line 161): End-to-end test for tutorial_04_fit_statistical_model_to_patient.py.
-  - `def test_run(self, test_directories)` (line 166)
+- **class TestTutorial01HeartGatedCTToUSD** (line 79): End-to-end test for tutorial_01_heart_gated_ct_to_usd.py.
+  - `def test_run(self, test_directories)` (line 84)
+- **class TestTutorial02CTToVTK** (line 107): End-to-end test for tutorial_02_ct_to_vtk.py.
+  - `def test_run(self, test_directories)` (line 112)
+- **class TestTutorial03CreateStatisticalModel** (line 134): End-to-end test for tutorial_03_create_statistical_model.py.
+  - `def test_run(self, test_directories)` (line 139)
+- **class TestTutorial04FitStatisticalModelToPatient** (line 162): End-to-end test for tutorial_04_fit_statistical_model_to_patient.py.
+  - `def test_run(self, test_directories)` (line 167)
 - **class TestTutorial05VTKToUSD** (line 206): End-to-end test for tutorial_05_vtk_to_usd.py.
   - `def test_run(self, test_directories)` (line 211)
-- **class TestTutorial06ReconstructHighres4DCT** (line 248): End-to-end test for tutorial_06_reconstruct_highres_4d_ct.py.
-  - `def test_run(self, test_directories)` (line 253)
+- **class TestTutorial06ReconstructHighres4DCT** (line 247): End-to-end test for tutorial_06_reconstruct_highres_4d_ct.py.
+  - `def test_run(self, test_directories)` (line 252)
 
 ## tests/test_usd_merge.py
 

@@ -100,6 +100,7 @@ if __name__ == "__main__":
 
         # Register the whole image
         reg.set_fixed_image(fixed_image)
+        reg.set_fixed_mask(None)
         results = reg.register(moving_image)
         inverse_transform = results["inverse_transform"]
         forward_transform = results["forward_transform"]

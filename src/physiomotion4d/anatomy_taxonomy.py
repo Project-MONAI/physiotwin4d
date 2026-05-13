@@ -16,7 +16,10 @@ The class is pure stdlib (`dataclasses`, `typing`); it does not import
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -72,16 +75,30 @@ class AnatomyTaxonomy:
         """Add one organ label to the named group.
 
         Creates the group if it does not yet exist. Reassigning the same
-        label id within the same group is silently allowed (last write wins);
-        the same id appearing in a different group is also allowed but
-        :meth:`group_for_id` will then return whichever group was registered
-        last.
+        label id within the same group is silently allowed (last write wins).
+        If the same id is already registered in a *different* group, a warning
+        is logged and the new assignment is dropped, so the first registration
+        wins and :meth:`group_for_id` remains deterministic.
 
         Args:
             group: Target group name.
             label_id: Integer label id (e.g. TotalSegmentator class index).
             organ_name: Human-readable organ name.
         """
+        for existing in self._groups.values():
+            if existing.name == group:
+                continue
+            if label_id in existing.organs:
+                logger.warning(
+                    "label_id %d already registered in group %r as %r; "
+                    "ignoring duplicate add to group %r as %r",
+                    label_id,
+                    existing.name,
+                    existing.organs[label_id],
+                    group,
+                    organ_name,
+                )
+                return
         self.add_group(group).organs[label_id] = organ_name
 
     def group_names(self) -> list[str]:

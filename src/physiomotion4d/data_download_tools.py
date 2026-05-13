@@ -8,9 +8,12 @@ the repository tutorials, experiments, and tests.
 
 from __future__ import annotations
 
+import shutil
 import urllib.request
 from pathlib import Path
 from typing import Union
+
+_DOWNLOAD_TIMEOUT_SECONDS = 60.0
 
 
 class DataDownloadTools:
@@ -36,13 +39,32 @@ class DataDownloadTools:
         data_dir.mkdir(parents=True, exist_ok=True)
 
         data_file = data_dir / DataDownloadTools.SLICER_HEART_CT_FILENAME
-        if data_file.exists():
+        if data_file.exists() and data_file.stat().st_size > 0:
             return data_file
 
-        urllib.request.urlretrieve(  # noqa: S310
-            DataDownloadTools.SLICER_HEART_CT_URL,
-            str(data_file),
-        )
+        # Stream to a temp file with an explicit timeout, then atomically
+        # replace the target on success. Avoids leaving partial files behind
+        # on interrupt and avoids the indefinite hang that urlretrieve has
+        # without a timeout.
+        tmp_file = data_file.with_suffix(data_file.suffix + ".tmp")
+        try:
+            with (
+                urllib.request.urlopen(  # noqa: S310
+                    DataDownloadTools.SLICER_HEART_CT_URL,
+                    timeout=_DOWNLOAD_TIMEOUT_SECONDS,
+                ) as response,
+                tmp_file.open("wb") as out,
+            ):
+                shutil.copyfileobj(response, out)
+            if tmp_file.stat().st_size == 0:
+                raise RuntimeError(
+                    f"Downloaded file is empty: {DataDownloadTools.SLICER_HEART_CT_URL}"
+                )
+            tmp_file.replace(data_file)
+        except BaseException:
+            if tmp_file.exists():
+                tmp_file.unlink()
+            raise
         return data_file
 
     @staticmethod

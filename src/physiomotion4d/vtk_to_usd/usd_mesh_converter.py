@@ -242,7 +242,11 @@ class UsdMeshConverter:
                     # Already triangle-aligned (e.g. derived primvar that was
                     # built post-triangulation). Leave it alone.
                     pass
-                elif len(data) > 0 and triangulation_face_map.max() < len(data):
+                elif (
+                    len(data) > 0
+                    and triangulation_face_map.size > 0
+                    and triangulation_face_map.max() < len(data)
+                ):
                     expanded_data = data[triangulation_face_map]
                     array = GenericArray(
                         name=array.name,
