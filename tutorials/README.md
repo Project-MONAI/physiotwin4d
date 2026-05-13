@@ -26,18 +26,26 @@ dataset licensing, and expected directory layout.
 ## Running a Tutorial
 
 Each tutorial is a standalone percent-cell Python script (`# %%`) that can be
-run cell-by-cell in VS Code or Cursor without Jupyter packages. Paths are
-defined near the top of each script. By default, data is read from the
-repository `data/` directory and outputs are written under `output/`.
+run cell-by-cell in VS Code or Cursor without Jupyter packages, or executed
+end-to-end as a regular Python script. Paths are defined near the top of each
+script. By default, data is read from the repository `data/` directory and
+outputs are written under `tutorials/output/<tutorial_name>/`.
 
 ```bash
-# In VS Code/Cursor, open the tutorial and run the final cell:
-tutorial_results = run_tutorial()
+# Run the whole tutorial from the command line
+python tutorials/tutorial_01_heart_gated_ct_to_usd.py
 ```
 
-To use different paths, edit the constants in the tutorial script. For
-repeatable command-line execution with path arguments, use the installed
-`physiomotion4d-*` CLI commands instead.
+In VS Code or Cursor, open the tutorial and use **Run Python File** (or run
+the cells in order with **Run Cell**). The script's `if __name__ ==
+"__main__":` block executes the workflow and assigns the resulting
+`tutorial_results` dict in the script's namespace; the same variable is what
+`tests/test_tutorials.py` consumes via `runpy.run_path(..., run_name=
+"__main__")`.
+
+To use different paths, edit the constants near the top of the tutorial
+script. For repeatable command-line execution with path arguments, use the
+installed `physiomotion4d-*` CLI commands instead.
 
 ## Running as Pytest Tutorial Tests
 

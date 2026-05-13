@@ -164,9 +164,7 @@ stage = (
 # %%
 usd_tools = USDTools()
 # ConvertVTKToUSD places prims at /World/{basename}/{part_name}.
-# Discover the target prim dynamically so the path stays valid regardless
-# of how many connected components or cell types the VTK file produces.
-mesh_paths = usd_tools.list_mesh_paths_under(stage, parent_path="/World/AlterraValve")
+vessel_paths = usd_tools.list_mesh_paths_under(stage, parent_path="/World/AlterraValve")
 if separate_by == "connectivity":
     vessel_path = "/World/AlterraValve/AlterraValve_object3"
 elif separate_by == "cell_type":

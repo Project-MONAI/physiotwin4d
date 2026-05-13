@@ -137,17 +137,21 @@ class USDTools(PhysioMotion4DBase):
                 continue
 
             world_matrix = xform_cache.GetLocalToWorldTransform(prim)
-            points = np.asarray(
-                [
-                    tuple(
-                        world_matrix.Transform(
-                            Gf.Vec3d(float(point[0]), float(point[1]), float(point[2]))
-                        )
-                    )
-                    for point in points_value
-                ],
-                dtype=np.float32,
+            # Vectorize the local-to-world transform: USD's Gf.Matrix4d uses
+            # the convention `world_point = local_point_row_vec * M`, where
+            # the matrix is row-major and the translation row is the last
+            # row. Building a (N, 4) homogeneous-point block and multiplying
+            # once is dramatically faster than calling Transform() per point
+            # for large meshes.
+            mat_array = np.array(
+                [[float(world_matrix[i][j]) for j in range(4)] for i in range(4)],
+                dtype=np.float64,
             )
+            local_points = np.asarray(points_value, dtype=np.float64)
+            homogeneous = np.empty((local_points.shape[0], 4), dtype=np.float64)
+            homogeneous[:, :3] = local_points
+            homogeneous[:, 3] = 1.0
+            points = (homogeneous @ mat_array)[:, :3].astype(np.float32)
             if len(points) == 0:
                 continue
 

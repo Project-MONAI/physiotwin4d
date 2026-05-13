@@ -344,16 +344,16 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 - **class USDTools** (line 28): Utilities for manipulating Universal Scene Description (USD) files.
   - `def __init__(self, log_level=logging.INFO)` (line 64): Initialize the USDTools class.
   - `def load_usd_as_vtk(self, usd_file, prim_path='/World', time_code=None)` (line 72): Load USD mesh geometry as a PyVista ``PolyData``.
-  - `def get_subtree_bounding_box(self, prim)` (line 214): Compute the axis-aligned bounding box of a USD primitive subtree.
-  - `def save_usd_file_arrangement(self, new_stage_name, usd_file_names)` (line 274): Create a spatial grid arrangement of objects from multiple USD files.
-  - `def merge_usd_files(self, output_filename, input_filenames_list)` (line 400): Merge multiple USD files into a single comprehensive USD file.
-  - `def merge_usd_files_flattened(self, output_filename, input_filenames_list)` (line 605): Merge multiple USD files using references and flattening.
-  - `def list_mesh_primvars(self, stage_or_path, mesh_path, time_code=None)` (line 733): List all primvars on a USD mesh with metadata.
-  - `def pick_color_primvar(self, primvar_infos, keywords=('strain', 'stress'))` (line 828): Select a primvar for coloring based on keywords and preferences.
-  - `def apply_colormap_from_primvar(self, stage_or_path, mesh_path, source_primvar, *, cmap='viridis', time_codes=None, intensity_range=None, use_sigmoid_scale=False, write_default_at_t0=True, bind_vertex_color_material=True)` (line 882): Apply colormap visualization by converting a primvar to displayColor.
-  - `def set_solid_display_color(self, stage_or_path, mesh_path, color, *, time_codes=None, bind_vertex_color_material=True)` (line 1178): Set a constant (solid) displayColor for a mesh.
-  - `def list_mesh_paths_under(self, stage_or_path, parent_path='/World/Meshes')` (line 1271): List paths of all mesh prims under a parent path.
-  - `def repair_mesh_primvar_element_sizes(self, stage_or_path, mesh_path, *, time_code=None, save=True)` (line 1298): Repair missing/incorrect primvar elementSize metadata for a mesh.
+  - `def get_subtree_bounding_box(self, prim)` (line 218): Compute the axis-aligned bounding box of a USD primitive subtree.
+  - `def save_usd_file_arrangement(self, new_stage_name, usd_file_names)` (line 278): Create a spatial grid arrangement of objects from multiple USD files.
+  - `def merge_usd_files(self, output_filename, input_filenames_list)` (line 404): Merge multiple USD files into a single comprehensive USD file.
+  - `def merge_usd_files_flattened(self, output_filename, input_filenames_list)` (line 609): Merge multiple USD files using references and flattening.
+  - `def list_mesh_primvars(self, stage_or_path, mesh_path, time_code=None)` (line 737): List all primvars on a USD mesh with metadata.
+  - `def pick_color_primvar(self, primvar_infos, keywords=('strain', 'stress'))` (line 832): Select a primvar for coloring based on keywords and preferences.
+  - `def apply_colormap_from_primvar(self, stage_or_path, mesh_path, source_primvar, *, cmap='viridis', time_codes=None, intensity_range=None, use_sigmoid_scale=False, write_default_at_t0=True, bind_vertex_color_material=True)` (line 886): Apply colormap visualization by converting a primvar to displayColor.
+  - `def set_solid_display_color(self, stage_or_path, mesh_path, color, *, time_codes=None, bind_vertex_color_material=True)` (line 1182): Set a constant (solid) displayColor for a mesh.
+  - `def list_mesh_paths_under(self, stage_or_path, parent_path='/World/Meshes')` (line 1275): List paths of all mesh prims under a parent path.
+  - `def repair_mesh_primvar_element_sizes(self, stage_or_path, mesh_path, *, time_code=None, save=True)` (line 1302): Repair missing/incorrect primvar elementSize metadata for a mesh.
 
 ## src/physiomotion4d/vtk_to_usd/converter.py
 
