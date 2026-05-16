@@ -114,7 +114,7 @@ print(WorkflowConvertImageToUSD.__name__)
 ### Core Components
 
 - **Workflow Classes**: Complete end-to-end pipeline processors
-  - `WorkflowConvertImageToUSD`: Heart-gated CT to USD processing workflow
+  - `WorkflowConvertImageToUSD`: 3D/4D image to USD processing workflow
   - `WorkflowCreateStatisticalModel`: Create PCA statistical shape model from sample meshes
   - `WorkflowFitStatisticalModelToPatient`: Model-to-patient registration workflow
 - **Segmentation Classes**: Multiple AI-based chest segmentation implementations
@@ -443,7 +443,7 @@ stage = convert_vtk_file(
 ```
 
 Features:
-- Automatic coordinate system conversion (RAS to Y-up)
+- Automatic coordinate system conversion (LPS to USD right-handed Y-up)
 - Material system with UsdPreviewSurface
 - Preserves all VTK data arrays as USD primvars
 - Supports VTP, VTK, and VTU file formats
@@ -721,7 +721,7 @@ Use `/impl` for end-to-end implementation: read → summarize → plan → diff 
 ```
 
 ```text
-/impl fix the RAS-to-Y-up transform being applied twice in vtk_to_usd/usd_utils.py
+/impl fix the LPS-to-Y-up transform being applied twice in vtk_to_usd/usd_utils.py
 ```
 
 The agent will read the affected module, propose a numbered plan, implement in the

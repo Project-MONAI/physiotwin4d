@@ -53,7 +53,7 @@ percent-cell markers so the same file can be executed end-to-end with
 | `convert_vtk_to_usd.py`                         | ~800         | High-level VTK -> USD converter                |
 | `vtk_to_usd/` subpackage                        | 2,657        | Low-level VTK -> USD building blocks (9 files) |
 | `cli/` subpackage                               | 1,788        | CLI entry-point scripts (8 commands)           |
-| `workflow_convert_image_to_usd.py`     | ~540         | Heart CT to USD workflow                       |
+| `workflow_convert_image_to_usd.py`     | ~540         | 4D image to USD workflow                       |
 
 ---
 

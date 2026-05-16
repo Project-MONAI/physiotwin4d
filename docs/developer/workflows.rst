@@ -59,7 +59,7 @@ Risk Areas
 ==========
 
 Changes at the ITK-to-PyVista boundary, time-series transform direction, or
-RAS-to-Y-up USD coordinate conversion are high risk and should include focused
+LPS-to-USD-Y-up coordinate conversion are high risk and should include focused
 tests plus visual or metadata validation.
 
 See Also

@@ -9,7 +9,7 @@ Provides:
 - Data containers: MeshData, ConversionSettings, MaterialData, etc.
 - VTK file readers (.vtk, .vtp, .vtu)
 - USD primitive writers: UsdMeshConverter, MaterialManager
-- Coordinate helpers (RAS to Y-up) and mesh splitting utilities
+- Coordinate helpers (LPS to USD Y-up) and mesh splitting utilities
 """
 
 from .converter import convert_vtk_file
@@ -33,9 +33,9 @@ from .usd_utils import (
     add_framing_camera,
     compute_mesh_extent,
     create_primvar,
-    ras_normals_to_usd,
-    ras_points_to_usd,
-    ras_to_usd,
+    lps_normals_to_usd,
+    lps_points_to_usd,
+    lps_to_usd,
     sanitize_primvar_name,
     triangulate_face,
 )
@@ -63,9 +63,9 @@ __all__ = [
     "MaterialManager",
     "UsdMeshConverter",
     # Utilities
-    "ras_to_usd",
-    "ras_points_to_usd",
-    "ras_normals_to_usd",
+    "lps_to_usd",
+    "lps_points_to_usd",
+    "lps_normals_to_usd",
     "create_primvar",
     "sanitize_primvar_name",
     "triangulate_face",

@@ -20,7 +20,7 @@ and the API map accurate and concise.
 - Read the changed code before writing any docs.
 - Keep docstrings factual — describe what the code does, not what you wish it did.
 - State image/tensor shapes and axis orders explicitly:
-  e.g. `Returns an ITK image with shape (X, Y, Z, T) in RAS world space.`
+  e.g. `Returns an ITK image with shape (X, Y, Z, T) in LPS world space.`
 - Double quotes for docstrings; single quotes for inline strings.
 - Do **not** create new `.md` files unless explicitly asked.
 - After any public API change, regenerate: `python utils/generate_api_map.py`
@@ -34,7 +34,7 @@ def register(self, moving_image: itk.Image) -> dict[str, Any]:
     Parameters
     ----------
     moving_image : itk.Image
-        3-D image in RAS world space, shape (X, Y, Z).
+        3-D image in LPS world space, shape (X, Y, Z).
 
     Returns
     -------

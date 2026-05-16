@@ -38,8 +38,8 @@ Available Workflows
      - Reconstruct a high-resolution 4D CT series from phase images and a
        high-resolution reference.
 
-Heart-Gated CT to USD
-=====================
+Convert Image to USD
+====================
 
 .. autoclass:: WorkflowConvertImageToUSD
    :members:

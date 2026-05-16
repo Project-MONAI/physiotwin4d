@@ -40,9 +40,9 @@ Examples
         """,
     )
 
-    source = parser.add_mutually_exclusive_group(required=True)
-    source.add_argument(
+    parser.add_argument(
         "--input-image",
+        required=True,
         help=(
             "Path to a 3D or 4D image file (ITK-readable, e.g. NRRD/NIfTI/MHA) "
             "or a directory containing a DICOM series (3D or 4D)."
@@ -66,16 +66,15 @@ Examples
 
     args = parser.parse_args()
 
-    if args.input_image and not os.path.exists(args.input_image):
+    if not os.path.exists(args.input_image):
         print(f"Error: input image not found: {args.input_image}")
         return 1
     try:
         from physiomotion4d import ConvertImage4DTo3D
 
         converter = ConvertImage4DTo3D()
-        if args.input_image:
-            print(f"Loading 4D image: {args.input_image}")
-            converter.load_image_4d(args.input_image)
+        print(f"Loading 4D image: {args.input_image}")
+        converter.load_image_4d(args.input_image)
     except (FileNotFoundError, OSError, RuntimeError, ValueError) as exc:
         print(f"Error loading input: {exc}")
         traceback.print_exc()

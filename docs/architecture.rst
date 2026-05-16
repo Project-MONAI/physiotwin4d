@@ -77,9 +77,10 @@ OpenUSD stage creation, material assignment, coordinate conversion, and time
 samples.
 
 The high-risk boundary is the ITK-to-PyVista-to-USD path. Image data remains in
-ITK image space until contours are extracted. Meshes are represented as PyVista
-objects before USD export. The VTK-to-USD layer applies the repository's
-RAS-to-Y-up coordinate transform during USD conversion.
+ITK's native LPS world space until contours are extracted. Meshes are
+represented as PyVista objects (still in LPS) before USD export. The VTK-to-USD
+layer applies the repository's LPS-to-USD-Y-up coordinate transform during USD
+conversion.
 
 CLI Boundary
 ============

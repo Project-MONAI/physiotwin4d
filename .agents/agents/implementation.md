@@ -35,7 +35,7 @@ Key modules: `physiomotion4d_base.py`, `segment_chest_*.py`, `register_images_*.
 
 ## Data shapes — state them explicitly
 
-- ITK images: axes X, Y, Z [, T] in RAS world space.
+- ITK images: axes X, Y, Z [, T] in LPS world space (ITK's native frame).
 - 4D time series: shape `(X, Y, Z, T)`. Never silently squeeze or permute.
 - PyVista surfaces: RAS internally; Y-up only at USD export.
 - Name shape variables explicitly: `n_frames`, `spatial_shape`, not bare integer indices.

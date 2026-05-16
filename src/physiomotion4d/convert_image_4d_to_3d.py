@@ -134,17 +134,25 @@ class ConvertImage4DTo3D(PhysioMotion4DBase):
             )
         space_directions = np.asarray(header["space directions"])
         measurement_frame = np.asarray(header["measurement frame"])
-        if space_directions.shape[0] < 4 or space_directions.shape[1] < 3:
+        if (
+            space_directions.ndim != 2
+            or space_directions.shape[0] < 4
+            or space_directions.shape[1] < 3
+        ):
             raise ValueError(
                 f"{filename!r} is not a valid Slicer 4D .seq.nrrd: "
                 f"'space directions' has shape {space_directions.shape}, "
-                "expected at least (4, 3)"
+                "expected a 2-D array of at least (4, 3)"
             )
-        if measurement_frame.shape[0] < 3:
+        if (
+            measurement_frame.ndim != 2
+            or measurement_frame.shape[0] < 3
+            or measurement_frame.shape[1] < 3
+        ):
             raise ValueError(
                 f"{filename!r} is not a valid Slicer 4D .seq.nrrd: "
                 f"'measurement frame' has shape {measurement_frame.shape}, "
-                "expected at least 3 rows"
+                "expected a 2-D array of at least (3, 3)"
             )
 
         origin_3d = np.asarray(header["space origin"], dtype=float)
@@ -194,8 +202,8 @@ class ConvertImage4DTo3D(PhysioMotion4DBase):
         Slices are grouped by a composite key built from the DICOM tags
         listed in ``self.dicom_phase_keys`` (the default set covers
         ``TemporalPositionIdentifier``, ``TriggerTime``, the cardiac trigger
-        delay / phase tags, ``FrameReferenceDateTime``, ``AcquisitionTime``,
-        and ``ScanOptions``).  Any tag whose
+        delay / phase tags, ``FrameReferenceDateTime``, and ``ScanOptions``).
+        Any tag whose
         value differs between slices will split them into separate phases;
         missing tags fall back to the per-tag default.  When none of the
         configured tags differ across slices, all slices form a single 3D
@@ -241,16 +249,20 @@ class ConvertImage4DTo3D(PhysioMotion4DBase):
         sorted_keys = sorted(groups.keys())
         self.log_info(f"Grouped DICOM slices into {len(sorted_keys)} phase(s)")
 
-        iop = np.asarray(entries[0][1].ImageOrientationPatient, dtype=float)
-        slice_normal = np.cross(iop[:3], iop[3:6])
-
-        def proj(ds: pydicom.Dataset) -> float:
-            ipp = np.asarray(ds.ImagePositionPatient, dtype=float)
-            return float(np.dot(ipp, slice_normal))
-
         self.img_3d = []
         for key in sorted_keys:
-            ordered = sorted(groups[key], key=lambda item: proj(item[1]))
+            group_entries = groups[key]
+            iop = np.asarray(group_entries[0][1].ImageOrientationPatient, dtype=float)
+            slice_normal = np.cross(iop[:3], iop[3:6])
+
+            def proj(
+                ds: pydicom.Dataset,
+                normal: np.ndarray = slice_normal,
+            ) -> float:
+                ipp = np.asarray(ds.ImagePositionPatient, dtype=float)
+                return float(np.dot(ipp, normal))
+
+            ordered = sorted(group_entries, key=lambda item: proj(item[1]))
             filenames = [fname for fname, _ in ordered]
             self.img_3d.append(itk.imread(filenames))
 

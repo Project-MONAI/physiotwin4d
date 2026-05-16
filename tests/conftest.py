@@ -357,7 +357,7 @@ def test_images(
     slice_000 = data_dir / "slice_000.mha"
     slice_007 = data_dir / "slice_007.mha"
     if not slice_000.exists() or not slice_007.exists():
-        print("\nConverting 4D NRRD to 3D time series...")
+        print("\nConverting 4D image to 3D time series...")
         conv = ConvertImage4DTo3D()
         conv.load_image_4d(str(download_test_data))
         conv.save_3d_images(data_dir, "slice")

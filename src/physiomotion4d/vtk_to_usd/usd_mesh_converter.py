@@ -14,8 +14,8 @@ from .material_manager import MaterialManager
 from .usd_utils import (
     compute_mesh_extent,
     create_primvar,
-    ras_normals_to_usd,
-    ras_points_to_usd,
+    lps_normals_to_usd,
+    lps_points_to_usd,
     triangulate_face,
 )
 
@@ -78,7 +78,7 @@ class UsdMeshConverter:
         mesh = UsdGeom.Mesh.Define(self.stage, mesh_path)
 
         # Convert points to USD coordinates
-        usd_points = ras_points_to_usd(mesh_data.points)
+        usd_points = lps_points_to_usd(mesh_data.points)
 
         # Handle triangulation if requested
         face_counts = mesh_data.face_vertex_counts
@@ -131,7 +131,7 @@ class UsdMeshConverter:
         # Handle normals
         if mesh_data.normals is not None:
             logger.debug("Adding normals to mesh")
-            usd_normals = ras_normals_to_usd(mesh_data.normals)
+            usd_normals = lps_normals_to_usd(mesh_data.normals)
             normals_attr = mesh.CreateNormalsAttr()
             normals_attr.SetMetadata("interpolation", UsdGeom.Tokens.vertex)
             if time_code is not None:
@@ -371,7 +371,7 @@ class UsdMeshConverter:
             mesh_data_sequence[1:], time_codes[1:], strict=False
         ):
             # Update points
-            usd_points = ras_points_to_usd(mesh_data.points)
+            usd_points = lps_points_to_usd(mesh_data.points)
             mesh.GetPointsAttr().Set(usd_points, time_code)
 
             # Update extent
@@ -380,7 +380,7 @@ class UsdMeshConverter:
 
             # Update normals if present
             if mesh_data.normals is not None:
-                usd_normals = ras_normals_to_usd(mesh_data.normals)
+                usd_normals = lps_normals_to_usd(mesh_data.normals)
                 mesh.GetNormalsAttr().Set(usd_normals, time_code)
 
             # Update colors if present

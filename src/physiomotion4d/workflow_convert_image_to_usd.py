@@ -1,8 +1,10 @@
 """
-Image-to-USD workflow implementing the complete 4D CT to USD pipeline.
+Image-to-USD workflow implementing the complete 3D/4D image to USD pipeline.
 
-This module implements the complete pipeline for processing 4D CT images
-(e.g. cardiac and respiratory gated studies) into dynamic USD models.
+This module implements the complete pipeline for processing 3D or 4D medical
+images (e.g. cardiac and respiratory gated CT studies) into dynamic USD
+models.  4D image arrays follow the (X, Y, Z, T) axis convention used
+throughout PhysioMotion4D.
 """
 
 import logging
@@ -51,8 +53,13 @@ class WorkflowConvertImageToUSD(PhysioMotion4DBase):
         Initialize the image-to-USD workflow.
 
         Args:
-            input_filenames (List): List of paths to the 3D NRRD files containing cardiac CT data.
-                If there is only one file, it will be used as the 4D NRRD file.
+            input_filenames (List): One or more image sources for the time
+                series.  A single entry may be a 4D image file (NRRD/NIfTI/MHA
+                in (X, Y, Z, T) order), a 3D image file, or a directory holding
+                a DICOM series (3D or 4D).  Multiple entries are treated as a
+                pre-split list of 3D images, one per time point.  All entries
+                are routed through :class:`ConvertImage4DTo3D` so any
+                ITK-readable format is accepted.
             contrast_enhanced (bool): Whether the study uses contrast enhancement
             output_directory (str): Directory path where output files will be stored
             project_name (str): Project name for USD file organization
@@ -204,6 +211,9 @@ class WorkflowConvertImageToUSD(PhysioMotion4DBase):
     def _load_time_series(self) -> None:
         """Load and convert 4D data to time series images."""
         self.log_info("Loading time series data...")
+
+        self._time_series_images = []
+        self._num_time_points = 0
 
         if len(self.input_filenames) == 1:
             self.converter.load_image_4d(self.input_filenames[0])

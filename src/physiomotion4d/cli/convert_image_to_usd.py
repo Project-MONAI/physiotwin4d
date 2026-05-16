@@ -33,7 +33,13 @@ Examples:
     )
 
     parser.add_argument(
-        "input_files", nargs="+", help="Path to 4D NRRD file or list of 3D NRRD files"
+        "input_files",
+        nargs="+",
+        help=(
+            "Input image source(s): a single 4D file (NRRD/NIfTI/MHA/...), "
+            "a directory containing a DICOM series (3D or 4D), or a list of "
+            "3D files representing a time series."
+        ),
     )
     parser.add_argument(
         "--output-dir",
