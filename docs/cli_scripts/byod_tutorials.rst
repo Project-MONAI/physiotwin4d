@@ -25,7 +25,7 @@ or the CPU-only variant:
 .. code-block:: bash
 
    # Recommended — CUDA-enabled
-   pip install physiomotion4d[cuda]
+   pip install physiomotion4d[cuda13]
 
    # CPU-only
    pip install physiomotion4d
