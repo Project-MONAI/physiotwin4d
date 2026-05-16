@@ -73,7 +73,7 @@ Poor Segmentation Quality
 
    .. code-block:: python
 
-      workflow = WorkflowConvertHeartGatedCTToUSD(
+      workflow = WorkflowConvertImageToUSD(
           ...,
           contrast_enhanced=True  # or False
       )
@@ -93,7 +93,7 @@ Registration Not Converging
 
    .. code-block:: bash
 
-      physiomotion4d-heart-gated-ct cardiac_4d.nrrd --registration-method ants
+      physiomotion4d-convert-image-to-usd cardiac_4d.nrrd --registration-method ants
 
 3. Check image orientation and spacing
 

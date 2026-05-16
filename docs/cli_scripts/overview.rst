@@ -79,7 +79,7 @@ After installation, scripts are available as command-line tools with the prefix 
 
 .. code-block:: bash
 
-   physiomotion4d-heart-gated-ct --help
+   physiomotion4d-convert-image-to-usd --help
 
 General Workflow
 ================

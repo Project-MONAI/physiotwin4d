@@ -13,7 +13,7 @@ dataset licensing, and expected directory layout.
 
 | # | Script | Primary API | Dataset |
 |---|--------|-------------|---------|
-| 1 | [tutorial_01_heart_gated_ct_to_usd.py](tutorial_01_heart_gated_ct_to_usd.py) | `WorkflowConvertHeartGatedCTToUSD` | Slicer-Heart-CT (prepare first) |
+| 1 | [tutorial_01_heart_gated_ct_to_usd.py](tutorial_01_heart_gated_ct_to_usd.py) | `WorkflowConvertImageToUSD` | Slicer-Heart-CT (prepare first) |
 | 2 | [tutorial_02_ct_to_vtk.py](tutorial_02_ct_to_vtk.py) | `WorkflowConvertCTToVTK` | Slicer-Heart-CT (prepare first) |
 | 3 | [tutorial_03_create_statistical_model.py](tutorial_03_create_statistical_model.py) | `WorkflowCreateStatisticalModel` | KCL-Heart-Model (manual) |
 | 4 | [tutorial_04_fit_statistical_model_to_patient.py](tutorial_04_fit_statistical_model_to_patient.py) | `WorkflowFitStatisticalModelToPatient` | KCL-Heart-Model plus Tutorial 3 output |

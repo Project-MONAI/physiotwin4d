@@ -18,7 +18,7 @@ Module Index.
 .. toctree::
    :maxdepth: 1
 
-   convert_heart_gated_ct_to_usd
+   convert_image_to_usd
    convert_ct_to_vtk
    convert_vtk_to_usd
    create_statistical_model

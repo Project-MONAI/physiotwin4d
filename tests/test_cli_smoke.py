@@ -10,7 +10,7 @@ import pytest
 
 CLI_MODULES = [
     "physiomotion4d.cli.convert_ct_to_vtk",
-    "physiomotion4d.cli.convert_heart_gated_ct_to_usd",
+    "physiomotion4d.cli.convert_image_to_usd",
     "physiomotion4d.cli.convert_vtk_to_usd",
     "physiomotion4d.cli.create_statistical_model",
     "physiomotion4d.cli.fit_statistical_model_to_patient",

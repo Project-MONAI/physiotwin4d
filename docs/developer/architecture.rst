@@ -34,7 +34,7 @@ Architecture Diagram
 Workflow Classes
 ================
 
-``WorkflowConvertHeartGatedCTToUSD``
+``WorkflowConvertImageToUSD``
    Orchestrates 4D CT loading, segmentation, image registration, contour
    transformation, and animated USD generation.
 

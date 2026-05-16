@@ -29,7 +29,7 @@ By Category
    * :class:`~physiomotion4d.PhysioMotion4DBase` - Base class for all components
 
 **Workflows**
-   * :class:`~physiomotion4d.WorkflowConvertHeartGatedCTToUSD` - Heart CT to USD
+   * :class:`~physiomotion4d.WorkflowConvertImageToUSD` - Heart CT to USD
    * :class:`~physiomotion4d.WorkflowCreateStatisticalModel` - Create PCA statistical shape model
    * :class:`~physiomotion4d.WorkflowFitStatisticalModelToPatient` - Heart model registration
 

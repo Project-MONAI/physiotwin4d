@@ -66,13 +66,13 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 
 - `def main()` (line 26): CLI entry point for CT to VTK conversion.
 
-## src/physiomotion4d/cli/convert_heart_gated_ct_to_usd.py
-
-- `def main()` (line 14): Command-line interface for Heart-gated CT processing.
-
 ## src/physiomotion4d/cli/convert_image_4d_to_3d.py
 
-- `def main()` (line 16): CLI entry point for 4D-to-3D image conversion.
+- `def main()` (line 20): CLI entry point for 4D-to-3D image conversion.
+
+## src/physiomotion4d/cli/convert_image_to_usd.py
+
+- `def main()` (line 14): Command-line interface for the Image-to-USD workflow.
 
 ## src/physiomotion4d/cli/convert_vtk_to_usd.py
 
@@ -108,12 +108,12 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 
 ## src/physiomotion4d/convert_image_4d_to_3d.py
 
-- **class ConvertImage4DTo3D** (line 26): Split a 4D ITK image (X, Y, Z, T) into a list of 3D ITK images.
-  - `def __init__(self, log_level=logging.INFO)` (line 29): Initialize the 4D-to-3D image converter.
-  - `def load_image_4d(self, filename)` (line 38): Load a 4D image and split it into a list of 3D ITK images.
-  - `def get_3d_image(self, index)` (line 120): Return the 3D ITK image at the given time index.
-  - `def get_number_of_3d_images(self)` (line 124): Return the number of 3D images currently held.
-  - `def save_3d_images(self, directory, basename, suffix='mha')` (line 128): Write each held 3D image to ``{directory}/{basename}_{i:03d}.{suffix}``.
+- **class ConvertImage4DTo3D** (line 34): Split a 3D/4D ITK image (X, Y, Z [, T]) into a list of 3D ITK images.
+  - `def __init__(self, log_level=logging.INFO)` (line 37): Initialize the 4D-to-3D image converter.
+  - `def load_image_4d(self, filename)` (line 62): Load a 3D or 4D image and populate ``self.img_3d`` with 3D frames.
+  - `def get_3d_image(self, index)` (line 257): Return the 3D ITK image at the given time index.
+  - `def get_number_of_3d_images(self)` (line 261): Return the number of 3D images currently held.
+  - `def save_3d_images(self, directory, basename, suffix='mha')` (line 265): Write each held 3D image to ``{directory}/{basename}_{i:03d}.{suffix}``.
 
 ## src/physiomotion4d/convert_vtk_to_usd.py
 
@@ -435,10 +435,10 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
   - `def save_combined_surface(surfaces, output_dir, prefix='')` (line 397): Merge all group surfaces into a single VTP file.
   - `def save_combined_mesh(meshes, output_dir, prefix='')` (line 432): Merge all group meshes into a single VTU file.
 
-## src/physiomotion4d/workflow_convert_heart_gated_ct_to_usd.py
+## src/physiomotion4d/workflow_convert_image_to_usd.py
 
-- **class WorkflowConvertHeartGatedCTToUSD** (line 28): Complete workflow for Heart-gated CT images to dynamic USD models.
-  - `def __init__(self, input_filenames, contrast_enhanced, output_directory, project_name, reference_image_filename=None, number_of_registration_iterations=1, registration_method='icon', log_level=logging.INFO, save_registered_images=True, save_registration_transforms=True, save_labelmaps=True)` (line 36): Initialize the Heart-gated CT to USD workflow.
+- **class WorkflowConvertImageToUSD** (line 28): Complete workflow for converting 4D CT images to dynamic USD models.
+  - `def __init__(self, input_filenames, contrast_enhanced, output_directory, project_name, reference_image_filename=None, number_of_registration_iterations=1, registration_method='icon', log_level=logging.INFO, save_registered_images=True, save_registration_transforms=True, save_labelmaps=True)` (line 36): Initialize the image-to-USD workflow.
   - `def process(self)` (line 177): Execute the complete workflow from 4D CT to dynamic USD models.
 
 ## src/physiomotion4d/workflow_convert_vtk_to_usd.py

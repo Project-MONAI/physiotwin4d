@@ -1,10 +1,14 @@
 #!/usr/bin/env python
-"""Command-line interface for splitting a 4D image into a 3D time series.
+"""Command-line interface for splitting a 3D/4D image into a 3D time series.
 
-Reads a 4D medical image with ITK (NRRD, NIfTI, MHA, …) and writes one ``.mha``
-file per temporal frame to the chosen output directory.  Alternatively, accepts
-an ordered list of 3D image filenames that already represent a time series and
-republishes them as ``{basename}_{i:03d}.mha`` for downstream pipelines.
+Reads a 3D or 4D medical image and writes one ``.mha`` file per temporal frame
+to the chosen output directory.  Supported inputs:
+
+* A single 4D file readable by ITK (NRRD, NIfTI, MHA, …); each temporal frame
+  is written separately.
+* A single 3D file readable by ITK; it is written as a one-frame series.
+* A directory containing a DICOM series (3D or 4D / gated); slices are grouped
+  by temporal phase and each phase is written as a 3D frame.
 """
 
 import argparse
@@ -39,7 +43,10 @@ Examples
     source = parser.add_mutually_exclusive_group(required=True)
     source.add_argument(
         "--input-image",
-        help="Path to a single 4D image file readable by ITK.",
+        help=(
+            "Path to a 3D or 4D image file (ITK-readable, e.g. NRRD/NIfTI/MHA) "
+            "or a directory containing a DICOM series (3D or 4D)."
+        ),
     )
     parser.add_argument(
         "--output-dir",

@@ -103,7 +103,7 @@ Workflow Optimization
        patient_id=$(basename "$patient_dir")
        echo "Processing $patient_id"
        
-       physiomotion4d-heart-gated-ct \
+       physiomotion4d-convert-image-to-usd \
            ${patient_dir}/*.nrrd \
            --contrast \
            --output-dir processing/${patient_id} \
@@ -279,7 +279,7 @@ For non-gated multi-phase acquisitions (e.g., arterial/venous/delayed):
 
 .. code-block:: bash
 
-   physiomotion4d-heart-gated-ct \
+   physiomotion4d-convert-image-to-usd \
        arterial.nrrd \
        venous.nrrd \
        delayed.nrrd \
@@ -293,7 +293,7 @@ Process multiple patients in parallel:
 .. code-block:: bash
 
    # Using GNU parallel
-   parallel -j 4 'physiomotion4d-heart-gated-ct {}/*.nrrd \
+   parallel -j 4 'physiomotion4d-convert-image-to-usd {}/*.nrrd \
        --output-dir results/{/} \
        --project-name {/}' ::: raw_data/patient_*
 

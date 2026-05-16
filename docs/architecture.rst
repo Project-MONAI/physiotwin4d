@@ -41,7 +41,7 @@ Data Flow
 Primary Workflows
 =================
 
-``WorkflowConvertHeartGatedCTToUSD``
+``WorkflowConvertImageToUSD``
    Converts a 4D cardiac CT file or 3D CT time series into registered anatomy
    contours and painted animated USD files.
 
@@ -87,7 +87,7 @@ CLI Boundary
 The installed CLI commands in ``pyproject.toml`` are thin wrappers around the
 workflow classes. They are the preferred examples for executable API usage:
 
-* ``physiomotion4d-heart-gated-ct``
+* ``physiomotion4d-convert-image-to-usd``
 * ``physiomotion4d-convert-ct-to-vtk``
 * ``physiomotion4d-create-statistical-model``
 * ``physiomotion4d-fit-statistical-model-to-patient``

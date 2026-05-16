@@ -100,7 +100,7 @@ Script
    ``tutorials/tutorial_01_heart_gated_ct_to_usd.py``
 
 Workflow
-   ``WorkflowConvertHeartGatedCTToUSD``
+   ``WorkflowConvertImageToUSD``
 
 Dataset
    Slicer-Heart-CT, prepared before running the tutorial.

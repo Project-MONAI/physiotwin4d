@@ -9,7 +9,7 @@ for visualization in NVIDIA Omniverse. It provides comprehensive tools for image
 segmentation, registration, and USD file generation.
 
 Main Components:
-    - WorkflowConvertHeartGatedCTToUSD: Heart-gated CT to USD workflow
+    - WorkflowConvertImageToUSD: 4D CT image to USD workflow
     - Segmentation classes: Multiple AI-based chest segmentation implementations
     - Registration tools: Deep learning-based image registration
     - Transform utilities: Tools for image and contour transformations
@@ -69,7 +69,7 @@ from .usd_tools import USDTools
 
 # Core workflow processor
 from .workflow_convert_ct_to_vtk import WorkflowConvertCTToVTK
-from .workflow_convert_heart_gated_ct_to_usd import WorkflowConvertHeartGatedCTToUSD
+from .workflow_convert_image_to_usd import WorkflowConvertImageToUSD
 from .workflow_convert_vtk_to_usd import WorkflowConvertVTKToUSD
 from .workflow_reconstruct_highres_4d_ct import WorkflowReconstructHighres4DCT
 from .workflow_create_statistical_model import WorkflowCreateStatisticalModel
@@ -80,7 +80,7 @@ from .workflow_fit_statistical_model_to_patient import (
 __all__ = [
     # Workflow classes
     "WorkflowConvertCTToVTK",
-    "WorkflowConvertHeartGatedCTToUSD",
+    "WorkflowConvertImageToUSD",
     "WorkflowConvertVTKToUSD",
     "WorkflowCreateStatisticalModel",
     "WorkflowReconstructHighres4DCT",

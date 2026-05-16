@@ -1,8 +1,8 @@
 """
-Heart-gated CT processor implementing the complete 4D CT to USD workflow.
+Image-to-USD workflow implementing the complete 4D CT to USD pipeline.
 
-This module implements the complete pipeline for processing 4D cardiac CT images
-as demonstrated in the Heart-GatedCT experiment notebooks.
+This module implements the complete pipeline for processing 4D CT images
+(e.g. cardiac and respiratory gated studies) into dynamic USD models.
 """
 
 import logging
@@ -25,9 +25,9 @@ from physiomotion4d.transform_tools import TransformTools
 from physiomotion4d.usd_anatomy_tools import USDAnatomyTools
 
 
-class WorkflowConvertHeartGatedCTToUSD(PhysioMotion4DBase):
+class WorkflowConvertImageToUSD(PhysioMotion4DBase):
     """
-    Complete workflow for Heart-gated CT images to dynamic USD models.
+    Complete workflow for converting 4D CT images to dynamic USD models.
 
     This class implements the full workflow from 4D CT images to painted USD files
     suitable for visualization in NVIDIA Omniverse.
@@ -48,7 +48,7 @@ class WorkflowConvertHeartGatedCTToUSD(PhysioMotion4DBase):
         save_labelmaps: bool = True,
     ):
         """
-        Initialize the Heart-gated CT to USD workflow.
+        Initialize the image-to-USD workflow.
 
         Args:
             input_filenames (List): List of paths to the 3D NRRD files containing cardiac CT data.
@@ -181,7 +181,7 @@ class WorkflowConvertHeartGatedCTToUSD(PhysioMotion4DBase):
         Returns:
             str: Path to the final dynamic anatomy USD file
         """
-        self.log_section("Heart-gated CT Processing Pipeline")
+        self.log_section("Image-to-USD Processing Pipeline")
 
         # Load and convert data
         self._load_time_series()

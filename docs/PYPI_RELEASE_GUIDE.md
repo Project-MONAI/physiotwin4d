@@ -98,7 +98,7 @@ python -c "import physiomotion4d; print(physiomotion4d.__version__)"
 
 # Test CLI commands
 physiomotion4d --help
-physiomotion4d-heart-gated-ct --help
+physiomotion4d-convert-image-to-usd --help
 ```
 
 ## Building the Package
@@ -159,15 +159,15 @@ Note: `--extra-index-url` is needed because dependencies are on PyPI, not TestPy
 ```python
 # Test imports
 import physiomotion4d
-from physiomotion4d import WorkflowConvertHeartGatedCTToUSD
+from physiomotion4d import WorkflowConvertImageToUSD
 
 print(f"Version: {physiomotion4d.__version__}")
-print(WorkflowConvertHeartGatedCTToUSD.__name__)
+print(WorkflowConvertImageToUSD.__name__)
 ```
 
 ```bash
 # Test CLI
-physiomotion4d-heart-gated-ct --help
+physiomotion4d-convert-image-to-usd --help
 ```
 
 ## Publishing to PyPI

@@ -29,7 +29,7 @@ Outputs
 
 Strengths
 ---------
-- Single call (``WorkflowConvertHeartGatedCTToUSD.process()``) runs the full pipeline.
+- Single call (``WorkflowConvertImageToUSD.process()``) runs the full pipeline.
 - Supports both GPU-accelerated ICON registration and CPU-capable ANTs registration.
 - Automatically detects contrast enhancement and adjusts segmentation thresholds.
 - Output is Omniverse-ready with anatomical materials (USDAnatomyTools).
@@ -44,7 +44,7 @@ Weaknesses / Limitations
 
 Classes Used
 ------------
-- WorkflowConvertHeartGatedCTToUSD (workflow_convert_heart_gated_ct_to_usd.py):
+- WorkflowConvertImageToUSD (workflow_convert_image_to_usd.py):
     Orchestrates the full pipeline: 4D NRRD -> segmentation -> registration ->
     contour extraction -> USD export.
 - SegmentChestTotalSegmentator (segment_chest_total_segmentator.py):
@@ -75,11 +75,11 @@ from pathlib import Path
 import itk
 
 from physiomotion4d.test_tools import TestTools
-from physiomotion4d.workflow_convert_heart_gated_ct_to_usd import (
-    WorkflowConvertHeartGatedCTToUSD,
+from physiomotion4d.workflow_convert_image_to_usd import (
+    WorkflowConvertImageToUSD,
 )
 
-# nnUNetv2 (used by TotalSegmentator inside WorkflowConvertHeartGatedCTToUSD)
+# nnUNetv2 (used by TotalSegmentator inside WorkflowConvertImageToUSD)
 # spawns a multiprocessing.Pool. On Windows the spawn start method re-imports
 # this script in each child; without the __name__ == "__main__" guard around
 # the top-level work, that re-import fires workflow.process() again and
@@ -128,7 +128,7 @@ if __name__ == "__main__":
 
     # %%
     # Workflow initialization
-    workflow = WorkflowConvertHeartGatedCTToUSD(
+    workflow = WorkflowConvertImageToUSD(
         input_filenames=input_filenames,
         contrast_enhanced=True,
         output_directory=str(output_dir),

@@ -2,7 +2,7 @@
 Workflow Classes
 ================
 
-.. module:: physiomotion4d.workflow_convert_heart_gated_ct_to_usd
+.. module:: physiomotion4d.workflow_convert_image_to_usd
 .. module:: physiomotion4d.workflow_convert_ct_to_vtk
 .. module:: physiomotion4d.workflow_convert_vtk_to_usd
 .. module:: physiomotion4d.workflow_create_statistical_model
@@ -24,7 +24,7 @@ Available Workflows
 
    * - Workflow
      - Typical use
-   * - :class:`WorkflowConvertHeartGatedCTToUSD`
+   * - :class:`WorkflowConvertImageToUSD`
      - Convert a 4D cardiac CT sequence into animated USD anatomy.
    * - :class:`WorkflowConvertCTToVTK`
      - Segment one CT image and export anatomy-group VTK surfaces and meshes.
@@ -41,16 +41,16 @@ Available Workflows
 Heart-Gated CT to USD
 =====================
 
-.. autoclass:: WorkflowConvertHeartGatedCTToUSD
+.. autoclass:: WorkflowConvertImageToUSD
    :members:
    :undoc-members:
    :show-inheritance:
 
 .. code-block:: python
 
-   from physiomotion4d import WorkflowConvertHeartGatedCTToUSD
+   from physiomotion4d import WorkflowConvertImageToUSD
 
-   workflow = WorkflowConvertHeartGatedCTToUSD(
+   workflow = WorkflowConvertImageToUSD(
        input_filenames=["cardiac_4d.nrrd"],
        contrast_enhanced=True,
        output_directory="./results",
