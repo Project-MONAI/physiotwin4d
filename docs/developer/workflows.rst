@@ -16,8 +16,8 @@ Current Workflow Mapping
      - Workflow class
    * - ``physiomotion4d-convert-image-to-usd``
      - :class:`physiomotion4d.WorkflowConvertImageToUSD`
-   * - ``physiomotion4d-convert-ct-to-vtk``
-     - :class:`physiomotion4d.WorkflowConvertCTToVTK`
+   * - ``physiomotion4d-convert-image-to-vtk``
+     - :class:`physiomotion4d.WorkflowConvertImageToVTK`
    * - ``physiomotion4d-convert-vtk-to-usd``
      - :class:`physiomotion4d.WorkflowConvertVTKToUSD`
    * - ``physiomotion4d-create-statistical-model``
@@ -39,7 +39,7 @@ Workflow Example
        contrast_enhanced=True,
        output_directory="./results",
        project_name="patient_001",
-       registration_method="ants",
+       registration_method="ANTS",
    )
 
    final_usd = workflow.process()

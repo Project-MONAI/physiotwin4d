@@ -22,9 +22,20 @@ from physiomotion4d.physiomotion4d_base import PhysioMotion4DBase
 from physiomotion4d.register_images_ants import RegisterImagesANTs
 from physiomotion4d.register_images_base import RegisterImagesBase
 from physiomotion4d.register_images_icon import RegisterImagesICON
+from physiomotion4d.segment_anatomy_base import SegmentAnatomyBase
 from physiomotion4d.segment_chest_total_segmentator import SegmentChestTotalSegmentator
+from physiomotion4d.segment_heart_simpleware import SegmentHeartSimpleware
 from physiomotion4d.transform_tools import TransformTools
 from physiomotion4d.usd_anatomy_tools import USDAnatomyTools
+
+#: Supported segmentation backend identifiers.
+SEGMENTATION_METHODS: tuple[str, ...] = (
+    "ChestTotalSegmentator",
+    "HeartSimpleware",
+)
+
+#: Supported registration backend identifiers.
+REGISTRATION_METHODS: tuple[str, ...] = ("ANTS", "ICON")
 
 
 class WorkflowConvertImageToUSD(PhysioMotion4DBase):
@@ -43,7 +54,8 @@ class WorkflowConvertImageToUSD(PhysioMotion4DBase):
         project_name: str,
         reference_image_filename: Optional[str] = None,
         number_of_registration_iterations: Optional[int] = 1,
-        registration_method: str = "icon",
+        segmentation_method: str = "ChestTotalSegmentator",
+        registration_method: str = "ICON",
         log_level: int | str = logging.INFO,
         save_registered_images: bool = True,
         save_registration_transforms: bool = True,
@@ -65,7 +77,10 @@ class WorkflowConvertImageToUSD(PhysioMotion4DBase):
             project_name (str): Project name for USD file organization
             reference_image_filename (Optional[str]): Path to reference image file
             number_of_registration_iterations (Optional[int]): Number of registration iterations
-            registration_method (str): Registration method to use: 'ants' or 'icon' (default: 'icon')
+            segmentation_method (str): Segmentation backend to use:
+                ``'ChestTotalSegmentator'`` (default) or ``'HeartSimpleware'``.
+            registration_method (str): Registration method to use:
+                ``'ANTS'`` or ``'ICON'`` (default: ``'ICON'``).
             log_level: Logging level (default: logging.INFO)
             save_registered_images: Write registered image intermediates to
                 output_directory when True
@@ -86,11 +101,19 @@ class WorkflowConvertImageToUSD(PhysioMotion4DBase):
         self.save_registration_transforms = save_registration_transforms
         self.save_labelmaps = save_labelmaps
 
+        # Validate segmentation method
+        if segmentation_method not in SEGMENTATION_METHODS:
+            raise ValueError(
+                f"Invalid segmentation_method '{segmentation_method}'. "
+                f"Must be one of: {', '.join(SEGMENTATION_METHODS)}."
+            )
+        self.segmentation_method = segmentation_method
+
         # Validate registration method
-        if registration_method not in ["ants", "icon"]:
+        if registration_method not in REGISTRATION_METHODS:
             raise ValueError(
                 f"Invalid registration_method '{registration_method}'. "
-                "Must be 'ants' or 'icon'."
+                f"Must be one of: {', '.join(REGISTRATION_METHODS)}."
             )
         self.registration_method = registration_method
 
@@ -99,12 +122,19 @@ class WorkflowConvertImageToUSD(PhysioMotion4DBase):
 
         # Initialize processing components
         self.converter = ConvertImage4DTo3D(log_level=log_level)
-        self.segmenter = SegmentChestTotalSegmentator(log_level=log_level)
-        self.segmenter.contrast_threshold = 500
+        self.segmenter: SegmentAnatomyBase
+        if self.segmentation_method == "ChestTotalSegmentator":
+            chest_segmenter = SegmentChestTotalSegmentator(log_level=log_level)
+            chest_segmenter.contrast_threshold = 500
+            self.segmenter = chest_segmenter
+        else:  # HeartSimpleware
+            heart_segmenter = SegmentHeartSimpleware(log_level=log_level)
+            heart_segmenter.set_trim_branches(True)
+            self.segmenter = heart_segmenter
 
         # Initialize registration method
         self.registrar: RegisterImagesBase
-        if self.registration_method == "ants":
+        if self.registration_method == "ANTS":
             self.log_info("Initializing ANTs registration...")
             ants_registrar = RegisterImagesANTs(log_level=log_level)
             ants_registrar.set_modality("ct")
@@ -121,7 +151,7 @@ class WorkflowConvertImageToUSD(PhysioMotion4DBase):
                     ]
                 )
             self.registrar = ants_registrar
-        else:  # icon (default)
+        else:  # ICON (default)
             self.log_info("Initializing ICON registration...")
             icon_registrar = RegisterImagesICON(log_level=log_level)
             icon_registrar.set_modality("ct")
@@ -294,7 +324,7 @@ class WorkflowConvertImageToUSD(PhysioMotion4DBase):
 
         # Set up registrar with fixed image
         self.registrar.set_fixed_image(self._fixed_image)
-        if self.registration_method == "icon" and isinstance(
+        if self.registration_method == "ICON" and isinstance(
             self.registrar, RegisterImagesICON
         ):
             if self.contrast_enhanced:

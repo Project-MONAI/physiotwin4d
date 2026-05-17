@@ -18,7 +18,7 @@ import numpy as np
 import pyvista as pv
 
 from physiomotion4d.contour_tools import ContourTools
-from physiomotion4d.workflow_convert_ct_to_vtk import WorkflowConvertCTToVTK
+from physiomotion4d.workflow_convert_image_to_vtk import WorkflowConvertImageToVTK
 from physiomotion4d.workflow_create_statistical_model import (
     WorkflowCreateStatisticalModel,
 )
@@ -116,8 +116,8 @@ if __name__ == "__main__":
 
             print(f"Segmenting {case_prefix} from {phase_files[0].name}")
             image = itk.imread(str(phase_files[0]))
-            workflow = WorkflowConvertCTToVTK(
-                segmentation_method="total_segmentator",
+            workflow = WorkflowConvertImageToVTK(
+                segmentation_method="ChestTotalSegmentator",
                 log_level=log_level,
             )
             result = workflow.run_workflow(

@@ -196,7 +196,7 @@ a CUDA-capable GPU are required for practical runtime.
 python -c "from physiomotion4d import DataDownloadTools; DataDownloadTools.DownloadSlicerHeartCTData('data/test')"
 
 physiomotion4d-convert-image-to-usd data/test/TruncalValve_4DCT.seq.nrrd \
-    --registration-method ants \
+    --registration-method ANTS \
     --output-dir output/quickstart \
     --project-name slicer_heart_quickstart
 ```
@@ -286,7 +286,7 @@ processor = WorkflowConvertImageToUSD(
     contrast_enhanced=True,
     output_directory="./results",
     project_name="cardiac_model",
-    registration_method='icon'  # or 'ants'
+    registration_method='ICON'  # or 'ANTS'
 )
 
 # Run complete workflow

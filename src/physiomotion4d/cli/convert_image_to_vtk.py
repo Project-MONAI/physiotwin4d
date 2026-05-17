@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-"""Command-line interface for the CT-to-VTK segmentation workflow.
+"""Command-line interface for the image-to-VTK segmentation workflow.
 
-Segments a 3D CT image using a chosen backend and writes per-anatomy-group VTP
+Segments a 3D image using a chosen backend and writes per-anatomy-group VTP
 surfaces and VTU voxel meshes annotated with anatomy labels and colors.
 """
 
@@ -20,13 +20,13 @@ ANATOMY_GROUPS = (
     "contrast",
 )
 
-SEGMENTATION_METHODS = ("total_segmentator", "simpleware_heart")
+SEGMENTATION_METHODS = ("ChestTotalSegmentator", "HeartSimpleware")
 
 
 def main() -> int:
-    """CLI entry point for CT to VTK conversion."""
+    """CLI entry point for image to VTK conversion."""
     parser = argparse.ArgumentParser(
-        description="Segment a CT image and export anatomy groups as VTK surfaces and meshes.",
+        description="Segment a 3D image and export anatomy groups as VTK surfaces and meshes.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Anatomy groups
@@ -54,7 +54,7 @@ Examples
   # Simpleware heart-only, cardiac anatomy groups, combined output
   %(prog)s \\
     --input-image chest_ct.nii.gz \\
-    --segmentation-method simpleware_heart \\
+    --segmentation-method HeartSimpleware \\
     --anatomy-groups heart major_vessels \\
     --output-dir ./results \\
     --output-prefix patient01
@@ -71,7 +71,7 @@ Examples
     parser.add_argument(
         "--input-image",
         required=True,
-        help="Path to the input CT image (.nii.gz, .nrrd, .mha, …).",
+        help="Path to the input 3D image (.nii.gz, .nrrd, .mha, …).",
     )
     parser.add_argument(
         "--output-dir",
@@ -82,9 +82,11 @@ Examples
     # ── Segmentation ──────────────────────────────────────────────────────
     parser.add_argument(
         "--segmentation-method",
-        default="total_segmentator",
+        default="ChestTotalSegmentator",
         choices=list(SEGMENTATION_METHODS),
-        help=("Segmentation backend.  total_segmentator (default) | simpleware_heart"),
+        help=(
+            "Segmentation backend.  ChestTotalSegmentator (default) | HeartSimpleware"
+        ),
     )
     parser.add_argument(
         "--contrast",
@@ -151,9 +153,9 @@ Examples
     print("=" * 70)
 
     try:
-        from physiomotion4d import WorkflowConvertCTToVTK
+        from physiomotion4d import WorkflowConvertImageToVTK
 
-        workflow = WorkflowConvertCTToVTK(
+        workflow = WorkflowConvertImageToVTK(
             segmentation_method=args.segmentation_method,
         )
         result = workflow.run_workflow(
@@ -183,13 +185,13 @@ Examples
         if args.split_files:
             # One file per anatomy group
             if surfaces:
-                saved_surfaces = WorkflowConvertCTToVTK.save_surfaces(
+                saved_surfaces = WorkflowConvertImageToVTK.save_surfaces(
                     surfaces, args.output_dir, prefix=prefix
                 )
                 for group, path in saved_surfaces.items():
                     print(f"  Surface  [{group:15s}] → {path}")
             if meshes:
-                saved_meshes = WorkflowConvertCTToVTK.save_meshes(
+                saved_meshes = WorkflowConvertImageToVTK.save_meshes(
                     meshes, args.output_dir, prefix=prefix
                 )
                 for group, path in saved_meshes.items():
@@ -197,12 +199,12 @@ Examples
         else:
             # Combined single-file output
             if surfaces:
-                surface_file = WorkflowConvertCTToVTK.save_combined_surface(
+                surface_file = WorkflowConvertImageToVTK.save_combined_surface(
                     surfaces, args.output_dir, prefix=prefix
                 )
                 print(f"  Combined surface → {surface_file}")
             if meshes:
-                mesh_file = WorkflowConvertCTToVTK.save_combined_mesh(
+                mesh_file = WorkflowConvertImageToVTK.save_combined_mesh(
                     meshes, args.output_dir, prefix=prefix
                 )
                 print(f"  Combined mesh    → {mesh_file}")

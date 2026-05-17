@@ -274,7 +274,7 @@ if result is not None and input_image is not None:
     heart_array = itk.array_from_image(result["heart"])
     vessels_array = itk.array_from_image(result["major_vessels"])
 
-    labelmap_essentials = segmenter.trim_mask_to_essentials(result["labelmap"])
+    labelmap_essentials = segmenter.trim_branches(result["labelmap"])
     labelmap_essentials_array = itk.array_from_image(labelmap_essentials)
 
     # Select middle slice

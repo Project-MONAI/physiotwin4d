@@ -15,7 +15,7 @@ CUDA Out of Memory
 **Solutions**:
 
 1. Resample or crop the input image before running the workflow.
-2. Use ``--registration-method ants`` when CUDA is unavailable.
+2. Use ``--registration-method ANTS`` when CUDA is unavailable.
 3. Process fewer frames per run.
 
 CUDA Version Mismatch
@@ -93,7 +93,7 @@ Registration Not Converging
 
    .. code-block:: bash
 
-      physiomotion4d-convert-image-to-usd cardiac_4d.nrrd --registration-method ants
+      physiomotion4d-convert-image-to-usd cardiac_4d.nrrd --registration-method ANTS
 
 3. Check image orientation and spacing
 

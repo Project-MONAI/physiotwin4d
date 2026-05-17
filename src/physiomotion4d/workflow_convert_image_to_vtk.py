@@ -9,19 +9,19 @@ directly.
 Typical usage::
 
     import itk
-    from physiomotion4d import WorkflowConvertCTToVTK
+    from physiomotion4d import WorkflowConvertImageToVTK
 
     ct = itk.imread('chest_ct.nii.gz')
-    workflow = WorkflowConvertCTToVTK(segmentation_method='total_segmentator')
+    workflow = WorkflowConvertImageToVTK(segmentation_method='ChestTotalSegmentator')
     result = workflow.run_workflow(ct, contrast_enhanced_study=True)
 
     # Combined single-file output (default)
-    WorkflowConvertCTToVTK.save_combined_surface(result['surfaces'], './out', prefix='patient')
-    WorkflowConvertCTToVTK.save_combined_mesh(result['meshes'], './out', prefix='patient')
+    WorkflowConvertImageToVTK.save_combined_surface(result['surfaces'], './out', prefix='patient')
+    WorkflowConvertImageToVTK.save_combined_mesh(result['meshes'], './out', prefix='patient')
 
     # Per-group split output
-    WorkflowConvertCTToVTK.save_surfaces(result['surfaces'], './out', prefix='patient')
-    WorkflowConvertCTToVTK.save_meshes(result['meshes'], './out', prefix='patient')
+    WorkflowConvertImageToVTK.save_surfaces(result['surfaces'], './out', prefix='patient')
+    WorkflowConvertImageToVTK.save_meshes(result['meshes'], './out', prefix='patient')
 """
 
 import logging
@@ -50,20 +50,20 @@ ANATOMY_GROUPS: tuple[str, ...] = (
 
 #: Supported segmentation backend identifiers.
 SEGMENTATION_METHODS: tuple[str, ...] = (
-    "total_segmentator",
-    "simpleware_heart",
+    "ChestTotalSegmentator",
+    "HeartSimpleware",
 )
 
 
-class WorkflowConvertCTToVTK(PhysioMotion4DBase):
+class WorkflowConvertImageToVTK(PhysioMotion4DBase):
     """Segment a CT image and produce per-anatomy-group VTK surfaces and meshes.
 
     **Segmentation backends**
 
-    - ``'total_segmentator'`` — :class:`SegmentChestTotalSegmentator` (CPU-capable,
-      default).
-    - ``'simpleware_heart'`` — :class:`SegmentHeartSimpleware` (cardiac only; requires
-      a Simpleware Medical installation).
+    - ``'ChestTotalSegmentator'`` — :class:`SegmentChestTotalSegmentator`
+      (CPU-capable, default).
+    - ``'HeartSimpleware'`` — :class:`SegmentHeartSimpleware` (cardiac only;
+      requires a Simpleware Medical installation).
 
     **Output anatomy groups**
 
@@ -86,7 +86,7 @@ class WorkflowConvertCTToVTK(PhysioMotion4DBase):
 
     :meth:`run_workflow` performs *no* file I/O.  Use the static helpers
     :meth:`save_surfaces`, :meth:`save_meshes`, :meth:`save_combined_surface`, and
-    :meth:`save_combined_mesh` — or the CLI ``physiomotion4d-convert-ct-to-vtk`` — to
+    :meth:`save_combined_mesh` — or the CLI ``physiomotion4d-convert-image-to-vtk`` — to
     write results to disk.
     """
 
@@ -97,14 +97,14 @@ class WorkflowConvertCTToVTK(PhysioMotion4DBase):
 
     def __init__(
         self,
-        segmentation_method: str = "total_segmentator",
+        segmentation_method: str = "ChestTotalSegmentator",
         log_level: int | str = logging.INFO,
     ) -> None:
         """Initialize the workflow.
 
         Args:
             segmentation_method: Segmentation backend to use.  One of
-                ``'total_segmentator'`` (default) or ``'simpleware_heart'``.
+                ``'ChestTotalSegmentator'`` (default) or ``'HeartSimpleware'``.
             log_level: Logging level.  Default: ``logging.INFO``.
 
         Raises:
@@ -138,17 +138,17 @@ class WorkflowConvertCTToVTK(PhysioMotion4DBase):
 
     def _create_segmenter(self) -> SegmentAnatomyBase:
         """Instantiate the chosen segmentation backend (lazy import)."""
-        if self.segmentation_method_name == "total_segmentator":
+        if self.segmentation_method_name == "ChestTotalSegmentator":
             from physiomotion4d.segment_chest_total_segmentator import (
                 SegmentChestTotalSegmentator,
             )
 
             return SegmentChestTotalSegmentator(log_level=self.log_level)
-        if self.segmentation_method_name == "simpleware_heart":
+        if self.segmentation_method_name == "HeartSimpleware":
             from physiomotion4d.segment_heart_simpleware import SegmentHeartSimpleware
 
             segmenter = SegmentHeartSimpleware(log_level=self.log_level)
-            segmenter.set_trim_mask_to_essentials(True)
+            segmenter.set_trim_branches(True)
             return segmenter
         raise ValueError(
             f"Unknown segmentation method: {self.segmentation_method_name}"
@@ -158,7 +158,7 @@ class WorkflowConvertCTToVTK(PhysioMotion4DBase):
         """Return ``(label_names, label_ids)`` for *group* from the active segmenter.
 
         Reads the segmenter's :class:`AnatomyTaxonomy`. Returns empty lists if
-        the group is not present (e.g. simpleware_heart does not register
+        the group is not present (e.g. HeartSimpleware does not register
         lung/bone).
         """
         assert self._segmenter is not None, (
@@ -268,7 +268,7 @@ class WorkflowConvertCTToVTK(PhysioMotion4DBase):
         Raises:
             ValueError: If any name in *anatomy_groups* is invalid.
         """
-        self.log_section("STARTING CT TO VTK WORKFLOW")
+        self.log_section("STARTING IMAGE TO VTK WORKFLOW")
 
         # Validate requested groups
         if anatomy_groups is not None:
@@ -327,7 +327,7 @@ class WorkflowConvertCTToVTK(PhysioMotion4DBase):
                 self._annotate(mesh, group, label_names, label_ids, color)
                 meshes[group] = mesh
 
-        self.log_section("CT TO VTK WORKFLOW COMPLETE")
+        self.log_section("IMAGE TO VTK WORKFLOW COMPLETE")
         self.log_info("Surfaces extracted: %d", len(surfaces))
         self.log_info("Meshes extracted:   %d", len(meshes))
 

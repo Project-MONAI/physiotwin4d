@@ -28,7 +28,10 @@ Examples:
   %(prog)s input.nrrd --reference-image ref.mha --registration-iterations 50
 
   # Use ANTs registration instead of ICON
-  %(prog)s input.nrrd --contrast --registration-method ants
+  %(prog)s input.nrrd --contrast --registration-method ANTS
+
+  # Use the cardiac-only Simpleware segmentation backend
+  %(prog)s input.nrrd --segmentation-method HeartSimpleware
         """,
     )
 
@@ -65,10 +68,19 @@ Examples:
         help="Number of registration iterations (default: 1)",
     )
     parser.add_argument(
+        "--segmentation-method",
+        choices=["ChestTotalSegmentator", "HeartSimpleware"],
+        default="ChestTotalSegmentator",
+        help=(
+            "Segmentation backend to use: ChestTotalSegmentator (default) "
+            "or HeartSimpleware."
+        ),
+    )
+    parser.add_argument(
         "--registration-method",
-        choices=["ants", "icon"],
-        default="icon",
-        help="Registration method to use: ants or icon (default: icon)",
+        choices=["ANTS", "ICON"],
+        default="ICON",
+        help="Registration method to use: ANTS or ICON (default: ICON)",
     )
 
     args = parser.parse_args()
@@ -91,6 +103,7 @@ Examples:
             project_name=args.project_name,
             reference_image_filename=args.reference_image,
             number_of_registration_iterations=args.registration_iterations,
+            segmentation_method=args.segmentation_method,
             registration_method=args.registration_method,
         )
     except Exception as e:

@@ -62,10 +62,6 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
   - `def group_for_id(self, label_id)` (line 132): Return the group containing *label_id*; :data:`OTHER_GROUP` if absent.
   - `def fill_other_group(self, id_range=range(1, 256), name_template='other_{id}')` (line 139): Populate the ``other`` group with any ids not already claimed.
 
-## src/physiomotion4d/cli/convert_ct_to_vtk.py
-
-- `def main()` (line 26): CLI entry point for CT to VTK conversion.
-
 ## src/physiomotion4d/cli/convert_image_4d_to_3d.py
 
 - `def main()` (line 20): CLI entry point for 4D-to-3D image conversion.
@@ -73,6 +69,10 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 ## src/physiomotion4d/cli/convert_image_to_usd.py
 
 - `def main()` (line 14): Command-line interface for the Image-to-USD workflow.
+
+## src/physiomotion4d/cli/convert_image_to_vtk.py
+
+- `def main()` (line 26): CLI entry point for image to VTK conversion.
 
 ## src/physiomotion4d/cli/convert_vtk_to_usd.py
 
@@ -202,14 +202,15 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 
 ## src/physiomotion4d/register_images_icon.py
 
-- **class RegisterImagesICON** (line 25): ICON-based deformable image registration implementation.
-  - `def __init__(self, log_level=logging.INFO)` (line 61): Initialize the ICON image registration class.
-  - `def set_weights_path(self, weights_path)` (line 79): Set a custom weights file for the uniGradICON network.
-  - `def set_number_of_iterations(self, number_of_iterations)` (line 93): Set the number of iterations for ICON registration.
-  - `def set_multi_modality(self, enable)` (line 101): Enable or disable multi-modality registration.
-  - `def set_mass_preservation(self, enable)` (line 118): Enable or disable mass preservation constraint.
-  - `def preprocess(self, image, modality='ct')` (line 135): Preprocess the image for ICON registration.
-  - `def registration_method(self, moving_image, moving_mask=None, moving_labelmap=None, moving_image_pre=None, initial_forward_transform=None)` (line 155): Register moving image to fixed image using ICON registration algorithm.
+- **class RegisterImagesICON** (line 32): ICON-based deformable image registration implementation.
+  - `def __init__(self, log_level=logging.INFO)` (line 68): Initialize the ICON image registration class.
+  - `def set_weights_path(self, weights_path)` (line 86): Set a custom weights file for the uniGradICON network.
+  - `def set_number_of_iterations(self, number_of_iterations)` (line 100): Set the number of iterations for ICON registration.
+  - `def set_multi_modality(self, enable)` (line 108): Enable or disable multi-modality registration.
+  - `def set_mass_preservation(self, enable)` (line 125): Enable or disable mass preservation constraint.
+  - `def preprocess(self, image, modality='ct')` (line 142): Preprocess the image for ICON registration.
+  - `def registration_method(self, moving_image, moving_mask=None, moving_labelmap=None, moving_image_pre=None, initial_forward_transform=None)` (line 162): Register moving image to fixed image using ICON registration algorithm.
+  - `def finetune(self, image_pairs, output_model_filename, mask_pairs=None, epochs=1, learning_rate=DEFAULT_FINETUNE_LEARNING_RATE)` (line 336): Fine-tune the ICON network on a cohort of image pairs.
 
 ## src/physiomotion4d/register_models_distance_maps.py
 
@@ -285,11 +286,11 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 
 - **class SegmentHeartSimpleware** (line 23): Heart CT segmentation using Simpleware Medical's ASCardio module.
   - `def __init__(self, log_level=logging.INFO)` (line 58): Initialize the Simpleware Medical based heart segmentation.
-  - `def set_trim_mask_to_essentials(self, trim_mask)` (line 118): Set whether to trim mask to common and critical structures.
-  - `def set_simpleware_executable_path(self, path)` (line 126): Set the path to the Simpleware Medical console executable.
-  - `def segmentation_method(self, preprocessed_image)` (line 139): Run Simpleware Medical ASCardio segmentation on the preprocessed image.
-  - `def get_landmarks(self)` (line 339): Get the landmarks.
-  - `def trim_mask_to_essentials(self, labelmap_image)` (line 343): Trim mask to essentials.
+  - `def set_trim_branches(self, trim_branches)` (line 118): Enable trimming of pulmonary and great-vessel branches.
+  - `def set_simpleware_executable_path(self, path)` (line 133): Set the path to the Simpleware Medical console executable.
+  - `def segmentation_method(self, preprocessed_image)` (line 146): Run Simpleware Medical ASCardio segmentation on the preprocessed image.
+  - `def get_landmarks(self)` (line 346): Get the landmarks.
+  - `def trim_branches(self, labelmap_image)` (line 350): Trim pulmonary and great-vessel branches back to the cardiac region.
 
 ## src/physiomotion4d/test_tools.py
 
@@ -425,21 +426,21 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 - `def read_vtk_file(filename, extract_surface=True)` (line 581): Auto-detect VTK file format and read appropriately.
 - `def validate_time_series_topology(mesh_data_sequence, filenames=None)` (line 609): Validate topology consistency across a time series of meshes.
 
-## src/physiomotion4d/workflow_convert_ct_to_vtk.py
+## src/physiomotion4d/workflow_convert_image_to_usd.py
 
-- **class WorkflowConvertCTToVTK** (line 58): Segment a CT image and produce per-anatomy-group VTK surfaces and meshes.
-  - `def __init__(self, segmentation_method='total_segmentator', log_level=logging.INFO)` (line 98): Initialize the workflow.
+- **class WorkflowConvertImageToUSD** (line 41): Complete workflow for converting 4D CT images to dynamic USD models.
+  - `def __init__(self, input_filenames, contrast_enhanced, output_directory, project_name, reference_image_filename=None, number_of_registration_iterations=1, segmentation_method='ChestTotalSegmentator', registration_method='ICON', log_level=logging.INFO, save_registered_images=True, save_registration_transforms=True, save_labelmaps=True)` (line 49): Initialize the image-to-USD workflow.
+  - `def process(self)` (line 214): Execute the complete workflow from 4D CT to dynamic USD models.
+
+## src/physiomotion4d/workflow_convert_image_to_vtk.py
+
+- **class WorkflowConvertImageToVTK** (line 58): Segment a CT image and produce per-anatomy-group VTK surfaces and meshes.
+  - `def __init__(self, segmentation_method='ChestTotalSegmentator', log_level=logging.INFO)` (line 98): Initialize the workflow.
   - `def run_workflow(self, input_image, contrast_enhanced_study=False, anatomy_groups=None)` (line 241): Segment the CT image and extract per-anatomy-group VTK objects.
   - `def save_surfaces(surfaces, output_dir, prefix='')` (line 344): Save each group surface to its own VTP file.
   - `def save_meshes(meshes, output_dir, prefix='')` (line 371): Save each group voxel mesh to its own VTU file.
   - `def save_combined_surface(surfaces, output_dir, prefix='')` (line 397): Merge all group surfaces into a single VTP file.
   - `def save_combined_mesh(meshes, output_dir, prefix='')` (line 432): Merge all group meshes into a single VTU file.
-
-## src/physiomotion4d/workflow_convert_image_to_usd.py
-
-- **class WorkflowConvertImageToUSD** (line 30): Complete workflow for converting 4D CT images to dynamic USD models.
-  - `def __init__(self, input_filenames, contrast_enhanced, output_directory, project_name, reference_image_filename=None, number_of_registration_iterations=1, registration_method='icon', log_level=logging.INFO, save_registered_images=True, save_registration_transforms=True, save_labelmaps=True)` (line 38): Initialize the image-to-USD workflow.
-  - `def process(self)` (line 184): Execute the complete workflow from 4D CT to dynamic USD models.
 
 ## src/physiomotion4d/workflow_convert_vtk_to_usd.py
 
@@ -458,7 +459,7 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 ## src/physiomotion4d/workflow_fit_statistical_model_to_patient.py
 
 - **class WorkflowFitStatisticalModelToPatient** (line 56): Register anatomical models using multi-stage ICP, mask-based, and image-based
-  - `def __init__(self, template_model, patient_models=None, patient_image=None, segmentation_method='simpleware_heart', log_level=logging.INFO)` (line 135): Initialize the model-to-image-and-model registration pipeline.
+  - `def __init__(self, template_model, patient_models=None, patient_image=None, segmentation_method='HeartSimpleware', log_level=logging.INFO)` (line 135): Initialize the model-to-image-and-model registration pipeline.
   - `def set_mask_dilation_mm(self, mask_dilation_mm)` (line 356): Set mask dilation amount for auto-generated masks.
   - `def set_roi_dilation_mm(self, roi_dilation_mm)` (line 365): Set ROI mask dilation amount.
   - `def set_use_pca_registration(self, use_pca_registration, pca_model=None, pca_number_of_modes=0, pca_uses_surface=True)` (line 374): Set whether to use PCA-based registration and provide the PCA model.

@@ -33,7 +33,7 @@ Data Flow
    ContourTools + TransformTools
           |
           v
-   WorkflowConvertCTToVTK / ConvertVTKToUSD / WorkflowConvertVTKToUSD
+   WorkflowConvertImageToVTK / ConvertVTKToUSD / WorkflowConvertVTKToUSD
           |
           v
    OpenUSD assets for NVIDIA Omniverse
@@ -45,7 +45,7 @@ Primary Workflows
    Converts a 4D cardiac CT file or 3D CT time series into registered anatomy
    contours and painted animated USD files.
 
-``WorkflowConvertCTToVTK``
+``WorkflowConvertImageToVTK``
    Segments a 3D CT image and exports anatomy groups as VTK surfaces and voxel
    meshes.
 
@@ -89,7 +89,7 @@ The installed CLI commands in ``pyproject.toml`` are thin wrappers around the
 workflow classes. They are the preferred examples for executable API usage:
 
 * ``physiomotion4d-convert-image-to-usd``
-* ``physiomotion4d-convert-ct-to-vtk``
+* ``physiomotion4d-convert-image-to-vtk``
 * ``physiomotion4d-create-statistical-model``
 * ``physiomotion4d-fit-statistical-model-to-patient``
 * ``physiomotion4d-convert-vtk-to-usd``

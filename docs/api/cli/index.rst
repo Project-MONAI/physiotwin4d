@@ -19,7 +19,7 @@ Module Index.
    :maxdepth: 1
 
    convert_image_to_usd
-   convert_ct_to_vtk
+   convert_image_to_vtk
    convert_vtk_to_usd
    create_statistical_model
    fit_statistical_model_to_patient

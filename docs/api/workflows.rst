@@ -3,7 +3,7 @@ Workflow Classes
 ================
 
 .. module:: physiomotion4d.workflow_convert_image_to_usd
-.. module:: physiomotion4d.workflow_convert_ct_to_vtk
+.. module:: physiomotion4d.workflow_convert_image_to_vtk
 .. module:: physiomotion4d.workflow_convert_vtk_to_usd
 .. module:: physiomotion4d.workflow_create_statistical_model
 .. module:: physiomotion4d.workflow_fit_statistical_model_to_patient
@@ -26,7 +26,7 @@ Available Workflows
      - Typical use
    * - :class:`WorkflowConvertImageToUSD`
      - Convert a 4D cardiac CT sequence into animated USD anatomy.
-   * - :class:`WorkflowConvertCTToVTK`
+   * - :class:`WorkflowConvertImageToVTK`
      - Segment one CT image and export anatomy-group VTK surfaces and meshes.
    * - :class:`WorkflowConvertVTKToUSD`
      - Convert VTK/VTP/VTU meshes or time series into USD.
@@ -55,15 +55,16 @@ Convert Image to USD
        contrast_enhanced=True,
        output_directory="./results",
        project_name="patient_001",
-       registration_method="ants",
+       segmentation_method="ChestTotalSegmentator",
+       registration_method="ANTS",
    )
 
    final_usd = workflow.process()
 
-CT to VTK
-=========
+Image to VTK
+============
 
-.. autoclass:: WorkflowConvertCTToVTK
+.. autoclass:: WorkflowConvertImageToVTK
    :members:
    :undoc-members:
    :show-inheritance:
@@ -72,17 +73,17 @@ CT to VTK
 
    import itk
 
-   from physiomotion4d import WorkflowConvertCTToVTK
+   from physiomotion4d import WorkflowConvertImageToVTK
 
    image = itk.imread("chest_ct.nii.gz")
-   workflow = WorkflowConvertCTToVTK(segmentation_method="total_segmentator")
+   workflow = WorkflowConvertImageToVTK(segmentation_method="ChestTotalSegmentator")
    result = workflow.run_workflow(
        input_image=image,
        contrast_enhanced_study=True,
        anatomy_groups=["heart", "major_vessels"],
    )
 
-   WorkflowConvertCTToVTK.save_combined_surface(
+   WorkflowConvertImageToVTK.save_combined_surface(
        result["surfaces"],
        "./output",
        prefix="patient01",

@@ -37,7 +37,7 @@ from physiomotion4d.register_models_distance_maps import RegisterModelsDistanceM
 from physiomotion4d.register_models_icp import RegisterModelsICP
 from physiomotion4d.register_models_pca import RegisterModelsPCA
 from physiomotion4d.transform_tools import TransformTools
-from physiomotion4d.workflow_convert_ct_to_vtk import WorkflowConvertCTToVTK
+from physiomotion4d.workflow_convert_image_to_vtk import WorkflowConvertImageToVTK
 
 
 def _load_tubetk() -> Any:
@@ -137,7 +137,7 @@ class WorkflowFitStatisticalModelToPatient(PhysioMotion4DBase):
         template_model: pv.DataSet,
         patient_models: list[pv.DataSet] | None = None,
         patient_image: Optional[itk.Image] = None,
-        segmentation_method: str = "simpleware_heart",
+        segmentation_method: str = "HeartSimpleware",
         log_level: int | str = logging.INFO,
     ):
         """Initialize the model-to-image-and-model registration pipeline.
@@ -167,11 +167,11 @@ class WorkflowFitStatisticalModelToPatient(PhysioMotion4DBase):
         self.template_labelmap_background_ids: Optional[list[int]] = None
 
         if patient_models is None and patient_image is not None:
-            convert_ct_to_vtk = WorkflowConvertCTToVTK(
+            convert_image_to_vtk = WorkflowConvertImageToVTK(
                 segmentation_method=segmentation_method,
                 log_level=log_level,
             )
-            patient_models_data = convert_ct_to_vtk.run_workflow(
+            patient_models_data = convert_image_to_vtk.run_workflow(
                 input_image=patient_image,
                 contrast_enhanced_study=False,
                 anatomy_groups=["heart"],

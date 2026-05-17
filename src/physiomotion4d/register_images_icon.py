@@ -10,16 +10,23 @@ deformable registration with mass preservation constraints.
 """
 
 import logging
-from typing import Optional, Union
+from collections.abc import Sequence
+from pathlib import Path
+from typing import Any, Optional, Union
 
 import icon_registration as icon
 import icon_registration.itk_wrapper
 import itk
+import numpy as np
+import torch
+import torch.nn.functional as F
 from unigradicon import get_multigradicon, get_unigradicon
 from unigradicon import preprocess as unigradicon_preprocess
 
 from physiomotion4d.register_images_base import RegisterImagesBase
 from physiomotion4d.transform_tools import TransformTools
+
+DEFAULT_FINETUNE_LEARNING_RATE = 2e-5
 
 
 class RegisterImagesICON(RegisterImagesBase):
@@ -226,20 +233,7 @@ class RegisterImagesICON(RegisterImagesBase):
         moving_effective_mask = moving_labelmap if use_labelmaps else moving_mask
         fixed_effective_mask = self.fixed_labelmap if use_labelmaps else self.fixed_mask
 
-        if self.net is None:
-            if self.use_multi_modality:
-                self.net = get_multigradicon(
-                    loss_fn=icon.LNCC(sigma=5),
-                    # loss_fn=icon.losses.MINDSSC(radius=2, dilation=2),
-                    apply_intensity_conservation_loss=self.use_mass_preservation,
-                    weights_location=self.weights_path,
-                )
-            else:
-                self.net = get_unigradicon(
-                    loss_fn=icon.LNCC(sigma=5),
-                    apply_intensity_conservation_loss=self.use_mass_preservation,
-                    weights_location=self.weights_path,
-                )
+        self._ensure_net()
 
         inverse_transform = None
         forward_transform = None
@@ -289,4 +283,160 @@ class RegisterImagesICON(RegisterImagesBase):
             "forward_transform": forward_transform,
             "inverse_transform": inverse_transform,
             "loss": loss,
+        }
+
+    def _ensure_net(self) -> None:
+        """Lazily instantiate the ICON network using current configuration.
+
+        Honors set_weights_path() if a custom checkpoint has been requested,
+        otherwise loads the default UniGradICON / MultiGradICON pretrained
+        weights.
+        """
+        if self.net is not None:
+            return
+        if self.use_multi_modality:
+            self.net = get_multigradicon(
+                loss_fn=icon.LNCC(sigma=5),
+                apply_intensity_conservation_loss=self.use_mass_preservation,
+                weights_location=self.weights_path,
+            )
+        else:
+            self.net = get_unigradicon(
+                loss_fn=icon.LNCC(sigma=5),
+                apply_intensity_conservation_loss=self.use_mass_preservation,
+                weights_location=self.weights_path,
+            )
+
+    def _image_to_resized_tensor(
+        self, image: itk.Image, shape: torch.Size
+    ) -> torch.Tensor:
+        """Convert an itk image to a torch tensor resized to the net's input grid.
+
+        Mirrors the trilinear preprocessing path used by
+        ``icon_registration.itk_wrapper.register_pair``.
+        """
+        arr = np.array(image)
+        tensor = torch.Tensor(arr).to(icon.config.device)[None, None]
+        return F.interpolate(
+            tensor, size=shape[2:], mode="trilinear", align_corners=False
+        )
+
+    def _mask_to_resized_tensor(
+        self, mask: itk.Image, shape: torch.Size
+    ) -> torch.Tensor:
+        """Convert an itk mask image to a torch tensor resized via nearest-neighbor.
+
+        Mirrors the mask preprocessing used by
+        ``icon_registration.itk_wrapper.register_pair_with_mask``.
+        """
+        arr = np.array(mask)
+        tensor = torch.Tensor(arr).to(icon.config.device)[None, None]
+        return F.interpolate(tensor, size=shape[2:], mode="nearest")
+
+    def finetune(
+        self,
+        image_pairs: Sequence[tuple[itk.Image, itk.Image]],
+        output_model_filename: str,
+        mask_pairs: Optional[Sequence[tuple[itk.Image, itk.Image]]] = None,
+        epochs: int = 1,
+        learning_rate: float = DEFAULT_FINETUNE_LEARNING_RATE,
+    ) -> dict[str, Any]:
+        """Fine-tune the ICON network on a cohort of image pairs.
+
+        Unlike ``register()``, this method *persistently* updates the in-memory
+        network weights and saves the resulting inner-network state_dict to
+        disk. The starting weights are whatever ``set_weights_path()`` was
+        configured to (default UniGradICON pretrained weights if never set).
+
+        This method intentionally does not call ``register()`` / the ICON
+        ``register_pair`` helpers, because those wrap their optimization in a
+        ``state_dict`` save/restore that discards any persistent weight
+        changes. Here the optimizer steps act directly on ``self.net`` and
+        are not undone.
+
+        Args:
+            image_pairs: Sequence of (fixed_image, moving_image) itk image
+                pairs to fine-tune on. Caller can build this from a list of
+                images with ``itertools.combinations(images, 2)``.
+            output_model_filename: Path where the fine-tuned inner-network
+                state_dict will be saved. Suitable for reloading via
+                ``set_weights_path()`` on a new RegisterImagesICON instance.
+            mask_pairs: Optional sequence of (fixed_mask, moving_mask) itk
+                image pairs, same length as ``image_pairs``. When provided,
+                ICON's masked-loss path is used for every pair.
+            epochs: Number of full passes over ``image_pairs``. Default 1.
+            learning_rate: Adam learning rate. Default matches
+                ``icon_registration``'s per-pair fine-tune rate.
+
+        Returns:
+            Dict with keys:
+                - ``output_model_filename``: str path of saved checkpoint
+                - ``losses``: list[float], one entry per (epoch, pair)
+                - ``epochs``: int
+                - ``number_of_pairs``: int
+
+        Raises:
+            ValueError: If ``image_pairs`` is empty or ``mask_pairs`` length
+                does not match ``image_pairs``.
+        """
+        if len(image_pairs) == 0:
+            raise ValueError("At least one image pair is required for finetune.")
+        if mask_pairs is not None and len(mask_pairs) != len(image_pairs):
+            raise ValueError("mask_pairs must match image_pairs length.")
+        if epochs < 1:
+            raise ValueError("epochs must be >= 1.")
+
+        self._ensure_net()
+        assert self.net is not None
+        self.net.to(icon.config.device)
+        self.net.train()
+
+        optimizer = torch.optim.Adam(self.net.parameters(), lr=learning_rate)
+        shape = self.net.identity_map.shape
+        losses: list[float] = []
+
+        for epoch_index in range(epochs):
+            for pair_index, (fixed_image, moving_image) in enumerate(image_pairs):
+                fixed_pre = self.preprocess(fixed_image, modality=self.modality)
+                moving_pre = self.preprocess(moving_image, modality=self.modality)
+
+                fixed_resized = self._image_to_resized_tensor(fixed_pre, shape)
+                moving_resized = self._image_to_resized_tensor(moving_pre, shape)
+
+                forward_kwargs: dict[str, torch.Tensor] = {}
+                if mask_pairs is not None:
+                    fixed_mask, moving_mask = mask_pairs[pair_index]
+                    forward_kwargs["mask_A"] = self._mask_to_resized_tensor(
+                        fixed_mask, shape
+                    )
+                    forward_kwargs["mask_B"] = self._mask_to_resized_tensor(
+                        moving_mask, shape
+                    )
+
+                optimizer.zero_grad()
+                loss_tuple = self.net(fixed_resized, moving_resized, **forward_kwargs)
+                loss = loss_tuple[0]
+                loss.backward()
+                optimizer.step()
+
+                loss_value = float(loss.detach().cpu().item())
+                losses.append(loss_value)
+                self.log_info(
+                    "finetune epoch %d pair %d/%d loss=%.6f",
+                    epoch_index,
+                    pair_index + 1,
+                    len(image_pairs),
+                    loss_value,
+                )
+
+        output_path = Path(output_model_filename)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        torch.save(self.net.regis_net.state_dict(), output_path)
+        self.weights_path = str(output_path)
+
+        return {
+            "output_model_filename": str(output_path),
+            "losses": losses,
+            "epochs": epochs,
+            "number_of_pairs": len(image_pairs),
         }

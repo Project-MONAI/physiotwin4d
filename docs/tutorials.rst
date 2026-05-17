@@ -121,7 +121,7 @@ Script
    ``tutorials/tutorial_02_ct_to_vtk.py``
 
 Workflow
-   ``WorkflowConvertCTToVTK``
+   ``WorkflowConvertImageToVTK``
 
 Dataset
    Slicer-Heart-CT, prepared before running the tutorial.
@@ -222,7 +222,7 @@ Script
    ``tutorials/tutorial_07_dirlab_pca_model.py``
 
 Workflow
-   ``WorkflowConvertCTToVTK``, ``WorkflowCreateStatisticalModel``, and
+   ``WorkflowConvertImageToVTK``, ``WorkflowCreateStatisticalModel``, and
    ``WorkflowFitStatisticalModelToPatient``
 
 Dataset

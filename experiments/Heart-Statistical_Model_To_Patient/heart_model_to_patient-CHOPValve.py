@@ -51,7 +51,7 @@ os.makedirs(output_dir, exist_ok=True)
 registrar = WorkflowFitStatisticalModelToPatient(
     template_model=template_model,
     patient_image=patient_image,
-    segmentation_method="simpleware_heart",
+    segmentation_method="HeartSimpleware",
 )
 
 registrar.set_use_pca_registration(

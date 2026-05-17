@@ -38,8 +38,8 @@ Workflow Classes
    Orchestrates 4D CT loading, segmentation, image registration, contour
    transformation, and animated USD generation.
 
-``WorkflowConvertCTToVTK``
-   Converts one CT image into labeled VTK surface and voxel-mesh outputs.
+``WorkflowConvertImageToVTK``
+   Converts one 3D image into labeled VTK surface and voxel-mesh outputs.
 
 ``WorkflowCreateStatisticalModel``
    Builds a PCA statistical shape model from aligned population meshes.

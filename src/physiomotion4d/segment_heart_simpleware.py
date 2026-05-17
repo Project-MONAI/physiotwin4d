@@ -115,13 +115,20 @@ class SegmentHeartSimpleware(SegmentAnatomyBase):
             "SimplewareScript_heart_segmentation.py",
         )
 
-    def set_trim_mask_to_essentials(self, trim_mask: bool) -> None:
-        """Set whether to trim mask to common and critical structures.
+    def set_trim_branches(self, trim_branches: bool) -> None:
+        """Enable trimming of pulmonary and great-vessel branches.
+
+        When enabled, :meth:`trim_branches` is applied to the labelmap after
+        Simpleware segmentation, clipping the pulmonary veins and major great
+        vessels back to the cardiac region.  Trimming reduces inter-subject
+        variability in vessel extent, which simplifies AI-Ready and Sim-Ready
+        model fitting.  It is consistent with how vessels were trimmed in the
+        example KCL Heart dataset.
 
         Args:
-            trim_mask (bool): Whether to reduce to essential.
+            trim_branches (bool): Whether to trim branches to the cardiac region.
         """
-        self._trim_mask = trim_mask
+        self._trim_mask = trim_branches
 
     def set_simpleware_executable_path(self, path: str) -> None:
         """Set the path to the Simpleware Medical console executable.
@@ -332,7 +339,7 @@ class SegmentHeartSimpleware(SegmentAnatomyBase):
             labelmap_image.CopyInformation(preprocessed_image)
 
             if self._trim_mask:
-                labelmap_image = self.trim_mask_to_essentials(labelmap_image)
+                labelmap_image = self.trim_branches(labelmap_image)
 
         return labelmap_image
 
@@ -340,8 +347,16 @@ class SegmentHeartSimpleware(SegmentAnatomyBase):
         """Get the landmarks."""
         return self.landmarks
 
-    def trim_mask_to_essentials(self, labelmap_image: itk.image) -> itk.image:
-        """Trim mask to essentials."""
+    def trim_branches(self, labelmap_image: itk.image) -> itk.image:
+        """Trim pulmonary and great-vessel branches back to the cardiac region.
+
+        Clips pulmonary veins and the great vessels (aorta, pulmonary artery)
+        to the portions adjacent to the heart and keeps only the largest
+        connected component of the left and right atria.  Reduces inter-subject
+        variability in vessel extent, simplifying AI-Ready and Sim-Ready model
+        fitting.  Consistent with how vessels were trimmed in the example KCL
+        Heart dataset.
+        """
 
         # Reference code for cropping aorta and pulmonary artery to
         #    portions adjacent to the heart.

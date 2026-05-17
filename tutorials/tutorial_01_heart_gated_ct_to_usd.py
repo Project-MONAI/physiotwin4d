@@ -36,8 +36,8 @@ Strengths
 
 Weaknesses / Limitations
 ------------------------
-- Requires a GPU for ICON registration (``registration_method='icon'``); use
-  ``registration_method='ants'`` for CPU-only environments (about 10x slower).
+- Requires a GPU for ICON registration (``registration_method='ICON'``); use
+  ``registration_method='ANTS'`` for CPU-only environments (about 10x slower).
 - Segmentation quality depends on TotalSegmentator's training distribution;
   unusual pathologies or pediatric anatomy may degrade results.
 - Large 4D datasets (>20 phases, high resolution) can require 32 GB+ RAM.
@@ -93,7 +93,7 @@ if __name__ == "__main__":
     FULL_DATA_DIR = DATA_DIR / "Slicer-Heart-CT"
     TEST_DATA_DIR = DATA_DIR / "test" / "slicer_heart_small"
     OUTPUT_DIR = TUTORIALS_DIR / "output" / "tutorial_01"
-    REGISTRATION_METHOD = "ants"
+    REGISTRATION_METHOD = "ANTS"
     LOG_LEVEL = logging.INFO
 
     # %%

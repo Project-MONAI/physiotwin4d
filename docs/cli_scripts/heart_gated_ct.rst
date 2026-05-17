@@ -111,8 +111,8 @@ Optional Arguments
      - 1
      - Number of registration refinement iterations
    * - ``--registration-method``
-     - ``icon``
-     - Registration method: ``icon`` or ``ants``
+     - ``ICON``
+     - Registration method: ``ICON`` or ``ANTS``
 
 Processing Pipeline
 ===================
@@ -222,7 +222,7 @@ With ANTs Registration
 
    physiomotion4d-convert-image-to-usd cardiac.nrrd \
        --contrast \
-       --registration-method ants \
+       --registration-method ANTS \
        --registration-iterations 50
 
 Best Practices
@@ -289,7 +289,7 @@ Registration Failures
 **Registration not converging**
    * Try different reference image (better quality phase)
    * Increase ``--registration-iterations``
-   * Switch registration method (``--registration-method ants``)
+   * Switch registration method (``--registration-method ANTS``)
 
 **Excessive deformation**
    * Verify sufficient temporal overlap between phases

@@ -160,7 +160,7 @@ Repository = "https://github.com/Project-MONAI/physiomotion4d.git"
 [project.scripts]
 # CLI commands installed via pip
 # Entry points reference the main() functions in the cli submodule
-physiomotion4d-convert-ct-to-vtk = "physiomotion4d.cli.convert_ct_to_vtk:main"
+physiomotion4d-convert-image-to-vtk = "physiomotion4d.cli.convert_image_to_vtk:main"
 physiomotion4d-convert-image-4d-to-3d = "physiomotion4d.cli.convert_image_4d_to_3d:main"
 physiomotion4d-convert-image-to-usd = "physiomotion4d.cli.convert_image_to_usd:main"
 physiomotion4d-convert-vtk-to-usd = "physiomotion4d.cli.convert_vtk_to_usd:main"
@@ -236,6 +236,8 @@ module = [
     "SimpleITK",
     "SimpleITK.*",
     "sklearn.*",
+    "torch",
+    "torch.*",
     "totalsegmentator.*",
     "trimesh",
     "trimesh.*",

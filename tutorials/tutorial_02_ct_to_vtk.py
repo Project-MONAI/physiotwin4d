@@ -24,7 +24,7 @@ import itk
 import pyvista as pv
 
 from physiomotion4d.test_tools import TestTools
-from physiomotion4d.workflow_convert_ct_to_vtk import WorkflowConvertCTToVTK
+from physiomotion4d.workflow_convert_image_to_vtk import WorkflowConvertImageToVTK
 
 # nnUNetv2 (used by TotalSegmentator inside several workflows) spawns a
 # multiprocessing.Pool. On Windows the spawn start method re-imports this
@@ -67,8 +67,8 @@ if __name__ == "__main__":
 
     # %%
     # Workflow initialization
-    workflow = WorkflowConvertCTToVTK(
-        segmentation_method="total_segmentator",
+    workflow = WorkflowConvertImageToVTK(
+        segmentation_method="ChestTotalSegmentator",
         log_level=log_level,
     )
 
@@ -82,14 +82,14 @@ if __name__ == "__main__":
     # %%
     # Result saving
     surface_file = Path(
-        WorkflowConvertCTToVTK.save_combined_surface(
+        WorkflowConvertImageToVTK.save_combined_surface(
             result["surfaces"],
             str(output_dir),
             prefix="patient",
         )
     )
     mesh_file = Path(
-        WorkflowConvertCTToVTK.save_combined_mesh(
+        WorkflowConvertImageToVTK.save_combined_mesh(
             result["meshes"],
             str(output_dir),
             prefix="patient",

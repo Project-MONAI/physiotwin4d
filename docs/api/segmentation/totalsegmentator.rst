@@ -67,7 +67,7 @@ Operational Notes
 
 TotalSegmentator model inference may download model assets and can be slow on a
 CPU-only environment. For repeatable workflows, prefer the tutorial scripts or
-the ``physiomotion4d-convert-ct-to-vtk`` CLI.
+the ``physiomotion4d-convert-image-to-vtk`` CLI.
 
 See Also
 ========

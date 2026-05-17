@@ -68,7 +68,7 @@ from .usd_anatomy_tools import USDAnatomyTools
 from .usd_tools import USDTools
 
 # Core workflow processor
-from .workflow_convert_ct_to_vtk import WorkflowConvertCTToVTK
+from .workflow_convert_image_to_vtk import WorkflowConvertImageToVTK
 from .workflow_convert_image_to_usd import WorkflowConvertImageToUSD
 from .workflow_convert_vtk_to_usd import WorkflowConvertVTKToUSD
 from .workflow_reconstruct_highres_4d_ct import WorkflowReconstructHighres4DCT
@@ -79,7 +79,7 @@ from .workflow_fit_statistical_model_to_patient import (
 
 __all__ = [
     # Workflow classes
-    "WorkflowConvertCTToVTK",
+    "WorkflowConvertImageToVTK",
     "WorkflowConvertImageToUSD",
     "WorkflowConvertVTKToUSD",
     "WorkflowCreateStatisticalModel",
