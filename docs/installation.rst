@@ -162,17 +162,17 @@ After installation, verify that PhysioMotion4D is correctly installed:
 .. code-block:: python
 
    import physiomotion4d
-   from physiomotion4d import WorkflowConvertHeartGatedCTToUSD
+   from physiomotion4d import WorkflowConvertImageToUSD
    
    print(f"PhysioMotion4D version: {physiomotion4d.__version__}")
-   print(WorkflowConvertHeartGatedCTToUSD.__name__)
+   print(WorkflowConvertImageToUSD.__name__)
 
 Expected output:
 
 .. code-block:: text
 
    PhysioMotion4D version: 2026.05.07
-   WorkflowConvertHeartGatedCTToUSD
+   WorkflowConvertImageToUSD
 
 Command-Line Tools
 ==================
@@ -183,7 +183,7 @@ PhysioMotion4D provides command-line interfaces that should be available after i
 
    # Check CLI is available
    physiomotion4d --help
-   physiomotion4d-heart-gated-ct --help
+   physiomotion4d-convert-image-to-usd --help
 
 GPU Setup
 =========

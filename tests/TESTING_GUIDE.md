@@ -43,7 +43,7 @@ pytest tests/ -m "not slow" -v
 ```bash
 # Data preparation tests (fast)
 pytest tests/test_download_heart_data.py -v
-pytest tests/test_convert_nrrd_4d_to_3d.py -v
+pytest tests/test_convert_image_4d_to_3d.py -v
 
 # Registration tests (slow, ~5-10 min each)
 pytest tests/test_register_images_ants.py -v
@@ -74,7 +74,7 @@ Tests are organized hierarchically with fixtures providing reusable data:
 ```
 test_download_heart_data
     ↓
-test_convert_nrrd_4d_to_3d
+test_convert_image_4d_to_3d
     ↓                    ↓
     ↓                    ├─→ test_register_images_ants ──→ test_transform_tools
     ↓                    ├─→ test_register_images_icon

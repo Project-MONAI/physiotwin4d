@@ -218,9 +218,9 @@ This experiment can be combined with other PhysioMotion4D workflows:
 Use segmentation results with `Heart-GatedCT_To_USD` workflow:
 ```python
 # After segmentation
-from physiomotion4d.workflow_convert_heart_gated_ct_to_usd import WorkflowConvertHeartGatedCTToUSD
+from physiomotion4d.workflow_convert_image_to_usd import WorkflowConvertImageToUSD
 
-workflow = WorkflowConvertHeartGatedCTToUSD()
+workflow = WorkflowConvertImageToUSD()
 workflow.set_static_labelmap(result["labelmap"])
 # Continue with 4D USD generation
 ```

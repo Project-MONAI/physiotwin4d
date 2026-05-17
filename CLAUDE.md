@@ -56,9 +56,12 @@ Consult `docs/API_MAP.md` for the full index of classes, methods, and signatures
 Regenerate it after any public API change: `py utils/generate_api_map.py`
 
 **Key data conventions:**
-- Images: `itk.Image`, axes X, Y, Z [, T] in RAS world space
+- Images: `itk.Image`, axes X, Y, Z [, T] in LPS world space (ITK's native
+  frame; `itk.imread` normalizes DICOM, NIfTI, MHA, and NRRD inputs to LPS)
 - 4D time series: shape `(X, Y, Z, T)` — never silently squeeze or permute axes
-- Surfaces: `pv.PolyData` in RAS; converted to Y-up only at USD export
+- Surfaces: `pv.PolyData` in LPS (inherited from the source `itk.Image` via
+  `itk.vtk_image_from_image`); converted to USD right-handed Y-up only at USD
+  export by `vtk_to_usd.lps_points_to_usd` (USD +X=Left, +Y=Superior, +Z=Anterior)
 - Masks: ITK images with integer labels; consistent anatomy group IDs across all segmenters
 - Transforms: ITK composite transforms stored in `.hdf` files
 - State axis order and shape explicitly in every docstring and comment that touches arrays

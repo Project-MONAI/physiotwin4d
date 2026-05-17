@@ -53,6 +53,8 @@ Current Scripts
      - Process cardiac gated CT to animated heart models with physiological motion
    * - ``physiomotion4d-convert-ct-to-vtk``
      - Segment one CT image and export anatomy-group VTK surfaces and meshes
+   * - ``physiomotion4d-convert-image-4d-to-3d``
+     - Split a 4D medical image into a 3D time series using ITK readers
    * - :doc:`create_statistical_model`
      - Build a PCA statistical shape model from sample meshes aligned to a reference
    * - :doc:`fit_statistical_model_to_patient`
@@ -77,7 +79,7 @@ After installation, scripts are available as command-line tools with the prefix 
 
 .. code-block:: bash
 
-   physiomotion4d-heart-gated-ct --help
+   physiomotion4d-convert-image-to-usd --help
 
 General Workflow
 ================

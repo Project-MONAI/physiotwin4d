@@ -14,8 +14,8 @@ Current Workflow Mapping
 
    * - CLI command
      - Workflow class
-   * - ``physiomotion4d-heart-gated-ct``
-     - :class:`physiomotion4d.WorkflowConvertHeartGatedCTToUSD`
+   * - ``physiomotion4d-convert-image-to-usd``
+     - :class:`physiomotion4d.WorkflowConvertImageToUSD`
    * - ``physiomotion4d-convert-ct-to-vtk``
      - :class:`physiomotion4d.WorkflowConvertCTToVTK`
    * - ``physiomotion4d-convert-vtk-to-usd``
@@ -32,9 +32,9 @@ Workflow Example
 
 .. code-block:: python
 
-   from physiomotion4d import WorkflowConvertHeartGatedCTToUSD
+   from physiomotion4d import WorkflowConvertImageToUSD
 
-   workflow = WorkflowConvertHeartGatedCTToUSD(
+   workflow = WorkflowConvertImageToUSD(
        input_filenames=["cardiac_4d.nrrd"],
        contrast_enhanced=True,
        output_directory="./results",
@@ -59,7 +59,7 @@ Risk Areas
 ==========
 
 Changes at the ITK-to-PyVista boundary, time-series transform direction, or
-RAS-to-Y-up USD coordinate conversion are high risk and should include focused
+LPS-to-USD-Y-up coordinate conversion are high risk and should include focused
 tests plus visual or metadata validation.
 
 See Also

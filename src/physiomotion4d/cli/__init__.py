@@ -1,7 +1,8 @@
 """Command-line interface modules for PhysioMotion4D."""
 
 __all__ = [
-    "convert_heart_gated_ct_to_usd",
+    "convert_image_to_usd",
+    "convert_image_4d_to_3d",
     "convert_vtk_to_usd",
     "create_statistical_model",
     "fit_statistical_model_to_patient",

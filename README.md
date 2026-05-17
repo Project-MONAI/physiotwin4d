@@ -103,10 +103,10 @@ There is no need to install PyTorch separately.
 
 ```python
 import physiomotion4d
-from physiomotion4d import WorkflowConvertHeartGatedCTToUSD
+from physiomotion4d import WorkflowConvertImageToUSD
 
 print(f"PhysioMotion4D version: {physiomotion4d.__version__}")
-print(WorkflowConvertHeartGatedCTToUSD.__name__)
+print(WorkflowConvertImageToUSD.__name__)
 ```
 
 ## Package Architecture
@@ -114,7 +114,7 @@ print(WorkflowConvertHeartGatedCTToUSD.__name__)
 ### Core Components
 
 - **Workflow Classes**: Complete end-to-end pipeline processors
-  - `WorkflowConvertHeartGatedCTToUSD`: Heart-gated CT to USD processing workflow
+  - `WorkflowConvertImageToUSD`: 3D/4D image to USD processing workflow
   - `WorkflowCreateStatisticalModel`: Create PCA statistical shape model from sample meshes
   - `WorkflowFitStatisticalModelToPatient`: Model-to-patient registration workflow
 - **Segmentation Classes**: Multiple AI-based chest segmentation implementations
@@ -195,7 +195,7 @@ a CUDA-capable GPU are required for practical runtime.
 ```bash
 python -c "from physiomotion4d import DataDownloadTools; DataDownloadTools.DownloadSlicerHeartCTData('data/test')"
 
-physiomotion4d-heart-gated-ct data/test/TruncalValve_4DCT.seq.nrrd \
+physiomotion4d-convert-image-to-usd data/test/TruncalValve_4DCT.seq.nrrd \
     --registration-method ants \
     --output-dir output/quickstart \
     --project-name slicer_heart_quickstart
@@ -213,13 +213,13 @@ Process 4D cardiac CT images into dynamic USD models:
 
 ```bash
 # Process a single 4D cardiac CT file
-physiomotion4d-heart-gated-ct cardiac_4d.nrrd --contrast --output-dir ./results
+physiomotion4d-convert-image-to-usd cardiac_4d.nrrd --contrast --output-dir ./results
 
 # Process multiple time frames
-physiomotion4d-heart-gated-ct frame_*.nrrd --contrast --project-name patient_001
+physiomotion4d-convert-image-to-usd frame_*.nrrd --contrast --project-name patient_001
 
 # With custom settings
-physiomotion4d-heart-gated-ct cardiac.nrrd \
+physiomotion4d-convert-image-to-usd cardiac.nrrd \
     --contrast \
     --reference-image ref.mha \
     --registration-iterations 50 \
@@ -278,10 +278,10 @@ For implementation details and advanced usage, see the CLI modules in `src/physi
 ### Python API - Basic Heart-Gated CT Processing
 
 ```python
-from physiomotion4d import WorkflowConvertHeartGatedCTToUSD
+from physiomotion4d import WorkflowConvertImageToUSD
 
 # Initialize processor
-processor = WorkflowConvertHeartGatedCTToUSD(
+processor = WorkflowConvertImageToUSD(
     input_filenames=["path/to/cardiac_4d_ct.nrrd"],
     contrast_enhanced=True,
     output_directory="./results",
@@ -443,7 +443,7 @@ stage = convert_vtk_file(
 ```
 
 Features:
-- Automatic coordinate system conversion (RAS to Y-up)
+- Automatic coordinate system conversion (LPS to USD right-handed Y-up)
 - Material system with UsdPreviewSurface
 - Preserves all VTK data arrays as USD primvars
 - Supports VTP, VTK, and VTU file formats
@@ -721,7 +721,7 @@ Use `/impl` for end-to-end implementation: read → summarize → plan → diff 
 ```
 
 ```text
-/impl fix the RAS-to-Y-up transform being applied twice in vtk_to_usd/usd_utils.py
+/impl fix the LPS-to-Y-up transform being applied twice in vtk_to_usd/usd_utils.py
 ```
 
 The agent will read the affected module, propose a numbered plan, implement in the

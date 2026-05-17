@@ -44,10 +44,14 @@ single-file facade. Otherwise, prefer `convert_vtk_to_usd.py`.
 
 ## Coordinate System
 
-RAS-to-Y-up conversion: `USD(x, y, z) = RAS(x, z, -y) * 0.001`.
+LPS-to-USD-Y-up conversion: `USD(x, y, z) = LPS(x, z, -y) * 0.001`.
 
-This conversion happens inside `usd_utils.ras_to_usd()` and
-`ras_points_to_usd()`. It must not be applied more than once.
+PhysioMotion4D keeps images and surfaces in ITK's native LPS frame; the
+resulting USD frame is right-handed Y-up with USD +X = patient Left,
+USD +Y = patient Superior, USD +Z = patient Anterior.
+
+This conversion happens inside `usd_utils.lps_to_usd()` and
+`lps_points_to_usd()`. It must not be applied more than once.
 
 ## Testing Policy
 

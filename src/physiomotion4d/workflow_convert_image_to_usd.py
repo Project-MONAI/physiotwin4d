@@ -1,8 +1,10 @@
 """
-Heart-gated CT processor implementing the complete 4D CT to USD workflow.
+Image-to-USD workflow implementing the complete 3D/4D image to USD pipeline.
 
-This module implements the complete pipeline for processing 4D cardiac CT images
-as demonstrated in the Heart-GatedCT experiment notebooks.
+This module implements the complete pipeline for processing 3D or 4D medical
+images (e.g. cardiac and respiratory gated CT studies) into dynamic USD
+models.  4D image arrays follow the (X, Y, Z, T) axis convention used
+throughout PhysioMotion4D.
 """
 
 import logging
@@ -15,7 +17,7 @@ import pyvista as pv
 
 from physiomotion4d import ConvertVTKToUSD
 from physiomotion4d.contour_tools import ContourTools
-from physiomotion4d.convert_nrrd_4d_to_3d import ConvertNRRD4DTo3D
+from physiomotion4d.convert_image_4d_to_3d import ConvertImage4DTo3D
 from physiomotion4d.physiomotion4d_base import PhysioMotion4DBase
 from physiomotion4d.register_images_ants import RegisterImagesANTs
 from physiomotion4d.register_images_base import RegisterImagesBase
@@ -25,9 +27,9 @@ from physiomotion4d.transform_tools import TransformTools
 from physiomotion4d.usd_anatomy_tools import USDAnatomyTools
 
 
-class WorkflowConvertHeartGatedCTToUSD(PhysioMotion4DBase):
+class WorkflowConvertImageToUSD(PhysioMotion4DBase):
     """
-    Complete workflow for Heart-gated CT images to dynamic USD models.
+    Complete workflow for converting 4D CT images to dynamic USD models.
 
     This class implements the full workflow from 4D CT images to painted USD files
     suitable for visualization in NVIDIA Omniverse.
@@ -48,11 +50,16 @@ class WorkflowConvertHeartGatedCTToUSD(PhysioMotion4DBase):
         save_labelmaps: bool = True,
     ):
         """
-        Initialize the Heart-gated CT to USD workflow.
+        Initialize the image-to-USD workflow.
 
         Args:
-            input_filenames (List): List of paths to the 3D NRRD files containing cardiac CT data.
-                If there is only one file, it will be used as the 4D NRRD file.
+            input_filenames (List): One or more image sources for the time
+                series.  A single entry may be a 4D image file (NRRD/NIfTI/MHA
+                in (X, Y, Z, T) order), a 3D image file, or a directory holding
+                a DICOM series (3D or 4D).  Multiple entries are treated as a
+                pre-split list of 3D images, one per time point.  All entries
+                are routed through :class:`ConvertImage4DTo3D` so any
+                ITK-readable format is accepted.
             contrast_enhanced (bool): Whether the study uses contrast enhancement
             output_directory (str): Directory path where output files will be stored
             project_name (str): Project name for USD file organization
@@ -91,7 +98,7 @@ class WorkflowConvertHeartGatedCTToUSD(PhysioMotion4DBase):
         os.makedirs(output_directory, exist_ok=True)
 
         # Initialize processing components
-        self.converter = ConvertNRRD4DTo3D(log_level=log_level)
+        self.converter = ConvertImage4DTo3D(log_level=log_level)
         self.segmenter = SegmentChestTotalSegmentator(log_level=log_level)
         self.segmenter.contrast_threshold = 500
 
@@ -181,7 +188,7 @@ class WorkflowConvertHeartGatedCTToUSD(PhysioMotion4DBase):
         Returns:
             str: Path to the final dynamic anatomy USD file
         """
-        self.log_section("Heart-gated CT Processing Pipeline")
+        self.log_section("Image-to-USD Processing Pipeline")
 
         # Load and convert data
         self._load_time_series()
@@ -205,23 +212,27 @@ class WorkflowConvertHeartGatedCTToUSD(PhysioMotion4DBase):
         """Load and convert 4D data to time series images."""
         self.log_info("Loading time series data...")
 
+        self._time_series_images = []
+        self._num_time_points = 0
+
         if len(self.input_filenames) == 1:
-            self.converter.load_nrrd_4d(self.input_filenames[0])
+            self.converter.load_image_4d(self.input_filenames[0])
             self.converter.save_3d_images(
                 self.output_directory,
                 os.path.basename(self.input_filenames[0]),
             )
+            self._num_time_points = self.converter.get_number_of_3d_images()
+            for i in range(self._num_time_points):
+                self._time_series_images.append(self.converter.get_3d_image(i))
         else:
-            self.log_info("Loading %d 3D NRRD files", len(self.input_filenames))
-            self.converter.load_nrrd_3d(self.input_filenames)
+            self.log_info("Loading %d 3D image files", len(self.input_filenames))
+            self._time_series_images = [
+                itk.imread(path) for path in self.input_filenames
+            ]
+            self._num_time_points = len(self._time_series_images)
 
-        self._num_time_points = self.converter.get_number_of_3d_images()
         if self._num_time_points <= 0:
             raise ValueError("No time-series images were produced from input data")
-
-        # Load all time series images into memory
-        for i in range(self._num_time_points):
-            self._time_series_images.append(self.converter.get_3d_image(i))
         if not self._time_series_images:
             raise ValueError("No time-series images were loaded from input data")
 

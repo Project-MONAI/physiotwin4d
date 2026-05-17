@@ -14,7 +14,7 @@ Utility modules provide low-level operations:
 * **Image Tools**: Image I/O, preprocessing, manipulation
 * **Transform Tools**: Coordinate transforms and warping
 * **Contour Tools**: Contour extraction and processing
-* **NRRD Conversion**: 4D NRRD to 3D conversion utilities
+* **4D Image Conversion**: 4D image to 3D time-series conversion utilities
 
 Quick Links
 ===========
@@ -23,7 +23,7 @@ Quick Links
    * :doc:`image_tools` - Image processing utilities
    * :doc:`transform_tools` - Transform operations
    * :doc:`contour_tools` - Contour processing
-   * :doc:`nrrd_conversion` - NRRD file utilities
+   * :doc:`image_conversion` - 4D image to 3D time-series utilities
    * :doc:`test_tools` - Baseline / result comparison helpers
    * :doc:`data_download` - Optional dataset download helpers
 
@@ -36,7 +36,7 @@ Module Documentation
    image_tools
    transform_tools
    contour_tools
-   nrrd_conversion
+   image_conversion
    test_tools
    data_download
 

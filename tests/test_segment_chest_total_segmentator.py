@@ -2,7 +2,7 @@
 """
 Test for chest CT segmentation using TotalSegmentator.
 
-This test depends on test_convert_nrrd_4d_to_3d and tests segmentation
+This test depends on test_convert_image_4d_to_3d and tests segmentation
 functionality on two time points from the converted 3D data.
 """
 

@@ -37,7 +37,7 @@ Specific Areas
 .. code-block:: bash
 
    pytest tests/test_convert_vtk_to_usd.py -v
-   pytest tests/test_convert_nrrd_4d_to_3d.py -v
+   pytest tests/test_convert_image_4d_to_3d.py -v
    pytest tests/test_contour_tools.py -v
    pytest tests/test_transform_tools.py -v
    pytest tests/test_image_tools.py -v

@@ -7,7 +7,7 @@ see the :doc:`cli_scripts/overview` section.
 
 .. note::
 
-   **For Production Workflows:** The CLI commands (``physiomotion4d-heart-gated-ct``,
+   **For Production Workflows:** The CLI commands (``physiomotion4d-convert-image-to-usd``,
    ``physiomotion4d-create-statistical-model``, ``physiomotion4d-fit-statistical-model-to-patient``)
    and their implementations in ``src/physiomotion4d/cli/``
    are the definitive source for proper library usage, class instantiation, and best practices.
@@ -27,10 +27,10 @@ Complete end-to-end cardiac CT processing:
 
 .. code-block:: python
 
-   from physiomotion4d import WorkflowConvertHeartGatedCTToUSD
+   from physiomotion4d import WorkflowConvertImageToUSD
 
    # Initialize workflow
-   workflow = WorkflowConvertHeartGatedCTToUSD(
+   workflow = WorkflowConvertImageToUSD(
        input_filenames=["cardiac_4d.nrrd"],
        contrast_enhanced=True,
        output_directory="./results",
@@ -390,7 +390,7 @@ Batch process multiple datasets:
 
 .. code-block:: python
 
-   from physiomotion4d import WorkflowConvertHeartGatedCTToUSD
+   from physiomotion4d import WorkflowConvertImageToUSD
    import glob
    import os
 
@@ -406,7 +406,7 @@ Batch process multiple datasets:
 
        print(f"Processing {patient_id}...")
 
-       workflow = WorkflowConvertHeartGatedCTToUSD(
+       workflow = WorkflowConvertImageToUSD(
            input_filenames=[input_file],
            contrast_enhanced=True,
            output_directory=f"results/{patient_id}",
@@ -474,9 +474,9 @@ Run the supported end-to-end workflow API:
 
 .. code-block:: python
 
-   from physiomotion4d import WorkflowConvertHeartGatedCTToUSD
+   from physiomotion4d import WorkflowConvertImageToUSD
 
-   workflow = WorkflowConvertHeartGatedCTToUSD(
+   workflow = WorkflowConvertImageToUSD(
        input_filenames=["cardiac_4d.nrrd"],
        contrast_enhanced=True,
        output_directory="./results",

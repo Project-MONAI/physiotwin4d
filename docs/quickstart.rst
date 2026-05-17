@@ -70,7 +70,7 @@ CUDA-capable GPU are required for practical runtime.
 
    python -c "from physiomotion4d import DataDownloadTools; DataDownloadTools.DownloadSlicerHeartCTData('data/test')"
 
-   physiomotion4d-heart-gated-ct data/test/TruncalValve_4DCT.seq.nrrd \
+   physiomotion4d-convert-image-to-usd data/test/TruncalValve_4DCT.seq.nrrd \
        --registration-method ants \
        --output-dir output/quickstart \
        --project-name slicer_heart_quickstart
@@ -83,13 +83,13 @@ The fastest way to process cardiac CT data is using the command-line interface:
 .. code-block:: bash
 
    # Process a single 4D cardiac CT file
-   physiomotion4d-heart-gated-ct cardiac_4d.nrrd --contrast --output-dir ./results
+   physiomotion4d-convert-image-to-usd cardiac_4d.nrrd --contrast --output-dir ./results
 
    # Process multiple time frames
-   physiomotion4d-heart-gated-ct frame_*.nrrd --contrast --project-name patient_001
+   physiomotion4d-convert-image-to-usd frame_*.nrrd --contrast --project-name patient_001
 
    # With custom settings
-   physiomotion4d-heart-gated-ct cardiac.nrrd \
+   physiomotion4d-convert-image-to-usd cardiac.nrrd \
        --contrast \
        --reference-image ref.mha \
        --registration-iterations 50 \
@@ -104,13 +104,13 @@ For more control, use the Python API:
 
 .. code-block:: python
 
-   from physiomotion4d import WorkflowConvertHeartGatedCTToUSD
+   from physiomotion4d import WorkflowConvertImageToUSD
 
 **Step 2: Initialize with your data**
 
 .. code-block:: python
 
-   processor = WorkflowConvertHeartGatedCTToUSD(
+   processor = WorkflowConvertImageToUSD(
        input_filenames=["path/to/cardiac_4d_ct.nrrd"],
        contrast_enhanced=True,
        output_directory="./results",
@@ -142,10 +142,10 @@ For more control over individual steps:
 
 .. code-block:: python
 
-   from physiomotion4d import WorkflowConvertHeartGatedCTToUSD
+   from physiomotion4d import WorkflowConvertImageToUSD
 
    # Initialize workflow
-   workflow = WorkflowConvertHeartGatedCTToUSD(
+   workflow = WorkflowConvertImageToUSD(
        input_filenames=["cardiac_4d.nrrd"],
        contrast_enhanced=True,
        output_directory="./results",
@@ -297,7 +297,7 @@ Now that you've completed your first workflow:
    **About CLI Commands and Experiments:**
 
    * **CLI Commands** ⭐ **PRIMARY RESOURCE** - Production-ready workflows with proper class usage
-     (``physiomotion4d-heart-gated-ct``, ``physiomotion4d-create-statistical-model``,
+     (``physiomotion4d-convert-image-to-usd``, ``physiomotion4d-create-statistical-model``,
      ``physiomotion4d-fit-statistical-model-to-patient``).
      See ``src/physiomotion4d/cli/`` for implementation details.
 

@@ -14,7 +14,7 @@ of the PhysioMotion4D library.
 - Command-line tools and parameter specifications
 
 See:
-- **CLI Commands**: Run `physiomotion4d-heart-gated-ct --help`, `physiomotion4d-create-statistical-model --help`, and `physiomotion4d-fit-statistical-model-to-patient --help`
+- **CLI Commands**: Run `physiomotion4d-convert-image-to-usd --help`, `physiomotion4d-create-statistical-model --help`, and `physiomotion4d-fit-statistical-model-to-patient --help`
 - **CLI Implementation**: `src/physiomotion4d/cli/` for Python API examples
 - **Library Classes**: `src/physiomotion4d/` for all workflow and utility classes
 
@@ -36,7 +36,7 @@ These experiments demonstrate key digital twin workflows that can be adapted to 
 anatomical regions, imaging modalities, and physiological motion tasks.
 
 > **Note:** For production implementations of these workflows, use the CLI commands
-> (`physiomotion4d-heart-gated-ct`, `physiomotion4d-create-statistical-model`, `physiomotion4d-fit-statistical-model-to-patient`) or consult
+> (`physiomotion4d-convert-image-to-usd`, `physiomotion4d-create-statistical-model`, `physiomotion4d-fit-statistical-model-to-patient`) or consult
 > the CLI implementation in `src/physiomotion4d/cli/` for proper class usage and parameter specifications.
 
 ### `Reconstruct4DCT` - High-Resolution 4D Reconstruction
@@ -274,7 +274,7 @@ Each subdirectory represents a different experimental domain:
 ### For Production Use, Consult:
 
 1. **CLI Commands** ⭐ **PRIMARY RESOURCE**
-   - `physiomotion4d-heart-gated-ct` - Complete heart-gated CT workflow
+   - `physiomotion4d-convert-image-to-usd` - Complete heart-gated CT workflow
    - `physiomotion4d-create-statistical-model` - Create PCA statistical shape model from sample meshes
    - `physiomotion4d-fit-statistical-model-to-patient` - Model-to-patient registration
    - Run with `--help` for all options and parameter specifications
@@ -337,7 +337,7 @@ The typical evolution path was:
 When exploring new digital twin applications, you can follow a similar path:
 - Start by understanding relevant experiments here as conceptual references
 - Examine CLI implementations in `src/physiomotion4d/cli/` for proper library usage
-- Use CLI commands (`physiomotion4d-heart-gated-ct`, `physiomotion4d-create-statistical-model`, `physiomotion4d-fit-statistical-model-to-patient`) as starting points
+- Use CLI commands (`physiomotion4d-convert-image-to-usd`, `physiomotion4d-create-statistical-model`, `physiomotion4d-fit-statistical-model-to-patient`) as starting points
 - Extend and adapt production code with your domain-specific requirements
 - Contribute back improvements and new capabilities to the community
 

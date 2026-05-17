@@ -79,9 +79,9 @@ Tests that require downloading external data, executed in sequence with caching.
 
 2. **Data Conversion Tests**
    ```bash
-   pytest tests/test_convert_nrrd_4d_to_3d.py -v --cov=src/physiomotion4d --cov-append --cov-report=xml
+   pytest tests/test_convert_image_4d_to_3d.py -v --cov=src/physiomotion4d --cov-append --cov-report=xml
    ```
-   - Converts 4D NRRD to 3D time series
+   - Converts 4D image to 3D time series via ITK
    - Creates slice files
    - Depends on downloaded data
 

@@ -34,7 +34,7 @@ Architecture Diagram
 Workflow Classes
 ================
 
-``WorkflowConvertHeartGatedCTToUSD``
+``WorkflowConvertImageToUSD``
    Orchestrates 4D CT loading, segmentation, image registration, contour
    transformation, and animated USD generation.
 
@@ -58,9 +58,10 @@ Workflow Classes
 Key Boundaries
 ==============
 
-Image processing uses ITK images. Surface and volume meshes use PyVista/VTK.
-USD export converts those meshes to OpenUSD and applies the repository's
-RAS-to-Y-up transform at the VTK-to-USD boundary.
+Image processing uses ITK images in LPS world space. Surface and volume meshes
+use PyVista/VTK and inherit that LPS frame. USD export converts those meshes to
+OpenUSD and applies the repository's LPS-to-USD-Y-up transform at the
+VTK-to-USD boundary.
 
 The installed CLI commands are thin wrappers around these workflow classes.
 They are the best executable references for supported API usage.

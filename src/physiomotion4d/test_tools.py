@@ -506,7 +506,7 @@ class TestTools(PhysioMotion4DBase):
 
     def save_screenshot_image_slice(
         self,
-        image: Any,  # itk.Image, axes X Y Z in RAS world space
+        image: Any,  # itk.Image, axes X Y Z in LPS world space
         filename: str,
         *,
         axis: int = 0,
@@ -528,7 +528,7 @@ class TestTools(PhysioMotion4DBase):
         Saves to the configured result artifact directory.
 
         Args:
-            image: 3-D ``itk.Image`` in RAS world space, axes X Y Z.
+            image: 3-D ``itk.Image`` in LPS world space, axes X Y Z.
             filename: Output PNG filename, relative to the result artifact dir.
             axis: Numpy axis along which to slice (0=axial, 1=coronal, 2=sagittal).
             slice_fraction: Fractional position along ``axis`` in [0, 1].

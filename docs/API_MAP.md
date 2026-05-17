@@ -66,9 +66,13 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 
 - `def main()` (line 26): CLI entry point for CT to VTK conversion.
 
-## src/physiomotion4d/cli/convert_heart_gated_ct_to_usd.py
+## src/physiomotion4d/cli/convert_image_4d_to_3d.py
 
-- `def main()` (line 14): Command-line interface for Heart-gated CT processing.
+- `def main()` (line 20): CLI entry point for 4D-to-3D image conversion.
+
+## src/physiomotion4d/cli/convert_image_to_usd.py
+
+- `def main()` (line 14): Command-line interface for the Image-to-USD workflow.
 
 ## src/physiomotion4d/cli/convert_vtk_to_usd.py
 
@@ -102,15 +106,14 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
   - `def create_distance_map(self, mesh, reference_image, squared_distance=False, negative_inside=True, zero_inside=False, norm_to_max_distance=0.0)` (line 257)
   - `def create_deformation_field(self, points, point_displacements, reference_image, blur_sigma=2.5, ptype=itk.D)` (line 324): Create a displacement map from model points and displacements.
 
-## src/physiomotion4d/convert_nrrd_4d_to_3d.py
+## src/physiomotion4d/convert_image_4d_to_3d.py
 
-- **class ConvertNRRD4DTo3D** (line 13)
-  - `def __init__(self, log_level=logging.INFO)` (line 14): Initialize the NRRD 4D to 3D converter.
-  - `def load_nrrd_3d(self, filenames)` (line 24)
-  - `def load_nrrd_4d(self, filename)` (line 30)
-  - `def get_3d_image(self, index)` (line 64)
-  - `def get_number_of_3d_images(self)` (line 67)
-  - `def save_3d_images(self, directory, basename)` (line 70)
+- **class ConvertImage4DTo3D** (line 34): Split a 3D/4D ITK image (X, Y, Z [, T]) into a list of 3D ITK images.
+  - `def __init__(self, log_level=logging.INFO)` (line 37): Initialize the 4D-to-3D image converter.
+  - `def load_image_4d(self, filename)` (line 62): Load a 3D or 4D image and populate ``self.img_3d`` with 3D frames.
+  - `def get_3d_image(self, index)` (line 269): Return the 3D ITK image at the given time index.
+  - `def get_number_of_3d_images(self)` (line 273): Return the number of 3D images currently held.
+  - `def save_3d_images(self, directory, basename, suffix='mha')` (line 277): Write each held 3D image to ``{directory}/{basename}_{i:03d}.{suffix}``.
 
 ## src/physiomotion4d/convert_vtk_to_usd.py
 
@@ -399,16 +402,16 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 
 ## src/physiomotion4d/vtk_to_usd/usd_utils.py
 
-- `def ras_to_usd(point)` (line 20): Convert RAS (Right-Anterior-Superior) coordinates to USD's right-handed Y-up system.
-- `def ras_points_to_usd(points)` (line 55): Convert array of RAS points (mm) to USD coordinates (m).
-- `def ras_normals_to_usd(normals)` (line 78): Convert array of RAS normals to USD Y-up coordinates.
-- `def numpy_to_vt_array(array, data_type)` (line 101): Convert numpy array to appropriate VtArray type.
-- `def get_sdf_value_type(data_type, num_components)` (line 173): Get appropriate SDF value type for primvar creation.
-- `def sanitize_primvar_name(name)` (line 220): Sanitize a name to be USD-compliant.
-- `def create_primvar(geom, array, array_name_prefix='', time_code=None)` (line 255): Create a USD primvar from a GenericArray.
-- `def triangulate_face(face_counts, face_indices)` (line 369): Triangulate polygonal faces using fan triangulation.
-- `def compute_mesh_extent(points)` (line 420): Compute bounding box extent for a mesh.
-- `def add_framing_camera(stage, *, parent_path='/World', name='Camera', bounds_min=None, bounds_max=None, focal_length_mm=50.0, horizontal_aperture_mm=36.0, distance_factor=3.0)` (line 432): Define a USD camera that frames stage geometry with tight clipping planes.
+- `def lps_to_usd(point)` (line 20): Convert LPS (Left-Posterior-Superior) coordinates to USD's right-handed Y-up frame.
+- `def lps_points_to_usd(points)` (line 58): Convert array of LPS points (mm) to USD Y-up coordinates (m).
+- `def lps_normals_to_usd(normals)` (line 82): Convert array of LPS normals to USD Y-up coordinates.
+- `def numpy_to_vt_array(array, data_type)` (line 105): Convert numpy array to appropriate VtArray type.
+- `def get_sdf_value_type(data_type, num_components)` (line 177): Get appropriate SDF value type for primvar creation.
+- `def sanitize_primvar_name(name)` (line 224): Sanitize a name to be USD-compliant.
+- `def create_primvar(geom, array, array_name_prefix='', time_code=None)` (line 259): Create a USD primvar from a GenericArray.
+- `def triangulate_face(face_counts, face_indices)` (line 373): Triangulate polygonal faces using fan triangulation.
+- `def compute_mesh_extent(points)` (line 424): Compute bounding box extent for a mesh.
+- `def add_framing_camera(stage, *, parent_path='/World', name='Camera', bounds_min=None, bounds_max=None, focal_length_mm=50.0, horizontal_aperture_mm=36.0, distance_factor=3.0)` (line 436): Define a USD camera that frames stage geometry with tight clipping planes.
 
 ## src/physiomotion4d/vtk_to_usd/vtk_reader.py
 
@@ -432,11 +435,11 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
   - `def save_combined_surface(surfaces, output_dir, prefix='')` (line 397): Merge all group surfaces into a single VTP file.
   - `def save_combined_mesh(meshes, output_dir, prefix='')` (line 432): Merge all group meshes into a single VTU file.
 
-## src/physiomotion4d/workflow_convert_heart_gated_ct_to_usd.py
+## src/physiomotion4d/workflow_convert_image_to_usd.py
 
-- **class WorkflowConvertHeartGatedCTToUSD** (line 28): Complete workflow for Heart-gated CT images to dynamic USD models.
-  - `def __init__(self, input_filenames, contrast_enhanced, output_directory, project_name, reference_image_filename=None, number_of_registration_iterations=1, registration_method='icon', log_level=logging.INFO, save_registered_images=True, save_registration_transforms=True, save_labelmaps=True)` (line 36): Initialize the Heart-gated CT to USD workflow.
-  - `def process(self)` (line 177): Execute the complete workflow from 4D CT to dynamic USD models.
+- **class WorkflowConvertImageToUSD** (line 30): Complete workflow for converting 4D CT images to dynamic USD models.
+  - `def __init__(self, input_filenames, contrast_enhanced, output_directory, project_name, reference_image_filename=None, number_of_registration_iterations=1, registration_method='icon', log_level=logging.INFO, save_registered_images=True, save_registration_transforms=True, save_labelmaps=True)` (line 38): Initialize the image-to-USD workflow.
+  - `def process(self)` (line 184): Execute the complete workflow from 4D CT to dynamic USD models.
 
 ## src/physiomotion4d/workflow_convert_vtk_to_usd.py
 
@@ -520,7 +523,7 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 
 ## tests/test_cli_smoke.py
 
-- `def test_cli_help(module_name, monkeypatch, capsys)` (line 23): Each CLI module exits successfully for --help.
+- `def test_cli_help(module_name, monkeypatch, capsys)` (line 24): Each CLI module exits successfully for --help.
 
 ## tests/test_contour_tools.py
 
@@ -535,13 +538,13 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
   - `def test_transform_contours_with_deformation(self, contour_tools, test_labelmaps, test_directories)` (line 267): Test transforming contours with deformation magnitude calculation.
   - `def test_contours_from_both_time_points(self, contour_tools, test_labelmaps, test_directories)` (line 316): Test extracting contours from both time points.
 
-## tests/test_convert_nrrd_4d_to_3d.py
+## tests/test_convert_image_4d_to_3d.py
 
-- **class TestConvertNRRD4DTo3D** (line 17): Test suite for converting 4D NRRD to 3D time series.
-  - `def test_convert_4d_to_3d(self, download_test_data, test_directories)` (line 20): Test conversion of 4D NRRD to 3D time series.
-  - `def test_slice_files_created(self, download_test_data, test_directories)` (line 46): Test that all expected slice files are present after conversion.
-  - `def test_load_nrrd_4d(self, download_test_data)` (line 67): Test loading 4D NRRD file.
-  - `def test_save_3d_images(self, download_test_data, test_directories)` (line 80): Test saving 3D images from 4D NRRD.
+- **class TestConvertImage4DTo3D** (line 17): Test suite for converting a 4D image to a 3D time series.
+  - `def test_convert_4d_to_3d(self, download_test_data, test_directories)` (line 20): Test conversion of 4D image to 3D time series.
+  - `def test_slice_files_created(self, download_test_data, test_directories)` (line 43): Test that all expected slice files are present after conversion.
+  - `def test_load_image_4d(self, download_test_data)` (line 66): Test loading a 4D image.
+  - `def test_save_3d_images(self, download_test_data, test_directories)` (line 77): Test saving 3D images from a 4D source.
 
 ## tests/test_convert_vtk_to_usd.py
 

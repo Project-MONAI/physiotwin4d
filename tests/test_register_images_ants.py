@@ -2,7 +2,7 @@
 """
 Test for ANTs-based image registration.
 
-This test depends on test_convert_nrrd_4d_to_3d and uses the converted
+This test depends on test_convert_image_4d_to_3d and uses the converted
 3D CT images to test ANTs registration functionality.
 """
 

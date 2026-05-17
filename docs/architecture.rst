@@ -20,7 +20,7 @@ Data Flow
    4D CT / time-series CT
           |
           v
-   ConvertNRRD4DTo3D / ImageTools
+   ConvertImage4DTo3D / ImageTools
           |
           v
    RegisterTimeSeriesImages
@@ -41,7 +41,7 @@ Data Flow
 Primary Workflows
 =================
 
-``WorkflowConvertHeartGatedCTToUSD``
+``WorkflowConvertImageToUSD``
    Converts a 4D cardiac CT file or 3D CT time series into registered anatomy
    contours and painted animated USD files.
 
@@ -77,9 +77,10 @@ OpenUSD stage creation, material assignment, coordinate conversion, and time
 samples.
 
 The high-risk boundary is the ITK-to-PyVista-to-USD path. Image data remains in
-ITK image space until contours are extracted. Meshes are represented as PyVista
-objects before USD export. The VTK-to-USD layer applies the repository's
-RAS-to-Y-up coordinate transform during USD conversion.
+ITK's native LPS world space until contours are extracted. Meshes are
+represented as PyVista objects (still in LPS) before USD export. The VTK-to-USD
+layer applies the repository's LPS-to-USD-Y-up coordinate transform during USD
+conversion.
 
 CLI Boundary
 ============
@@ -87,7 +88,7 @@ CLI Boundary
 The installed CLI commands in ``pyproject.toml`` are thin wrappers around the
 workflow classes. They are the preferred examples for executable API usage:
 
-* ``physiomotion4d-heart-gated-ct``
+* ``physiomotion4d-convert-image-to-usd``
 * ``physiomotion4d-convert-ct-to-vtk``
 * ``physiomotion4d-create-statistical-model``
 * ``physiomotion4d-fit-statistical-model-to-patient``

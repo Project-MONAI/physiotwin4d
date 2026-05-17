@@ -219,7 +219,7 @@ jobs:
 
     - name: Run data conversion tests
       run: |
-        pytest tests/test_convert_nrrd_4d_to_3d.py -v --cov=physiomotion4d --cov-append --cov-report=xml
+        pytest tests/test_convert_image_4d_to_3d.py -v --cov=physiomotion4d --cov-append --cov-report=xml
       continue-on-error: true
 
     - name: Run contour tools tests

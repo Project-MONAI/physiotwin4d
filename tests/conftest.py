@@ -15,7 +15,7 @@ import itk
 import pytest
 
 from physiomotion4d.contour_tools import ContourTools
-from physiomotion4d.convert_nrrd_4d_to_3d import ConvertNRRD4DTo3D
+from physiomotion4d.convert_image_4d_to_3d import ConvertImage4DTo3D
 from physiomotion4d.data_download_tools import DataDownloadTools
 from physiomotion4d.register_images_ants import RegisterImagesANTs
 from physiomotion4d.register_images_greedy import RegisterImagesGreedy
@@ -357,9 +357,9 @@ def test_images(
     slice_000 = data_dir / "slice_000.mha"
     slice_007 = data_dir / "slice_007.mha"
     if not slice_000.exists() or not slice_007.exists():
-        print("\nConverting 4D NRRD to 3D time series...")
-        conv = ConvertNRRD4DTo3D()
-        conv.load_nrrd_4d(str(download_test_data))
+        print("\nConverting 4D image to 3D time series...")
+        conv = ConvertImage4DTo3D()
+        conv.load_image_4d(str(download_test_data))
         conv.save_3d_images(data_dir, "slice")
     else:
         print("\n3D slice files already exist")

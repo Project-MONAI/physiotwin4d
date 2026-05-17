@@ -15,7 +15,7 @@ This directory contains comprehensive test suites for the PhysioMotion4D package
 
 ### Data Pipeline Tests
 - **`test_download_heart_data.py`** - Automatic data download with fallback logic
-- **`test_convert_nrrd_4d_to_3d.py`** - 4D NRRD to 3D time series conversion
+- **`test_convert_image_4d_to_3d.py`** - 4D image to 3D time series conversion (ITK)
 
 ### Segmentation Tests (GPU Required)
 - **`test_segment_chest_total_segmentator.py`** - TotalSegmentator chest CT segmentation
@@ -138,7 +138,7 @@ Tests are organized hierarchically - some tests depend on outputs from earlier t
 ```
 test_download_heart_data
     ↓
-test_convert_nrrd_4d_to_3d
+test_convert_image_4d_to_3d
     ↓                    ↓
     ↓                    ├─→ test_register_images_ants ──→ test_transform_tools
     ↓                    ├─→ test_register_images_icon

@@ -13,7 +13,7 @@
 # - **Data Arrays**: VTK point and cell data arrays → USD primvars
 # - **Time-Series**: Support for animated/time-varying data
 # - **Materials**: UsdPreviewSurface materials with customizable properties
-# - **Coordinate System**: Automatic conversion from RAS (medical imaging) to USD Y-up
+# - **Coordinate System**: Automatic conversion from LPS (ITK's native medical imaging frame) to USD right-handed Y-up
 #
 # ## Test Data
 #
@@ -375,7 +375,7 @@ print("=" * 60)
 # 5. **Material System**: Custom materials with UsdPreviewSurface
 # 6. **Time-Series**: Animated meshes with time-varying attributes
 # 7. **Data Preservation**: All VTK arrays preserved as USD primvars
-# 8. **Coordinate Systems**: Automatic RAS to Y-up conversion
+# 8. **Coordinate Systems**: Automatic LPS to USD right-handed Y-up conversion
 #
 # The library is production-ready and can be used for converting medical imaging data, simulation results, and other VTK-based datasets to USD for visualization in Omniverse, USDView, or other USD-compatible applications.
 #

@@ -17,23 +17,26 @@ from .data_structures import DataType, GenericArray
 logger = logging.getLogger(__name__)
 
 
-def ras_to_usd(point: NDArray | tuple | list) -> Gf.Vec3f:
-    """Convert RAS (Right-Anterior-Superior) coordinates to USD's right-handed Y-up system.
+def lps_to_usd(point: NDArray | tuple | list) -> Gf.Vec3f:
+    """Convert LPS (Left-Posterior-Superior) coordinates to USD's right-handed Y-up frame.
 
-    VTK/Medical imaging typically uses RAS coordinate system:
-    - R (Right): X-axis points to patient's right
-    - A (Anterior): Y-axis points to patient's front
-    - S (Superior): Z-axis points to patient's head
+    PhysioMotion4D keeps images and surfaces in ITK's native LPS world space.
+    ``itk.imread`` normalizes every supported input (DICOM, NIfTI, MHA, NRRD)
+    to LPS, and ``itk.vtk_image_from_image`` preserves that frame when
+    handing data to PyVista/VTK, so meshes extracted via ``contour_labels``
+    or ``threshold`` arrive here in LPS.
 
-    USD uses right-handed Y-up:
-    - X: right
-    - Y: up
-    - Z: back (toward camera)
+    The USD frame produced by this conversion is right-handed Y-up with:
 
-    Conversion: USD(x, y, z) = RAS(x, z, -y) * 0.001  (mm → m)
+    - USD +X = patient Left      (LPS +x)
+    - USD +Y = patient Superior  (LPS +z)  — "up" in Omniverse
+    - USD +Z = patient Anterior  (−LPS +y) — toward the viewer when the
+      camera looks at the patient from the front
+
+    Conversion: ``USD(x, y, z) = LPS(x, z, −y) * 0.001``  (mm → m)
 
     Args:
-        point: Point in RAS coordinates [x, y, z] in millimeters
+        point: Point in LPS coordinates [x, y, z] in millimeters
 
     Returns:
         Gf.Vec3f: Point in USD coordinates in meters
@@ -52,10 +55,11 @@ def ras_to_usd(point: NDArray | tuple | list) -> Gf.Vec3f:
         )
 
 
-def ras_points_to_usd(points: NDArray) -> Vt.Vec3fArray:
-    """Convert array of RAS points (mm) to USD coordinates (m).
+def lps_points_to_usd(points: NDArray) -> Vt.Vec3fArray:
+    """Convert array of LPS points (mm) to USD Y-up coordinates (m).
 
-    Applies axis swap RAS → Y-up and scales millimeters to meters (* 0.001).
+    Applies the LPS → Y-up axis swap defined in :func:`lps_to_usd` and scales
+    millimeters to meters (* 0.001).
 
     Args:
         points: Array of points with shape (N, 3) in millimeters
@@ -66,7 +70,7 @@ def ras_points_to_usd(points: NDArray) -> Vt.Vec3fArray:
     if points.shape[1] != 3:
         raise ValueError(f"Points must have shape (N, 3), got {points.shape}")
 
-    # Vectorized: USD(x, y, z) = RAS(x, z, -y) * 0.001  (mm → m)
+    # Vectorized: USD(x, y, z) = LPS(x, z, -y) * 0.001  (mm → m)
     usd_points = np.empty(points.shape, dtype=np.float32)
     usd_points[:, 0] = points[:, 0] * 0.001
     usd_points[:, 1] = points[:, 2] * 0.001
@@ -75,11 +79,11 @@ def ras_points_to_usd(points: NDArray) -> Vt.Vec3fArray:
     return Vt.Vec3fArray.FromNumpy(usd_points)
 
 
-def ras_normals_to_usd(normals: NDArray) -> Vt.Vec3fArray:
-    """Convert array of RAS normals to USD Y-up coordinates.
+def lps_normals_to_usd(normals: NDArray) -> Vt.Vec3fArray:
+    """Convert array of LPS normals to USD Y-up coordinates.
 
-    Applies only the axis swap — normals are unit direction vectors and must
-    not be scaled by the mm→m factor.
+    Applies only the axis swap from :func:`lps_to_usd` — normals are unit
+    direction vectors and must not be scaled by the mm→m factor.
 
     Args:
         normals: Array of normals with shape (N, 3)

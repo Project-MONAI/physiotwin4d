@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """
-Command-line interface for Heart-gated CT to USD workflow.
+Command-line interface for the Image-to-USD workflow.
 
-This script provides a CLI to process 4D cardiac CT images through the complete
-workflow, generating dynamic USD models suitable for visualization in NVIDIA Omniverse.
+This script provides a CLI to process 4D CT images through the complete workflow,
+generating dynamic USD models suitable for visualization in NVIDIA Omniverse.
 """
 
 import argparse
@@ -12,9 +12,9 @@ import sys
 
 
 def main() -> int:
-    """Command-line interface for Heart-gated CT processing."""
+    """Command-line interface for the Image-to-USD workflow."""
     parser = argparse.ArgumentParser(
-        description="Process 4D cardiac CT images to dynamic USD models for Omniverse",
+        description="Process 4D CT images to dynamic USD models for Omniverse",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -33,7 +33,13 @@ Examples:
     )
 
     parser.add_argument(
-        "input_files", nargs="+", help="Path to 4D NRRD file or list of 3D NRRD files"
+        "input_files",
+        nargs="+",
+        help=(
+            "Input image source(s): a single 4D file (NRRD/NIfTI/MHA/...), "
+            "a directory containing a DICOM series (3D or 4D), or a list of "
+            "3D files representing a time series."
+        ),
     )
     parser.add_argument(
         "--output-dir",
@@ -74,11 +80,11 @@ Examples:
             return 1
 
     # Initialize processor
-    print("Initializing Heart-gated CT processor...")
+    print("Initializing Image-to-USD processor...")
     try:
-        from physiomotion4d import WorkflowConvertHeartGatedCTToUSD
+        from physiomotion4d import WorkflowConvertImageToUSD
 
-        processor = WorkflowConvertHeartGatedCTToUSD(
+        processor = WorkflowConvertImageToUSD(
             input_filenames=args.input_files,
             contrast_enhanced=args.contrast,
             output_directory=args.output_dir,
@@ -93,7 +99,7 @@ Examples:
 
     try:
         # Execute complete workflow
-        print("\nStarting Heart-gated CT processing pipeline...")
+        print("\nStarting Image-to-USD processing pipeline...")
         print("=" * 60)
         processor.process()
 

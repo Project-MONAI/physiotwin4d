@@ -57,6 +57,7 @@ dependencies = [
     "itk-tubetk>=1.4.0",
     "nibabel>=4.0.0",
     "numpy>=1.21.0",
+    "pydicom>=2.4.0",
     "pynrrd>=1.0.0",
     "vtk>=9.2.0",
 
@@ -160,7 +161,8 @@ Repository = "https://github.com/Project-MONAI/physiomotion4d.git"
 # CLI commands installed via pip
 # Entry points reference the main() functions in the cli submodule
 physiomotion4d-convert-ct-to-vtk = "physiomotion4d.cli.convert_ct_to_vtk:main"
-physiomotion4d-heart-gated-ct = "physiomotion4d.cli.convert_heart_gated_ct_to_usd:main"
+physiomotion4d-convert-image-4d-to-3d = "physiomotion4d.cli.convert_image_4d_to_3d:main"
+physiomotion4d-convert-image-to-usd = "physiomotion4d.cli.convert_image_to_usd:main"
 physiomotion4d-convert-vtk-to-usd = "physiomotion4d.cli.convert_vtk_to_usd:main"
 physiomotion4d-create-statistical-model = "physiomotion4d.cli.create_statistical_model:main"
 physiomotion4d-fit-statistical-model-to-patient = "physiomotion4d.cli.fit_statistical_model_to_patient:main"
@@ -223,6 +225,8 @@ module = [
     "numpy",
     "numpy.*",
     "picsl_greedy",
+    "pydicom",
+    "pydicom.*",
     "pxr",
     "pxr.*",
     "pyvista",
