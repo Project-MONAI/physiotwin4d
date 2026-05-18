@@ -20,7 +20,11 @@ ANATOMY_GROUPS = (
     "contrast",
 )
 
-SEGMENTATION_METHODS = ("ChestTotalSegmentator", "HeartSimpleware")
+SEGMENTATION_METHODS = (
+    "ChestTotalSegmentator",
+    "HeartSimpleware",
+    "HeartSimplewareTrimmedBranches",
+)
 
 
 def main() -> int:
@@ -85,7 +89,10 @@ Examples
         default="ChestTotalSegmentator",
         choices=list(SEGMENTATION_METHODS),
         help=(
-            "Segmentation backend.  ChestTotalSegmentator (default) | HeartSimpleware"
+            "Segmentation backend.  ChestTotalSegmentator (default) | "
+            "HeartSimpleware | HeartSimplewareTrimmedBranches "
+            "(HeartSimpleware with pulmonary/great-vessel branches trimmed "
+            "to the cardiac region)"
         ),
     )
     parser.add_argument(

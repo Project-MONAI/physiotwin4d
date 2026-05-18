@@ -72,7 +72,7 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 
 ## src/physiomotion4d/cli/convert_image_to_vtk.py
 
-- `def main()` (line 26): CLI entry point for image to VTK conversion.
+- `def main()` (line 30): CLI entry point for image to VTK conversion.
 
 ## src/physiomotion4d/cli/convert_vtk_to_usd.py
 
@@ -428,19 +428,19 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 
 ## src/physiomotion4d/workflow_convert_image_to_usd.py
 
-- **class WorkflowConvertImageToUSD** (line 41): Complete workflow for converting 4D CT images to dynamic USD models.
-  - `def __init__(self, input_filenames, contrast_enhanced, output_directory, project_name, reference_image_filename=None, number_of_registration_iterations=1, segmentation_method='ChestTotalSegmentator', registration_method='ICON', log_level=logging.INFO, save_registered_images=True, save_registration_transforms=True, save_labelmaps=True)` (line 49): Initialize the image-to-USD workflow.
-  - `def process(self)` (line 214): Execute the complete workflow from 4D CT to dynamic USD models.
+- **class WorkflowConvertImageToUSD** (line 42): Complete workflow for converting 4D CT images to dynamic USD models.
+  - `def __init__(self, input_filenames, contrast_enhanced, output_directory, project_name, reference_image_filename=None, number_of_registration_iterations=1, segmentation_method='ChestTotalSegmentator', registration_method='ICON', log_level=logging.INFO, save_registered_images=True, save_registration_transforms=True, save_labelmaps=True)` (line 50): Initialize the image-to-USD workflow.
+  - `def process(self)` (line 219): Execute the complete workflow from 4D CT to dynamic USD models.
 
 ## src/physiomotion4d/workflow_convert_image_to_vtk.py
 
-- **class WorkflowConvertImageToVTK** (line 58): Segment a CT image and produce per-anatomy-group VTK surfaces and meshes.
-  - `def __init__(self, segmentation_method='ChestTotalSegmentator', log_level=logging.INFO)` (line 98): Initialize the workflow.
-  - `def run_workflow(self, input_image, contrast_enhanced_study=False, anatomy_groups=None)` (line 241): Segment the CT image and extract per-anatomy-group VTK objects.
-  - `def save_surfaces(surfaces, output_dir, prefix='')` (line 344): Save each group surface to its own VTP file.
-  - `def save_meshes(meshes, output_dir, prefix='')` (line 371): Save each group voxel mesh to its own VTU file.
-  - `def save_combined_surface(surfaces, output_dir, prefix='')` (line 397): Merge all group surfaces into a single VTP file.
-  - `def save_combined_mesh(meshes, output_dir, prefix='')` (line 432): Merge all group meshes into a single VTU file.
+- **class WorkflowConvertImageToVTK** (line 59): Segment a CT image and produce per-anatomy-group VTK surfaces and meshes.
+  - `def __init__(self, segmentation_method='ChestTotalSegmentator', log_level=logging.INFO)` (line 102): Initialize the workflow.
+  - `def run_workflow(self, input_image, contrast_enhanced_study=False, anatomy_groups=None)` (line 252): Segment the CT image and extract per-anatomy-group VTK objects.
+  - `def save_surfaces(surfaces, output_dir, prefix='')` (line 355): Save each group surface to its own VTP file.
+  - `def save_meshes(meshes, output_dir, prefix='')` (line 382): Save each group voxel mesh to its own VTU file.
+  - `def save_combined_surface(surfaces, output_dir, prefix='')` (line 408): Merge all group surfaces into a single VTP file.
+  - `def save_combined_mesh(meshes, output_dir, prefix='')` (line 443): Merge all group meshes into a single VTU file.
 
 ## src/physiomotion4d/workflow_convert_vtk_to_usd.py
 
@@ -459,18 +459,18 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 ## src/physiomotion4d/workflow_fit_statistical_model_to_patient.py
 
 - **class WorkflowFitStatisticalModelToPatient** (line 56): Register anatomical models using multi-stage ICP, mask-based, and image-based
-  - `def __init__(self, template_model, patient_models=None, patient_image=None, segmentation_method='HeartSimpleware', log_level=logging.INFO)` (line 135): Initialize the model-to-image-and-model registration pipeline.
-  - `def set_mask_dilation_mm(self, mask_dilation_mm)` (line 361): Set mask dilation amount for auto-generated masks.
-  - `def set_roi_dilation_mm(self, roi_dilation_mm)` (line 370): Set ROI mask dilation amount.
-  - `def set_use_pca_registration(self, use_pca_registration, pca_model=None, pca_number_of_modes=0, pca_uses_surface=True)` (line 379): Set whether to use PCA-based registration and provide the PCA model.
-  - `def set_use_mask_to_mask_registration(self, use_mask_to_mask_registration)` (line 414): Set whether to use mask-to-mask registration.
-  - `def set_use_mask_to_image_registration(self, use_mask_to_image_registration, template_labelmap=None, template_labelmap_organ_mesh_ids=None, template_labelmap_organ_extra_ids=None, template_labelmap_background_ids=None)` (line 425): Set whether to use mask-to-image registration.
-  - `def register_model_to_model_icp(self)` (line 499): Perform ICP alignment of template model to patient model.
-  - `def register_model_to_model_pca(self)` (line 557): Perform PCA-based registration after ICP alignment.
-  - `def register_mask_to_mask(self, use_icon_refinement=False)` (line 683): Perform mask-based deformable registration of model to patient model.
-  - `def register_labelmap_to_image(self, use_icon_refinement=False)` (line 751): Perform labelmap-to-image refinement.
-  - `def transform_model(self, base_model=None)` (line 871): Apply registration transforms to the model.
-  - `def run_workflow(self, use_icon_registration_refinement=False)` (line 936): Execute the complete multi-stage registration workflow.
+  - `def __init__(self, template_model, patient_models=None, patient_image=None, segmentation_method='HeartSimplewareTrimmedBranches', log_level=logging.INFO)` (line 135): Initialize the model-to-image-and-model registration pipeline.
+  - `def set_mask_dilation_mm(self, mask_dilation_mm)` (line 363): Set mask dilation amount for auto-generated masks.
+  - `def set_roi_dilation_mm(self, roi_dilation_mm)` (line 372): Set ROI mask dilation amount.
+  - `def set_use_pca_registration(self, use_pca_registration, pca_model=None, pca_number_of_modes=0, pca_uses_surface=True)` (line 381): Set whether to use PCA-based registration and provide the PCA model.
+  - `def set_use_mask_to_mask_registration(self, use_mask_to_mask_registration)` (line 416): Set whether to use mask-to-mask registration.
+  - `def set_use_mask_to_image_registration(self, use_mask_to_image_registration, template_labelmap=None, template_labelmap_organ_mesh_ids=None, template_labelmap_organ_extra_ids=None, template_labelmap_background_ids=None)` (line 427): Set whether to use mask-to-image registration.
+  - `def register_model_to_model_icp(self)` (line 501): Perform ICP alignment of template model to patient model.
+  - `def register_model_to_model_pca(self)` (line 559): Perform PCA-based registration after ICP alignment.
+  - `def register_mask_to_mask(self, use_icon_refinement=False)` (line 685): Perform mask-based deformable registration of model to patient model.
+  - `def register_labelmap_to_image(self, use_icon_refinement=False)` (line 753): Perform labelmap-to-image refinement.
+  - `def transform_model(self, base_model=None)` (line 873): Apply registration transforms to the model.
+  - `def run_workflow(self, use_icon_registration_refinement=False)` (line 938): Execute the complete multi-stage registration workflow.
 
 ## src/physiomotion4d/workflow_reconstruct_highres_4d_ct.py
 

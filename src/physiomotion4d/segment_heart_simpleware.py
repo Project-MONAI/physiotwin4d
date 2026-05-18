@@ -101,7 +101,7 @@ class SegmentHeartSimpleware(SegmentAnatomyBase):
             for label_id, organ_name in organs.items():
                 self.taxonomy.add_organ(group_name, label_id, organ_name)
 
-        self._trim_mask = False
+        self._trim_branches = False
 
         self._finalize_other_group()
 
@@ -128,7 +128,7 @@ class SegmentHeartSimpleware(SegmentAnatomyBase):
         Args:
             trim_branches (bool): Whether to trim branches to the cardiac region.
         """
-        self._trim_mask = trim_branches
+        self._trim_branches = trim_branches
 
     def set_simpleware_executable_path(self, path: str) -> None:
         """Set the path to the Simpleware Medical console executable.
@@ -338,7 +338,7 @@ class SegmentHeartSimpleware(SegmentAnatomyBase):
             labelmap_image = itk.GetImageFromArray(labelmap_array.astype(np.uint8))
             labelmap_image.CopyInformation(preprocessed_image)
 
-            if self._trim_mask:
+            if self._trim_branches:
                 labelmap_image = self.trim_branches(labelmap_image)
 
         return labelmap_image

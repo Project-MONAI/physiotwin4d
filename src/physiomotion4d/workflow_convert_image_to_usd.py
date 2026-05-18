@@ -32,6 +32,7 @@ from physiomotion4d.usd_anatomy_tools import USDAnatomyTools
 SEGMENTATION_METHODS: tuple[str, ...] = (
     "ChestTotalSegmentator",
     "HeartSimpleware",
+    "HeartSimplewareTrimmedBranches",
 )
 
 #: Supported registration backend identifiers.
@@ -78,7 +79,9 @@ class WorkflowConvertImageToUSD(PhysioMotion4DBase):
             reference_image_filename (Optional[str]): Path to reference image file
             number_of_registration_iterations (Optional[int]): Number of registration iterations
             segmentation_method (str): Segmentation backend to use:
-                ``'ChestTotalSegmentator'`` (default) or ``'HeartSimpleware'``.
+                ``'ChestTotalSegmentator'`` (default), ``'HeartSimpleware'``,
+                or ``'HeartSimplewareTrimmedBranches'`` (HeartSimpleware with
+                pulmonary/great-vessel branches trimmed to the cardiac region).
             registration_method (str): Registration method to use:
                 ``'ANTS'`` or ``'ICON'`` (default: ``'ICON'``).
             log_level: Logging level (default: logging.INFO)
@@ -127,9 +130,11 @@ class WorkflowConvertImageToUSD(PhysioMotion4DBase):
             chest_segmenter = SegmentChestTotalSegmentator(log_level=log_level)
             chest_segmenter.contrast_threshold = 500
             self.segmenter = chest_segmenter
-        else:  # HeartSimpleware
+        else:  # HeartSimpleware or HeartSimplewareTrimmedBranches
             heart_segmenter = SegmentHeartSimpleware(log_level=log_level)
-            heart_segmenter.set_trim_branches(True)
+            heart_segmenter.set_trim_branches(
+                self.segmentation_method == "HeartSimplewareTrimmedBranches"
+            )
             self.segmenter = heart_segmenter
 
         # Initialize registration method

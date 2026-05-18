@@ -52,6 +52,7 @@ ANATOMY_GROUPS: tuple[str, ...] = (
 SEGMENTATION_METHODS: tuple[str, ...] = (
     "ChestTotalSegmentator",
     "HeartSimpleware",
+    "HeartSimplewareTrimmedBranches",
 )
 
 
@@ -64,6 +65,9 @@ class WorkflowConvertImageToVTK(PhysioMotion4DBase):
       (CPU-capable, default).
     - ``'HeartSimpleware'`` — :class:`SegmentHeartSimpleware` (cardiac only;
       requires a Simpleware Medical installation).
+    - ``'HeartSimplewareTrimmedBranches'`` — :class:`SegmentHeartSimpleware`
+      with :meth:`SegmentHeartSimpleware.set_trim_branches` set to ``True``,
+      trimming pulmonary and great-vessel branches to the cardiac region.
 
     **Output anatomy groups**
 
@@ -104,7 +108,9 @@ class WorkflowConvertImageToVTK(PhysioMotion4DBase):
 
         Args:
             segmentation_method: Segmentation backend to use.  One of
-                ``'ChestTotalSegmentator'`` (default) or ``'HeartSimpleware'``.
+                ``'ChestTotalSegmentator'`` (default), ``'HeartSimpleware'``,
+                or ``'HeartSimplewareTrimmedBranches'`` (HeartSimpleware with
+                pulmonary/great-vessel branches trimmed to the cardiac region).
             log_level: Logging level.  Default: ``logging.INFO``.
 
         Raises:
@@ -144,11 +150,16 @@ class WorkflowConvertImageToVTK(PhysioMotion4DBase):
             )
 
             return SegmentChestTotalSegmentator(log_level=self.log_level)
-        if self.segmentation_method_name == "HeartSimpleware":
+        if self.segmentation_method_name in (
+            "HeartSimpleware",
+            "HeartSimplewareTrimmedBranches",
+        ):
             from physiomotion4d.segment_heart_simpleware import SegmentHeartSimpleware
 
             segmenter = SegmentHeartSimpleware(log_level=self.log_level)
-            segmenter.set_trim_branches(True)
+            segmenter.set_trim_branches(
+                self.segmentation_method_name == "HeartSimplewareTrimmedBranches"
+            )
             return segmenter
         raise ValueError(
             f"Unknown segmentation method: {self.segmentation_method_name}"

@@ -69,11 +69,17 @@ Examples:
     )
     parser.add_argument(
         "--segmentation-method",
-        choices=["ChestTotalSegmentator", "HeartSimpleware"],
+        choices=[
+            "ChestTotalSegmentator",
+            "HeartSimpleware",
+            "HeartSimplewareTrimmedBranches",
+        ],
         default="ChestTotalSegmentator",
         help=(
-            "Segmentation backend to use: ChestTotalSegmentator (default) "
-            "or HeartSimpleware."
+            "Segmentation backend to use: ChestTotalSegmentator (default), "
+            "HeartSimpleware, or HeartSimplewareTrimmedBranches "
+            "(HeartSimpleware with pulmonary/great-vessel branches trimmed "
+            "to the cardiac region)."
         ),
     )
     parser.add_argument(

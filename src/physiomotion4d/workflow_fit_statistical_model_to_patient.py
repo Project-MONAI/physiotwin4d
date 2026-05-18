@@ -137,7 +137,7 @@ class WorkflowFitStatisticalModelToPatient(PhysioMotion4DBase):
         template_model: pv.DataSet,
         patient_models: list[pv.DataSet] | None = None,
         patient_image: Optional[itk.Image] = None,
-        segmentation_method: str = "HeartSimpleware",
+        segmentation_method: str = "HeartSimplewareTrimmedBranches",
         log_level: int | str = logging.INFO,
     ):
         """Initialize the model-to-image-and-model registration pipeline.
@@ -151,9 +151,11 @@ class WorkflowFitStatisticalModelToPatient(PhysioMotion4DBase):
                 via create_reference_image (contour_tools).
             segmentation_method: Segmentation backend used by
                 WorkflowConvertImageToVTK when patient_models is None and
-                patient_image is provided. One of ``'HeartSimpleware'`` (default)
-                or ``'ChestTotalSegmentator'``. Ignored when patient_models is
-                supplied.
+                patient_image is provided. One of
+                ``'HeartSimplewareTrimmedBranches'`` (default — produces
+                cardiac extent that matches KCL-Heart-Model templates),
+                ``'HeartSimpleware'``, or ``'ChestTotalSegmentator'``.
+                Ignored when patient_models is supplied.
             log_level: Logging level (logging.DEBUG, logging.INFO, logging.WARNING).
                 Default: logging.INFO
         """
