@@ -64,7 +64,10 @@ class WorkflowConvertImageToVTK(PhysioMotion4DBase):
     - ``'ChestTotalSegmentator'`` — :class:`SegmentChestTotalSegmentator`
       (CPU-capable, default).
     - ``'HeartSimpleware'`` — :class:`SegmentHeartSimpleware` (cardiac only;
-      requires a Simpleware Medical installation).
+      requires a Simpleware Medical installation). **Behavior change**: this
+      workflow previously called ``set_trim_branches(True)`` for this option
+      implicitly. It no longer does — for the trimmed behavior, use
+      ``'HeartSimplewareTrimmedBranches'`` below.
     - ``'HeartSimplewareTrimmedBranches'`` — :class:`SegmentHeartSimpleware`
       with :meth:`SegmentHeartSimpleware.set_trim_branches` set to ``True``,
       trimming pulmonary and great-vessel branches to the cardiac region.

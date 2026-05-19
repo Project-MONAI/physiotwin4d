@@ -45,6 +45,17 @@ class WorkflowConvertImageToUSD(PhysioMotion4DBase):
 
     This class implements the full workflow from 4D CT images to painted USD files
     suitable for visualization in NVIDIA Omniverse.
+
+    **Segmentation backends** (``segmentation_method``):
+
+    - ``'ChestTotalSegmentator'`` — :class:`SegmentChestTotalSegmentator`.
+    - ``'HeartSimpleware'`` — :class:`SegmentHeartSimpleware`. **Behavior
+      change**: this workflow previously called ``set_trim_branches(True)``
+      for this option implicitly. It no longer does — for the trimmed
+      behavior, use ``'HeartSimplewareTrimmedBranches'``.
+    - ``'HeartSimplewareTrimmedBranches'`` — :class:`SegmentHeartSimpleware`
+      with branch trimming enabled, matching the KCL-Heart-Model template
+      extent.
     """
 
     def __init__(
@@ -130,12 +141,17 @@ class WorkflowConvertImageToUSD(PhysioMotion4DBase):
             chest_segmenter = SegmentChestTotalSegmentator(log_level=log_level)
             chest_segmenter.contrast_threshold = 500
             self.segmenter = chest_segmenter
-        else:  # HeartSimpleware or HeartSimplewareTrimmedBranches
+        elif self.segmentation_method in (
+            "HeartSimpleware",
+            "HeartSimplewareTrimmedBranches",
+        ):
             heart_segmenter = SegmentHeartSimpleware(log_level=log_level)
             heart_segmenter.set_trim_branches(
                 self.segmentation_method == "HeartSimplewareTrimmedBranches"
             )
             self.segmenter = heart_segmenter
+        else:
+            raise ValueError(f"Unknown segmentation method: {self.segmentation_method}")
 
         # Initialize registration method
         self.registrar: RegisterImagesBase

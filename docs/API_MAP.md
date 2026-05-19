@@ -429,18 +429,18 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 ## src/physiomotion4d/workflow_convert_image_to_usd.py
 
 - **class WorkflowConvertImageToUSD** (line 42): Complete workflow for converting 4D CT images to dynamic USD models.
-  - `def __init__(self, input_filenames, contrast_enhanced, output_directory, project_name, reference_image_filename=None, number_of_registration_iterations=1, segmentation_method='ChestTotalSegmentator', registration_method='ICON', log_level=logging.INFO, save_registered_images=True, save_registration_transforms=True, save_labelmaps=True)` (line 50): Initialize the image-to-USD workflow.
-  - `def process(self)` (line 219): Execute the complete workflow from 4D CT to dynamic USD models.
+  - `def __init__(self, input_filenames, contrast_enhanced, output_directory, project_name, reference_image_filename=None, number_of_registration_iterations=1, segmentation_method='ChestTotalSegmentator', registration_method='ICON', log_level=logging.INFO, save_registered_images=True, save_registration_transforms=True, save_labelmaps=True)` (line 61): Initialize the image-to-USD workflow.
+  - `def process(self)` (line 235): Execute the complete workflow from 4D CT to dynamic USD models.
 
 ## src/physiomotion4d/workflow_convert_image_to_vtk.py
 
 - **class WorkflowConvertImageToVTK** (line 59): Segment a CT image and produce per-anatomy-group VTK surfaces and meshes.
-  - `def __init__(self, segmentation_method='ChestTotalSegmentator', log_level=logging.INFO)` (line 102): Initialize the workflow.
-  - `def run_workflow(self, input_image, contrast_enhanced_study=False, anatomy_groups=None)` (line 252): Segment the CT image and extract per-anatomy-group VTK objects.
-  - `def save_surfaces(surfaces, output_dir, prefix='')` (line 355): Save each group surface to its own VTP file.
-  - `def save_meshes(meshes, output_dir, prefix='')` (line 382): Save each group voxel mesh to its own VTU file.
-  - `def save_combined_surface(surfaces, output_dir, prefix='')` (line 408): Merge all group surfaces into a single VTP file.
-  - `def save_combined_mesh(meshes, output_dir, prefix='')` (line 443): Merge all group meshes into a single VTU file.
+  - `def __init__(self, segmentation_method='ChestTotalSegmentator', log_level=logging.INFO)` (line 105): Initialize the workflow.
+  - `def run_workflow(self, input_image, contrast_enhanced_study=False, anatomy_groups=None)` (line 255): Segment the CT image and extract per-anatomy-group VTK objects.
+  - `def save_surfaces(surfaces, output_dir, prefix='')` (line 358): Save each group surface to its own VTP file.
+  - `def save_meshes(meshes, output_dir, prefix='')` (line 385): Save each group voxel mesh to its own VTU file.
+  - `def save_combined_surface(surfaces, output_dir, prefix='')` (line 411): Merge all group surfaces into a single VTP file.
+  - `def save_combined_mesh(meshes, output_dir, prefix='')` (line 446): Merge all group meshes into a single VTU file.
 
 ## src/physiomotion4d/workflow_convert_vtk_to_usd.py
 
