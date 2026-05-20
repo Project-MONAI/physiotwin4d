@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "physiomotion4d"
-version = "2026.05.8"
+version = "2026.05.9"
 description = "Medical imaging package for generating anatomic models in Omniverse with physiological motion from 4D medical images"
 authors = [
     {name = "Stephen R. Aylward", email = "saylward@nvidia.com"}
@@ -174,7 +174,7 @@ physiomotion4d-visualize-pca-modes = "physiomotion4d.cli.visualize_pca_modes:mai
 where = ["src"]
 
 [tool.bumpver]
-current_version = "2026.05.8"
+current_version = "2026.05.9"
 version_pattern = "YYYY.0M.PATCH[PYTAGNUM]"
 commit_message = "Bump version {old_version} -> {new_version}"
 commit = false
