@@ -9,8 +9,8 @@ configuration.
 
 .. warning::
 
-   PhysioMotion4D 2026.05.07 beta is not validated for clinical use. It is a
-   research and visualization toolkit, not a medical device.
+   PhysioMotion4D {{ pm4d_project_version }} beta is not validated for clinical
+   use. It is a research and visualization toolkit, not a medical device.
 
 Data Flow
 =========

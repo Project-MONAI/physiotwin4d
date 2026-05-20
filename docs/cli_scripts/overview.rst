@@ -49,6 +49,8 @@ Current Scripts
 
    * - Script
      - Description
+   * - :doc:`download_data`
+     - Download supported PhysioMotion4D example datasets
    * - :doc:`heart_gated_ct`
      - Process cardiac gated CT to animated heart models with physiological motion
    * - ``physiomotion4d-convert-image-to-vtk``
@@ -80,6 +82,7 @@ After installation, scripts are available as command-line tools with the prefix 
 .. code-block:: bash
 
    physiomotion4d-convert-image-to-usd --help
+   physiomotion4d-download-data --help
 
 General Workflow
 ================

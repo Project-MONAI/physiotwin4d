@@ -268,11 +268,19 @@ dt.sig {
     line-height: 1.08;
 }
 
-.pm4d-hero p:not(.pm4d-kicker) {
+.pm4d-hero p:not(.pm4d-kicker):not(.pm4d-hero__version) {
     max-width: 760px;
     margin: 0;
     color: #d8dde6;
     font-size: 1.1rem;
+}
+
+.pm4d-hero p.pm4d-hero__version {
+    max-width: 760px;
+    margin: 1.9rem 0 0;
+    color: #ffffff;
+    font-size: 0.78rem;
+    font-weight: 700;
 }
 
 .pm4d-card-grid {

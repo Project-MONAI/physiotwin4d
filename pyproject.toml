@@ -165,6 +165,7 @@ physiomotion4d-convert-image-4d-to-3d = "physiomotion4d.cli.convert_image_4d_to_
 physiomotion4d-convert-image-to-usd = "physiomotion4d.cli.convert_image_to_usd:main"
 physiomotion4d-convert-vtk-to-usd = "physiomotion4d.cli.convert_vtk_to_usd:main"
 physiomotion4d-create-statistical-model = "physiomotion4d.cli.create_statistical_model:main"
+physiomotion4d-download-data = "physiomotion4d.cli.download_data:main"
 physiomotion4d-fit-statistical-model-to-patient = "physiomotion4d.cli.fit_statistical_model_to_patient:main"
 physiomotion4d-reconstruct-highres-4d-ct = "physiomotion4d.cli.reconstruct_highres_4d_ct:main"
 physiomotion4d-visualize-pca-modes = "physiomotion4d.cli.visualize_pca_modes:main"

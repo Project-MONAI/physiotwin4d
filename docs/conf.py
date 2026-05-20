@@ -4,8 +4,10 @@
 
 import os
 import sys
+import tomllib
 import warnings
 from datetime import datetime
+from pathlib import Path
 from unittest.mock import MagicMock
 
 
@@ -32,10 +34,13 @@ sys.modules["icon_registration.network_wrappers"] = Mock()
 project = "PhysioMotion4D"
 copyright = f"{datetime.now().year}, Stephen R. Aylward, NVIDIA Corporation"
 author = "Stephen R. Aylward"
+_repo_root = Path(__file__).resolve().parents[1]
+_pyproject = tomllib.loads((_repo_root / "pyproject.toml").read_text(encoding="utf-8"))
+_project_version = _pyproject["project"]["version"]
 
 # The full version, including alpha/beta/rc tags
-release = "2026.05.07"
-version = "2026.05.07"
+release = _project_version
+version = _project_version
 
 # -- General configuration ---------------------------------------------------
 extensions = [
@@ -227,8 +232,14 @@ def autodoc_skip_member(app, what, name, obj, skip, options):
     return skip
 
 
+def _replace_project_version_token(_app, _docname, source):
+    source[0] = source[0].replace("{{ pm4d_project_version }}", release)
+
+
 def setup(app):
     """Custom setup function for Sphinx."""
+    app.connect("source-read", _replace_project_version_token)
+
     # Connect the autodoc-skip-member event
     app.connect("autodoc-skip-member", autodoc_skip_member)
 

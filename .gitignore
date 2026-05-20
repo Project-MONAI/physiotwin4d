@@ -48,3 +48,6 @@ tests/data/
 tests/results/
 tests/baseline_staging/
 test_output.txt
+
+# docs
+docs_buildhtml

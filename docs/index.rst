@@ -16,13 +16,8 @@
        documentation sections below for installation, CLI workflows, API
        references, developer notes, and contribution guidance.
      </p>
-   </section>
 
-   <section class="pm4d-clinical-notice" role="note" aria-label="Clinical use notice">
-     <strong>Not validated for clinical use.</strong>
-     PhysioMotion4D 2026.05.07 beta is a research and visualization toolkit,
-     not a medical device. Do not use it for diagnosis, treatment planning, or
-     clinical decision-making.
+     <p class="pm4d-hero__version">Version {{ pm4d_project_version }}</p>
    </section>
 
    <section class="pm4d-card-grid" aria-label="Tutorial cards">
@@ -86,6 +81,10 @@
          <h3>CLI Workflows</h3>
          <p>Use production command-line workflows for conversion, reconstruction, modeling, and USD export.</p>
        </a>
+       <a class="pm4d-topic-card" href="isaac_for_healthcare.html">
+         <h3>Isaac for Healthcare</h3>
+         <p>Find PhysioMotion4D workflows and assets for Isaac for Healthcare use cases.</p>
+       </a>
        <a class="pm4d-topic-card" href="api/index.html">
          <h3>API Reference</h3>
          <p>Browse classes and modules for workflows, segmentation, registration, USD, and utilities.</p>
@@ -136,6 +135,7 @@ per-tutorial implementation details.
    :hidden:
 
    cli_scripts/overview
+   cli_scripts/download_data
    cli_scripts/heart_gated_ct
    cli_scripts/create_statistical_model
    cli_scripts/fit_statistical_model_to_patient
@@ -174,6 +174,14 @@ per-tutorial implementation details.
    testing
 
 .. toctree::
+   :maxdepth: 2
+   :caption: Isaac for Healthcare
+   :hidden:
+
+   isaac_for_healthcare
+   cli_scripts/byod_tutorials
+
+.. toctree::
    :maxdepth: 1
    :caption: Additional Resources
    :hidden:
@@ -182,6 +190,13 @@ per-tutorial implementation details.
    troubleshooting
    references
    changelog
+
+Clinical Use
+============
+
+Not validated for clinical use. PhysioMotion4D {{ pm4d_project_version }} beta
+is a research and visualization toolkit, not a medical device. Do not use it
+for diagnosis, treatment planning, or clinical decision-making.
 
 Indices and tables
 ==================

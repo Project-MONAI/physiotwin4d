@@ -410,7 +410,7 @@ PhysioMotion4D uses calendar versioning: ``YYYY.0M.PATCH``
 * **0M**: Zero-padded month
 * **PATCH**: Patch number within month
 
-Example: ``2026.05.07``
+Example: ``{{ pm4d_project_version }}``
 
 Making a Release
 ----------------

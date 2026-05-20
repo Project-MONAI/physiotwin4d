@@ -42,43 +42,51 @@ Non-Python tools used by contributor workflows:
 
 ## Common Commands
 
-Use `py` on this Windows system, not `python`.
+Prefer the repository-local virtual environment at `.\venv`. Activate it before
+issuing Python commands so `python`, console scripts, and `uv pip` all use that
+environment. If activation is not possible, invoke
+`.\venv\Scripts\python.exe -m ...` directly. Use `uv run ...` only when the
+local `venv` is unavailable and you need uv to create or sync an environment.
 
-```bash
+```powershell
+# Create the repo-local environment if it does not already exist
+uv venv venv
+.\venv\Scripts\Activate.ps1
+
 # Install in editable mode
 uv pip install -e .
 
 # Lint and format
-ruff check . --fix && ruff format .
+python -m ruff check . --fix && python -m ruff format .
 
 # Type checking
-mypy src/ tests/
+python -m mypy src/ tests/
 
 # All pre-commit hooks
-pre-commit run --all-files
+python -m pre_commit run --all-files
 
 # Fast tests
-py -m pytest tests/ -v
+python -m pytest tests/ -v
 
 # Single test file or test by name
-py -m pytest tests/test_contour_tools.py -v
-py -m pytest tests/test_contour_tools.py::test_extract_surface -v
+python -m pytest tests/test_contour_tools.py -v
+python -m pytest tests/test_contour_tools.py::test_extract_surface -v
 
 # Opt-in test buckets
-py -m pytest tests/ -v --run-slow
-py -m pytest tests/ -v --run-gpu
-py -m pytest tests/ -v --run-simpleware
-py -m pytest tests/ -v --run-experiments
-py -m pytest tests/ -v --run-tutorials
+python -m pytest tests/ -v --run-slow
+python -m pytest tests/ -v --run-gpu
+python -m pytest tests/ -v --run-simpleware
+python -m pytest tests/ -v --run-experiments
+python -m pytest tests/ -v --run-tutorials
 
 # Typical local GPU profile
-py -m pytest tests/ -v --run-gpu --run-slow
+python -m pytest tests/ -v --run-gpu --run-slow
 
 # Coverage
-py -m pytest tests/ --cov=src/physiomotion4d --cov-report=html
+python -m pytest tests/ --cov=src/physiomotion4d --cov-report=html
 
 # Create missing baselines
-py -m pytest tests/ --create-baselines
+python -m pytest tests/ --create-baselines
 ```
 
 Version bumping: `bumpver update --patch`, `--minor`, or `--major`.
@@ -95,7 +103,8 @@ Version bumping: `bumpver update --patch`, `--minor`, or `--major`.
   below 88 characters.
 - Full type hints are required under strict mypy. Use `Optional[X]`, not
   `X | None`.
-- Run `py -m pytest tests/ -v` to verify changes. Slow, GPU, Simpleware,
+- Run `python -m pytest tests/ -v` from the active `.\venv` to verify changes.
+  Slow, GPU, Simpleware,
   experiment, and tutorial tests are auto-skipped unless their opt-in flag is
   passed.
 - The `requires_data` marker no longer exists. Tests that need external data
@@ -172,8 +181,8 @@ Version bumping: `bumpver update --patch`, `--minor`, or `--major`.
 - Update docstrings for every changed public method. Keep claims factual.
 - Document with docstrings and inline comments.
 - Do not create new `.md` files unless explicitly requested.
-- Regenerate `docs/API_MAP.md` after any public API change:
-  `py utils/generate_api_map.py`.
+- Regenerate `docs/API_MAP.md` after any public API change from the active
+  `.\venv`: `python utils/generate_api_map.py`.
 
 ## Architecture Role
 
