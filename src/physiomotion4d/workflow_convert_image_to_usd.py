@@ -68,6 +68,7 @@ class WorkflowConvertImageToUSD(PhysioMotion4DBase):
         number_of_registration_iterations: Optional[int] = 1,
         segmentation_method: str = "ChestTotalSegmentator",
         registration_method: str = "ICON",
+        times_per_second: float = 24.0,
         log_level: int | str = logging.INFO,
         save_registered_images: bool = True,
         save_registration_transforms: bool = True,
@@ -95,6 +96,8 @@ class WorkflowConvertImageToUSD(PhysioMotion4DBase):
                 pulmonary/great-vessel branches trimmed to the cardiac region).
             registration_method (str): Registration method to use:
                 ``'ANTS'`` or ``'ICON'`` (default: ``'ICON'``).
+            times_per_second: Frames per second for animated USD time series.
+                Defaults to 24.0, matching the underlying VTK-to-USD converter.
             log_level: Logging level (default: logging.INFO)
             save_registered_images: Write registered image intermediates to
                 output_directory when True
@@ -114,6 +117,7 @@ class WorkflowConvertImageToUSD(PhysioMotion4DBase):
         self.save_registered_images = save_registered_images
         self.save_registration_transforms = save_registration_transforms
         self.save_labelmaps = save_labelmaps
+        self.times_per_second = times_per_second
 
         # Validate segmentation method
         if segmentation_method not in SEGMENTATION_METHODS:
@@ -578,6 +582,7 @@ class WorkflowConvertImageToUSD(PhysioMotion4DBase):
                 self._transformed_contours[anatomy_type],
                 self.segmenter.taxonomy.all_labels(),
                 segmenter=self.segmenter,
+                times_per_second=self.times_per_second,
                 log_level=self.log_level,
             )
             usd_file = os.path.join(

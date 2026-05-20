@@ -106,10 +106,10 @@ inside ``--output-dir``.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Pass a 4D DICOM directory, a single 4D image file, or an explicit list of 3D
-image files to produce an animated USD scene. The image-to-USD CLI does not
-provide an ``--fps`` option. Use ``--reference-image`` only when you need to
-provide a separate fixed image for registration; otherwise the workflow selects
-its default reference frame internally.
+image files to produce an animated USD scene. Use ``--fps`` when you need to
+set the animated USD playback rate. Use ``--reference-image`` only when you
+need to provide a separate fixed image for registration; otherwise the workflow
+selects its default reference frame internally.
 
 **CLI:**
 
@@ -128,6 +128,7 @@ its default reference frame internally.
    physiomotion4d-convert-image-to-usd \
        phase_000.mha phase_001.mha phase_002.mha \
        --output-dir ./results \
+       --fps 30 \
        --project-name heart_animated
 
 **Python API:**
@@ -141,6 +142,7 @@ its default reference frame internally.
        contrast_enhanced=False,
        output_directory="./results",
        project_name="heart_animated",
+       times_per_second=30.0,
    )
    workflow.process()
 

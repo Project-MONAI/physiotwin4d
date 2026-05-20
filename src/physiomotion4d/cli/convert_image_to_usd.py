@@ -32,6 +32,9 @@ Examples:
 
   # Use the cardiac-only Simpleware segmentation backend
   %(prog)s input.nrrd --segmentation-method HeartSimpleware
+
+  # Set animated USD playback to 30 frames per second
+  %(prog)s input.nrrd --fps 30
         """,
     )
 
@@ -88,6 +91,13 @@ Examples:
         default="ICON",
         help="Registration method to use: ANTS or ICON (default: ICON)",
     )
+    parser.add_argument(
+        "--fps",
+        type=float,
+        default=24.0,
+        dest="times_per_second",
+        help="Frames per second for animated USD time series (default: 24)",
+    )
 
     args = parser.parse_args()
 
@@ -111,6 +121,7 @@ Examples:
             number_of_registration_iterations=args.registration_iterations,
             segmentation_method=args.segmentation_method,
             registration_method=args.registration_method,
+            times_per_second=args.times_per_second,
         )
     except Exception as e:
         print(f"Error initializing workflow: {e}")

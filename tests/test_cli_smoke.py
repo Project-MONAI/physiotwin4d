@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import importlib
+from pathlib import Path
 import sys
+from typing import Any
 
 import pytest
 
@@ -37,3 +39,60 @@ def test_cli_help(
     captured = capsys.readouterr()
     assert exc_info.value.code == 0
     assert "usage:" in captured.out.lower()
+
+
+def test_convert_image_to_usd_help_includes_fps(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Image-to-USD CLI exposes playback FPS for animated USD output."""
+    module = importlib.import_module("physiomotion4d.cli.convert_image_to_usd")
+    monkeypatch.setattr(sys, "argv", ["convert_image_to_usd", "--help"])
+
+    with pytest.raises(SystemExit) as exc_info:
+        module.main()
+
+    captured = capsys.readouterr()
+    assert exc_info.value.code == 0
+    assert "--fps" in captured.out
+
+
+def test_convert_image_to_usd_cli_passes_fps(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Image-to-USD CLI forwards --fps as times_per_second."""
+    import physiomotion4d
+
+    module = importlib.import_module("physiomotion4d.cli.convert_image_to_usd")
+    input_file = tmp_path / "input.mha"
+    input_file.write_text("placeholder")
+    captured_kwargs: dict[str, Any] = {}
+
+    class FakeWorkflowConvertImageToUSD:
+        def __init__(self, **kwargs: Any) -> None:
+            captured_kwargs.update(kwargs)
+
+        def process(self) -> str:
+            return "output.usd"
+
+    monkeypatch.setattr(
+        physiomotion4d,
+        "WorkflowConvertImageToUSD",
+        FakeWorkflowConvertImageToUSD,
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "convert_image_to_usd",
+            str(input_file),
+            "--output-dir",
+            str(tmp_path),
+            "--fps",
+            "30",
+        ],
+    )
+
+    assert module.main() == 0
+    assert captured_kwargs["times_per_second"] == 30.0

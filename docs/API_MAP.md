@@ -779,8 +779,8 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 ## src/physiomotion4d/workflow_convert_image_to_usd.py
 
 - **class WorkflowConvertImageToUSD** (line 42): Complete workflow for converting 4D CT images to dynamic USD models.
-  - `def __init__(self, input_filenames, contrast_enhanced, output_directory, project_name, reference_image_filename=None, number_of_registration_iterations=1, segmentation_method='ChestTotalSegmentator', registration_method='ICON', log_level=logging.INFO, save_registered_images=True, save_registration_transforms=True, save_labelmaps=True)` (line 61): Initialize the image-to-USD workflow.
-  - `def process(self)` (line 235): Execute the complete workflow from 4D CT to dynamic USD models.
+  - `def __init__(self, input_filenames, contrast_enhanced, output_directory, project_name, reference_image_filename=None, number_of_registration_iterations=1, segmentation_method='ChestTotalSegmentator', registration_method='ICON', times_per_second=24.0, log_level=logging.INFO, save_registered_images=True, save_registration_transforms=True, save_labelmaps=True)` (line 61): Initialize the image-to-USD workflow.
+  - `def process(self)` (line 239): Execute the complete workflow from 4D CT to dynamic USD models.
 
 ## src/physiomotion4d/workflow_convert_image_to_vtk.py
 
@@ -874,7 +874,9 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 
 ## tests/test_cli_smoke.py
 
-- `def test_cli_help(module_name, monkeypatch, capsys)` (line 25): Each CLI module exits successfully for --help.
+- `def test_cli_help(module_name, monkeypatch, capsys)` (line 27): Each CLI module exits successfully for --help.
+- `def test_convert_image_to_usd_help_includes_fps(monkeypatch, capsys)` (line 44): Image-to-USD CLI exposes playback FPS for animated USD output.
+- `def test_convert_image_to_usd_cli_passes_fps(monkeypatch, tmp_path)` (line 60): Image-to-USD CLI forwards --fps as times_per_second.
 
 ## tests/test_contour_tools.py
 
@@ -1167,6 +1169,10 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
   - `def test_mm_to_m_point_scaling(self, tmp_path)` (line 364): Points written to USD must be 0.001x their original mm values.
   - `def test_normals_remain_unit_length(self, tmp_path)` (line 384): Normal vectors must not be scaled.
   - `def test_stage_meters_per_unit(self, tmp_path)` (line 404): Stage metersPerUnit metadata must be 1.0.
+
+## tests/test_workflow_convert_image_to_usd.py
+
+- `def test_create_usd_files_passes_times_per_second(monkeypatch, tmp_path)` (line 14): Workflow forwards FPS to VTK-to-USD for shape (X, Y, Z, T) outputs.
 
 ## tests/test_workflow_fit_statistical_model_to_patient.py
 
