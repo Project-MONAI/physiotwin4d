@@ -19,13 +19,13 @@ repos:
       - id: mypy
         # With pass_filenames: false, we must provide an explicit target for mypy.
         # Otherwise mypy exits with: "Missing target module, package, files, or command."
-        args: [--config-file=pyproject.toml, src]
+        args: [--config-file=pyproject.toml, src, tutorials]
         additional_dependencies:
           - types-setuptools
           - scipy-stubs
           - types-requests
         pass_filenames: false
-        files: ^src/
+        files: ^(src/|tutorials/)
 
   # Regenerate docs/API_MAP.md whenever Python source files change
   - repo: local

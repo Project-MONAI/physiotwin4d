@@ -227,6 +227,8 @@ module = [
     "picsl_greedy",
     "pydicom",
     "pydicom.*",
+    "physicsnemo",
+    "physicsnemo.*",
     "pxr",
     "pxr.*",
     "pyvista",
@@ -255,6 +257,7 @@ module = [
     "physiomotion4d.cli.visualize_pca_modes",
     "physiomotion4d.vtk_to_usd.mesh_utils",
     "physiomotion4d.vtk_to_usd.vtk_reader",
+    "tutorial_09_physicsnemo_mesh_stage_model",
 ]
 disable_error_code = ["import-not-found", "import-untyped"]
 

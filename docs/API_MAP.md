@@ -26,6 +26,352 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 
 - `def generate_pc_variation(pc_index, std_dev_multiplier=3.0)` (line 155): Generate shape variations along a principal component.
 
+## experiments/LongitudinalRegistration/0-cardiacGatedCT_segment_and_landmark.py
+
+- `def segment_images(src_data_dirs, src_data_files)` (line 57): Segment each image with SegmentHeartSimpleware and save labelmaps.
+
+## experiments/LongitudinalRegistration/1-finetune_icon.py
+
+- `def get_segmented_images(src_data_dirs, src_data_files)` (line 84): Segment each image with SegmentHeartSimpleware and save labelmaps.
+- `def get_mask_images(src_data_dirs, src_data_files)` (line 117): Get mask images for each image.
+
+## experiments/LongitudinalRegistration/recon_4d_icon_finetuned.py
+
+- `def convert_labelmap_to_masks(labelmap_file, output_dir)` (line 82)
+- `def register_time_series(reference_image_file, reference_labelmap_file, source_image_dir, source_image_files, segmented_image_files, weights_path)` (line 91)
+
+## experiments/LongitudinalRegistration/recon_4d_run.py
+
+- `def register_time_series(reference_image_file, source_image_dir, source_image_files, registration_method)` (line 69)
+
+## experiments/LongitudinalRegistration/uniGradICON/scripts/prepare_l2r_datasets.py
+
+- `def generate_oasis_json(data_dir, output_dir)` (line 31): Generate JSON for OASIS brain MRI (unpaired, with segmentations).
+- `def generate_lungct_json(data_dir, output_dir)` (line 57): Generate JSON for LungCT (paired).
+- `def generate_abdomenmrct_json(data_dir, output_dir)` (line 89): Generate JSON for AbdomenMRCT cross-modality dataset (unpaired, with segmentations).
+- `def main()` (line 122)
+
+## experiments/LongitudinalRegistration/uniGradICON/src/unigradicon/__init__.py
+
+- **class GradientICONSparse** (line 23)
+  - `def __init__(self, network, similarity, lmbda, use_label=False, apply_intensity_conservation_loss=False, dice_loss_weight=0.0, loss_function_masking=False)` (line 24)
+  - `def forward(self, image_A, image_B, label_A=None, label_B=None, mask_A=None, mask_B=None, segmentation_A=None, segmentation_B=None)` (line 35)
+  - `def compute_jacobian_determinant(self, phi)` (line 254)
+  - `def dice_loss(self, pred, target, epsilon=1e-06)` (line 277): Compute Dice loss between one-hot encoded prediction and target.
+  - `def clean(self)` (line 298)
+- `def make_network(input_shape, include_last_step=False, lmbda=1.5, loss_fn=icon.LNCC(sigma=5), use_label=False, apply_intensity_conservation_loss=False, dice_loss_weight=0.0, loss_function_masking=False)` (line 324)
+- `def make_sim(similarity, sigma=5, mind_radius=2, mind_dilation=2)` (line 340)
+- `def get_multigradicon(loss_fn=icon.LNCC(sigma=5), apply_intensity_conservation_loss=False, weights_location=None, dice_loss_weight=0.0, loss_function_masking=False)` (line 350)
+- `def get_unigradicon(loss_fn=icon.LNCC(sigma=5), apply_intensity_conservation_loss=False, weights_location=None, dice_loss_weight=0.0, loss_function_masking=False)` (line 369)
+- `def get_model_from_model_zoo(model_name='unigradicon', loss_fn=icon.LNCC(sigma=5), apply_intensity_conservation_loss=False, dice_loss_weight=0.0, loss_function_masking=False, weights_location=None)` (line 387)
+- `def quantile(arr, q)` (line 407)
+- `def apply_mask(image, mask)` (line 412)
+- `def preprocess(image, modality='ct', mask=None, ct_window=None, quantile_range=None)` (line 427): Preprocess a medical image for registration.
+- `def main()` (line 470)
+- `def warp_command()` (line 669)
+- `def maybe_cast(img)` (line 711): If an itk image is of a type that can't be used with InterpolateImageFunctions, cast it
+- `def compute_jacobian_map_command()` (line 729)
+
+## experiments/LongitudinalRegistration/uniGradICON/src/unigradicon/finetuning/config.py
+
+- `def set_reproducibility_seed(seed)` (line 26): Seed Python, NumPy, and PyTorch (CPU and GPU) at startup.
+- **class ConfigSections** (line 36)
+- **class ExperimentKeys** (line 42)
+- **class TrainingKeys** (line 47)
+- **class DatasetKeys** (line 69)
+- **class DatasetTypes** (line 84)
+- **class JsonKeys** (line 89)
+- **class ExperimentConfig** (line 134)
+  - `def from_dict(cls, raw)` (line 139)
+- **class TrainingConfig** (line 147)
+  - `def from_dict(cls, raw)` (line 169)
+  - `def network_input_shape(self)` (line 178): ``input_shape`` with the [1, 1] batch+channel prefix that
+- **class DatasetConfig** (line 185): ``name``/``type``/``json_file`` are YAML-required and validated in
+  - `def from_dict(cls, raw)` (line 205)
+- **class FinetuningConfigSchema** (line 215)
+  - `def from_dict(cls, raw)` (line 221)
+- **class DataLoaderBundle** (line 237)
+- **class ConfigValidator** (line 244)
+  - `def __init__(self, config)` (line 245)
+  - `def validate(self)` (line 248)
+- `def validate_config(config)` (line 345)
+- `def load_config(config_path)` (line 349)
+- **class DatasetJsonCache** (line 358): Memoizes JSON parsing + path resolution across the multiple validators
+  - `def __init__(self)` (line 362)
+  - `def load_content(self, json_path)` (line 366)
+  - `def load_entries(self, json_path)` (line 378)
+  - `def entry_field_sets(self, json_path)` (line 418)
+- `def required_data_fields(training)` (line 428)
+- `def determine_data_fields(dataset_configs, config_dir, json_cache=None)` (line 437)
+- `def validate_paired_datasets_have_pairs(schema, config_dir, json_cache)` (line 452): Catches missing-pairs at config-validation time so we don't spend
+- `def validate_training_data_compatibility(fields_per_dataset, data_fields)` (line 484)
+- `def create_dataset_from_config(dataset_config, input_shape, config_dir='', use_label=False, data_fields=frozenset(), json_cache=None)` (line 519): Build a ``Dataset`` (random pairing) or ``PairedDataset`` (subject-based
+- `def create_data_loaders(config_path, config=None)` (line 663): Create training and validation dataloaders from YAML config.
+
+## experiments/LongitudinalRegistration/uniGradICON/src/unigradicon/finetuning/dataset.py
+
+- **class Fields** (line 22)
+- **class CacheNames** (line 30)
+- **class PairKeys** (line 42)
+- **class DatasetParams** (line 54): Shared defaults for ``Dataset.__init__`` (via ``_DEFAULTS``) and
+- **class DatasetEntry** (line 92)
+  - `def from_dict(cls, item, idx, dataset_name)` (line 100)
+- **class ImageReader** (line 129)
+  - `def read(self, path)` (line 130)
+- **class ImagePreprocessor** (line 138)
+  - `def __init__(self, reader, input_shape, is_ct, ct_window, quantile_range, modality_map)` (line 139)
+  - `def preprocess_image(self, path)` (line 155)
+  - `def preprocess_label_map(self, path)` (line 178)
+- **class DatasetCache** (line 185): Cache path is partitioned by a signature hashed from every
+  - `def __init__(self, dataset_name, cache_dir, enabled, signature)` (line 191)
+  - `def path(self, cache_name)` (line 214)
+  - `def load(self, cache_name)` (line 219)
+  - `def save(self, cache_name, payload)` (line 233)
+  - `def write_metadata(self, meta)` (line 244): Sidecar ``_meta.json`` describing the params behind the
+- **class RandomPairSampler** (line 260)
+  - `def __init__(self, keys)` (line 261)
+  - `def sample_partner(self, anchor)` (line 267)
+- **class SubjectPairSampler** (line 277): Pair only images sharing the same ``subject_id``.
+  - `def __init__(self, entries, keys, dataset_name)` (line 280)
+  - `def sample_partner(self, anchor)` (line 302)
+- **class Dataset** (line 306): 3D medical-image registration dataset.
+  - `def __init__(self, input_shape, name, data, cache_dir=_DEFAULTS.cache_dir, maximum_images=_DEFAULTS.maximum_images, shuffle=_DEFAULTS.shuffle, is_ct=_DEFAULTS.is_ct, ct_window=_DEFAULTS.ct_window, quantile_range=_DEFAULTS.quantile_range, use_cache=_DEFAULTS.use_cache, use_compression=_DEFAULTS.use_compression, use_label=False)` (line 320)
+  - `def has_segmentation(self)` (line 539)
+  - `def has_mask(self)` (line 543)
+  - `def get_image(self, key)` (line 556)
+- **class PairedDataset** (line 603): Variant of ``Dataset`` that pairs only within ``subject_id``. JSON
+  - `def __init__(self, **kwargs)` (line 608)
+
+## experiments/LongitudinalRegistration/uniGradICON/src/unigradicon/finetuning/finetune.py
+
+- `def loss_to_dict(loss_object)` (line 33)
+- `def augment(batch)` (line 50): Apply random affine augmentation to all spatial data in a batch dict.
+- `def finetune_multi(config, data_loader, val_data_loaders_dict, data_fields)` (line 304): Unified finetuning loop.
+- `def main(argv=None)` (line 432)
+
+## experiments/LongitudinalRegistration/uniGradICON/src/unigradicon/finetuning/visualization.py
+
+- `def render_for_tensorboard(im, max_samples=MAX_DISPLAY_SAMPLES, normalize=True)` (line 42): Prepare image tensor for TensorBoard as an RGB image batch.
+- `def segmentation_labels_for_tensorboard(im, max_samples=MAX_DISPLAY_SAMPLES)` (line 59): Convert one-hot or label-map segmentations to integer label images.
+- `def labels_to_color_image(labels)` (line 108)
+- `def render_segmentation_overlay_for_tensorboard(image, segmentation, alpha=DEFAULT_OVERLAY_ALPHA)` (line 116): Blend a rendered segmentation over its image for TensorBoard.
+- `def render_mask_overlay_for_tensorboard(image, mask, alpha=DEFAULT_OVERLAY_ALPHA, color=DEFAULT_MASK_OVERLAY_COLOR)` (line 134): Blend a binary ROI mask over its image as a single solid color.
+- `def add_eval_composite_panel(writer, step, moving, fixed, warped, moving_seg=None, fixed_seg=None, warped_seg=None, moving_mask=None, fixed_mask=None, tag='eval')` (line 162): Write a single composite eval panel under ``{tag}`` (default ``"eval"``).
+
+## experiments/LongitudinalRegistration/uniGradICON/src/unigradicon/unicarl.py
+
+- `def get_unicarl()` (line 24)
+- `def main()` (line 41)
+
+## experiments/LongitudinalRegistration/uniGradICON/tests/finetuning/conftest.py
+
+- `def fake_image_reader(monkeypatch)` (line 9): Replace ITK-backed ``ImageReader`` with a deterministic fake so tests
+
+## experiments/LongitudinalRegistration/uniGradICON/tests/finetuning/test_cache.py
+
+- `def test_cache_disabled_returns_none_paths(tmp_path)` (line 25)
+- `def test_cache_save_and_load_roundtrip(tmp_path)` (line 31)
+- `def test_cache_atomic_write_no_partial_file_visible(tmp_path)` (line 41): The save path uses tmp + os.replace; tmp file should not linger.
+- `def test_cache_load_returns_none_on_corrupt_file(tmp_path, caplog)` (line 51): A truncated/garbage cache file should not propagate; it should warn
+- `def test_cache_write_metadata_skips_when_already_present(tmp_path)` (line 67)
+- `def test_dataset_cache_signature_changes_with_quantile_range(tmp_path, fake_image_reader)` (line 84)
+- `def test_dataset_cache_signature_stable_for_identical_params(tmp_path, fake_image_reader)` (line 97)
+- `def test_dataset_cache_signature_changes_with_input_shape(tmp_path, fake_image_reader)` (line 108)
+- `def test_dataset_skip_save_on_clean_cache_hit(tmp_path, fake_image_reader)` (line 119): Second construction with identical params must not rewrite cache files.
+- `def test_dataset_rebuilds_when_cache_corrupt(tmp_path, fake_image_reader, caplog)` (line 144): A garbage cache file triggers warning + rebuild, not an exception.
+- `def test_dataset_metadata_sidecar_describes_signature(tmp_path, fake_image_reader)` (line 163)
+- `def test_dataset_segmentation_cache_written_under_signature_dir(tmp_path, fake_image_reader)` (line 180): Aux maps are persisted as their own ``.trch`` cache file beside images.
+- `def test_dataset_segmentation_cache_round_trips(tmp_path, fake_image_reader, monkeypatch)` (line 191): A second construction with identical params loads aux maps from cache
+- `def test_dataset_compresses_in_memory_when_enabled(tmp_path, fake_image_reader)` (line 212): With ``use_compression=True`` the in-memory store holds blosc bytes,
+- `def test_dataset_skips_compression_by_default(tmp_path, fake_image_reader)` (line 223): The default ``use_compression=False`` keeps tensors uncompressed.
+- `def test_dataset_compression_roundtrip_returns_equal_tensor(tmp_path, fake_image_reader)` (line 232): ``get_image`` must return tensors that are equal regardless of whether
+- `def test_dataset_compression_signature_partitions_cache(tmp_path, fake_image_reader)` (line 247): Toggling ``use_compression`` produces a different cache signature so
+- `def test_dataset_rebuilds_aux_cache_when_keys_outgrow_cache(tmp_path, fake_image_reader)` (line 261): If a previous run wrote an aux cache for a smaller key set (e.g. some
+- `def test_dataset_indexing_anchor_is_deterministic(tmp_path, fake_image_reader)` (line 284): ds[i] anchor must be self.keys[i] regardless of RNG state.
+
+## experiments/LongitudinalRegistration/uniGradICON/tests/finetuning/test_cli.py
+
+- `def isolate_cwd(tmp_path, monkeypatch)` (line 20): Run inside a temp dir so footsteps' results/ dir doesn't pollute the
+- `def mock_finetune_multi(monkeypatch)` (line 33): Capture the (config, data_loader, val_loaders, data_fields) call so the
+- `def test_cli_requires_config_arg()` (line 92): ``unigradicon-finetune`` (no args) must fail with a non-zero exit.
+- `def test_cli_rejects_unknown_argument()` (line 99)
+- `def test_cli_rejects_missing_config_file(tmp_path, isolate_cwd)` (line 104)
+- `def test_cli_starts_finetuning_with_valid_config(tmp_path, isolate_cwd, fake_image_reader, mock_finetune_multi)` (line 110): Happy path: a valid YAML drives main() through to ``finetune_multi``
+- `def test_cli_propagates_invalid_config_errors(tmp_path, isolate_cwd, fake_image_reader, mock_finetune_multi)` (line 126): Schema-validation failures must surface as ValueError before training
+- `def test_cli_propagates_paired_without_subject_id_error(tmp_path, isolate_cwd, fake_image_reader, mock_finetune_multi)` (line 138): The fast-fail validator catches paired-without-subject_id before any
+- `def test_cli_seed_is_applied_before_data_loader_build(tmp_path, isolate_cwd, fake_image_reader, mock_finetune_multi)` (line 156): When 'seed' is in the YAML, set_reproducibility_seed must run before
+
+## experiments/LongitudinalRegistration/uniGradICON/tests/finetuning/test_config.py
+
+- `def test_training_config_lambda_alias()` (line 8): The YAML key 'lambda' must map to the dataclass field 'lmbda'.
+- `def test_training_config_unknown_keys_silently_dropped_in_from_dict()` (line 14): from_dict drops unknown keys; ConfigValidator handles the warning.
+- `def test_training_config_defaults_when_empty_dict()` (line 21)
+- `def test_training_config_network_input_shape_property()` (line 28)
+- `def test_dataset_config_post_init_rejects_empty_required_fields()` (line 33)
+- `def test_dataset_config_from_dict_coerces_lists_to_tuples()` (line 42)
+- `def test_validate_rejects_missing_experiment()` (line 64)
+- `def test_validate_rejects_missing_datasets()` (line 69)
+- `def test_validate_rejects_empty_datasets_list()` (line 74)
+- `def test_validate_rejects_invalid_similarity()` (line 82)
+- `def test_validate_accepts_valid_similarities_case_insensitive(sim)` (line 88)
+- `def test_validate_rejects_negative_learning_rate()` (line 92)
+- `def test_validate_rejects_non_positive_int_keys(key)` (line 101)
+- `def test_validate_rejects_negative_non_negative_keys(key)` (line 109)
+- `def test_validate_rejects_bad_input_shape(shape)` (line 122)
+- `def test_validate_rejects_bad_gpus(gpus)` (line 134)
+- `def test_validate_accepts_valid_gpus()` (line 139)
+- `def test_validate_rejects_bad_samples_per_epoch(spe)` (line 144)
+- `def test_validate_accepts_null_or_positive_samples_per_epoch()` (line 149)
+- `def test_paired_check_message_when_no_subject_id_field(tmp_path)` (line 154): When no entry has a subject_id at all, the error message names the
+- `def test_load_entries_tolerates_null_optional_field(tmp_path)` (line 166): ``{"segmentation": null}`` should be treated as absent, not crash.
+- `def test_validate_rejects_zero_dataset_weight()` (line 180)
+- `def test_validate_rejects_unknown_dataset_type()` (line 187)
+- `def test_validate_warns_on_unknown_training_key(caplog)` (line 194)
+- `def test_paired_check_raises_when_no_subject_id_anywhere(tmp_path)` (line 217)
+- `def test_paired_check_raises_when_each_subject_has_only_one_image(tmp_path)` (line 227)
+- `def test_paired_check_passes_when_at_least_one_subject_has_two_images(tmp_path)` (line 238)
+- `def test_paired_check_skips_unpaired_datasets(tmp_path)` (line 249): An 'unpaired' dataset with no subject_id should not trigger the check.
+- `def test_required_fields_empty_for_image_only_training()` (line 262)
+- `def test_required_fields_includes_segmentation_when_dice_loss_set()` (line 267)
+- `def test_required_fields_includes_mask_when_loss_function_masking()` (line 272)
+- `def test_required_fields_includes_mask_when_roi_masking()` (line 277)
+
+## experiments/LongitudinalRegistration/uniGradICON/tests/finetuning/test_pipeline.py
+
+- `def test_pipeline_rejects_zero_iterations_per_epoch(tmp_path, fake_image_reader)` (line 62): ``samples_per_epoch < batch_size * num_gpus`` would yield zero
+- `def test_pipeline_starts_minimal_config(tmp_path, fake_image_reader)` (line 73): Smallest possible valid config: images only, single dataset, 1 epoch.
+- `def test_pipeline_train_batch_shape(tmp_path, fake_image_reader)` (line 85): The train loader must yield batches with image_A / image_B at the
+- `def test_pipeline_val_batch_shape(tmp_path, fake_image_reader)` (line 103): The validation loader uses batch_size=1 by default.
+- `def test_pipeline_with_segmentation_includes_seg_in_batch(tmp_path, fake_image_reader)` (line 116): When dice_loss_weight > 0, batches include segmentation tensors.
+- `def test_pipeline_iterates_full_epoch(tmp_path, fake_image_reader)` (line 130): The train loader iterates exactly samples_per_epoch / effective_batch
+- `def test_pipeline_seed_yields_reproducible_first_batch(tmp_path, fake_image_reader)` (line 142): With seed set and num_workers=0, two independent runs must produce
+
+## experiments/LongitudinalRegistration/uniGradICON/tests/finetuning/test_samplers.py
+
+- `def test_random_pair_sampler_rejects_short_keys()` (line 8)
+- `def test_random_pair_sampler_partner_is_never_anchor()` (line 13)
+- `def test_random_pair_sampler_full_coverage()` (line 24): Every non-anchor key must be reachable as a partner for every anchor.
+- `def test_random_pair_sampler_uniformity()` (line 39): Each non-anchor key should be picked with equal probability.
+- `def test_subject_pair_sampler_rejects_when_no_subject_has_pair()` (line 60)
+- `def test_subject_pair_sampler_partner_respects_subject()` (line 66)
+- `def test_subject_pair_sampler_filters_keys_without_pairs()` (line 86): Keys missing from the entry list (or without subject_id) are dropped.
+
+## experiments/LongitudinalRegistration/uniGradICON/tests/test_command_arguments.py
+
+- **class TestCommandInterface** (line 11)
+  - `def __init__(self, methodName='runTest')` (line 12)
+  - `def test_register_unigradicon_inference(self)` (line 20)
+  - `def test_register_multigradicon_inference(self)` (line 64)
+
+## experiments/LongitudinalRegistration/uniGradICON/tests/test_itk_interface.py
+
+- **class TestItkInterface** (line 15)
+  - `def __init__(self, methodName='runTest')` (line 16)
+  - `def test_register_pair(self)` (line 22)
+  - `def test_preprocessing_mri(self)` (line 66)
+  - `def test_preprocessing_ct(self)` (line 85)
+  - `def test_itk_registration(self)` (line 104)
+  - `def test_register_pair_with_mask_masking(self)` (line 171): Test register_pair_with_mask with loss_function_masking (mask_A/B only).
+  - `def test_register_pair_with_mask_dice(self)` (line 190): Test register_pair_with_mask with dice_loss_weight (segmentation_A/B only).
+  - `def test_register_pair_with_mask_both(self)` (line 209): Test register_pair_with_mask with both mask and segmentation.
+  - `def test_register_pair_with_mask_images_only(self)` (line 230): ``register_pair_with_mask`` with no mask or segmentation kwargs
+  - `def test_itk_warp(self)` (line 248)
+
+## experiments/LongitudinalRegistration/uniGradICON/tests/test_requirements_sync.py
+
+- **class TestImports** (line 4)
+  - `def test_requirements_match_cfg(self)` (line 6)
+
+## experiments/LongitudinalRegistration/uniGradICON/training/dataset.py
+
+- **class COPDDataset** (line 13)
+  - `def __init__(self, phase='train', scale='2xdown', data_path=f'{DATASET_DIR}/half_res_preprocessed_transposed_SI', ROI_only=False, data_num=-1, desired_shape=None, device='cpu')` (line 14)
+  - `def process(self, img, desired_shape=None, device='cpu', seg=None)` (line 46)
+- **class OAIDataset** (line 65)
+  - `def __init__(self, phase='train', scale='2xdownsample', data_path=f'{DATASET_DIR}/OAI', data_num=1000, desired_shape=None, device='cpu')` (line 66)
+  - `def process(self, img, desired_shape=None, device='cpu')` (line 93)
+- **class HCPDataset** (line 114)
+  - `def __init__(self, phase='train', scale='2xdown', data_path=f'{DATASET_DIR}/HCP', data_num=1000, desired_shape=None, device='cpu')` (line 115)
+  - `def process(self, img, desired_shape=None, device='cpu')` (line 141)
+- **class L2rAbdomenDataset** (line 161)
+  - `def __init__(self, data_path=f'{DATASET_DIR}/AbdomenCTCT', data_num=1000, desired_shape=None, device='cpu')` (line 162)
+  - `def process(self, img, desired_shape=None, device='cpu')` (line 180)
+- **class L2rThoraxCBCTDataset** (line 198)
+  - `def __init__(self, data_path=f'{DATASET_DIR}/ThoraxCBCT', data_num=1000, desired_shape=None, device='cpu')` (line 199)
+  - `def process(self, img, desired_shape=None, device='cpu')` (line 224)
+- **class ACDCDataset** (line 239)
+  - `def __init__(self, data_path=f'{DATASET_DIR}/ACDC', desired_shape=None)` (line 240)
+  - `def process(self, img, desired_shape=None)` (line 260)
+
+## experiments/LongitudinalRegistration/uniGradICON/training/dataset_multi.py
+
+- **class COPDDataset** (line 16)
+  - `def __init__(self, scale='2xdown', data_path=f'{DATASET_DIR}/half_res_preprocessed_transposed_SI', ROI_only=False, data_num=-1, desired_shape=None, device='cpu', return_labels=False)` (line 17)
+  - `def pack_and_process_image(self, img, seg=None)` (line 45)
+  - `def process(self, img, desired_shape=None, device='cpu', seg=None)` (line 50)
+- **class BratsRegDataset** (line 72)
+  - `def __init__(self, data_path=f'{DATASET_DIR}/BraTS-Reg/BraTSReg_Training_Data_v3/', data_num=1000, desired_shape=None, device='cpu', return_labels=False, randomization='random')` (line 73)
+  - `def pack_and_process_image(self, image)` (line 118)
+  - `def process(self, img, desired_shape=None, device='cpu')` (line 123)
+- **class L2rAbdomenDataset** (line 154)
+  - `def __init__(self, data_path=f'{DATASET_DIR}/AbdomenCTCT', data_num=1000, desired_shape=None, device='cpu', return_labels=False, randomization='random', augmentation=True)` (line 155)
+  - `def pack_and_process_image(self, case_path, invert=False)` (line 189)
+  - `def process(self, img, desired_shape=None, device='cpu')` (line 196)
+- **class HCPDataset** (line 225)
+  - `def __init__(self, scale='2xdown', data_path=f'{DATASET_DIR}/ICON_brain_preprocessed_data', data_num=1000, desired_shape=None, device='cpu', return_labels=False, randomization='random')` (line 226)
+  - `def pack_and_process_image(self, image)` (line 259)
+  - `def process(self, img, desired_shape=None, device='cpu')` (line 264)
+- **class ABCDFAMDDataset** (line 296)
+  - `def __init__(self, phase='train', data_path=f'{DATASET_DIR}/dti_scalars', data_num=1000, desired_shape=None, device='cpu', return_labels=False, randomization='random')` (line 297)
+  - `def pack_and_process_image(self, image)` (line 341)
+  - `def process(self, img, desired_shape=None, device='cpu')` (line 346)
+- **class ABCDDataset** (line 378)
+  - `def __init__(self, phase='train', data_path=f'{DATASET_DIR}', data_num=1000, desired_shape=None, device='cpu', return_labels=False)` (line 379)
+  - `def pack_and_process_image(self, image)` (line 438)
+  - `def process(self, img, desired_shape=None, device='cpu')` (line 443)
+- **class OAIMMDataset** (line 465)
+  - `def __init__(self, data_path=f'{DATASET_DIR}/oai', data_num=1000, desired_shape=None, device='cpu', return_labels=False)` (line 466)
+  - `def pack_and_process_image(self, image)` (line 491)
+  - `def process(self, img, desired_shape=None, device='cpu')` (line 496)
+- **class L2rMRCTDataset** (line 518)
+  - `def __init__(self, data_path=f'{DATASET_DIR}/AbdomenMRCT/', data_num=1000, desired_shape=None, device='cpu', phase='train', augmentation=True, return_labels=False)` (line 519)
+  - `def pack(self, image)` (line 568)
+  - `def process_label(self, label, desired_shape=None, device='cpu')` (line 571)
+  - `def process_ct(self, img, desired_shape=None, device='cpu')` (line 577)
+  - `def process_mr(self, img, desired_shape=None, device='cpu')` (line 584)
+- **class UKBiobankDataset** (line 612)
+  - `def __init__(self, data_path=f'{DATASET_DIR}/uk-biobank/', data_num=1000, desired_shape=None, device='cpu', phase='train', return_labels=False, randomization='random')` (line 613)
+  - `def pack_and_process_image(self, image)` (line 648)
+  - `def process(self, img, desired_shape=None, device='cpu')` (line 653)
+- **class PancreasDataset** (line 691)
+  - `def __init__(self, phase='train', data_path=f'{DATASET_DIR}/pancreas/', data_num=1000, desired_shape=(175, 175, 175), device='cpu', return_labels=False)` (line 692)
+  - `def process(self, img, desired_shape=None, device='cpu')` (line 731)
+  - `def process_training_data(self, ct_img_arr, cb_img_arr)` (line 739)
+- **class L2rThoraxCBCTDataset** (line 759)
+  - `def __init__(self, data_path=f'{DATASET_DIR}/ThoraxCBCT', data_num=1000, desired_shape=None, device='cpu', return_labels=False)` (line 760)
+  - `def pack_and_process_image(self, image)` (line 786)
+  - `def process(self, img, desired_shape=None, device='cpu')` (line 791)
+
+## experiments/LongitudinalRegistration/uniGradICON/training/train.py
+
+- `def write_stats(writer, stats, ite, prefix='')` (line 15)
+- `def get_dataset()` (line 26)
+- `def augment(image_A, image_B)` (line 37)
+- `def train_kernel(optimizer, net, moving_image, fixed_image, writer, ite)` (line 85)
+- `def train(net, optimizer, data_loader, val_data_loader, epochs=200, eval_period=-1, save_period=-1, step_callback=lambda net: None, unwrapped_net=None, data_augmenter=None)` (line 94): A training function intended for long running experiments, with tensorboard logging
+- `def train_two_stage(input_shape, data_loader, val_data_loader, GPUS, epochs, eval_period, save_period, resume_from)` (line 195)
+
+## experiments/LongitudinalRegistration/uniGradICON/training/train_multi.py
+
+- `def write_stats(writer, stats, ite, prefix='')` (line 14)
+- `def get_multi_training_set()` (line 25)
+- `def get_multi_finetuning_set()` (line 49)
+- `def augment(image_A, image_B, label_A, label_B)` (line 86)
+- `def train_kernel(optimizer, net, moving_image, fixed_image, moving_label, fixed_label, writer, ite)` (line 136)
+- `def train(net, optimizer, data_loader, val_data_loader, epochs=200, eval_period=-1, save_period=-1, step_callback=lambda net: None, unwrapped_net=None, data_augmenter=None)` (line 145): A training function intended for long running experiments, with tensorboard logging
+- `def train_two_stage(input_shape, data_loader, val_data_loader, GPUS, epochs, eval_period, save_period, resume_from)` (line 245)
+- `def finetune(net, data_loader, val_data_loader, GPUS, epochs, eval_period, save_period)` (line 317)
+
 ## experiments/Lung-GatedCT_To_USD/data_dirlab_4d_ct.py
 
 - **class DataDirLab4DCT** (line 10): This class is used to store the data for the DirLab 4DCT dataset.
