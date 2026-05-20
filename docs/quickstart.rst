@@ -6,9 +6,10 @@ This guide will help you get started with PhysioMotion4D quickly.
 
 .. warning::
 
-   **Not validated for clinical use.** PhysioMotion4D 2026.05.07 beta is a
-   research and visualization toolkit, not a medical device. Do not use it for
-   diagnosis, treatment planning, or clinical decision-making.
+   **Not validated for clinical use.** PhysioMotion4D
+   {{ pm4d_project_version }} beta is a research and visualization toolkit, not
+   a medical device. Do not use it for diagnosis, treatment planning, or
+   clinical decision-making.
 
 .. _tutorials:
 

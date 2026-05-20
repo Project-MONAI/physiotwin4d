@@ -29,7 +29,7 @@ or the CPU-only variant:
    # CPU-only
    pip install physiomotion4d
 
-Verify that both relevant CLI entry-points are available after installation:
+Verify that all three relevant CLI entry-points are available after installation:
 
 .. code-block:: bash
 

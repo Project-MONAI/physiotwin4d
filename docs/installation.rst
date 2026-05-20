@@ -171,7 +171,7 @@ Expected output:
 
 .. code-block:: text
 
-   PhysioMotion4D version: 2026.05.07
+   PhysioMotion4D version: {{ pm4d_project_version }}
    WorkflowConvertImageToUSD
 
 Command-Line Tools
