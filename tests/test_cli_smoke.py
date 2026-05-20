@@ -14,6 +14,7 @@ CLI_MODULES = [
     "physiomotion4d.cli.convert_image_to_usd",
     "physiomotion4d.cli.convert_vtk_to_usd",
     "physiomotion4d.cli.create_statistical_model",
+    "physiomotion4d.cli.download_data",
     "physiomotion4d.cli.fit_statistical_model_to_patient",
     "physiomotion4d.cli.reconstruct_highres_4d_ct",
     "physiomotion4d.cli.visualize_pca_modes",

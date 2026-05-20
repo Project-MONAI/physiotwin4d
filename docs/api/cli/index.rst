@@ -22,6 +22,7 @@ Module Index.
    convert_image_to_vtk
    convert_vtk_to_usd
    create_statistical_model
+   download_data
    fit_statistical_model_to_patient
    reconstruct_highres_4d_ct
    visualize_pca_modes

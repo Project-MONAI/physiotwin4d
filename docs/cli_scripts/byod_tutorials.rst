@@ -1,19 +1,18 @@
 .. _byod_tutorials:
 
-Bring Your Own Data — DICOM & VTK to USD
-=========================================
+Bring Your Own Data - DICOM, Images & VTK to USD
+================================================
 
-PhysioMotion4D lets you convert your own medical imaging data — whether
-DICOM-derived NIfTI volumes or VTK surface meshes — into OpenUSD for
-interactive visualization in NVIDIA Omniverse.  Both 3D (single
-volume/mesh) and 4D (time-series) inputs are supported.  The CLI and
-Python API are **identical** for 3D and 4D inputs; the only difference
-is how many files you pass in.
+PhysioMotion4D lets you convert your own medical imaging data into OpenUSD for
+interactive visualization in NVIDIA Omniverse. Image inputs may be a directory
+of 3D or 4D DICOM data, a single 3D or 4D file in a common medical image format
+such as MHA, NRRD, or NIfTI, or a list of 3D image files representing a time
+series. VTK inputs may be one mesh file or a mesh sequence.
 
 .. note::
 
    PhysioMotion4D is a research tool and has **not** been validated for
-   clinical use.  Outputs must not be used for diagnostic or therapeutic
+   clinical use. Outputs must not be used for diagnostic or therapeutic
    decisions without independent validation.
 
 Installation
@@ -24,7 +23,7 @@ or the CPU-only variant:
 
 .. code-block:: bash
 
-   # Recommended — CUDA-enabled
+   # Recommended - CUDA-enabled
    pip install physiomotion4d[cuda13]
 
    # CPU-only
@@ -34,31 +33,56 @@ Verify that both relevant CLI entry-points are available after installation:
 
 .. code-block:: bash
 
+   physiomotion4d-download-data --help
    physiomotion4d-convert-image-to-usd --help
    physiomotion4d-convert-vtk-to-usd --help
 
 See :doc:`/installation` for prerequisites, CUDA version requirements, and
 source-based installation.
 
-DICOM to USD
-------------
+Download Demonstration Data
+---------------------------
 
-Raw DICOM images must first be converted to NIfTI with a tool such as
-`dcm2niix <https://github.com/rordenlab/dcm2niix>`_ before being passed
-to PhysioMotion4D.
+Use the installed download CLI to fetch the public Slicer-Heart 4D CT sample:
 
-3D — Single Volume
-~~~~~~~~~~~~~~~~~~
+.. code-block:: bash
 
-Pass a single ``.nii.gz`` file to produce a static USD scene.
+   physiomotion4d-download-data
+
+This stores ``TruncalValve_4DCT.seq.nrrd`` under
+``data/Slicer-Heart-CT``. To choose a different location:
+
+.. code-block:: bash
+
+   physiomotion4d-download-data Slicer-Heart-CT \
+       --directory path/to/Slicer-Heart-CT
+
+DICOM and Medical Images to USD
+-------------------------------
+
+Image-to-USD conversion accepts DICOM directories directly. It also accepts
+3D and 4D image files readable by ITK, including common formats such as
+``.mha``, ``.nrrd``, ``.nii``, and ``.nii.gz``.
+
+3D - Single DICOM Directory or Image File
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Pass a DICOM series directory or a single 3D image file to produce a static USD
+scene.
 
 **CLI:**
 
 .. code-block:: bash
 
    physiomotion4d-convert-image-to-usd \
-       patient_ct.nii.gz \
-       --output patient_heart.usd
+       patient_dicom_dir \
+       --output-dir ./results \
+       --project-name patient_heart
+
+   physiomotion4d-convert-image-to-usd \
+       patient_ct.mha \
+       --output-dir ./results \
+       --project-name patient_heart
 
 **Python API:**
 
@@ -66,71 +90,83 @@ Pass a single ``.nii.gz`` file to produce a static USD scene.
 
    import physiomotion4d as pm4d
 
-   wf = pm4d.WorkflowConvertImageToUSD()
-   wf.input_image = "patient_ct.nii.gz"
-   wf.output_file = "patient_heart.usd"
-   wf.run_workflow()
+   workflow = pm4d.WorkflowConvertImageToUSD(
+       input_filenames=["patient_dicom_dir"],
+       contrast_enhanced=False,
+       output_directory="./results",
+       project_name="patient_heart",
+   )
+   workflow.process()
 
-.. note::
+The workflow writes ``<project_name>.dynamic_painted.usd``,
+``<project_name>.static_painted.usd``, and ``<project_name>.all_painted.usd``
+inside ``--output-dir``.
 
-   If your source data is raw DICOM, run ``dcm2niix -z y -o output_dir
-   dicom_dir/`` first to produce the ``.nii.gz`` input file expected by
-   this command.
+4D - DICOM Directory, 4D Image File, or 3D Image List
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-4D — Gated CT Time Series
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Pass multiple per-phase volumes (glob or explicit list) to produce an
-animated USD scene.  Use ``--fps`` to control playback rate and
-``--reference-frame`` to choose the registration anchor phase (0-indexed).
+Pass a 4D DICOM directory, a single 4D image file, or an explicit list of 3D
+image files to produce an animated USD scene. The image-to-USD CLI does not
+provide an ``--fps`` option. Use ``--reference-image`` only when you need to
+provide a separate fixed image for registration; otherwise the workflow selects
+its default reference frame internally.
 
 **CLI:**
 
 .. code-block:: bash
 
    physiomotion4d-convert-image-to-usd \
-       phase_*.nii.gz \
-       --output heart_animated.usd \
-       --fps 25 \
-       --reference-frame 0
+       gated_ct_dicom_dir \
+       --output-dir ./results \
+       --project-name heart_animated
+
+   physiomotion4d-convert-image-to-usd \
+       gated_ct_4d.nrrd \
+       --output-dir ./results \
+       --project-name heart_animated
+
+   physiomotion4d-convert-image-to-usd \
+       phase_000.mha phase_001.mha phase_002.mha \
+       --output-dir ./results \
+       --project-name heart_animated
 
 **Python API:**
 
 .. code-block:: python
 
-   import glob
    import physiomotion4d as pm4d
 
-   wf = pm4d.WorkflowConvertImageToUSD()
-   wf.input_images = sorted(glob.glob("phase_*.nii.gz"))
-   wf.output_file  = "heart_animated.usd"
-   wf.fps            = 25
-   wf.reference_frame = 0
-   wf.run_workflow()
+   workflow = pm4d.WorkflowConvertImageToUSD(
+       input_filenames=["phase_000.mha", "phase_001.mha", "phase_002.mha"],
+       contrast_enhanced=False,
+       output_directory="./results",
+       project_name="heart_animated",
+   )
+   workflow.process()
 
-The resulting USD file contains a time-sampled mesh sequence that plays
-back when you press **Play** in Omniverse USD Composer.
+The resulting USD file contains a time-sampled mesh sequence that plays back
+when you press **Play** in Omniverse USD Composer.
 
 VTK to USD
 ----------
 
-3D — Single Mesh
+3D - Single Mesh
 ~~~~~~~~~~~~~~~~
 
-Pass a single ``.vtp`` file.  Use ``--appearance`` to control material
-style and ``--no-split`` to skip the default connected-component split.
+Pass a single ``.vtp`` file. Use ``--appearance`` to control material style and
+``--no-split`` to skip the default connected-component split.
 
 **CLI:**
 
 .. code-block:: bash
 
-   # Default — split by connected component, anatomy material
+   # Default - split by connected component, anatomy material
    physiomotion4d-convert-vtk-to-usd heart.vtp \
        --output heart.usd \
        --appearance anatomy \
        --anatomy-type heart
 
-   # Solid colour, no splitting
+   # Solid color, no splitting
    physiomotion4d-convert-vtk-to-usd mesh.vtp \
        --output mesh_red.usd \
        --appearance solid \
@@ -143,18 +179,21 @@ style and ``--no-split`` to skip the default connected-component split.
 
    import physiomotion4d as pm4d
 
-   wf = pm4d.WorkflowConvertVTKToUSD()
-   wf.input_files  = ["heart.vtp"]
-   wf.output_file  = "heart.usd"
-   wf.appearance   = "anatomy"
-   wf.anatomy_type = "heart"
-   wf.run()
+   workflow = pm4d.WorkflowConvertVTKToUSD(
+       vtk_files=["heart.vtp"],
+       output_usd="heart.usd",
+       appearance="anatomy",
+       anatomy_type="heart",
+   )
+   workflow.run()
 
-4D — Mesh Time Series
+4D - Mesh Time Series
 ~~~~~~~~~~~~~~~~~~~~~
 
-Pass a glob of per-frame files.  The ``--fps`` flag controls playback
-rate.  For scalar colormaps, combine ``--primvar``, ``--cmap``, and
+Pass per-frame VTK files. The default workflow treats multiple files as a time
+series when their names match ``.t<index>.vtk``, ``.t<index>.vtp``, or
+``.t<index>.vtu``. The VTK-to-USD CLI supports ``--fps`` to control playback
+rate. For scalar colormaps, combine ``--primvar``, ``--cmap``, and
 ``--intensity-range``.
 
 **CLI:**
@@ -162,12 +201,12 @@ rate.  For scalar colormaps, combine ``--primvar``, ``--cmap``, and
 .. code-block:: bash
 
    # Animated mesh sequence
-   physiomotion4d-convert-vtk-to-usd frame_*.vtp \
+   physiomotion4d-convert-vtk-to-usd heart.t0.vtp heart.t1.vtp heart.t2.vtp \
        --output heart_animation.usd \
        --fps 30
 
    # Animated with scalar colormap (e.g. wall stress)
-   physiomotion4d-convert-vtk-to-usd frame_*.vtk \
+   physiomotion4d-convert-vtk-to-usd stress.t0.vtk stress.t1.vtk stress.t2.vtk \
        --output stress_animation.usd \
        --fps 30 \
        --appearance colormap \
@@ -179,18 +218,18 @@ rate.  For scalar colormaps, combine ``--primvar``, ``--cmap``, and
 
 .. code-block:: python
 
-   import glob
    import physiomotion4d as pm4d
 
-   wf = pm4d.WorkflowConvertVTKToUSD()
-   wf.input_files      = sorted(glob.glob("frame_*.vtk"))
-   wf.output_file      = "stress_animation.usd"
-   wf.fps              = 30
-   wf.appearance       = "colormap"
-   wf.primvar          = "vtk_point_stress_c0"
-   wf.cmap             = "viridis"
-   wf.intensity_range  = (0, 500)
-   wf.run()
+   workflow = pm4d.WorkflowConvertVTKToUSD(
+       vtk_files=["stress.t0.vtk", "stress.t1.vtk", "stress.t2.vtk"],
+       output_usd="stress_animation.usd",
+       times_per_second=30,
+       appearance="colormap",
+       colormap_primvar="vtk_point_stress_c0",
+       colormap_name="viridis",
+       colormap_intensity_range=(0, 500),
+   )
+   workflow.run()
 
 **Lower-level in-memory conversion with ConvertVTKToUSD:**
 
@@ -205,28 +244,34 @@ lower-level :class:`physiomotion4d.ConvertVTKToUSD` class directly:
    # Load or construct meshes in memory
    meshes = [pv.read(f"frame_{i:04d}.vtp") for i in range(10)]
 
-   converter = pm4d.ConvertVTKToUSD(output_file="output.usd", fps=30)
-   for i, mesh in enumerate(meshes):
-       converter.add_frame(mesh, frame_index=i)
-   converter.write()
+   converter = pm4d.ConvertVTKToUSD(
+       data_basename="HeartAnimation",
+       input_polydata=meshes,
+       times_per_second=30,
+   )
+   converter.convert("output.usd")
 
 Viewing Results
 ---------------
 
-**Quick preview with PyVista (no Omniverse required):**
+**Programmatic inspection:**
 
 .. code-block:: python
 
-   import pyvista as pv
+   import physiomotion4d as pm4d
 
-   mesh = pv.read("output.usd")
-   mesh.plot()
+   mesh = pm4d.USDTools().load_usd_as_vtk("output.usd")
+   print(mesh.n_points, mesh.n_cells)
+
+PyVista reads the VTK input files used above, but local validation with
+PyVista 0.48.4 shows that ``pyvista.read()`` / ``pyvista.get_reader()`` do not
+support ``.usd``, ``.usda``, or ``.usdc`` output files directly.
 
 **In NVIDIA Omniverse:**
 
-Open **Omniverse USD Composer**, drag your ``.usd`` file onto the
-viewport, then press **Play** (spacebar) to watch the animation.  For
-4D cardiac data, use the **Timeline** panel to scrub through phases.
+Open **Omniverse USD Composer**, drag your ``.usd`` file onto the viewport,
+then press **Play** (spacebar) to watch the animation. For 4D cardiac data,
+use the **Timeline** panel to scrub through phases.
 
 See Also
 --------

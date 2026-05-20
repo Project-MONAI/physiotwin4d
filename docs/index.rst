@@ -131,18 +131,11 @@ per-tutorial implementation details.
 
 .. toctree::
    :maxdepth: 2
-   :caption: Isaac for Healthcare
-   :hidden:
-
-   isaac_for_healthcare
-   cli_scripts/byod_tutorials
-
-.. toctree::
-   :maxdepth: 2
    :caption: CLI & Scripts Guide
    :hidden:
 
    cli_scripts/overview
+   cli_scripts/download_data
    cli_scripts/heart_gated_ct
    cli_scripts/create_statistical_model
    cli_scripts/fit_statistical_model_to_patient
@@ -179,6 +172,14 @@ per-tutorial implementation details.
 
    contributing
    testing
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Isaac for Healthcare
+   :hidden:
+
+   isaac_for_healthcare
+   cli_scripts/byod_tutorials
 
 .. toctree::
    :maxdepth: 1

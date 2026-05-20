@@ -428,6 +428,10 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 
 - `def main()` (line 19): Command-line interface for create statistical model workflow.
 
+## src/physiomotion4d/cli/download_data.py
+
+- `def main(argv=None)` (line 16): Download a supported PhysioMotion4D example dataset.
+
 ## src/physiomotion4d/cli/fit_statistical_model_to_patient.py
 
 - `def main()` (line 17): Command-line interface for heart model to patient registration.
@@ -870,7 +874,7 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 
 ## tests/test_cli_smoke.py
 
-- `def test_cli_help(module_name, monkeypatch, capsys)` (line 24): Each CLI module exits successfully for --help.
+- `def test_cli_help(module_name, monkeypatch, capsys)` (line 25): Each CLI module exits successfully for --help.
 
 ## tests/test_contour_tools.py
 
@@ -915,6 +919,11 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
   - `def test_mask_ids_missing_label_filters_time_codes(self, tmp_path)` (line 527): Time codes for a label must be filtered to frames where it actually appears.
   - `def test_mask_ids_missing_boundary_labels_falls_back(self, tmp_path)` (line 562): Mesh without boundary_labels array falls back to a 'default' prim.
   - `def test_mask_ids_groups_by_segmenter_type(self, tmp_path)` (line 577): When a segmenter is supplied, labels are grouped under their
+
+## tests/test_download_data_cli.py
+
+- `def test_download_data_cli_uses_default_dataset_and_directory(monkeypatch, capsys)` (line 14): Default CLI arguments route Slicer-Heart-CT to data/Slicer-Heart-CT.
+- `def test_download_data_cli_uses_requested_directory(monkeypatch, tmp_path)` (line 34): The --directory option controls where Slicer-Heart-CT is stored.
 
 ## tests/test_download_heart_data.py
 
