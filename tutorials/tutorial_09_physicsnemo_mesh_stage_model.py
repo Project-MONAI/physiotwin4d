@@ -35,7 +35,6 @@ from physicsnemo.models.mlp import FullyConnected
 # tutorials also matches the style of tutorial_01.
 if __name__ == "__main__":
     # %%
-    REPO_ROOT = Path(__file__).resolve().parent.parent
     TUTORIALS_DIR = Path(__file__).resolve().parent
     TUTORIAL_08_OUTPUT_DIR = (
         TUTORIALS_DIR / "output" / "tutorial_08_dirlab_pca_time_series"
@@ -86,18 +85,33 @@ if __name__ == "__main__":
         output_dir.mkdir(parents=True, exist_ok=True)
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+        num_cases = len(DIRLAB_CASE_PREFIXES)
         if case is None:
-            case_numbers = list(range(1, 11))
+            case_numbers = list(range(1, num_cases + 1))
         else:
+            if not 1 <= case <= num_cases:
+                raise ValueError(
+                    f"CASE={case} is out of range; must be an integer between 1 "
+                    f"and {num_cases} (inclusive)."
+                )
             case_numbers = [case]
 
         tutorial_outputs: dict[str, Any] = {}
         for case_number in case_numbers:
             case_prefix = DIRLAB_CASE_PREFIXES[case_number - 1]
             mesh_dir = tutorial_08_output_dir / case_prefix / "meshes"
-            mesh_files = sorted(mesh_dir.glob("*_pca_fit.vtp"))
+            mesh_files = (
+                sorted(mesh_dir.glob("*_pca_fit.vtp")) if mesh_dir.exists() else []
+            )
             if len(mesh_files) < 2:
-                print(f"Skipping {case_prefix}: fewer than two Tutorial 8 meshes found")
+                message = (
+                    f"Tutorial 8 output for {case_prefix} is missing or incomplete: "
+                    f"found {len(mesh_files)} '*_pca_fit.vtp' file(s) in {mesh_dir}, "
+                    "expected at least 2. Run Tutorial 8 before Tutorial 9."
+                )
+                if case is not None:
+                    raise FileNotFoundError(message)
+                logging.info(f"Skipping {case_prefix}: {message}")
                 continue
 
             case_output_dir = output_dir / case_prefix
@@ -174,7 +188,7 @@ if __name__ == "__main__":
                 optimizer.step()
                 losses.append(float(loss.detach().cpu()))
                 if epoch == 0 or (epoch + 1) % 100 == 0 or epoch + 1 == epochs:
-                    print(
+                    logging.info(
                         f"{case_prefix} epoch {epoch + 1:04d}/{epochs}: "
                         f"loss={losses[-1]:.6f}"
                     )
