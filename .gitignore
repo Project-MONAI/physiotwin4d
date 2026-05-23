@@ -17,6 +17,10 @@ htmlcov
 # AI files
 .claude
 
+# Intermediate files produced by skills
+.github_reveiw_prompt.txt
+pr*review_summary.md
+
 # Documentation build files
 docs/_build/
 docs/_static/.buildinfo

@@ -144,7 +144,8 @@ GPU tests require self-hosted runners with:
 
 **Option 3: Run Locally**
 ```bash
-# Install with CUDA + PhysicsNeMo (matches the self-hosted GPU runner)
+# Install with CUDA + PhysicsNeMo (matches the self-hosted GPU runner).
+# Requires Python >= 3.11 (nvidia-physicsnemo does not support 3.10).
 uv pip install -e ".[test,cuda13,physicsnemo]"
 
 # Run GPU tests
@@ -217,7 +218,8 @@ pytest tests/ -m "unit and not requires_gpu" --cov=physiomotion4d
 
 ### GPU Tests
 ```bash
-# Install with CUDA + PhysicsNeMo (matches the self-hosted GPU runner)
+# Install with CUDA + PhysicsNeMo (matches the self-hosted GPU runner).
+# Requires Python >= 3.11 (nvidia-physicsnemo does not support 3.10).
 uv pip install -e ".[test,cuda13,physicsnemo]"
 
 # Run GPU tests

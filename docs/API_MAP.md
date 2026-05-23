@@ -83,7 +83,7 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 - `def write_summary(path, rows)` (line 366): Write the wide-form summary CSV.
 - `def mask_from_labelmap(labelmap)` (line 378): Return a uint8 binary mask covering the non-zero labels.
 - `def run_method_for_subject(subject_id, timepoint_artifacts, reference_index, method_spec, output_dir, icon_iterations, run_resegmentation, error_detail_file)` (line 386): Run one ICON method for one subject and return per-timepoint rows.
-- `def main()` (line 535): Run the ICON default-vs-finetuned comparison experiment.
+- `def main()` (line 544): Run the ICON default-vs-finetuned comparison experiment.
 
 ## experiments/LongitudinalRegistration/recon_4d_run.py
 
@@ -643,19 +643,19 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 
 ## src/physiomotion4d/register_time_series_images.py
 
-- **class RegisterTimeSeriesImages** (line 25): Register a time series of images to a fixed image.
-  - `def __init__(self, registration_method='ants', log_level=logging.INFO)` (line 80): Initialize the time series image registration class.
-  - `def set_number_of_iterations_ants(self, number_of_iterations_ants)` (line 117): Set the number of iterations for ANTs registration.
-  - `def set_number_of_iterations_icon(self, number_of_iterations_icon)` (line 128): Set the number of iterations for ICON registration.
-  - `def set_number_of_iterations_greedy(self, number_of_iterations_greedy)` (line 136): Set the number of iterations for Greedy registration.
-  - `def set_smooth_prior_transform_sigma(self, smooth_prior_transform_sigma)` (line 147): Set the sigma for smoothing the prior transform.
-  - `def set_mask_dilation(self, mask_dilation_mm)` (line 157): Set the dilation of the fixed and moving image masks.
-  - `def set_modality(self, modality)` (line 167): Set the imaging modality for registration optimization.
-  - `def set_fixed_image(self, fixed_image)` (line 177): Set the fixed image for registration.
-  - `def set_fixed_mask(self, fixed_mask)` (line 188): Set a binary mask for the fixed image region of interest.
-  - `def register_time_series(self, moving_images, moving_masks=None, moving_labelmaps=None, reference_frame=0, register_reference=True, prior_weight=0.0)` (line 198): Register a time series of images to the fixed image.
-  - `def reconstruct_time_series(self, moving_images, inverse_transforms, upsample_to_fixed_resolution=False)` (line 607): Reconstruct time series images using inverse transforms.
-  - `def registration_method(self, moving_image, moving_mask=None, moving_labelmap=None, moving_image_pre=None, initial_forward_transform=None)` (line 737): Registration method required by RegisterImagesBase.
+- **class RegisterTimeSeriesImages** (line 31): Register a time series of images to a fixed image.
+  - `def __init__(self, registration_method='ants', log_level=logging.INFO)` (line 90): Initialize the time series image registration class.
+  - `def set_number_of_iterations_ants(self, number_of_iterations_ants)` (line 127): Set the number of iterations for ANTs registration.
+  - `def set_number_of_iterations_icon(self, number_of_iterations_icon)` (line 138): Set the number of iterations for ICON registration.
+  - `def set_number_of_iterations_greedy(self, number_of_iterations_greedy)` (line 146): Set the number of iterations for Greedy registration.
+  - `def set_smooth_prior_transform_sigma(self, smooth_prior_transform_sigma)` (line 157): Set the sigma for smoothing the prior transform.
+  - `def set_mask_dilation(self, mask_dilation_mm)` (line 167): Set the dilation of the fixed and moving image masks.
+  - `def set_modality(self, modality)` (line 177): Set the imaging modality for registration optimization.
+  - `def set_fixed_image(self, fixed_image)` (line 187): Set the fixed image for registration.
+  - `def set_fixed_mask(self, fixed_mask)` (line 198): Set a binary mask for the fixed image region of interest.
+  - `def register_time_series(self, moving_images, moving_masks=None, moving_labelmaps=None, reference_frame=0, register_reference=True, prior_weight=0.0)` (line 208): Register a time series of images to the fixed image.
+  - `def reconstruct_time_series(self, moving_images, inverse_transforms, upsample_to_fixed_resolution=False)` (line 617): Reconstruct time series images using inverse transforms.
+  - `def registration_method(self, moving_image, moving_mask=None, moving_labelmap=None, moving_image_pre=None, initial_forward_transform=None)` (line 747): Registration method required by RegisterImagesBase.
 
 ## src/physiomotion4d/segment_anatomy_base.py
 
@@ -1246,8 +1246,8 @@ _Re-run `py utils/generate_api_map.py` whenever public APIs change._
 - `def invoke_ai_agent(prompt, repo_root, agent)` (line 712): Invoke the selected AI agent non-interactively.
 - `def invoke_claude(prompt, repo_root)` (line 722): Invoke Claude Code non-interactively via stdin.
 - `def invoke_codex(prompt, repo_root)` (line 754): Invoke Codex CLI non-interactively.
-- `def parse_args()` (line 827)
-- `def main()` (line 898)
+- `def parse_args()` (line 832)
+- `def main()` (line 903)
 
 ## utils/generate_api_map.py
 

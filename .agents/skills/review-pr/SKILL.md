@@ -73,7 +73,10 @@ Defaults worth knowing:
    working-tree changes only; the user controls staging
    (`git add -p`) and commit.
 
-4. If the run failed:
+4. Delete `pr_<NUMBER>_review_summary.md` after reporting — the working-tree
+   diff is the durable record; the summary is intermediate state.
+
+5. If the run failed:
    - "gh CLI not found" → tell the user to install via
      `winget install GitHub.cli` then `gh auth login`.
    - "claude CLI not found" → tell the user to install via

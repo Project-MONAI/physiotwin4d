@@ -19,7 +19,13 @@ from physiomotion4d.register_images_greedy import RegisterImagesGreedy
 from physiomotion4d.register_images_icon import RegisterImagesICON
 from physiomotion4d.transform_tools import TransformTools
 
-REGISTRATION_METHODS = ["ants", "greedy", "icon", "ants_icon", "greedy_icon"]
+REGISTRATION_METHODS: list[str] = [
+    "ants",
+    "greedy",
+    "icon",
+    "ants_icon",
+    "greedy_icon",
+]
 
 
 class RegisterTimeSeriesImages(RegisterImagesBase):
@@ -46,9 +52,13 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
     - Returns all transforms and loss values for the entire series
 
     Attributes:
-        registration_method (str): Registration method to use
-        registrar (RegisterImagesBase): Internal registration object (ANTs or ICON)
-        transform_tools (TransformTools): Utility for transform operations
+        registration_method_name (str): Registration method in use ('ants',
+            'greedy', 'icon', 'ants_icon', or 'greedy_icon').
+        registrar_ants (RegisterImagesANTs): Internal ANTs registrar.
+        registrar_greedy (RegisterImagesGreedy): Internal Greedy registrar.
+        registrar_icon (RegisterImagesICON): Internal ICON registrar (also used
+            as the refinement stage for 'ants_icon' and 'greedy_icon').
+        transform_tools (TransformTools): Utility for transform operations.
 
     Example:
         >>> # Register a cardiac CT time series
@@ -806,6 +816,7 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
                 moving_mask=moving_mask,
                 moving_labelmap=moving_labelmap,
                 moving_image_pre=moving_image_pre,
+                initial_forward_transform=initial_forward_transform,
             )
             forward_initial = initial_res["forward_transform"]
             icon_res = self.registrar_icon.registration_method(

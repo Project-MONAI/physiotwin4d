@@ -64,7 +64,7 @@ context such as class inheritance), then flag every occurrence of:
 
 Group findings by file. For each finding, print:
 
-```
+```text
 <path>:<line>  <rule short name>  <one-line excerpt>
 ```
 

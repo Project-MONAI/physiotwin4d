@@ -55,8 +55,10 @@ jobs:
         run: nvidia-smi
 
       - name: Create venv in RUNNER_TEMP
+        # Python 3.11 is required because the [physicsnemo] extra pulls in
+        # nvidia-physicsnemo, which requires Python >= 3.11.
         run: |
-          & "C:\Program Files\Python310\python.exe" -m venv "$env:RUNNER_TEMP\physiomotion4d-venv"
+          & "C:\Program Files\Python311\python.exe" -m venv "$env:RUNNER_TEMP\physiomotion4d-venv"
           echo "$env:RUNNER_TEMP\physiomotion4d-venv\Scripts" >> $env:GITHUB_PATH
 
       - name: Cache uv packages
