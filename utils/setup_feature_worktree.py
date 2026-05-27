@@ -22,6 +22,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import shutil
 import subprocess
@@ -97,13 +98,40 @@ def require_tool(name: str) -> str:
     return path
 
 
+def require_no_active_venv() -> None:
+    """Abort if a virtual environment is active in the invoking shell or interpreter.
+
+    The script creates a fresh per-worktree venv and runs ``uv pip install`` inside
+    it. uv honors the parent shell's ``VIRTUAL_ENV`` env var, so an active outer
+    venv silently hijacks the install and the new worktree's venv is left empty.
+    Refuse to run in that case and tell the user how to recover.
+
+    Raises:
+        SystemExit: If ``VIRTUAL_ENV`` is set or this script is being run by a
+            venv's Python rather than the base interpreter.
+    """
+    active_venv = os.environ.get("VIRTUAL_ENV")
+    running_in_venv = sys.prefix != getattr(sys, "base_prefix", sys.prefix)
+
+    if active_venv or running_in_venv:
+        location = active_venv or sys.prefix
+        print("[ERROR] A Python virtual environment is currently active:")
+        print(f"        {location}")
+        print()
+        print("        Deactivate it before running this script, then re-run.")
+        print("        PowerShell : deactivate")
+        print("        cmd.exe    : venv\\Scripts\\deactivate.bat")
+        sys.exit(1)
+
+
 def check_prerequisites() -> tuple[str, str]:
-    """Check that git and py.exe are available on PATH.
+    """Check that git and py.exe are available on PATH and no venv is active.
 
     Returns:
         Tuple of (git_path, py_path).
     """
     print("[*] Checking prerequisites...")
+    require_no_active_venv()
     git_path = require_tool("git")
     py_path = require_tool("py")
     print(f"    git : {git_path}")
