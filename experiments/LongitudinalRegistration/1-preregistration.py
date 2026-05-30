@@ -50,10 +50,10 @@ from typing import Optional
 import itk
 import numpy as np
 
+from physiomotion4d.labelmap_tools import LabelmapTools
 from physiomotion4d.landmark_tools import LandmarkTools
 from physiomotion4d.register_images_ants import RegisterImagesANTS
 from physiomotion4d.register_images_greedy import RegisterImagesGreedy
-from physiomotion4d.register_images_icon import RegisterImagesICON
 from physiomotion4d.transform_tools import TransformTools
 
 # %% [markdown]
@@ -78,6 +78,7 @@ timepoint_re = re.compile(r"_g(?P<timepoint>[0-9]{3})")
 # Mask dilation matches 1-finetune_icon.py so any masks we have to
 # derive here are identical to the ones written by the fine-tune script.
 mask_dilation_mm = 5.0
+labelmap_tools = LabelmapTools()
 
 # Iteration schedules.  Kept modest for a cohort-wide comparison; raise
 # either list for higher accuracy at the cost of runtime.
@@ -199,13 +200,20 @@ def landmark_squared_errors(
 
 def load_or_derive_mask(labelmap: itk.Image, mask_path: Path) -> itk.Image:
     """Return the cached ``<stem>_labelmap_mask.nii.gz`` next to the
-    labelmap, or derive it via :meth:`RegisterImagesICON.create_mask`
-    (threshold ``>0`` plus 5 mm physical-radius dilation) and write it
-    out so subsequent runs and the ICON eval reuse the same mask.
+    labelmap, or derive it via
+    :meth:`LabelmapTools.convert_labelmap_to_mask` (threshold ``>0`` plus
+    5 mm physical-radius dilation) and write it out so subsequent runs and
+    the ICON eval reuse the same mask.
     """
-    if mask_path.exists():
-        return itk.imread(str(mask_path))
-    mask = RegisterImagesICON.create_mask(labelmap, dilation_mm=mask_dilation_mm)
+    # Force mask update
+    # if mask_path.exists():
+    #     return itk.imread(str(mask_path))
+    mask = labelmap_tools.convert_labelmap_to_mask(
+        labelmap,
+        dilation_in_mm=mask_dilation_mm,
+        labels_to_exclude=[1, 2, 3, 4],
+        # These are labels for the interior of the heart chambers (the LV, RV, LA, RA)
+    )
     itk.imwrite(mask, str(mask_path), compression=True)
     return mask
 

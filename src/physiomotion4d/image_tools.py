@@ -279,9 +279,12 @@ class ImageTools(PhysioMotion4DBase):
         flip1 = False
         flip2 = False
         if flip_and_make_identity:
-            flip0 = np.array(in_image.GetDirection())[0, 0] < 0
-            flip1 = np.array(in_image.GetDirection())[1, 1] < 0
-            flip2 = np.array(in_image.GetDirection())[2, 2] < 0
+            # itk.array_from_matrix avoids itk.Matrix.__array__, whose missing
+            # copy keyword triggers a numpy>=2.0 DeprecationWarning.
+            direction = itk.array_from_matrix(in_image.GetDirection())
+            flip0 = direction[0, 0] < 0
+            flip1 = direction[1, 1] < 0
+            flip2 = direction[2, 2] < 0
         if flip_x:
             flip0 = True
         if flip_y:

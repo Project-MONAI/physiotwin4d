@@ -49,9 +49,9 @@ from typing import Optional
 
 import itk
 import pyvista as pv
-from itk import TubeTK as ttk
 
 from physiomotion4d.contour_tools import ContourTools
+from physiomotion4d.labelmap_tools import LabelmapTools
 from physiomotion4d.physiomotion4d_base import PhysioMotion4DBase
 from physiomotion4d.register_images_ants import RegisterImagesANTS
 from physiomotion4d.register_images_icon import RegisterImagesICON
@@ -155,6 +155,7 @@ class RegisterModelsDistanceMaps(PhysioMotion4DBase):
         # Utilities
         self.transform_tools = TransformTools()
         self.contour_tools = ContourTools()
+        self.labelmap_tools = LabelmapTools(log_level=log_level)
 
         # Registration instances
         self.registrar_ANTS = RegisterImagesANTS(log_level=log_level)
@@ -201,12 +202,9 @@ class RegisterModelsDistanceMaps(PhysioMotion4DBase):
         mask = self.contour_tools.create_mask_from_mesh(
             self.fixed_model, self.reference_image
         )
-        imMath = ttk.ImageMath.New(mask)
-        dilation_voxels = int(
-            self.roi_dilation_mm / self.reference_image.GetSpacing()[0]
+        self.fixed_mask_roi_image = self.labelmap_tools.convert_labelmap_to_mask(
+            mask, dilation_in_mm=self.roi_dilation_mm
         )
-        imMath.Dilate(dilation_voxels, 1, 0)
-        self.fixed_mask_roi_image = imMath.GetOutput()
 
         # Create moving mask
         self.moving_mask_image = self.contour_tools.create_distance_map(
@@ -223,9 +221,9 @@ class RegisterModelsDistanceMaps(PhysioMotion4DBase):
         mask = self.contour_tools.create_mask_from_mesh(
             self.moving_model, self.reference_image
         )
-        imMath = ttk.ImageMath.New(self.moving_mask_image)
-        imMath.Dilate(dilation_voxels, 1, 0)
-        self.moving_mask_roi_image = imMath.GetOutputUChar()
+        self.moving_mask_roi_image = self.labelmap_tools.convert_labelmap_to_mask(
+            mask, dilation_in_mm=self.roi_dilation_mm
+        )
 
         self.log_info("Mask generation complete")
 

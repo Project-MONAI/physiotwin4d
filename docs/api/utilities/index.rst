@@ -21,6 +21,7 @@ Quick Links
 
 **Utility Modules**:
    * :doc:`image_tools` - Image processing utilities
+   * :doc:`labelmap_tools` - Labelmap to registration-mask conversion
    * :doc:`transform_tools` - Transform operations
    * :doc:`contour_tools` - Contour processing
    * :doc:`image_conversion` - 4D image to 3D time-series utilities
@@ -34,6 +35,7 @@ Module Documentation
    :maxdepth: 2
 
    image_tools
+   labelmap_tools
    transform_tools
    contour_tools
    image_conversion

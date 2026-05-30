@@ -373,42 +373,6 @@ class RegisterImagesICON(RegisterImagesBase):
             tensor, size=shape[2:], mode="trilinear", align_corners=False
         )
 
-    @staticmethod
-    def create_mask(labelmap: itk.Image, dilation_mm: float = 5.0) -> itk.Image:
-        """Create a binary registration mask from a labelmap.
-
-        Thresholds the labelmap at ``>0`` (so every non-zero label becomes
-        foreground) and dilates the result by ``dilation_mm`` millimeters of
-        physical radius.  The radius is converted into per-axis voxel counts
-        from the labelmap's spacing so the dilation is physically isotropic
-        even on anisotropic grids; each per-axis count is clamped to at least
-        1 voxel when ``dilation_mm > 0``.
-
-        Args:
-            labelmap: Multi-label or binary ``itk.Image``.  Any non-zero voxel
-                is treated as foreground.
-            dilation_mm: Physical radius of the binary dilation in
-                millimeters.  Pass ``0`` (or negative) to skip dilation and
-                return the raw ``>0`` mask.  Default 5.0 mm.
-
-        Returns:
-            ``itk.Image[itk.UC, 3]`` binary mask in the same physical space as
-            ``labelmap`` (origin, spacing, direction copied from the input).
-        """
-        arr = (itk.array_from_image(labelmap) > 0).astype(np.uint8)
-        mask = itk.image_from_array(arr)
-        mask.CopyInformation(labelmap)
-        if dilation_mm <= 0:
-            return mask
-        spacing = labelmap.GetSpacing()
-        radius = itk.Size[3]()
-        for i in range(3):
-            radius[i] = max(1, int(round(dilation_mm / float(spacing[i]))))
-        structuring_element = itk.FlatStructuringElement[3].Ball(radius)
-        return itk.binary_dilate_image_filter(
-            mask, kernel=structuring_element, foreground_value=1
-        )
-
     def _mask_to_resized_tensor(
         self, mask: itk.Image, shape: torch.Size
     ) -> torch.Tensor:

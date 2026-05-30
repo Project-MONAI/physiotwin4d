@@ -280,7 +280,6 @@ minversion = "7.0"
 addopts = [
     "--strict-markers",
     "--strict-config",
-    "-W", "always",
     "--cov=physiomotion4d",
     "--cov-report=term-missing",
     "--cov-report=html",
@@ -288,6 +287,17 @@ addopts = [
 ]
 testpaths = ["tests"]
 pythonpath = ["."]
+# Surface every warning by default ("always"), then silence the third-party
+# ITK/SWIG binding noise emitted while wrapped C++ types are defined at import
+# on CPython >=3.12 ("builtin type Swig... has no __module__ attribute").
+# Those come from the bindings, not our code, and would otherwise drown the
+# warnings summary. Order matters: the trailing "ignore" entries are applied
+# last and so take precedence over "always" for these specific messages.
+filterwarnings = [
+    "always",
+    "ignore:builtin type Swig",
+    "ignore:builtin type swigvarlink",
+]
 markers = [
     "unit: marks tests as unit tests (fast, isolated)",
     "integration: marks tests as integration tests (slower, multiple components)",

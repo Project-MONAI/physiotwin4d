@@ -43,6 +43,7 @@ from .data_download_tools import DataDownloadTools
 
 # Utility classes
 from .image_tools import ImageTools
+from .labelmap_tools import LabelmapTools
 from .landmark_tools import LandmarkTools
 
 # Base classes
@@ -106,6 +107,7 @@ __all__ = [
     "PhysioMotion4DBase",
     # Utility classes
     "ImageTools",
+    "LabelmapTools",
     "LandmarkTools",
     "TestTools",
     "TransformTools",

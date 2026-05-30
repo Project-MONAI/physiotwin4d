@@ -557,29 +557,6 @@ class SegmentAnatomyBase(PhysioMotion4DBase):
         """
         raise NotImplementedError("This method should be implemented by the subclass.")
 
-    def dilate_mask(self, mask: itk.image, dilation: int) -> itk.image:
-        """
-        Dilate a binary mask using morphological operations.
-
-        Expands the mask regions by the specified number of pixels to create
-        larger regions of interest. Useful for creating candidate regions or
-        ensuring complete coverage of anatomical structures.
-
-        Args:
-            mask (itk.image): The binary mask to dilate
-            dilation (int): Number of pixels to dilate in each direction
-
-        Returns:
-            itk.image: The dilated binary mask
-
-        Example:
-            >>> dilated_heart = segmenter.dilate_mask(heart_mask, 5)
-        """
-        imMath = tube.ImageMath.New(mask)
-        imMath.Dilate(dilation, 1, 0)
-        dilated_mask = imMath.GetOutputUChar()
-        return dilated_mask
-
     def segment(
         self,
         input_image: itk.image,

@@ -25,8 +25,8 @@ import itk
 import numpy as np
 
 from physiomotion4d import RegisterTimeSeriesImages
+from physiomotion4d.labelmap_tools import LabelmapTools
 from physiomotion4d.landmark_tools import LandmarkTools
-from physiomotion4d.register_images_icon import RegisterImagesICON
 
 # %% [markdown]
 # ## 1. Hard-coded paths and configuration
@@ -93,12 +93,13 @@ print(f"Held-out test subjects: {test_subjects}")
 # Landmarks are read with :meth:`LandmarkTools.read_landmarks_3dslicer` —
 # they were written as ``<stem>_landmark.mrk.json`` (3D Slicer Markups JSON,
 # LPS) by ``0-cardiacGatedCT_segment_and_landmark.py``.  Binary registration
-# masks come from :meth:`RegisterImagesICON.create_mask` (``>0`` threshold
-# plus 5 mm dilation by default), matching the loss-function masks used
+# masks come from :meth:`LabelmapTools.convert_labelmap_to_mask` (``>0``
+# threshold plus 5 mm dilation), matching the loss-function masks used
 # during fine-tuning in ``1-finetune_icon.py``.
 
 # %%
 landmark_tools = LandmarkTools()
+labelmap_tools = LabelmapTools()
 
 
 # %% [markdown]
@@ -137,7 +138,9 @@ for subject_id in test_subjects:
     if mask_files[reference_index].exists():
         fixed_mask = itk.imread(str(mask_files[reference_index]))
     else:
-        fixed_mask = RegisterImagesICON.create_mask(fixed_labelmap, dilation_mm=5.0)
+        fixed_mask = labelmap_tools.convert_labelmap_to_mask(
+            fixed_labelmap, dilation_in_mm=5.0
+        )
         itk.imwrite(fixed_mask, str(mask_files[reference_index]), compression=True)
     reference_landmarks = landmark_tools.read_landmarks_3dslicer(
         landmark_files[reference_index]
@@ -151,8 +154,8 @@ for subject_id in test_subjects:
     moving_masks = []
     for index, p in enumerate(mask_files):
         if not p.exists():
-            mask = RegisterImagesICON.create_mask(
-                moving_labelmaps[index], dilation_mm=5.0
+            mask = labelmap_tools.convert_labelmap_to_mask(
+                moving_labelmaps[index], dilation_in_mm=5.0
             )
             itk.imwrite(mask, str(p), compression=True)
             moving_masks.append(mask)

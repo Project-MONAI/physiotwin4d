@@ -31,7 +31,7 @@ from typing import Optional
 import itk
 
 from physiomotion4d import WorkflowFineTuneICONRegistration
-from physiomotion4d.register_images_icon import RegisterImagesICON
+from physiomotion4d.labelmap_tools import LabelmapTools
 
 # %% [markdown]
 # ## 1. Configure data, output locations, and the train/test split
@@ -145,7 +145,7 @@ for patient_id in train_subjects:
 # %% [markdown]
 # ## 4. Pre-compute loss-function masks next to each labelmap
 #
-# Use :meth:`RegisterImagesICON.create_mask` (``>0`` threshold + 5 mm
+# Use :meth:`LabelmapTools.convert_labelmap_to_mask` (``>0`` threshold + 5 mm
 # physical-radius dilation) to derive each frame's binary heart-ROI mask and
 # write it as ``<labelmap_stem>_mask.nii.gz`` in the labelmap's own directory.
 # Pre-computing here means the workflow does not have to re-derive masks
@@ -154,13 +154,14 @@ for patient_id in train_subjects:
 
 # %%
 mask_dilation_mm = 5.0
+labelmap_tools = LabelmapTools()
 
 
 def derive_mask_for(labelmap_path: Path) -> str:
     """Create (or reuse) a loss-function mask next to ``labelmap_path``.
 
     Thresholds the labelmap at ``>0`` and dilates by ``mask_dilation_mm`` mm
-    via :meth:`RegisterImagesICON.create_mask`, writing the result as
+    via :meth:`LabelmapTools.convert_labelmap_to_mask`, writing the result as
     ``<labelmap_stem>_mask.nii.gz`` in the labelmap's own directory.  Handles
     both ``.nii.gz`` (original Simpleware labelmaps) and ``.mha``
     (pre-registration warped labelmaps).  Returns the mask path as a string;
@@ -175,8 +176,8 @@ def derive_mask_for(labelmap_path: Path) -> str:
         stem = labelmap_path.stem
     mask_p = labelmap_path.parent / f"{stem}_mask.nii.gz"
     if not mask_p.exists():
-        mask = RegisterImagesICON.create_mask(
-            itk.imread(str(labelmap_path)), dilation_mm=mask_dilation_mm
+        mask = labelmap_tools.convert_labelmap_to_mask(
+            itk.imread(str(labelmap_path)), dilation_in_mm=mask_dilation_mm
         )
         itk.imwrite(mask, str(mask_p), compression=True)
     return str(mask_p)

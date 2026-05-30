@@ -428,7 +428,7 @@ class TestFlipImage:
         direction = np.diag([-1.0, 1.0, 1.0])
         itk_image = _make_synthetic_itk_image(shape_xyz, arr=arr, direction=direction)
         out = image_tools.flip_image(itk_image, flip_and_make_identity=True)
-        out_direction = np.array(out.GetDirection())
+        out_direction = itk.array_from_matrix(out.GetDirection())
         identity = np.eye(3)
         assert np.allclose(out_direction, identity), (
             "flip_and_make_identity should set direction to identity"
@@ -450,7 +450,7 @@ class TestFlipImage:
             itk_image, in_mask=itk_mask, flip_and_make_identity=True
         )
         for im, name in [(out_image, "image"), (out_mask, "mask")]:
-            dir_mat = np.array(im.GetDirection())
+            dir_mat = itk.array_from_matrix(im.GetDirection())
             assert np.allclose(dir_mat, np.eye(3)), (
                 f"flip_and_make_identity should set {name} direction to identity"
             )

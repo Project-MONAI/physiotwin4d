@@ -200,9 +200,7 @@ class RegisterImagesANTS(RegisterImagesBase):
 
         image_dimension = len(spatial_shape)
 
-        direction = np.asarray(itk_image.GetDirection()).reshape(
-            (image_dimension, image_dimension)
-        )
+        direction = itk.array_from_matrix(itk_image.GetDirection())
         spacing = list(itk_image.GetSpacing())
         origin = list(itk_image.GetOrigin())
 

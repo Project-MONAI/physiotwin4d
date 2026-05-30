@@ -30,6 +30,7 @@ import numpy as np
 import pyvista as pv
 
 from physiomotion4d.contour_tools import ContourTools
+from physiomotion4d.labelmap_tools import LabelmapTools
 from physiomotion4d.physiomotion4d_base import PhysioMotion4DBase
 from physiomotion4d.register_images_ants import RegisterImagesANTS
 from physiomotion4d.register_images_icon import RegisterImagesICON
@@ -199,6 +200,7 @@ class WorkflowFitStatisticalModelToPatient(PhysioMotion4DBase):
         # Utilities (needed for create_reference_image when patient_image is None)
         self.transform_tools = TransformTools()
         self.contour_tools = ContourTools()
+        self.labelmap_tools = LabelmapTools()
 
         if patient_image is not None:
             self.patient_image = patient_image
@@ -319,11 +321,9 @@ class WorkflowFitStatisticalModelToPatient(PhysioMotion4DBase):
         if dilate_mm is None:
             dilate_mm = self.mask_dilation_mm
         if dilate_mm > 0:
-            ttk = _load_tubetk()
-            imMath = ttk.ImageMath.New(mask)
-            dilation_voxels = int(dilate_mm / self.patient_image.GetSpacing()[0])
-            imMath.Dilate(dilation_voxels, 1, 0)
-            mask = imMath.GetOutputUChar()
+            mask = self.labelmap_tools.convert_labelmap_to_mask(
+                mask, dilation_in_mm=dilate_mm
+            )
 
         self.log_info("Masks auto-generated successfully.")
 
@@ -349,11 +349,9 @@ class WorkflowFitStatisticalModelToPatient(PhysioMotion4DBase):
         # Generate model ROI mask
         roi = None
         if dilate_mm > 0:
-            ttk = _load_tubetk()
-            imMath = ttk.ImageMath.New(mask)
-            dilation_voxels = int(dilate_mm / mask.GetSpacing()[0])
-            imMath.Dilate(dilation_voxels, 1, 0)
-            roi = imMath.GetOutputUChar()
+            roi = self.labelmap_tools.convert_labelmap_to_mask(
+                mask, dilation_in_mm=dilate_mm
+            )
         else:
             roi = mask
 

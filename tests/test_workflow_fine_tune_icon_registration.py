@@ -20,7 +20,6 @@ import numpy as np
 import pytest
 import yaml
 
-from physiomotion4d.register_images_icon import RegisterImagesICON
 from physiomotion4d.workflow_fine_tune_icon_registration import (
     WorkflowFineTuneICONRegistration,
 )
@@ -128,7 +127,7 @@ def test_init_rejects_mismatched_subject_ids_length(tmp_path: Path) -> None:
         )
 
 
-def test_uses_segmentations_and_uses_masks_flags(tmp_path: Path) -> None:
+def test_use_segmentations_and_use_masks_flags(tmp_path: Path) -> None:
     """The two helper flags reflect supplied companions independently."""
     base: dict[str, Any] = {
         "subject_image_files": [["a"]],
@@ -136,45 +135,20 @@ def test_uses_segmentations_and_uses_masks_flags(tmp_path: Path) -> None:
         "fine_tune_name": "x",
     }
     none_wf = WorkflowFineTuneICONRegistration(**base)
-    assert not none_wf.uses_segmentations
-    assert not none_wf.uses_masks
+    assert not none_wf.use_segmentations
+    assert not none_wf.use_masks
 
     seg_only = WorkflowFineTuneICONRegistration(
         **base, subject_segmentation_files=[["seg.nii.gz"]]
     )
-    assert seg_only.uses_segmentations
-    assert seg_only.uses_masks  # derived from segs
+    assert seg_only.use_segmentations
+    assert seg_only.use_masks  # derived from segs
 
     mask_only = WorkflowFineTuneICONRegistration(
         **base, subject_mask_files=[["mask.nii.gz"]]
     )
-    assert not mask_only.uses_segmentations
-    assert mask_only.uses_masks
-
-
-# ---------------------------------------------------------------------------
-# RegisterImagesICON.create_mask (in-memory dilation, used by the workflow)
-# ---------------------------------------------------------------------------
-
-
-def test_create_mask_thresholds_and_dilates() -> None:
-    """Single-voxel labelmap becomes a binary mask whose dilation grows it."""
-    arr = np.zeros((5, 5, 5), dtype=np.uint8)
-    arr[2, 2, 2] = 3  # non-zero label id
-    labelmap = itk.image_from_array(arr)
-    # Unit isotropic spacing so dilation_mm == voxel radius.
-    labelmap.SetSpacing([1.0, 1.0, 1.0])
-
-    no_dilate = RegisterImagesICON.create_mask(labelmap, dilation_mm=0.0)
-    no_dilate_arr = itk.array_from_image(no_dilate)
-    assert set(np.unique(no_dilate_arr).tolist()) == {0, 1}
-    assert int(no_dilate_arr.sum()) == 1
-
-    dilated = RegisterImagesICON.create_mask(labelmap, dilation_mm=1.0)
-    dilated_arr = itk.array_from_image(dilated)
-    assert int(dilated_arr.sum()) > 1
-    # Original foreground voxel stays foreground.
-    assert dilated_arr[2, 2, 2] == 1
+    assert not mask_only.use_segmentations
+    assert mask_only.use_masks
 
 
 # ---------------------------------------------------------------------------

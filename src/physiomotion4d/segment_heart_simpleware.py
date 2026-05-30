@@ -338,8 +338,8 @@ class SegmentHeartSimpleware(SegmentAnatomyBase):
                 )
 
             if mask_image is not None:
-                in_direction = np.array(preprocessed_image.GetDirection())
-                out_direction = np.array(mask_image.GetDirection())
+                in_direction = itk.array_from_matrix(preprocessed_image.GetDirection())
+                out_direction = itk.array_from_matrix(mask_image.GetDirection())
                 flip = [False, False, False]
                 for i in range(3):
                     if np.sign(out_direction[i, i]) != np.sign(in_direction[i, i]):

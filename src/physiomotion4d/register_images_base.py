@@ -19,9 +19,8 @@ import logging
 from typing import Any, Optional, Union
 
 import itk
-import numpy as np
-from itk import TubeTK as ttk
 
+from physiomotion4d.labelmap_tools import LabelmapTools
 from physiomotion4d.physiomotion4d_base import PhysioMotion4DBase
 from physiomotion4d.transform_tools import TransformTools
 
@@ -83,6 +82,8 @@ class RegisterImagesBase(PhysioMotion4DBase):
             log_level: Logging level (default: logging.INFO)
         """
         super().__init__(class_name=self.__class__.__name__, log_level=log_level)
+
+        self.labelmap_tools = LabelmapTools(log_level=log_level)
 
         self.net: Any = None
 
@@ -180,16 +181,10 @@ class RegisterImagesBase(PhysioMotion4DBase):
         if self.fixed_image is None:
             raise ValueError("Fixed image must be set before setting a fixed mask.")
 
-        mask_arr = itk.GetArrayFromImage(fixed_mask)
-        mask_arr = np.where(mask_arr > 0, 1, 0)
-        self.fixed_mask = itk.GetImageFromArray(mask_arr.astype(np.uint8))
+        self.fixed_mask = self.labelmap_tools.convert_labelmap_to_mask(
+            fixed_mask, dilation_in_mm=self.mask_dilation_mm
+        )
         self.fixed_mask.CopyInformation(self.fixed_image)
-        if self.mask_dilation_mm > 0:
-            imMath = ttk.ImageMath.New(self.fixed_mask)
-            imMath.Dilate(
-                int(self.mask_dilation_mm / self.fixed_image.GetSpacing()[0]), 1, 0
-            )
-            self.fixed_mask = imMath.GetOutputUChar()
 
     def set_fixed_labelmap(self, fixed_labelmap: Optional[itk.Image]) -> None:
         """Set the fixed image labelmap (multi-label segmentation).
@@ -327,16 +322,10 @@ class RegisterImagesBase(PhysioMotion4DBase):
 
         new_moving_mask = moving_mask
         if moving_mask is not None:
-            mask_arr = itk.GetArrayFromImage(moving_mask)
-            mask_arr = np.where(mask_arr > 0, 1, 0)
-            new_moving_mask = itk.GetImageFromArray(mask_arr.astype(np.uint8))
+            new_moving_mask = self.labelmap_tools.convert_labelmap_to_mask(
+                moving_mask, dilation_in_mm=self.mask_dilation_mm
+            )
             new_moving_mask.CopyInformation(moving_image)
-            if self.mask_dilation_mm > 0:
-                imMath = ttk.ImageMath.New(new_moving_mask)
-                imMath.Dilate(
-                    int(self.mask_dilation_mm / moving_image.GetSpacing()[0]), 1, 0
-                )
-                new_moving_mask = imMath.GetOutputUChar()
 
         self.moving_image = moving_image
         self.moving_image_pre = moving_image_pre

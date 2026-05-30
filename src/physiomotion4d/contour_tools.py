@@ -230,7 +230,7 @@ class ContourTools(PhysioMotion4DBase):
 
         # Direction: use identity for now (axis-aligned), will be handled by resampling
         # Flip Z axis to match ITK convention
-        ref_dir = np.array(binary_image.GetDirection())
+        ref_dir = itk.array_from_matrix(binary_image.GetDirection())
         ref_dir[2, 2] = -ref_dir[2, 2]
         binary_image.SetDirection(ref_dir)
 
