@@ -148,7 +148,7 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
         similarity: str = "lncc",
         lambda_value: float = 1.5,
         dice_loss_weight: float = 0.5,
-        lncc_sigma: int = 5,
+        lncc_sigma: int = 1,
         ct_window: tuple[float, float] = (-1000.0, 1000.0),
         is_ct: bool = True,
         gpus: Optional[list[int]] = None,
@@ -530,7 +530,7 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
                 "dice_loss_weight": self.dice_loss_weight,
                 "lncc_sigma": self.lncc_sigma,
                 "loss_function_masking": self.uses_masks,
-                "use_label": self.uses_segmentations,
+                "use_label": False,
                 "roi_masking": False,
             },
             "datasets": [

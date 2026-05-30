@@ -494,9 +494,15 @@ def run_method_for_subject(
 
         if artifacts.landmark_file is not None:
             timepoint_landmarks = read_landmarks(artifacts.landmark_file)
+            # Warp the reference landmarks into the timepoint (moving) space to
+            # compare against this timepoint's landmarks. Warping reference ->
+            # time POINTS uses forward_transform (the fixed -> moving point map),
+            # which is the opposite of the reference_to_time IMAGE above (images
+            # pull back, points push forward). See
+            # docs/developer/transform_conventions.
             direct_landmarks = transform_landmarks(
                 reference_landmarks,
-                inverse_transform,
+                forward_transform,
             )
             direct_errors = landmark_errors(direct_landmarks, timepoint_landmarks)
             write_error_details(

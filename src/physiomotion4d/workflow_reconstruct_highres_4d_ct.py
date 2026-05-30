@@ -61,8 +61,10 @@ class WorkflowReconstructHighres4DCT(PhysioMotion4DBase):
         registration_method (str): Registration method ('ANTS', 'ICON', or 'ANTS_ICON')
         number_of_iterations: Iterations for registration
         registrar (RegisterTimeSeriesImages): Internal registration object
-        forward_transforms (list[itk.Transform]): Forward transforms (moving → fixed)
-        inverse_transforms (list[itk.Transform]): Inverse transforms (fixed → moving)
+        forward_transforms (list[itk.Transform]): one per frame; each warps its
+            moving image onto the fixed grid
+        inverse_transforms (list[itk.Transform]): one per frame; each warps the
+            fixed image onto that frame's moving grid (used for reconstruction)
         losses (list[float]): Registration loss values
         reconstructed_images (list[itk.Image]): Reconstructed high-resolution images
 
@@ -260,10 +262,11 @@ class WorkflowReconstructHighres4DCT(PhysioMotion4DBase):
 
         Returns:
             dict: Dictionary containing:
-                - 'forward_transforms' (list[itk.Transform]): Transforms from moving
-                  to fixed space (warps moving → fixed)
-                - 'inverse_transforms' (list[itk.Transform]): Transforms from fixed
-                  to moving space (warps fixed → moving)
+                - 'forward_transforms' (list[itk.Transform]): one per frame;
+                  each warps its moving image onto the fixed grid
+                - 'inverse_transforms' (list[itk.Transform]): one per frame;
+                  each warps the fixed image onto that frame's moving grid
+                  (see docs/developer/transform_conventions)
                 - 'losses' (list[float]): Registration loss value for each image
 
         Raises:

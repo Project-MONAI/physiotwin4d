@@ -25,7 +25,11 @@ Basic Pattern
    registered = registrar.get_registered_image()
 
 The result dictionary contains ``forward_transform``, ``inverse_transform``,
-and ``loss``.
+and ``loss``. Applying the right one is critical and direction-dependent:
+``forward_transform`` warps the moving image onto the fixed grid, while
+``inverse_transform`` warps moving points/landmarks into fixed space (image and
+point warps use opposite transforms). See
+:doc:`transform_conventions` for the full rules.
 
 Time Series
 ===========
@@ -57,5 +61,6 @@ Development Notes
 See Also
 ========
 
+* :doc:`transform_conventions`
 * :doc:`../api/registration/index`
 * :doc:`workflows`

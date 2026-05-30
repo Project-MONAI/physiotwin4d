@@ -35,15 +35,21 @@ from physiomotion4d.register_images_icon import RegisterImagesICON
 ref_data_dir = Path("d:/PhysioMotion4D/duke_data/ref_images")
 timepoint_base_dir = Path("d:/PhysioMotion4D/duke_data/gated_nii")
 segmentation_base_dir = Path("d:/PhysioMotion4D/duke_data/simple_ascardio")
-output_dir = Path("./results")
-finetuned_weights_path = Path(
-    "./results/icon_finetuned/checkpoints/Finetune_multi_final.trch"
+
+_HERE = Path(__file__).parent
+output_dir = _HERE / "results"
+finetuned_weights_path = (
+    output_dir
+    / "icon_finetuned"
+    / "icon_finetuned_model"
+    / "checkpoints"
+    / "network_weights_final.trch"
 )
 
 train_fraction = 0.8
-icon_iterations = 20
+icon_iterations = None
 reference_percentile = 0.70
-exclude_tokens = ("nop", "dia", "sys", "_ref")
+exclude_tokens = ["nop"]
 timepoint_re = re.compile(r"_g(?P<timepoint>[0-9]{3})")
 
 methods: list[tuple[str, Optional[Path]]] = [
@@ -103,15 +109,20 @@ summary_rows: list[dict[str, object]] = []
 
 for subject_id in test_subjects:
     source_dir = timepoint_base_dir / subject_id
+    print(f"Source directory: {source_dir}")
+
     seg_dir = segmentation_base_dir / subject_id
+    print(f"Segmentation directory: {seg_dir}")
 
     image_files = [
         p
         for p in sorted(source_dir.glob("*.nii.gz"))
         if not any(t in p.name for t in exclude_tokens)
     ]
+    print(f"Found {len(image_files)} image files")
     stems = [p.name[:-7] for p in image_files]
     labelmap_files = [seg_dir / f"{s}_labelmap.nii.gz" for s in stems]
+    mask_files = [seg_dir / f"{s}_labelmap_mask.nii.gz" for s in stems]
     landmark_files = [seg_dir / f"{s}_landmark.mrk.json" for s in stems]
     timepoints = [timepoint_re.search(p.name).group("timepoint") for p in image_files]
 
@@ -122,17 +133,32 @@ for subject_id in test_subjects:
     )
 
     fixed_image = itk.imread(str(image_files[reference_index]), pixel_type=itk.F)
-    fixed_mask = RegisterImagesICON.create_mask(
-        itk.imread(str(labelmap_files[reference_index]))
-    )
+    fixed_labelmap = itk.imread(str(labelmap_files[reference_index]))
+    if mask_files[reference_index].exists():
+        fixed_mask = itk.imread(str(mask_files[reference_index]))
+    else:
+        fixed_mask = RegisterImagesICON.create_mask(fixed_labelmap, dilation_mm=5.0)
+        itk.imwrite(fixed_mask, str(mask_files[reference_index]), compression=True)
     reference_landmarks = landmark_tools.read_landmarks_3dslicer(
         landmark_files[reference_index]
     )
 
     moving_images = [itk.imread(str(p), pixel_type=itk.F) for p in image_files]
-    moving_masks = [
-        RegisterImagesICON.create_mask(itk.imread(str(p))) for p in labelmap_files
+    moving_labelmaps = [itk.imread(str(p)) for p in labelmap_files]
+    moving_landmarks = [
+        landmark_tools.read_landmarks_3dslicer(str(p)) for p in landmark_files
     ]
+    moving_masks = []
+    for index, p in enumerate(mask_files):
+        if not p.exists():
+            mask = RegisterImagesICON.create_mask(
+                moving_labelmaps[index], dilation_mm=5.0
+            )
+            itk.imwrite(mask, str(p), compression=True)
+            moving_masks.append(mask)
+        else:
+            mask = itk.imread(str(p))
+            moving_masks.append(mask)
 
     for method_name, weights_path in methods:
         print(f"  Method: {method_name}")
@@ -147,7 +173,7 @@ for subject_id in test_subjects:
         result = registrar.register_time_series(
             moving_images=moving_images,
             moving_masks=moving_masks,
-            moving_labelmaps=None,
+            moving_labelmaps=moving_labelmaps,
             reference_frame=reference_index,
             register_reference=False,
             prior_weight=0.0,
@@ -178,9 +204,7 @@ for subject_id in test_subjects:
             # inverse_transform follows the ITK resampler convention — it maps
             # moving-grid points back to reference-grid points, which is what
             # we need to warp time-point landmarks into reference space.
-            timepoint_landmarks = landmark_tools.read_landmarks_3dslicer(
-                landmark_files[index]
-            )
+            timepoint_landmarks = moving_landmarks[index]
             shared = sorted(timepoint_landmarks.keys() & reference_landmarks.keys())
             errors: list[tuple[str, float]] = []
             for name in shared:

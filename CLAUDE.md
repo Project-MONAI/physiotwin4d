@@ -148,7 +148,7 @@ Document via docstrings and inline comments.
 
 ## Code Style
 
-- Single quotes for strings; double quotes for docstrings
+- Double quotes for strings and docstrings
 - Full type hints (`mypy` strict; `disallow_untyped_defs = true`)
 - `Optional[X]` not `X | None` (ruff `UP007` suppressed)
 - Breaking changes are acceptable — backward compatibility is not a priority

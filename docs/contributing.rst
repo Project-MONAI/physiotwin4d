@@ -141,7 +141,7 @@ PhysioMotion4D follows strict code quality standards using modern, fast tooling.
 Formatting and Linting with Ruff
 ---------------------------------
 
-We use **Ruff** for all formatting and linting (line length: 88, single quotes):
+We use **Ruff** for all formatting and linting (line length: 88, double quotes):
 
 .. code-block:: bash
 

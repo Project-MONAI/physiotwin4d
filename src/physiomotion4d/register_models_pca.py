@@ -42,10 +42,15 @@ class RegisterModelsPCA(PhysioMotion4DBase):
         pca_coefficients (np.ndarray): Optimized PCA coefficients
         registered_model (pv.DataSet): Final registered and deformed model
         post_pca_transform (itk.Transform): Transform to apply after PCA registration
-        forward_point_transform (itk.DisplacementFieldTransform): Forward displacement field transform
-            (Does not include the post-PCA transform)
-        inverse_point_transform (itk.DisplacementFieldTransform): Inverse displacement field transform
-            (Does not include the post-PCA transform)
+        forward_point_transform (itk.DisplacementFieldTransform): POINT transform
+            mapping template points -> registered/target points; use it to warp
+            the template model/landmarks onto the target. Its orientation is
+            opposite to an image-registration forward_transform (see
+            docs/developer/transform_conventions). Does not include the post-PCA
+            transform.
+        inverse_point_transform (itk.DisplacementFieldTransform): POINT transform
+            mapping target points -> template points. Does not include the
+            post-PCA transform.
 
     Example:
         >>> # Load PCA model data
@@ -741,8 +746,14 @@ class RegisterModelsPCA(PhysioMotion4DBase):
 
         Returns:
             Dictionary containing:
-                - 'forward_point_transform': Forward displacement field transform
-                - 'inverse_point_transform': Inverse displacement field transform
+                - 'forward_point_transform': POINT transform mapping template
+                  points -> target points (warps the template onto the target)
+                - 'inverse_point_transform': POINT transform mapping target
+                  points -> template points
+
+        Note:
+            These are point transforms, oriented opposite to image-registration
+            transforms; see docs/developer/transform_conventions.
         """
         assert self.registered_model_pca_deformation is not None, (
             "PCA deformation must be computed"

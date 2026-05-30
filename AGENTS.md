@@ -124,7 +124,7 @@ Version bumping: `bumpver update --patch`, `--minor`, or `--major`.
 - Scripts that instantiate `SegmentChestTotalSegmentator` must guard the
   top-level invocation with `if __name__ == "__main__":` on Windows
   (`torch.multiprocessing` requires it).
-- Single quotes for strings; double quotes for docstrings. Keep lines at or
+- Double quotes for strings and docstrings. Keep lines at or
   below 88 characters.
 - Full type hints are required under strict mypy. Use `Optional[X]`, not
   `X | None`.

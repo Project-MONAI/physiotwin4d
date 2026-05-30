@@ -10,6 +10,8 @@ deformable registration with mass preservation constraints.
 """
 
 import logging
+import pathlib
+import sys
 from typing import Optional, Union
 
 import icon_registration as icon
@@ -87,6 +89,10 @@ class RegisterImagesICON(RegisterImagesBase):
         Use this to load a fine-tuned checkpoint instead of the default
         pretrained weights. Clears any previously loaded network so the new
         weights are applied on the next call to register().
+
+        Also, use this to specify the path to store the downloaded weights.  The
+        file must not exist for the weights to be downloaded correctly.  Typical
+        suffix is ".trch".
 
         Args:
             weights_path: Path to a uniGradICON checkpoint, e.g.
@@ -185,16 +191,21 @@ class RegisterImagesICON(RegisterImagesBase):
 
         Returns:
             dict: Dictionary containing:
-                - "forward_transform": transform moving image into fixed space
-                - "inverse_transform": transform fixed image to moving space
+                - "forward_transform": Warps the moving image onto the fixed
+                  grid (warping moving points/landmarks into fixed space uses
+                  "inverse_transform" instead -- image and point warps use
+                  opposite transforms; see
+                  docs/developer/transform_conventions)
+                - "inverse_transform": Warps the fixed image onto the moving grid
                 - "loss": Loss value from the registration
 
         Note:
             The transformations are inverse consistent, meaning
-            forward_transform ≈ inverse(inverse_transform).
-            The inverse_transform is used to warp the fixed image
-            to the moving image space. The forward_transform is used
-            to warp the moving image to the fixed image space.
+            forward_transform is approximately inverse(inverse_transform).
+            Use forward_transform to warp the moving image onto the fixed grid,
+            and inverse_transform to warp the fixed image onto the moving grid.
+            Point/landmark warps use the opposite transform from image warps
+            (see docs/developer/transform_conventions).
 
         Implementation details:
             - Uses UniGradIcon with LNCC loss function
@@ -292,13 +303,29 @@ class RegisterImagesICON(RegisterImagesBase):
         """
         if self.net is not None:
             return
+        main_module = sys.modules.get("__main__")
+        main_file = getattr(main_module, "__file__", None)
+        top_dir = pathlib.Path.cwd()
+        if main_file is not None:
+            top_dir = pathlib.Path(main_file).resolve().parent
         if self.use_multi_modality:
+            if self.weights_path is None:
+                self.weights_path = str(
+                    top_dir
+                    / "network_weights"
+                    / "multigradicon1.0"
+                    / "Step_2_final.trch"
+                )
             self.net = get_multigradicon(
                 loss_fn=icon.LNCC(sigma=5),
                 apply_intensity_conservation_loss=self.use_mass_preservation,
                 weights_location=self.weights_path,
             )
         else:
+            if self.weights_path is None:
+                self.weights_path = str(
+                    top_dir / "network_weights" / "unigradicon1.0" / "Step_2_final.trch"
+                )
             self.net = get_unigradicon(
                 loss_fn=icon.LNCC(sigma=5),
                 apply_intensity_conservation_loss=self.use_mass_preservation,

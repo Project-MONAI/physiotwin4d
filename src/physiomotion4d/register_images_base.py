@@ -59,8 +59,8 @@ class RegisterImagesBase(PhysioMotion4DBase):
         ...     def registration_method(self, moving_image, **kwargs):
         ...         # Implement specific registration algorithm
         ...         return {
-        ...             'forward_transform': tfm_forward,  # Moving → Fixed
-        ...             'inverse_transform': tfm_inverse,  # Fixed → Moving
+        ...             'forward_transform': tfm_forward,  # warps moving image -> fixed grid
+        ...             'inverse_transform': tfm_inverse,  # warps fixed image -> moving grid
         ...             'loss': 0.0,
         ...         }
         >>>
@@ -68,8 +68,8 @@ class RegisterImagesBase(PhysioMotion4DBase):
         >>> registrar.set_modality('ct')
         >>> registrar.set_fixed_image(reference_image)
         >>> result = registrar.register(moving_image)
-        >>> forward_tfm = result['forward_transform']  # Moving → Fixed
-        >>> inverse_tfm = result['inverse_transform']  # Fixed → Moving
+        >>> forward_tfm = result['forward_transform']  # warps moving image -> fixed grid
+        >>> inverse_tfm = result['inverse_transform']  # warps fixed image -> moving grid
     """
 
     def __init__(self, log_level: int | str = logging.INFO) -> None:
@@ -251,8 +251,11 @@ class RegisterImagesBase(PhysioMotion4DBase):
 
         Returns:
             dict: Dictionary containing:
-                - "forward_transform": Transform that warps moving image into fixed space
-                - "inverse_transform": Transform that warps fixed image into moving space
+                - "forward_transform": Warps the moving image onto the fixed
+                  grid. Warping moving points/landmarks into fixed space uses
+                  "inverse_transform" instead (see register() and
+                  docs/developer/transform_conventions).
+                - "inverse_transform": Warps the fixed image onto the moving grid
                 - "loss": Registration loss/metric value
 
         Raises:
@@ -283,13 +286,24 @@ class RegisterImagesBase(PhysioMotion4DBase):
 
         Returns:
             dict: Dictionary containing transformation results:
-                - "forward_transform": Transforms moving image to fixed space (warps moving → fixed)
-                - "inverse_transform": Transforms fixed image to moving space (warps fixed → moving)
+                - "forward_transform": Warps the moving IMAGE onto the fixed
+                  grid, i.e. transform_image(moving, forward_transform, fixed).
+                - "inverse_transform": Warps the fixed IMAGE onto the moving
+                  grid, i.e. transform_image(fixed, inverse_transform, moving).
                 - "loss": Registration loss/metric value
 
         Note:
-            - forward_transform: Use this to warp the moving image to match the fixed image
-            - inverse_transform: Use this to warp the fixed image to match the moving image
+            Image warps and point/landmark warps use OPPOSITE members of the
+            transform pair, because ITK image resampling pulls back (it maps a
+            fixed-grid sample to the moving image) while point transforms push
+            forward (they map a point to its corresponding location):
+
+            - Warp the moving image into fixed space  -> forward_transform
+            - Warp moving points/landmarks into fixed  -> inverse_transform
+            - Warp the fixed image into moving space   -> inverse_transform
+            - Warp fixed points/landmarks into moving   -> forward_transform
+
+            See docs/developer/transform_conventions for the full discussion.
 
         Raises:
             NotImplementedError: This method must be implemented by subclasses

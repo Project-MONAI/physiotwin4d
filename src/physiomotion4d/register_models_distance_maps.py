@@ -41,7 +41,7 @@ Example:
     >>>
     >>> # Access results
     >>> aligned_model = result['registered_model']
-    >>> forward_transform = result['forward_transform']  # Moving to fixed transform
+    >>> forward_transform = result['forward_transform']  # warps moving image -> fixed grid
 """
 
 import logging
@@ -74,8 +74,15 @@ class RegisterModelsDistanceMaps(PhysioMotion4DBase):
         - **Optional**: ICON deep learning refinement after any mode
 
     **Transform Convention:**
-        - forward_transform: Moving → fixed space transformation
-        - inverse_transform: Fixed → moving space transformation
+        These are the underlying image-registration (ANTs/ICON) transforms, so
+        they follow the image convention (see
+        docs/developer/transform_conventions):
+
+        - forward_transform: warps the moving image/mask onto the fixed grid.
+          Warping the moving MODEL points/landmarks onto the fixed model uses
+          inverse_transform instead (image and point warps use opposite
+          transforms).
+        - inverse_transform: warps the fixed image/mask onto the moving grid.
 
     Attributes:
         moving_model (pv.PolyData): Surface model to be aligned

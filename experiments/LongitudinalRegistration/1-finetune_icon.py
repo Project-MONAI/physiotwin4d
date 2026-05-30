@@ -15,10 +15,18 @@
 # Each patient directory under ``src_data_dir_base`` is one ``subject_id``;
 # all of that patient's gated time-point frames form a paired training group.
 # Frames whose labelmap is missing on disk are dropped from the dataset.
+#
+# In addition to the original ``gated_nii`` frames, each patient's training
+# group is augmented with that patient's ANTS- and Greedy-warped frames
+# written by ``1-preregistration.py`` (warped image + labelmap per gated
+# frame, under ``output_dir / <method> / <patient_id>``).  Because the warped
+# frames are merged into the *same* ``subject_id`` group, uniGradICON pairs the
+# original gated frames and both backends' pre-registered frames together.
 
 # %%
 import os
 from pathlib import Path
+from typing import Optional
 
 import itk
 
@@ -36,8 +44,17 @@ segmentation_dir_base = Path("d:/PhysioMotion4D/duke_data/simple_ascardio")
 # Where the workflow writes the dataset JSON, YAML config, derived masks, and
 # the uniGradICON ``checkpoints/`` tree.  experiment_dir resolves to
 # ``output_dir / fine_tune_name``.
-output_dir = Path("./results")
+_HERE = Path(__file__).parent
+output_dir = _HERE / "results"
 fine_tune_name = "icon_finetuned"
+
+# Pre-registration augmentation: ``1-preregistration.py`` warps every gated
+# moving frame into reference space with these backends and writes the warped
+# image + labelmap under ``preregistration_dir / <method>.lower() /
+# <patient_id>``.  Those warped frames are merged into each patient's training
+# group below (section 4b).
+preregistration_dir = output_dir
+preregistration_methods = ["ANTS", "greedy"]
 
 # Fixed train/test split: sort patients in ``ref_data_dir`` by filename;
 # first 80% are train, last 20% are test.  ``2-recon_4d_icon_eval.py`` applies
@@ -47,7 +64,7 @@ train_fraction = 0.8
 # Local clone of uniGradICON (feat-add-finetuning branch) — prepended to
 # PYTHONPATH so the subprocess picks up the local source instead of the
 # installed package.  Set to ``None`` to use the pip-installed unigradicon.
-unigradicon_src_path: Path | None = Path(__file__).parent / "uniGradICON" / "src"
+unigradicon_src_path: Optional[Path] = Path(__file__).parent / "uniGradICON" / "src"
 
 # %% [markdown]
 # ## 2. Enumerate patients and apply the fixed 80/20 split
@@ -94,7 +111,7 @@ print(f"  Test  (last {len(test_subjects)}): {test_subjects}")
 
 # %%
 train_image_files: list[list[str]] = []
-train_segmentation_files: list[list[str | None]] = []
+train_segmentation_files: list[list[Optional[str]]] = []
 valid_train_subjects: list[str] = []
 
 for patient_id in train_subjects:
@@ -113,7 +130,7 @@ for patient_id in train_subjects:
         continue
 
     image_paths = [str(src_dir / f) for f in frame_names]
-    seg_paths: list[str | None] = []
+    seg_paths: list[Optional[str]] = []
     for f in frame_names:
         labelmap = seg_dir / f.replace(".nii.gz", "_labelmap.nii.gz")
         seg_paths.append(str(labelmap) if labelmap.exists() else None)
@@ -137,32 +154,120 @@ for patient_id in train_subjects:
 
 # %%
 mask_dilation_mm = 5.0
-train_mask_files: list[list[str | None]] = []
-for image_paths, seg_paths in zip(
-    train_image_files, train_segmentation_files, strict=True
-):
-    mask_paths: list[str | None] = []
-    for seg_path in seg_paths:
-        if seg_path is None:
-            mask_paths.append(None)
+
+
+def derive_mask_for(labelmap_path: Path) -> str:
+    """Create (or reuse) a loss-function mask next to ``labelmap_path``.
+
+    Thresholds the labelmap at ``>0`` and dilates by ``mask_dilation_mm`` mm
+    via :meth:`RegisterImagesICON.create_mask`, writing the result as
+    ``<labelmap_stem>_mask.nii.gz`` in the labelmap's own directory.  Handles
+    both ``.nii.gz`` (original Simpleware labelmaps) and ``.mha``
+    (pre-registration warped labelmaps).  Returns the mask path as a string;
+    existing masks on disk are reused unmodified.
+    """
+    name = labelmap_path.name
+    if name.endswith(".nii.gz"):
+        stem = name[:-7]
+    elif name.endswith(".mha"):
+        stem = name[:-4]
+    else:
+        stem = labelmap_path.stem
+    mask_p = labelmap_path.parent / f"{stem}_mask.nii.gz"
+    if not mask_p.exists():
+        mask = RegisterImagesICON.create_mask(
+            itk.imread(str(labelmap_path)), dilation_mm=mask_dilation_mm
+        )
+        itk.imwrite(mask, str(mask_p), compression=True)
+    return str(mask_p)
+
+
+train_mask_files: list[list[Optional[str]]] = []
+for seg_paths in train_segmentation_files:
+    train_mask_files.append(
+        [derive_mask_for(Path(s)) if s is not None else None for s in seg_paths]
+    )
+
+# %% [markdown]
+# ## 4b. Merge ANTS / Greedy pre-registered frames into each training group
+#
+# ``1-preregistration.py`` warps every gated moving frame into reference space
+# with the ANTS and Greedy backends, writing ``<stem>.mha`` (warped image),
+# ``<stem>_labelmap.mha`` (warped labelmap), and ``<stem>_deformation_grid.mha``
+# under ``preregistration_dir / <method> / <patient_id>``.  Here those warped
+# frames + labelmaps (with derived loss masks) are appended to the *same*
+# patient's training group, so uniGradICON pairs the original gated frames and
+# both backends' pre-registered frames together (they share a ``subject_id``).
+# Patients/methods with no pre-registration output on disk are skipped.
+
+
+# %%
+def gather_warped_frames(method_dir: Path) -> tuple[list[str], list[Optional[str]]]:
+    """Return ``(warped_image_paths, warped_labelmap_paths)`` for one
+    ``preregistration_dir / <method> / <patient_id>`` directory.
+
+    Enumerates the warped moving images (``<stem>.mha``), excluding the
+    ``_labelmap.mha``, ``_labelmap_mask.mha``, and ``_deformation_grid.mha``
+    companions, and pairs each with its ``<stem>_labelmap.mha`` (``None`` when
+    that labelmap is absent).  Returns empty lists when ``method_dir`` does
+    not exist.
+    """
+    if not method_dir.is_dir():
+        return [], []
+    companion_suffixes = (
+        "_labelmap.mha",
+        "_labelmap_mask.mha",
+        "_deformation_grid.mha",
+    )
+    image_paths: list[str] = []
+    labelmap_paths: list[Optional[str]] = []
+    for mha in sorted(method_dir.glob("*.mha")):
+        if mha.name.endswith(companion_suffixes):
             continue
-        seg_p = Path(seg_path)
-        stem = seg_p.name
-        stem = stem[:-7] if stem.endswith(".nii.gz") else seg_p.stem
-        mask_p = seg_p.parent / f"{stem}_mask.nii.gz"
-        if not mask_p.exists():
-            mask = RegisterImagesICON.create_mask(
-                itk.imread(str(seg_p)), dilation_mm=mask_dilation_mm
+        stem = mha.name[:-4]
+        labelmap = method_dir / f"{stem}_labelmap.mha"
+        image_paths.append(str(mha))
+        labelmap_paths.append(str(labelmap) if labelmap.exists() else None)
+    return image_paths, labelmap_paths
+
+
+for subject_index, patient_id in enumerate(valid_train_subjects):
+    for method_name in preregistration_methods:
+        method_dir = preregistration_dir / method_name.lower() / patient_id
+        warped_images, warped_labelmaps = gather_warped_frames(method_dir)
+        if not warped_images:
+            print(
+                f"  {patient_id}/{method_name}: no pre-registered frames "
+                f"in {method_dir}"
             )
-            itk.imwrite(mask, str(mask_p), compression=True)
-        mask_paths.append(str(mask_p))
-    train_mask_files.append(mask_paths)
+            continue
+        warped_masks: list[Optional[str]] = []
+        for lm in warped_labelmaps:
+            if lm is None:
+                warped_masks.append(None)
+                continue
+            # 1-preregistration.py writes the warped loss mask next to the
+            # warped labelmap; prefer it, deriving one only if it is absent.
+            warped_mask = Path(f"{lm[:-4]}_mask.mha")
+            warped_masks.append(
+                str(warped_mask) if warped_mask.exists() else derive_mask_for(Path(lm))
+            )
+        train_image_files[subject_index].extend(warped_images)
+        train_segmentation_files[subject_index].extend(warped_labelmaps)
+        train_mask_files[subject_index].extend(warped_masks)
+        n_seg = sum(1 for lm in warped_labelmaps if lm is not None)
+        print(
+            f"  {patient_id}/{method_name}: +{len(warped_images)} warped frames, "
+            f"{n_seg} with labelmap"
+        )
 
 # %% [markdown]
 # ## 5. Fine-tune uniGradICON on the train cohort
 #
-# The workflow consumes both the labelmaps (for paired-with-seg training and
-# ``use_label``) and the pre-computed masks (for ``loss_function_masking``)
+# Each train group now holds the original gated frames plus the merged ANTS
+# and Greedy pre-registered frames (section 4b).  The workflow consumes both
+# the labelmaps (for paired-with-seg training) and the pre-computed masks (for
+# ``loss_function_masking``)
 # and launches ``unigradicon.finetuning.finetune`` as a subprocess.  The
 # final checkpoint lands at
 # :meth:`WorkflowFineTuneICONRegistration.expected_weights_path`, which is
@@ -178,7 +283,7 @@ workflow = WorkflowFineTuneICONRegistration(
     subject_mask_files=train_mask_files,
     mask_dilation_mm=mask_dilation_mm,
     unigradicon_src_path=unigradicon_src_path,
-    epochs=100,
+    epochs=500,
 )
 
 weights_path = workflow.run_fine_tuning()

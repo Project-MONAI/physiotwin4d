@@ -61,10 +61,16 @@ class RegisterModelsICP(PhysioMotion4DBase):
         - **Affine transform type**: Centroid alignment → Rigid ICP → Affine ICP
 
     **Transform Convention:**
-        - forward_point_transform: moving → fixed space transformation
-            (This is the inverse of the transform used to wrap the moving image to the
-            fixed image)
-        - inverse_point_transform: moving → fixed space transformation
+        These are POINT transforms (applied with TransformPoint, e.g. via
+        TransformTools.transform_pvcontour), so their orientation is opposite to
+        the image-registration transforms (see
+        docs/developer/transform_conventions):
+
+        - forward_point_transform: maps moving points -> fixed points; use it to
+          warp the moving model/landmarks onto the fixed model. This is the
+          inverse of the transform that would warp the moving IMAGE onto the
+          fixed grid.
+        - inverse_point_transform: maps fixed points -> moving points.
 
     Attributes:
         moving_model (pv.PolyData): Surface model to be aligned

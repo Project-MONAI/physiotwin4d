@@ -162,6 +162,7 @@ per-tutorial implementation details.
    developer/segmentation
    developer/registration_images
    developer/registration_models
+   developer/transform_conventions
    developer/usd_generation
    developer/utilities
 

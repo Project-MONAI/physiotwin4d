@@ -75,8 +75,8 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
         ...     prior_weight=0.5,
         ... )
         >>>
-        >>> forward_tfms = result['forward_transforms']  # Moving → Fixed
-        >>> inverse_tfms = result['inverse_transforms']  # Fixed → Moving
+        >>> forward_tfms = result['forward_transforms']  # warp moving images -> fixed grid
+        >>> inverse_tfms = result['inverse_transforms']  # warp fixed image -> moving grids
         >>> losses = result['losses']
         >>>
         >>> # Reconstruct time series with optional upsampling
@@ -205,6 +205,16 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
         """
         self.fixed_mask = fixed_mask
 
+    def set_fixed_labelmap(self, fixed_labelmap: Optional[itk.Image]) -> None:
+        """Set a labelmap for the fixed image region of interest.
+
+        This passes through to the underlying registration method.
+
+        Args:
+            fixed_labelmap (itk.Image): Labelmap defining ROI
+        """
+        self.fixed_labelmap = fixed_labelmap
+
     def register_time_series(
         self,
         moving_images: list[itk.Image],
@@ -247,10 +257,14 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
 
         Returns:
             dict: Dictionary containing results:
-                - "forward_transforms" (list[itk.Transform]): Transforms from moving to fixed
-                  space for each image (warps moving → fixed)
-                - "inverse_transforms" (list[itk.Transform]): Transforms from fixed to moving
-                  space for each image (warps fixed → moving)
+                - "forward_transforms" (list[itk.Transform]): one per image;
+                  each warps its moving image onto the fixed grid (warping
+                  moving points/landmarks into fixed space uses the matching
+                  inverse transform instead -- see
+                  docs/developer/transform_conventions)
+                - "inverse_transforms" (list[itk.Transform]): one per image;
+                  each warps the fixed image onto that moving image's grid
+                  (used by reconstruct_time_series)
                 - "losses" (list[float]): Registration loss value for each image
 
         Raises:
@@ -277,6 +291,7 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
             >>> result = registrar.register_time_series(
             ...     moving_images=image_list,
             ...     moving_masks=mask_list,  # Optional
+            ...     moving_labelmaps=labelmap_list,  # Optional
             ...     reference_frame=5,
             ...     register_reference=True,
             ...     prior_weight=0.5,
@@ -630,7 +645,8 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
         Args:
             moving_images (list[itk.Image]): List of moving images to reconstruct
             inverse_transforms (list[itk.Transform]): List of inverse transforms
-                (one per moving image) from fixed space to moving space
+                (one per moving image), each used to warp the fixed image onto
+                that moving image's grid
             upsample_to_fixed_resolution (bool, optional): If True, reconstructed
                 images will be upsampled to isotropic resolution (mean of fixed image's
                 X and Y spacing) while maintaining their original origin and direction.

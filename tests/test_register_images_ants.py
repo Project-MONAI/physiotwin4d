@@ -20,6 +20,27 @@ from physiomotion4d.register_images_ants import RegisterImagesANTS
 from physiomotion4d.transform_tools import TransformTools
 
 
+def _foreground_ncc(
+    reference_arr: np.ndarray, warped_arr: np.ndarray, foreground: np.ndarray
+) -> float:
+    """Normalized cross-correlation over a foreground mask (higher = better).
+
+    Args:
+        reference_arr: Reference image array (e.g. the fixed image), axes (Z, Y, X).
+        warped_arr: Warped image array on the same grid/axes as ``reference_arr``.
+        foreground: Boolean mask (same shape) selecting the voxels to score.
+
+    Returns:
+        NCC in [-1, 1] over the foreground voxels (nan if degenerate).
+    """
+    a = reference_arr[foreground].astype(np.float64)
+    b = warped_arr[foreground].astype(np.float64)
+    a0 = a - a.mean()
+    b0 = b - b.mean()
+    denom = float(np.sqrt((a0 * a0).sum() * (b0 * b0).sum()))
+    return float((a0 * b0).sum() / denom) if denom > 0 else float("nan")
+
+
 @pytest.mark.slow
 class TestRegisterImagesANTS:
     """Test suite for ANTs-based image registration."""
@@ -308,6 +329,218 @@ class TestRegisterImagesANTS:
         assert result["forward_transform"] is not None, "forward_transform is None"
 
         print("Registration with initial transform complete")
+
+    def test_initial_transform_composition_metrics(
+        self,
+        registrar_ANTS: RegisterImagesANTS,
+        test_images: list[Any],
+        test_directories: dict[str, Path],
+    ) -> None:
+        """Verify the initial_forward_transform composition path with metrics.
+
+        Exercises the two initial-transform inputs the platform actually uses
+        (identity and a prior deformable forward_transform, as in prior-based
+        time-series registration) and confirms the composed forward_transform
+        warps the moving image onto the fixed grid. Scored with foreground NCC
+        over the brightest 30% of the fixed image (tissue/blood pool). See
+        docs/developer/transform_conventions.
+
+        Asserted facts:
+          * a plain registration improves on the unregistered pair,
+          * an identity initial reproduces the baseline exactly (the
+            composition machinery is a structurally correct no-op; note an
+            identity AffineTransform is itself a matrix initial),
+          * a prior-deformable initial reaches the no-initial baseline quality
+            (the composition recovers the full transform).
+
+        The initial transform is applied by pre-warping the moving image (as in
+        RegisterImagesICON), which keeps the composition self-consistent for any
+        initial transform type.
+        """
+        output_dir = test_directories["output"]
+        reg_output_dir = output_dir / "registration_ANTS"
+        reg_output_dir.mkdir(exist_ok=True)
+
+        # Pick two phases that are far apart in the cycle so there is real motion.
+        fixed_image = test_images[0]
+        moving_image = test_images[min(10, len(test_images) - 1)]
+
+        fixed_arr = itk.array_from_image(fixed_image)
+        # Moving and fixed share the acquisition grid (split from one 4D image),
+        # so the moving array is directly comparable for the unregistered score.
+        moving_arr = itk.array_from_image(moving_image)
+        threshold = float(np.percentile(fixed_arr, 70.0))
+        foreground = fixed_arr > threshold
+
+        transform_tools = TransformTools()
+
+        def warp_score(forward_transform: Any) -> float:
+            warped = transform_tools.transform_image(
+                moving_image,
+                forward_transform,
+                fixed_image,
+                interpolation_method="linear",
+            )
+            return _foreground_ncc(fixed_arr, itk.array_from_image(warped), foreground)
+
+        ncc_unregistered = _foreground_ncc(fixed_arr, moving_arr, foreground)
+
+        # Baseline: no initial transform.
+        registrar_ANTS.set_modality("ct")
+        registrar_ANTS.set_fixed_image(fixed_image)
+        baseline = registrar_ANTS.register(moving_image=moving_image)
+        ncc_baseline = warp_score(baseline["forward_transform"])
+
+        # Identity initial: the composition machinery must be a no-op.
+        identity = itk.AffineTransform[itk.D, 3].New()
+        identity.SetIdentity()
+        registrar_identity = RegisterImagesANTS()
+        registrar_identity.set_modality("ct")
+        registrar_identity.set_fixed_image(fixed_image)
+        identity_result = registrar_identity.register(
+            moving_image=moving_image, initial_forward_transform=identity
+        )
+        ncc_identity = warp_score(identity_result["forward_transform"])
+
+        # Prior deformable initial: the realistic time-series prior use case.
+        registrar_prior = RegisterImagesANTS()
+        registrar_prior.set_modality("ct")
+        registrar_prior.set_fixed_image(fixed_image)
+        prior_result = registrar_prior.register(
+            moving_image=moving_image,
+            initial_forward_transform=baseline["forward_transform"],
+        )
+        ncc_prior = warp_score(prior_result["forward_transform"])
+
+        print("\nANTS initial-transform composition metrics (foreground NCC):")
+        print(f"  unregistered:          {ncc_unregistered:.4f}")
+        print(f"  baseline (no initial): {ncc_baseline:.4f}")
+        print(f"  identity initial:      {ncc_identity:.4f}")
+        print(f"  prior-deformable init: {ncc_prior:.4f}")
+
+        warped_prior = transform_tools.transform_image(
+            moving_image,
+            prior_result["forward_transform"],
+            fixed_image,
+            interpolation_method="linear",
+        )
+        itk.imwrite(
+            warped_prior,
+            str(reg_output_dir / "ants_warped_prior_initial.mha"),
+            compression=True,
+        )
+
+        # Registration must improve alignment over the unregistered pair.
+        assert ncc_baseline > ncc_unregistered, (
+            f"Baseline registration did not improve alignment: "
+            f"{ncc_baseline:.4f} <= {ncc_unregistered:.4f}"
+        )
+        # Identity initial must reproduce the baseline (composition is a no-op).
+        assert abs(ncc_identity - ncc_baseline) < 0.03, (
+            f"Identity initial transform changed the result: "
+            f"identity={ncc_identity:.4f} vs baseline={ncc_baseline:.4f}"
+        )
+        # A prior-deformable initial must reach the no-initial baseline quality
+        # (the composition recovers the full transform).
+        assert ncc_prior >= ncc_baseline - 0.03, (
+            f"Prior-initial composition did not reach baseline quality: "
+            f"{ncc_prior:.4f} < {ncc_baseline:.4f} - 0.03"
+        )
+
+    def test_initial_transform_matrix_composition(
+        self,
+        registrar_ANTS: RegisterImagesANTS,
+        test_images: list[Any],
+    ) -> None:
+        """A matrix (translation/affine) initial composes without corruption.
+
+        Regression guard for the previously-broken matrix initial_transform
+        path: feeding a translation initial used to corrupt the composition
+        (foreground NCC far below the unregistered pair). With the moving image
+        pre-warped by the initial, the composed forward_transform must align the
+        moving image onto the fixed grid at least as well as the unregistered
+        pair.
+        """
+        fixed_image = test_images[0]
+        moving_image = test_images[min(10, len(test_images) - 1)]
+
+        fixed_arr = itk.array_from_image(fixed_image)
+        threshold = float(np.percentile(fixed_arr, 70.0))
+        foreground = fixed_arr > threshold
+        ncc_unregistered = _foreground_ncc(
+            fixed_arr, itk.array_from_image(moving_image), foreground
+        )
+
+        translation = itk.TranslationTransform[itk.D, 3].New()
+        translation.SetOffset([-5.0, -5.0, -5.0])
+
+        registrar_ANTS.set_modality("ct")
+        registrar_ANTS.set_fixed_image(fixed_image)
+        result = registrar_ANTS.register(
+            moving_image=moving_image, initial_forward_transform=translation
+        )
+
+        transform_tools = TransformTools()
+        warped = transform_tools.transform_image(
+            moving_image,
+            result["forward_transform"],
+            fixed_image,
+            interpolation_method="linear",
+        )
+        ncc = _foreground_ncc(fixed_arr, itk.array_from_image(warped), foreground)
+        print(
+            f"\nMatrix-initial composed NCC={ncc:.4f} (unregistered={ncc_unregistered:.4f})"
+        )
+        assert ncc > ncc_unregistered, (
+            f"Matrix-initial composition worse than unregistered: "
+            f"{ncc:.4f} <= {ncc_unregistered:.4f}"
+        )
+
+    def test_affine_and_rigid_transform_types(
+        self,
+        registrar_ANTS: RegisterImagesANTS,
+        test_images: list[Any],
+    ) -> None:
+        """Affine and Rigid transform types run and improve alignment.
+
+        Regression guard for the ANTS preset names: ``set_transform_type``
+        previously mapped Affine/Rigid to ``antsRegistration{Affine,Rigid}Quick``
+        preset strings that do not exist in antspy, raising ValueError. Each
+        type must now run and warp the moving image onto the fixed grid at least
+        as well as the unregistered pair.
+        """
+        fixed_image = test_images[0]
+        moving_image = test_images[min(10, len(test_images) - 1)]
+
+        fixed_arr = itk.array_from_image(fixed_image)
+        threshold = float(np.percentile(fixed_arr, 70.0))
+        foreground = fixed_arr > threshold
+        ncc_unregistered = _foreground_ncc(
+            fixed_arr, itk.array_from_image(moving_image), foreground
+        )
+
+        transform_tools = TransformTools()
+        for transform_type in ("Rigid", "Affine"):
+            registrar = RegisterImagesANTS()
+            registrar.set_modality("ct")
+            registrar.set_transform_type(transform_type)
+            registrar.set_fixed_image(fixed_image)
+            result = registrar.register(moving_image=moving_image)
+            warped = transform_tools.transform_image(
+                moving_image,
+                result["forward_transform"],
+                fixed_image,
+                interpolation_method="linear",
+            )
+            ncc = _foreground_ncc(fixed_arr, itk.array_from_image(warped), foreground)
+            print(
+                f"\n{transform_type} transform NCC={ncc:.4f} "
+                f"(unregistered={ncc_unregistered:.4f})"
+            )
+            assert ncc > ncc_unregistered, (
+                f"{transform_type} registration did not improve alignment: "
+                f"{ncc:.4f} <= {ncc_unregistered:.4f}"
+            )
 
     def test_multiple_registrations(
         self, registrar_ANTS: RegisterImagesANTS, test_images: list[Any]

@@ -170,9 +170,16 @@ if __name__ == "__main__":
                     compression=True,
                 )
 
+                # Warp the reference-space fitted mesh into this phase's space.
+                # Warping reference -> phase POINTS uses the forward transform
+                # (the fixed -> moving point map), which is the opposite of the
+                # transform used to warp an image into phase space (images pull
+                # back, points push forward). The forward transform is named
+                # "phase_to_reference" after its image-warp role. See
+                # docs/developer/transform_conventions.
                 phase_mesh = transform_tools.transform_pvcontour(
                     fitted_reference_mesh,
-                    reference_to_phase,
+                    phase_to_reference,
                     with_deformation_magnitude=True,
                 )
                 phase_mesh_file = meshes_dir / f"{phase_name}_pca_fit.vtp"

@@ -12,6 +12,8 @@ See https://greedy.readthedocs.io/ and https://pypi.org/project/picsl-greedy/.
 from __future__ import annotations
 
 import logging
+import os
+import tempfile
 from typing import Any, Optional, Union
 
 import itk
@@ -135,6 +137,30 @@ class RegisterImagesGreedy(RegisterImagesBase):
         """Format iterations as Greedy -n string (e.g. 40x20x10)."""
         return "x".join(str(i) for i in self.number_of_iterations)
 
+    def _write_affine_matrix_file(self, mat_4x4: NDArray[np.float64]) -> str:
+        """Write a 4x4 RAS affine matrix to a temporary Greedy ``.mat`` file.
+
+        Greedy's in-memory interface corrupts the heap when a numpy affine
+        matrix is supplied as an initial transform (``-ia``/``-it``); passing a
+        file path instead avoids that native crash. Greedy reads a plain-text
+        4x4 RAS matrix, which is what ``numpy.savetxt`` writes here.
+
+        Args:
+            mat_4x4: 4x4 affine matrix in RAS (Greedy) convention.
+
+        Returns:
+            Path to the written temporary ``.mat`` file. The caller is
+            responsible for deleting it.
+        """
+        mat_4x4 = np.asarray(mat_4x4, dtype=np.float64)
+        if mat_4x4.shape != (4, 4):
+            raise ValueError(f"Expected 4x4 matrix, got shape {mat_4x4.shape}")
+        fd, path = tempfile.mkstemp(suffix=".mat", prefix="greedy_aff_")
+        os.close(fd)
+        np.savetxt(path, mat_4x4, fmt="%.10f")
+        self.log_debug("Wrote Greedy affine init matrix to %s", path)
+        return path
+
     def _matrix_to_itk_affine(self, mat_4x4: NDArray[np.float64]) -> itk.Transform:
         """Convert 4x4 affine matrix to ITK AffineTransform."""
         mat_4x4 = np.asarray(mat_4x4, dtype=np.float64)
@@ -195,17 +221,26 @@ class RegisterImagesGreedy(RegisterImagesBase):
             cmd += " -gm fixed_mask -mm moving_mask"
             kwargs["fixed_mask"] = fixed_mask_sitk
             kwargs["moving_mask"] = moving_mask_sitk
+        # Greedy crashes (heap corruption) when an initial affine is passed as an
+        # in-memory matrix; write it to a temp file and pass the path instead.
+        initial_affine_file: Optional[str] = None
         if initial_affine is not None:
-            cmd += " -ia aff_initial"
-            kwargs["aff_initial"] = initial_affine
+            initial_affine_file = self._write_affine_matrix_file(initial_affine)
+            cmd += f" -ia {initial_affine_file}"
 
-        g.execute(cmd, **kwargs)
+        self.log_debug("Greedy affine/rigid command: %s", cmd)
+        try:
+            g.execute(cmd, **kwargs)
+        finally:
+            if initial_affine_file is not None:
+                os.remove(initial_affine_file)
         mat = np.array(g["aff_out"], dtype=np.float64)
         try:
             ml = g.metric_log()
             loss = float(ml[-1]["TotalPerPixelMetric"][-1]) if ml else 0.0
         except Exception:
             loss = 0.0
+        self.log_info("Greedy affine/rigid registration loss: %s", loss)
         return mat, loss
 
     def _registration_method_deformable(
@@ -230,17 +265,21 @@ class RegisterImagesGreedy(RegisterImagesBase):
                 cmd_aff += " -gm fixed_mask -mm moving_mask"
                 kwargs_aff["fixed_mask"] = fixed_mask_sitk
                 kwargs_aff["moving_mask"] = moving_mask_sitk
+            self.log_debug("Greedy deformable affine-init command: %s", cmd_aff)
             g.execute(cmd_aff, **kwargs_aff)
             initial_affine = np.array(g["aff_init"], dtype=np.float64)
+            self.log_info("Greedy deformable affine init complete")
 
+        # Greedy crashes (heap corruption) when the affine init is passed as an
+        # in-memory matrix via -it; write it to a temp file and pass the path.
+        initial_affine_file = self._write_affine_matrix_file(initial_affine)
         cmd_def = (
-            f"-i fixed moving -it aff_init -n {iterations_str} "
+            f"-i fixed moving -it {initial_affine_file} -n {iterations_str} "
             f"-m {metric_str} -s {self.deformable_smoothing} -o warp_out"
         )
         kwargs_def = {
             "fixed": fixed_sitk,
             "moving": moving_sitk,
-            "aff_init": initial_affine,
             "warp_out": None,
         }
         if fixed_mask_sitk is not None and moving_mask_sitk is not None:
@@ -248,13 +287,18 @@ class RegisterImagesGreedy(RegisterImagesBase):
             kwargs_def["fixed_mask"] = fixed_mask_sitk
             kwargs_def["moving_mask"] = moving_mask_sitk
 
-        g.execute(cmd_def, **kwargs_def)
+        self.log_debug("Greedy deformable command: %s", cmd_def)
+        try:
+            g.execute(cmd_def, **kwargs_def)
+        finally:
+            os.remove(initial_affine_file)
         warp_out = g["warp_out"]
         try:
             ml = g.metric_log()
             loss = float(ml[-1]["TotalPerPixelMetric"][-1]) if ml else 0.0
         except Exception:
             loss = 0.0
+        self.log_info("Greedy deformable registration loss: %s", loss)
         return initial_affine, warp_out, loss
 
     def registration_method(
@@ -270,6 +314,13 @@ class RegisterImagesGreedy(RegisterImagesBase):
         Converts ITK images to SimpleITK, runs Greedy (affine and/or deformable),
         then converts outputs back to ITK transforms. Composes with
         initial_forward_transform when provided.
+
+        Returns a dict with "forward_transform", "inverse_transform", and
+        "loss". As with the other image-registration backends,
+        forward_transform warps the moving image onto the fixed grid and
+        inverse_transform warps the fixed image onto the moving grid; point and
+        landmark warps use the opposite transform from image warps (see
+        docs/developer/transform_conventions).
         """
         if self.fixed_image is None or self.fixed_image_pre is None:
             raise ValueError("Fixed image must be set before registration.")
@@ -371,13 +422,17 @@ class RegisterImagesGreedy(RegisterImagesBase):
                 )
                 disp_tfm = itk.DisplacementFieldTransform[itk.D, 3].New()
                 disp_tfm.SetDisplacementField(disp_itk)
-            # Forward = moving -> fixed: first affine then deformable in Greedy
+            # forward_transform is consumed by transform_image(moving, ...,
+            # fixed) to warp the moving image onto the fixed grid, so it holds
+            # Greedy's raw affine+warp (Greedy applies the affine first, then
+            # the warp). inverse_transform is the numerically inverted field,
+            # used to warp the fixed image onto the moving grid. This matches
+            # RegisterImagesANTS/ICON and RegisterTimeSeriesImages.
             forward_composite = itk.CompositeTransform[itk.D, 3].New()
             if aff_tfm is not None:
                 forward_composite.AddTransform(aff_tfm)
             forward_composite.AddTransform(disp_tfm)
             forward_transform = forward_composite
-            # Inverse: inverse warp then inverse affine
             inv_disp = TransformTools().invert_displacement_field_transform(disp_tfm)
             inv_aff = itk.AffineTransform[itk.D, 3].New()
             if aff_tfm is not None:
