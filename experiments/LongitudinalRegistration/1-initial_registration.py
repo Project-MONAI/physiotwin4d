@@ -1,12 +1,13 @@
 # %% [markdown]
-# # Pre-registration: compare ANTS vs Greedy on the Duke gated CT cohort
+# # Pre-registration: compare ANTS vs Greedy vs ICON on the Duke gated CT cohort
 #
 # Registers every gated CT time-point of every Duke patient under
 # ``ref_data_dir`` (100% of the cohort -- no train/test split) to that
-# patient's reference image, using two backends in turn:
+# patient's reference image, using three backends in turn:
 #
 #   * :class:`RegisterImagesANTS` (CPU, SyN deformable)
 #   * :class:`RegisterImagesGreedy` (CPU, deformable)
+#   * :class:`RegisterImagesICON` (GPU, uniGradICON deformable)
 #
 # For each frame the script records wall-clock registration time, writes
 # the warped/resampled moving image to disk, warps the moving labelmap
@@ -21,22 +22,27 @@
 #     -- per-frame multi-label segmentations
 #   * ``segmentation_dir_base / <patient_id> / <stem>_labelmap_mask.nii.gz``
 #     -- pre-computed loss-function masks (re-derived on the fly if absent,
-#     matching the 5 mm dilation used by ``1-finetune_icon.py``)
+#     matching the 3 mm dilation used by ``1-finetune_icon.py``)
 #   * ``segmentation_dir_base / <patient_id> / <stem>_landmark.mrk.json``
 #     -- per-frame 3D Slicer Markups landmarks in LPS
 #
 # Outputs under ``results/``:
-#   * ``ants/<patient_id>/<timepoint>/<stem>.mha`` and
-#     ``greedy/<patient_id>/<timepoint>/<stem>.mha`` -- warped moving image
+#   * ``ants/<patient_id>/<timepoint>/<stem>.mha``,
+#     ``greedy/<patient_id>/<timepoint>/<stem>.mha`` and
+#     ``icon/<patient_id>/<timepoint>/<stem>.mha`` -- warped moving image
 #     per time point, alongside the forward/inverse transforms (``.hdf``),
-#     a ``<stem>_deformation_grid.mha`` visualization of the registration
-#     deformation, the warped ``<stem>_labelmap.mha`` and its warped
+#     the warped ``<stem>_labelmap.mha`` and its warped
 #     loss-function mask ``<stem>_labelmap_mask.mha``,
 #     and the warped ``<stem>_landmark.mrk.json``
-#   * ``preregistration_landmarks.csv`` -- per-landmark squared errors
-#   * ``preregistration_dice.csv`` -- per-label Dice
-#   * ``preregistration_summary.csv`` -- per-(subject, method, timepoint)
-#     time, mean Dice, MSE, RMSE
+#   * ``registration_landmarks_<stamp>.csv`` -- per-landmark squared errors
+#   * ``registration_dice_<stamp>.csv`` -- per-label Dice
+#   * ``registration_summary_<stamp>.csv`` -- per-(subject, method, timepoint)
+#     registration time, per-frame total time, mean Dice, MSE, RMSE
+#   * ``registration_timing_<stamp>.csv`` -- per-step wall-clock seconds,
+#     appended live as each frame's steps complete (register, write_transforms,
+#     warp_image, warp_labelmap, warp_mask, dice, landmarks, frame_total)
+#   * ``registration_timing_summary_<stamp>.csv`` -- per-(method, step) count,
+#     mean, and total seconds, written once at the end of the run
 #
 # Run interactively cell-by-cell; all paths are hard-coded.
 
@@ -54,6 +60,7 @@ from physiomotion4d.labelmap_tools import LabelmapTools
 from physiomotion4d.landmark_tools import LandmarkTools
 from physiomotion4d.register_images_ants import RegisterImagesANTS
 from physiomotion4d.register_images_greedy import RegisterImagesGreedy
+from physiomotion4d.register_images_icon import RegisterImagesICON
 from physiomotion4d.transform_tools import TransformTools
 
 # %% [markdown]
@@ -77,24 +84,44 @@ timepoint_re = re.compile(r"_g(?P<timepoint>[0-9]{3})")
 
 # Mask dilation matches 1-finetune_icon.py so any masks we have to
 # derive here are identical to the ones written by the fine-tune script.
-mask_dilation_mm = 5.0
+mask_dilation_mm = 3.0
 labelmap_tools = LabelmapTools()
 
 # Iteration schedules.  Kept modest for a cohort-wide comparison; raise
-# either list for higher accuracy at the cost of runtime.
-number_of_iterations_ANTS = [20, 10, 5]
+# either list for higher accuracy at the cost of runtime.  ANTS and Greedy
+# take a multi-resolution list; ICON takes a single per-pair iterative
+# optimization step count (0 disables it, using the pretrained forward pass
+# alone).
+number_of_iterations_ANTS = [40, 20, 10]
 number_of_iterations_greedy = [40, 20, 10]
+number_of_iterations_ICON = 50
 
-methods: list[str] = ["ANTS", "greedy"]
+# Optional uniGradICON checkpoint (".trch") to load instead of the default
+# pretrained weights under ``network_weights/unigradicon1.0/``.  When None,
+# the default pretrained weights are used.
+icon_weights_path: Optional[Path] = None
+
+methods: list[str] = ["ANTS", "Greedy", "ICON"]
 
 # Debug knob: when non-empty, only these patient IDs are processed.
 # Set to ``[]`` (or ``None``) to run the full cohort.
-debug_subjects: list[str] = ["pm0002"]
+debug_subjects: list[str] = []  # ["pm0002"]
 
-detail_landmarks_file = output_dir / "preregistration_landmarks.csv"
-detail_dice_file = output_dir / "preregistration_dice.csv"
-summary_file = output_dir / "preregistration_summary.csv"
-for previous in (detail_landmarks_file, detail_dice_file, summary_file):
+run_stamp = time.time()
+detail_landmarks_file = output_dir / f"registration_landmarks_{run_stamp}.csv"
+detail_dice_file = output_dir / f"registration_dice_{run_stamp}.csv"
+summary_file = output_dir / f"registration_summary_{run_stamp}.csv"
+# Per-step wall-clock times, appended live as each frame's steps complete.
+timing_detail_file = output_dir / f"registration_timing_{run_stamp}.csv"
+# Per-(method, step) timing aggregates, written once at the end of the run.
+timing_summary_file = output_dir / f"registration_timing_summary_{run_stamp}.csv"
+for previous in (
+    detail_landmarks_file,
+    detail_dice_file,
+    summary_file,
+    timing_detail_file,
+    timing_summary_file,
+):
     if previous.exists():
         previous.unlink()
 
@@ -128,6 +155,41 @@ print(f"Patient cohort: {cohort}")
 # %%
 landmark_tools = LandmarkTools()
 transform_tools = TransformTools()
+
+# Per-step timing records (subject, method, timepoint, step, seconds),
+# accumulated in memory for the end-of-run timing summary and mirrored live
+# into timing_detail_file as each step finishes.
+timing_rows: list[dict[str, object]] = []
+
+
+def record_step_time(
+    subject_id: str,
+    method_name: str,
+    timepoint: str,
+    step: str,
+    seconds: float,
+) -> None:
+    """Report a single processing step's wall-clock time.
+
+    Prints the time immediately, appends a row to ``timing_detail_file`` so
+    progress is visible while the run is still going, and stores the same
+    row in ``timing_rows`` for the end-of-run timing summary.
+    """
+    print(f"        [time] {step:<18}{seconds:8.2f} s", flush=True)
+    timing_rows.append(
+        {
+            "subject_id": subject_id,
+            "method": method_name,
+            "timepoint": timepoint,
+            "step": step,
+            "seconds": float(seconds),
+        }
+    )
+    with timing_detail_file.open("a", newline="", encoding="utf-8") as fh:
+        writer = csv.writer(fh)
+        if fh.tell() == 0:
+            writer.writerow(["subject_id", "method", "timepoint", "step", "seconds"])
+        writer.writerow([subject_id, method_name, timepoint, step, f"{seconds:.6f}"])
 
 
 def per_label_dice(
@@ -202,7 +264,7 @@ def load_or_derive_mask(labelmap: itk.Image, mask_path: Path) -> itk.Image:
     """Return the cached ``<stem>_labelmap_mask.nii.gz`` next to the
     labelmap, or derive it via
     :meth:`LabelmapTools.convert_labelmap_to_mask` (threshold ``>0`` plus
-    5 mm physical-radius dilation) and write it out so subsequent runs and
+    3 mm physical-radius dilation) and write it out so subsequent runs and
     the ICON eval reuse the same mask.
     """
     # Force mask update
@@ -211,7 +273,7 @@ def load_or_derive_mask(labelmap: itk.Image, mask_path: Path) -> itk.Image:
     mask = labelmap_tools.convert_labelmap_to_mask(
         labelmap,
         dilation_in_mm=mask_dilation_mm,
-        labels_to_exclude=[1, 2, 3, 4],
+        exclude_labels=[1, 2, 3, 4],
         # These are labels for the interior of the heart chambers (the LV, RV, LA, RA)
     )
     itk.imwrite(mask, str(mask_path), compression=True)
@@ -332,12 +394,20 @@ for subject_index, subject_id in enumerate(cohort):
         if method_name == "ANTS":
             reg = RegisterImagesANTS()
             reg.set_number_of_iterations(number_of_iterations_ANTS)
-        else:
+            reg.set_transform_type("Deformable")
+            # NCC ("CC") beats MeanSquares for same-modality CT registration.
+            reg.set_metric("CC")
+        elif method_name == "Greedy":
             reg = RegisterImagesGreedy()
             reg.set_number_of_iterations(number_of_iterations_greedy)
-        reg.set_transform_type("Deformable")
-        # NCC ("CC") outperforms MeanSquares for same-modality CT registration.
-        reg.set_metric("CC")
+            reg.set_transform_type("Deformable")
+            # NCC ("CC") beats MeanSquares for same-modality CT registration.
+            reg.set_metric("CC")
+        else:  # ICON: GPU deep-learning deformable registration.
+            reg = RegisterImagesICON()
+            reg.set_number_of_iterations(number_of_iterations_ICON)
+            if icon_weights_path is not None:
+                reg.set_weights_path(str(icon_weights_path))
         reg.set_modality("ct")
         reg.set_mask_dilation(mask_dilation_mm)
         reg.set_fixed_image(fixed_image)
@@ -356,7 +426,8 @@ for subject_index, subject_id in enumerate(cohort):
                 flush=True,
             )
 
-            frame_t_start = time.perf_counter()
+            frame_total_start = time.perf_counter()
+            frame_t_start = frame_total_start
             reg_result = reg.register(
                 moving_image=moving_images[index],
                 moving_mask=moving_masks[index],
@@ -367,7 +438,11 @@ for subject_index, subject_id in enumerate(cohort):
             inverse_transform = reg_result["inverse_transform"]
             frame_loss = float(reg_result["loss"])
             print(f"      done in {frame_elapsed:.1f} s, loss={frame_loss:.4f}")
+            record_step_time(
+                subject_id, method_name, timepoint, "register", frame_elapsed
+            )
 
+            step_t_start = time.perf_counter()
             itk.transformwrite(
                 forward_transform,
                 str(method_dir / f"{stem}_fwd.hdf"),
@@ -378,22 +453,17 @@ for subject_index, subject_id in enumerate(cohort):
                 str(method_dir / f"{stem}_inv.hdf"),
                 compression=True,
             )
-
-            # Visualize the deformation as a warped grid: a regular grid built
-            # in reference space, resampled through forward_transform -- the same
-            # transform used below to warp the moving image onto the fixed grid,
-            # so the grid and the warped image deform consistently.
-            deformation_grid = transform_tools.convert_field_to_grid_visualization(
-                forward_transform, fixed_image
-            )
-            itk.imwrite(
-                deformation_grid,
-                str(method_dir / f"{stem}_deformation_grid.mha"),
-                compression=True,
+            record_step_time(
+                subject_id,
+                method_name,
+                timepoint,
+                "write_transforms",
+                time.perf_counter() - step_t_start,
             )
 
             # Warp the moving image into reference space and save it
             # (forward_transform resamples the moving image onto the fixed grid).
+            step_t_start = time.perf_counter()
             warped_image = transform_tools.transform_image(
                 moving_images[index],
                 forward_transform,
@@ -405,9 +475,17 @@ for subject_index, subject_id in enumerate(cohort):
                 str(method_dir / f"{stem}.mha"),
                 compression=True,
             )
+            record_step_time(
+                subject_id,
+                method_name,
+                timepoint,
+                "warp_image",
+                time.perf_counter() - step_t_start,
+            )
 
             # Warp the moving labelmap onto the fixed grid (forward_transform;
             # nearest neighbour preserves label IDs) for per-label Dice.
+            step_t_start = time.perf_counter()
             warped_labelmap = transform_tools.transform_image(
                 moving_labelmaps[index],
                 forward_transform,
@@ -419,11 +497,19 @@ for subject_index, subject_id in enumerate(cohort):
                 str(method_dir / f"{stem}_labelmap.mha"),
                 compression=True,
             )
+            record_step_time(
+                subject_id,
+                method_name,
+                timepoint,
+                "warp_labelmap",
+                time.perf_counter() - step_t_start,
+            )
 
             # Warp the moving loss-function mask onto the fixed grid
             # (forward_transform; nearest neighbour preserves the binary ROI)
             # so downstream fine-tuning reuses it instead of re-deriving a
             # mask from the warped labelmap.
+            step_t_start = time.perf_counter()
             warped_mask = transform_tools.transform_image(
                 moving_masks[index],
                 forward_transform,
@@ -435,7 +521,15 @@ for subject_index, subject_id in enumerate(cohort):
                 str(method_dir / f"{stem}_labelmap_mask.mha"),
                 compression=True,
             )
+            record_step_time(
+                subject_id,
+                method_name,
+                timepoint,
+                "warp_mask",
+                time.perf_counter() - step_t_start,
+            )
 
+            step_t_start = time.perf_counter()
             dice_by_label = per_label_dice(fixed_labelmap, warped_labelmap)
             with detail_dice_file.open("a", newline="", encoding="utf-8") as fh:
                 writer = csv.writer(fh)
@@ -450,9 +544,17 @@ for subject_index, subject_id in enumerate(cohort):
                 if dice_by_label
                 else float("nan")
             )
+            record_step_time(
+                subject_id,
+                method_name,
+                timepoint,
+                "dice",
+                time.perf_counter() - step_t_start,
+            )
 
             # Warp the moving landmarks into reference space, save them next
             # to the transforms, then score squared error vs the reference.
+            step_t_start = time.perf_counter()
             moving_landmarks = moving_landmarks_list[index]
             if moving_landmarks is None:
                 sq_errors: list[tuple[str, float]] = []
@@ -479,6 +581,13 @@ for subject_index, subject_id in enumerate(cohort):
                     )
                 for name, sq_err in sq_errors:
                     writer.writerow([subject_id, method_name, timepoint, name, sq_err])
+            record_step_time(
+                subject_id,
+                method_name,
+                timepoint,
+                "landmarks",
+                time.perf_counter() - step_t_start,
+            )
 
             sq_values = np.asarray([e for _, e in sq_errors], dtype=np.float64)
             if sq_values.size:
@@ -501,12 +610,18 @@ for subject_index, subject_id in enumerate(cohort):
                     flush=True,
                 )
 
+            frame_total = time.perf_counter() - frame_total_start
+            record_step_time(
+                subject_id, method_name, timepoint, "frame_total", frame_total
+            )
+
             summary_rows.append(
                 {
                     "subject_id": subject_id,
                     "method": method_name,
                     "timepoint": timepoint,
                     "time_sec": float(frame_elapsed),
+                    "frame_total_sec": float(frame_total),
                     "loss": frame_loss,
                     "n_labels": int(len(dice_by_label)),
                     "mean_dice": mean_dice,
@@ -535,6 +650,7 @@ if summary_rows:
     print(f"\nWrote summary:    {summary_file}")
     print(f"Wrote landmarks:  {detail_landmarks_file}")
     print(f"Wrote dice:       {detail_dice_file}")
+    print(f"Wrote timing:     {timing_detail_file}")
 else:
     print("\nNo frames processed; nothing to summarize.")
 
@@ -611,3 +727,80 @@ if summary_rows:
             f"{mean_time:>12.2f}"
         )
     print("=" * len(header))
+
+# %% [markdown]
+# ## 7. Per-(method, step) timing summary
+#
+# Aggregates the live per-step timings into mean and total wall-clock
+# seconds per (method, step), printed as a table and written to
+# ``timing_summary_file``.  ``frame_total`` is the end-to-end per-frame
+# time (register + all warps/writes + scoring); the other rows are its
+# components.
+
+# %%
+if timing_rows:
+    # Preserve the pipeline order in which steps are timed; any unexpected
+    # step name is appended in first-seen order so nothing is dropped.
+    step_order = [
+        "register",
+        "write_transforms",
+        "warp_image",
+        "warp_labelmap",
+        "warp_mask",
+        "dice",
+        "landmarks",
+        "frame_total",
+    ]
+    seconds_by_method_step: dict[str, dict[str, list[float]]] = {}
+    for row in timing_rows:
+        method_name = str(row["method"])
+        step = str(row["step"])
+        seconds = float(row["seconds"])
+        seconds_by_method_step.setdefault(method_name, {}).setdefault(step, []).append(
+            seconds
+        )
+        if step not in step_order:
+            step_order.append(step)
+
+    timing_summary_rows: list[dict[str, object]] = []
+    timing_header = (
+        f"{'Method':<10}{'Step':<18}{'N':>6}{'mean_sec':>12}{'total_sec':>12}"
+    )
+    print()
+    print("=" * len(timing_header))
+    print("Timing summary (wall-clock seconds)")
+    print("=" * len(timing_header))
+    print(timing_header)
+    print("-" * len(timing_header))
+    for method_name in methods:
+        step_times = seconds_by_method_step.get(method_name, {})
+        if not step_times:
+            continue
+        for step in step_order:
+            values = step_times.get(step)
+            if not values:
+                continue
+            arr = np.asarray(values, dtype=np.float64)
+            mean_sec = float(np.mean(arr))
+            total_sec = float(np.sum(arr))
+            timing_summary_rows.append(
+                {
+                    "method": method_name,
+                    "step": step,
+                    "n": int(arr.size),
+                    "mean_sec": mean_sec,
+                    "total_sec": total_sec,
+                }
+            )
+            print(
+                f"{method_name:<10}{step:<18}{arr.size:>6}"
+                f"{mean_sec:>12.2f}{total_sec:>12.2f}"
+            )
+        print("-" * len(timing_header))
+    print("=" * len(timing_header))
+
+    with timing_summary_file.open("w", newline="", encoding="utf-8") as fh:
+        writer = csv.DictWriter(fh, fieldnames=list(timing_summary_rows[0].keys()))
+        writer.writeheader()
+        writer.writerows(timing_summary_rows)
+    print(f"Wrote timing summary: {timing_summary_file}")

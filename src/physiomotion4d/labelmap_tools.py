@@ -33,7 +33,7 @@ class LabelmapTools(PhysioMotion4DBase):
         >>> mask = tools.convert_labelmap_to_mask(labelmap, dilation_in_mm=5.0)
         >>> # Exclude the table/background labels 8 and 9 before masking
         >>> mask = tools.convert_labelmap_to_mask(
-        ...     labelmap, dilation_in_mm=5.0, labels_to_exclude=[8, 9]
+        ...     labelmap, dilation_in_mm=5.0, exclude_labels=[8, 9]
         ... )
     """
 
@@ -49,11 +49,11 @@ class LabelmapTools(PhysioMotion4DBase):
         self,
         labelmap: itk.Image,
         dilation_in_mm: float = 0.0,
-        labels_to_exclude: Optional[list[int]] = None,
+        exclude_labels: Optional[list[int]] = None,
     ) -> itk.Image:
         """Convert a labelmap into a binary registration mask.
 
-        Any voxel whose label is in ``labels_to_exclude`` is set to background
+        Any voxel whose label is in ``exclude_labels`` is set to background
         first; every remaining non-zero voxel becomes foreground (``1``). The
         binary mask is then dilated by ``dilation_in_mm`` millimeters of
         physical radius. The radius is converted into per-axis voxel counts
@@ -72,7 +72,7 @@ class LabelmapTools(PhysioMotion4DBase):
             dilation_in_mm: Physical radius of the binary dilation in
                 millimeters. Pass ``0`` (or negative) to skip dilation and
                 return the raw thresholded mask. Default 0.0.
-            labels_to_exclude: Optional list of integer label values to force
+            exclude_labels: Optional list of integer label values to force
                 to background before thresholding. When ``None`` (the default)
                 no labels are excluded.
 
@@ -81,8 +81,8 @@ class LabelmapTools(PhysioMotion4DBase):
             ``labelmap`` (origin, spacing, direction copied from the input).
         """
         arr = itk.array_from_image(labelmap)
-        if labels_to_exclude:
-            arr = np.where(np.isin(arr, labels_to_exclude), 0, arr)
+        if exclude_labels:
+            arr = np.where(np.isin(arr, exclude_labels), 0, arr)
         mask_arr = (arr > 0).astype(np.uint8)
         mask = itk.image_from_array(mask_arr)
         mask.CopyInformation(labelmap)

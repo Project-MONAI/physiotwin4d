@@ -4,7 +4,7 @@ Tests for LabelmapTools functionality.
 
 Covers thresholding a multi-label labelmap into a binary registration mask,
 physically isotropic dilation that respects per-axis spacing, and forcing
-selected labels to background via ``labels_to_exclude``.
+selected labels to background via ``exclude_labels``.
 """
 
 from __future__ import annotations
@@ -75,9 +75,7 @@ class TestLabelmapTools:
         assert dilated[5, 5, 0] == 0
         assert dilated[5, 5, 10] == 0
 
-    def test_labels_to_exclude_removes_voxels(
-        self, labelmap_tools: LabelmapTools
-    ) -> None:
+    def test_exclude_labels_removes_voxels(self, labelmap_tools: LabelmapTools) -> None:
         """Excluded labels become background before thresholding."""
         arr = np.zeros((5, 5, 5), dtype=np.uint8)
         arr[1, 1, 1] = 2  # kept
@@ -87,7 +85,7 @@ class TestLabelmapTools:
 
         mask_arr = itk.array_from_image(
             labelmap_tools.convert_labelmap_to_mask(
-                labelmap, dilation_in_mm=0.0, labels_to_exclude=[7]
+                labelmap, dilation_in_mm=0.0, exclude_labels=[7]
             )
         )
 

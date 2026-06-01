@@ -65,7 +65,7 @@ elif method == "Greedy":
     # NCC (CC) beats SSD for same-modality CT; tighter update-field smoothing
     # (first sigma) captures more cardiac motion while staying diffeomorphic.
     reg.set_metric("CC")
-    reg.set_number_of_iterations([100, 80, 40])
+    reg.set_number_of_iterations([40, 20, 10])
     reg.deformable_smoothing = "1.0vox 0.5vox"
 elif method == "ICON":
     reg = RegisterImagesICON()
@@ -100,6 +100,7 @@ print(f"{method} registration done in {elapsed:.1f} s, loss={loss:.4f}")
 
 # %%
 transform_tools = TransformTools()
+warp_t_start = time.perf_counter()
 warped_image = transform_tools.transform_image(
     moving_image,
     forward_transform,
@@ -107,4 +108,27 @@ warped_image = transform_tools.transform_image(
     interpolation_method="linear",
 )
 itk.imwrite(warped_image, str(output_path), compression=True)
+warp_elapsed = time.perf_counter() - warp_t_start
 print(f"Wrote warped time point 20 -> 60: {output_path}")
+
+# %% [markdown]
+# ## 6. Timing report
+#
+# Wall-clock seconds for the registration and the warp/write step.  The
+# registration time dominates and is the figure to compare across backends;
+# for ICON it includes the one-time network load on this first (and only)
+# pair.
+
+# %%
+total_elapsed = elapsed + warp_elapsed
+print()
+print("=" * 44)
+print(f"Timing report ({method})")
+print("=" * 44)
+print(f"{'Step':<22}{'seconds':>12}")
+print("-" * 44)
+print(f"{'register':<22}{elapsed:>12.2f}")
+print(f"{'warp + write':<22}{warp_elapsed:>12.2f}")
+print("-" * 44)
+print(f"{'total':<22}{total_elapsed:>12.2f}")
+print("=" * 44)

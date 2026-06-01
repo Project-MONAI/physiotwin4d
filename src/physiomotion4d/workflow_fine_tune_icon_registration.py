@@ -96,6 +96,8 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
         mask_dilation_mm (float): Millimeters of physical-radius binary
             dilation applied to the >0 labelmap when deriving the loss-masking
             binary mask via :meth:`LabelmapTools.convert_labelmap_to_mask`.
+        mask_exclude_labels (Optional[list[int]]): Labels to exclude from the mask.
+            Default is None.
         mask_dir (Optional[Path]): Directory where derived binary masks are
             written and looked up.  ``None`` (default) writes each derived
             mask next to its source labelmap on disk.
@@ -155,6 +157,7 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
         eval_period: int = 10,
         save_period: int = 50,
         mask_dilation_mm: float = 5.0,
+        mask_exclude_labels: Optional[list[int]] = None,
         mask_dir: Optional[Path] = None,
         unigradicon_src_path: Optional[Path] = None,
         log_level: Union[int, str] = logging.INFO,
@@ -176,7 +179,7 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
                 form ``subject_0000``, ``subject_0001``, ...  Must be unique.
             subject_segmentation_files: Per-subject multi-label segmentation
                 (labelmap) paths matching ``subject_image_files``.  ``None``
-                disables paired-with-seg training (no ``use_label``).
+                disables paired-with-seg training.
                 Individual ``None`` entries inside the inner lists skip just
                 those frames when paired-with-seg training is enabled.
             subject_mask_files: Per-subject binary mask paths matching
@@ -277,6 +280,7 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
         self.gpus = list(gpus) if gpus is not None else [0]
         self.eval_period = eval_period
         self.save_period = save_period
+        self.mask_exclude_labels = mask_exclude_labels
         self.mask_dilation_mm = float(mask_dilation_mm)
         self.unigradicon_src_path = (
             Path(unigradicon_src_path) if unigradicon_src_path is not None else None
@@ -285,6 +289,9 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
         self.transform_tools = TransformTools()
         self.labelmap_tools = LabelmapTools(log_level=log_level)
         self.registrar: Optional[RegisterTimeSeriesImages] = None
+
+        self._use_segmentations: Optional[bool] = None
+        self._use_masks: Optional[bool] = None
 
         self._dataset_json_path: Optional[Path] = None
         self._config_yaml_path: Optional[Path] = None
@@ -310,53 +317,15 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
                     f"subject_image_files[{i}] length ({len(images)})"
                 )
 
-    @property
-    def use_segmentations(self) -> bool:
-        """Whether at least one segmentation file is supplied for training.
-
-        Drives the uniGradICON ``training.use_label`` flag.
-        """
-        return self._any_non_none(self.subject_segmentation_files)
-
-    @property
-    def use_masks(self) -> bool:
-        """Whether the dataset will have a ``mask`` field on every kept entry.
-
-        True when explicit masks are supplied OR when segmentations are supplied
-        (since masks are then derived).  Drives the uniGradICON
-        ``training.loss_function_masking`` flag.
-        """
-        return self._any_non_none(self.subject_mask_files) or self.use_segmentations
-
-    @property
-    def use_label(self) -> bool:
-        """Whether uniGradICON trains with label supervision.
-
-        Drives the uniGradICON ``training.use_label`` flag.  True exactly when
-        segmentations are supplied, since the dataset then carries a ``label``
-        field on every kept entry.
-        """
-        return self.use_segmentations
-
-    @staticmethod
-    def _any_non_none(
-        companion: Optional[list[list[Optional[str]]]],
-    ) -> bool:
-        """Return True when ``companion`` contains at least one non-``None`` entry."""
-        if companion is None:
-            return False
-        for inner in companion:
-            for item in inner:
-                if item is not None:
-                    return True
-        return False
-
     @staticmethod
     def _posix(path: Union[str, Path]) -> str:
         """Return a forward-slashed string path (uniGradICON expects POSIX paths)."""
         return str(path).replace("\\", "/")
 
-    def _derive_mask(self, labelmap_path: Union[str, Path]) -> Path:
+    def _derive_mask(
+        self,
+        labelmap_path: Union[str, Path],
+    ) -> Path:
         """Create (or reuse) a dilated binary mask from a multi-label labelmap.
 
         Threshold the labelmap at ``>0`` and dilate by ``mask_dilation_mm`` mm
@@ -391,12 +360,16 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
 
         labelmap = itk.imread(str(labelmap_path))
         mask = self.labelmap_tools.convert_labelmap_to_mask(
-            labelmap, dilation_in_mm=self.mask_dilation_mm
+            labelmap,
+            dilation_in_mm=self.mask_dilation_mm,
+            exclude_labels=self.mask_exclude_labels,
         )
         itk.imwrite(mask, str(mask_path), compression=True)
         return mask_path
 
-    def prepare_dataset(self) -> Path:
+    def prepare_dataset(
+        self, use_segmentations: bool = True, use_masks: bool = True
+    ) -> Path:
         """Write the uniGradICON dataset JSON from the configured file lists.
 
         Builds one entry per image with ``image``, optional ``segmentation``,
@@ -418,8 +391,9 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
                 does not exist on disk.
         """
         self.experiment_dir.mkdir(parents=True, exist_ok=True)
-        use_seg = self.use_segmentations
-        use_mask = self.use_masks
+
+        self._use_segmentations = use_segmentations
+        self._use_masks = use_masks
 
         dataset_entries: list[dict[str, str]] = []
         for subject_index, image_files in enumerate(self.subject_image_files):
@@ -428,16 +402,24 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
                 if self.subject_ids is not None
                 else f"subject_{subject_index:04d}"
             )
-            seg_list = (
-                self.subject_segmentation_files[subject_index]
-                if self.subject_segmentation_files is not None
-                else [None] * len(image_files)
-            )
-            mask_list = (
-                self.subject_mask_files[subject_index]
-                if self.subject_mask_files is not None
-                else [None] * len(image_files)
-            )
+            seg_list: list[Optional[str]]
+            if not use_segmentations:
+                seg_list = [None] * len(image_files)
+            else:
+                seg_list = (
+                    self.subject_segmentation_files[subject_index]
+                    if self.subject_segmentation_files is not None
+                    else [None] * len(image_files)
+                )
+            mask_list: list[Optional[str]]
+            if not use_masks:
+                mask_list = [None] * len(image_files)
+            else:
+                mask_list = (
+                    self.subject_mask_files[subject_index]
+                    if self.subject_mask_files is not None
+                    else [None] * len(image_files)
+                )
             landmark_list = (
                 self.subject_landmark_files[subject_index]
                 if self.subject_landmark_files is not None
@@ -456,7 +438,7 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
                     "subject_id": subject_id,
                 }
 
-                if use_seg:
+                if use_segmentations:
                     if seg_file is None or not Path(seg_file).exists():
                         self.log_warning(
                             "Skipping %s: segmentation missing for paired-with-seg "
@@ -467,7 +449,7 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
                         continue
                     entry["segmentation"] = self._posix(seg_file)
 
-                if use_mask:
+                if use_masks:
                     if mask_file is not None and Path(mask_file).exists():
                         resolved_mask: Path = Path(mask_file)
                     elif seg_file is not None and Path(seg_file).exists():
@@ -541,8 +523,8 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
                 "lambda": self.lambda_value,
                 "dice_loss_weight": self.dice_loss_weight,
                 "lncc_sigma": self.lncc_sigma,
-                "loss_function_masking": self.use_masks,
-                "use_label": self.use_label,
+                "loss_function_masking": self._use_masks,
+                "use_label": False,
                 "roi_masking": False,
             },
             "datasets": [
