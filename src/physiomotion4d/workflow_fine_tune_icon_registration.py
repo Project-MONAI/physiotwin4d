@@ -262,6 +262,11 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
         self.subject_mask_files = subject_mask_files
         self.subject_landmark_files = subject_landmark_files
 
+        self.use_segmentations: bool = subject_segmentation_files is not None
+        self.use_masks: bool = (
+            subject_mask_files is not None or subject_segmentation_files is not None
+        )
+
         self.output_dir = Path(output_dir).resolve()
         self.fine_tune_name = fine_tune_name
         self.experiment_dir = self.output_dir / fine_tune_name
@@ -290,8 +295,8 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
         self.labelmap_tools = LabelmapTools(log_level=log_level)
         self.registrar: Optional[RegisterTimeSeriesImages] = None
 
-        self._use_segmentations: Optional[bool] = None
-        self._use_masks: Optional[bool] = None
+        self._use_segmentations: bool = self.use_segmentations
+        self._use_masks: bool = self.use_masks
 
         self._dataset_json_path: Optional[Path] = None
         self._config_yaml_path: Optional[Path] = None
@@ -368,7 +373,9 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
         return mask_path
 
     def prepare_dataset(
-        self, use_segmentations: bool = True, use_masks: bool = True
+        self,
+        use_segmentations: Optional[bool] = None,
+        use_masks: Optional[bool] = None,
     ) -> Path:
         """Write the uniGradICON dataset JSON from the configured file lists.
 
@@ -391,6 +398,11 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
                 does not exist on disk.
         """
         self.experiment_dir.mkdir(parents=True, exist_ok=True)
+
+        if use_segmentations is None:
+            use_segmentations = self.use_segmentations
+        if use_masks is None:
+            use_masks = self.use_masks
 
         self._use_segmentations = use_segmentations
         self._use_masks = use_masks
@@ -524,7 +536,7 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
                 "dice_loss_weight": self.dice_loss_weight,
                 "lncc_sigma": self.lncc_sigma,
                 "loss_function_masking": self._use_masks,
-                "use_label": False,
+                "use_label": self._use_segmentations,
                 "roi_masking": False,
             },
             "datasets": [
