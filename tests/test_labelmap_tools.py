@@ -105,3 +105,7 @@ class TestLabelmapTools:
 
         assert list(mask.GetSpacing()) == [0.5, 1.0, 2.0]
         assert list(mask.GetOrigin()) == [10.0, -5.0, 3.0]
+        assert np.allclose(
+            itk.array_from_matrix(mask.GetDirection()),
+            itk.array_from_matrix(labelmap.GetDirection()),
+        )

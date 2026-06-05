@@ -27,34 +27,22 @@ ref_data_dir = Path("d:/PhysioMotion4D/duke_data/ref_images")
 src_data_dir_base = Path("d:/PhysioMotion4D/duke_data/gated_nii")
 segmentation_dir_base = Path("d:/PhysioMotion4D/duke_data/simple_ascardio")
 
-use_mask_list = [False, False, False, False, False]
-use_labelmap_list = [False, False, False, False, False]
+use_mask_list = [False]
+use_labelmap_list = [False]
 
 # ICON only
-use_mass_list = [False, False, False, False, False]
+use_mass_list = [False]
 
 methods_list = [
-    ["Greedy"],
-    ["Greedy"],
-    ["Greedy"],
-    ["Greedy"],
     ["Greedy"],
 ]
 number_of_iterations_ANTS_list = [
     [40, 20, 10],
-    [40, 20, 10],
-    [40, 20, 10],
-    [40, 20, 10],
-    [40, 20, 10],
 ]
 number_of_iterations_greedy_list = [
-    [20, 20, 10],
-    [40, 20, 10],
     [60, 20, 10],
-    [80, 20, 10],
-    [100, 20, 10],
 ]
-number_of_iterations_ICON_list = [100, 100, 100, 100, 100]
+number_of_iterations_ICON_list = [100]
 
 exclude_tokens = ["nop"]
 ref_suffix = "_ref"
@@ -167,8 +155,8 @@ def load_or_derive_mask(labelmap: itk.Image, mask_path: Path) -> itk.Image:
     3 mm physical-radius dilation) and write it out so subsequent runs and
     the ICON eval reuse the same mask.
     """
-    # if mask_path.exists():
-    # return itk.imread(str(mask_path))
+    if mask_path.exists():
+        return itk.imread(str(mask_path))
     mask = labelmap_tools.convert_labelmap_to_mask(
         labelmap,
         dilation_in_mm=mask_dilation_mm,
@@ -472,7 +460,7 @@ for subject_index, subject_id in enumerate(cohort):
                 else:  # ICON: GPU deep-learning deformable registration.
                     reg = RegisterImagesICON()
                     reg.set_number_of_iterations(number_of_iterations_ICON)
-                    num_iters_str = ".".join(str(n) for n in number_of_iterations_ICON)
+                    num_iters_str = str(number_of_iterations_ICON)
                     reg.set_multi_modality(False)
                     reg.set_mass_preservation(use_mass)
                     if icon_weights_path is not None:

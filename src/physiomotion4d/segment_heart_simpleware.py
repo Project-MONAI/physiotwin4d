@@ -106,7 +106,7 @@ class SegmentHeartSimpleware(SegmentAnatomyBase):
         self._finalize_other_group()
 
         # Path to Simpleware Medical console executable
-        self.simpleware_exe_path = "C:/Program Files/Synopsys/Simpleware Medical/X-2025.06/ConsoleSimplewareMedical.exe"
+        self.simpleware_exe_path = "C:/Program Files/Synopsys/Simpleware Medical/Y-2026.03/ConsoleSimplewareMedical.exe"
 
         # Path to the Simpleware Python script for heart segmentation
         self.simpleware_script_path = os.path.join(

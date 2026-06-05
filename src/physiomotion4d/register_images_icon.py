@@ -10,8 +10,6 @@ deformable registration with mass preservation constraints.
 """
 
 import logging
-import pathlib
-import sys
 from typing import Optional, Union
 
 import icon_registration as icon
@@ -303,29 +301,13 @@ class RegisterImagesICON(RegisterImagesBase):
         """
         if self.net is not None:
             return
-        main_module = sys.modules.get("__main__")
-        main_file = getattr(main_module, "__file__", None)
-        top_dir = pathlib.Path.cwd()
-        if main_file is not None:
-            top_dir = pathlib.Path(main_file).resolve().parent
         if self.use_multi_modality:
-            if self.weights_path is None:
-                self.weights_path = str(
-                    top_dir
-                    / "network_weights"
-                    / "multigradicon1.0"
-                    / "Step_2_final.trch"
-                )
             self.net = get_multigradicon(
                 loss_fn=icon.LNCC(sigma=5),
                 apply_intensity_conservation_loss=self.use_mass_preservation,
                 weights_location=self.weights_path,
             )
         else:
-            if self.weights_path is None:
-                self.weights_path = str(
-                    top_dir / "network_weights" / "unigradicon1.0" / "Step_2_final.trch"
-                )
             self.net = get_unigradicon(
                 loss_fn=icon.LNCC(sigma=5),
                 apply_intensity_conservation_loss=self.use_mass_preservation,

@@ -112,7 +112,7 @@ class LabelmapTools(PhysioMotion4DBase):
         boundary between two differently-labeled regions:
 
             value = label + min(distance_to_nearest_boundary_mm,
-                                 max_distance_mm) / distance_scale
+                                max_distance_mm) / distance_scale
 
         The boundary set is every voxel that 6-neighbors a voxel with a
         different label (background label ``0`` participates, so the outer
@@ -122,9 +122,9 @@ class LabelmapTools(PhysioMotion4DBase):
         to ``max_distance_mm``, divided by ``distance_scale``, and added to the
         voxel's original label.
 
-        With the defaults (``50`` mm clip, ``100`` scale) the fractional offset
-        stays in ``[0.0, 0.5]``, so it never reaches the next integer label and
-        label identity is recoverable as ``floor(value)``.
+        With the defaults (``20`` mm clip, ``5`` scale) the fractional offset
+        stays in ``[0.0, 4.0]``, potentially passing adjacent integer labels but
+        emphasizing in medial alignment as well as boundary.
 
         The motivation is registration metrics such as Greedy's NCC: a raw
         integer labelmap is piecewise-constant, so the local variance inside
@@ -139,10 +139,10 @@ class LabelmapTools(PhysioMotion4DBase):
 
         Args:
             labelmap: Multi-label (or binary) ``itk.Image`` of integer labels.
-            max_distance_mm: Distance clip, in millimeters. Default 50.0.
+            max_distance_mm: Distance clip, in millimeters. Default 20.0.
             distance_scale: Divisor applied to the clipped distance before it
-                is added to the label. Default 100.0. With the default clip
-                this bounds the fractional offset to ``[0, 0.5]``.
+                is added to the label. Default 5.0. With the default clip
+                this bounds the fractional offset to ``[0, 4.0]``.
 
         Returns:
             ``itk.Image[itk.F, 3]`` in the same physical space as ``labelmap``

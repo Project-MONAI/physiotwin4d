@@ -39,7 +39,7 @@ from physiomotion4d.labelmap_tools import LabelmapTools
 # %%
 ref_data_dir = Path("d:/PhysioMotion4D/duke_data/ref_images")
 src_data_dir_base = Path("d:/PhysioMotion4D/duke_data/gated_nii")
-segmentation_dir_base = Path("d:/PhysioMotion4D/duke_data/simple_ascardio")
+labelmap_dir_base = Path("d:/PhysioMotion4D/duke_data/simple_ascardio")
 
 # Where the workflow writes the dataset JSON, YAML config, derived masks, and
 # the uniGradICON ``checkpoints/`` tree.  experiment_dir resolves to
@@ -103,7 +103,7 @@ print(f"  Test  (last {len(test_subjects)}): {test_subjects}")
 # For each train-cohort patient, list gated frames in
 # ``src_data_dir_base / <patient_id>`` (excluding ``"nop"`` non-gated
 # references) and pair each frame with its
-# ``<stem>_labelmap.nii.gz`` and ``<stem>_mask.nii.gz`` under ``segmentation_dir_base / <patient_id>``.
+# ``<stem>_labelmap.nii.gz`` and ``<stem>_mask.nii.gz`` under ``labelmap_dir_base / <patient_id>``.
 # Patients with no source directory or no valid frames are skipped here only
 # — they remain part of the canonical train list above, but contribute no
 # training data.  Missing labelmaps are recorded as ``None`` so the workflow
@@ -120,7 +120,7 @@ labelmap_tools = LabelmapTools()
 
 
 # %%
-def load_or_derive_mask(labelmap_path: Path) -> str:
+def load_or_derive_mask(labelmap_path: Path) -> Optional[str]:
     """Create (or reuse) a loss-function mask next to ``labelmap_path``.
 
     Thresholds the labelmap at ``>0`` and dilates by ``mask_dilation_mm`` mm
@@ -193,7 +193,7 @@ for labelmap_paths in train_labelmap_files:
 
 for patient_id in train_subjects:
     src_dir = src_data_dir_base / patient_id
-    seg_dir = segmentation_dir_base / patient_id
+    seg_dir = labelmap_dir_base / patient_id
 
     if not src_dir.is_dir():
         print(f"  Skipping {patient_id}: source dir {src_dir} not found")

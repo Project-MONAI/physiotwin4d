@@ -365,7 +365,7 @@ class TransformTools(PhysioMotion4DBase):
             np.array(tfm.TransformPoint((float(p[0]), float(p[1]), float(p[2]))))
             for p in pnts
         ]
-        new_mesh.points = np.asarray(new_pnts, dtype=float)
+        new_mesh.points = np.asarray(new_pnts, dtype=float).reshape(-1, 3)
 
         if with_deformation_magnitude:
             if cp is not None:

@@ -607,6 +607,12 @@ class RegisterImagesANTS(RegisterImagesBase):
                 initial_forward_transform,
                 self.fixed_image,
             )
+            if self.moving_mask is not None:
+                self.moving_mask_pre = transform_tools.transform_image(
+                    self.moving_mask,
+                    initial_forward_transform,
+                    self.fixed_image,
+                )
 
         transform_type = None
         if self.transform_type == "Deformable":

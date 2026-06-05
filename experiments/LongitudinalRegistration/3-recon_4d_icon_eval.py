@@ -3,11 +3,11 @@
 #
 # Enumerates the Duke patient cohort by sorting ``ref_images/`` and uses the
 # *last 20%* of patients as the held-out test set — the same fixed split
-# applied by ``1-finetune_icon.py`` (first 80% train, last 20% test).  For
+# applied by ``2-finetune_icon.py`` (first 80% train, last 20% test).  For
 # each test subject the 70th-percentile gated frame is selected as the
 # reference and every other frame is registered to it twice with
 # ``RegisterTimeSeriesImages``: once with the default uniGradICON weights and
-# once with the finetuned checkpoint from ``1-finetune_icon.py``.  The
+# once with the finetuned checkpoint from ``2-finetune_icon.py``.  The
 # resampler-convention inverse transform (which maps moving-grid points back
 # to reference-grid points) is applied to each time-point's precomputed
 # landmarks to land them in reference space, and the Euclidean error against
@@ -248,11 +248,14 @@ for subject_id in test_subjects:
 # ## 5. Write the wide-form per-timepoint summary CSV
 
 # %%
-with summary_file.open("w", newline="", encoding="utf-8") as fh:
-    writer = csv.DictWriter(fh, fieldnames=list(summary_rows[0].keys()))
-    writer.writeheader()
-    writer.writerows(summary_rows)
-print(f"Wrote summary: {summary_file}")
+if not summary_rows:
+    print("No summary rows to write")
+else:
+    with summary_file.open("w", newline="", encoding="utf-8") as fh:
+        writer = csv.DictWriter(fh, fieldnames=list(summary_rows[0].keys()))
+        writer.writeheader()
+        writer.writerows(summary_rows)
+    print(f"Wrote summary: {summary_file}")
 print(f"Wrote landmark details: {detail_file}")
 
 # %% [markdown]

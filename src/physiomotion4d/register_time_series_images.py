@@ -211,7 +211,7 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
         This passes through to the underlying registration method.
 
         Args:
-            fixed_labelmap (itk.Image): Labelmap defining ROI
+            fixed_labelmap (Optional[itk.Image]): Labelmap defining ROI
         """
         self.fixed_labelmap = fixed_labelmap
 
