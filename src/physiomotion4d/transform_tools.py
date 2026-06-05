@@ -89,12 +89,13 @@ class TransformTools(PhysioMotion4DBase):
         mode: str = "compose",
         tfm1_blur_sigma: float = 0.0,
         tfm2_blur_sigma: float = 0.0,
-    ) -> itk.CompositeTransform:
+    ) -> itk.Transform:
         """
         Compose two displacement field transforms.
 
-        Composes two displacement field transforms into a single displacement field
-            transform.
+        In ``add`` mode, returns a single displacement field transform with
+        weighted summed vectors. In ``compose`` mode, returns a composite
+        transform containing both weighted displacement field transforms.
         """
         assert mode in ["add", "compose"], "Invalid mode"
 

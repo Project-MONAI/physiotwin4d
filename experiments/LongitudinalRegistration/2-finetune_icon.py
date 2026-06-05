@@ -110,9 +110,9 @@ print(f"  Test  (last {len(test_subjects)}): {test_subjects}")
 # skips just that frame.
 
 # %%
-train_image_files: list[list[str]] = []
-train_labelmap_files: list[list[Optional[str]]] = []
-train_mask_files: list[list[Optional[str]]] = []
+train_image_files: list[list[Path]] = []
+train_labelmap_files: list[list[Optional[Path]]] = []
+train_mask_files: list[list[Optional[Path]]] = []
 valid_train_subjects: list[str] = []
 
 mask_dilation_mm = 3.0
@@ -120,15 +120,15 @@ labelmap_tools = LabelmapTools()
 
 
 # %%
-def load_or_derive_mask(labelmap_path: Path) -> Optional[str]:
+def load_or_derive_mask(labelmap_path: Path) -> Optional[Path]:
     """Create (or reuse) a loss-function mask next to ``labelmap_path``.
 
     Thresholds the labelmap at ``>0`` and dilates by ``mask_dilation_mm`` mm
     via :meth:`LabelmapTools.convert_labelmap_to_mask`, writing the result as
     ``<labelmap_stem>_mask.nii.gz`` in the labelmap's own directory.  Handles
     both ``.nii.gz`` (original Simpleware labelmaps) and ``.mha``
-    (pre-registration warped labelmaps).  Returns the mask path as a string;
-    existing masks on disk are reused unmodified.
+    (pre-registration warped labelmaps).  Returns the mask path; existing
+    masks on disk are reused unmodified.
     """
     if not labelmap_path.exists():
         return None
@@ -146,12 +146,14 @@ def load_or_derive_mask(labelmap_path: Path) -> Optional[str]:
             itk.imread(str(labelmap_path)), dilation_in_mm=mask_dilation_mm
         )
         itk.imwrite(mask, str(mask_p), compression=True)
-    return str(mask_p)
+    return mask_p
 
 
 # %%
-def gather_warped_frames(method_dir: Path) -> tuple[list[str], list[Optional[str]]]:
-    """Return ``(warped_image_paths, warped_labelmap_paths)`` for one
+def gather_warped_frames(
+    method_dir: Path,
+) -> tuple[list[Path], list[Optional[Path]], list[Optional[Path]]]:
+    """Return ``(warped_image_paths, warped_labelmap_paths, warped_mask_paths)`` for one
     ``initial_registration_dir / <method> / <patient_id>`` directory.
 
     Enumerates the warped moving images (``<stem>.mha``), excluding the
@@ -161,36 +163,27 @@ def gather_warped_frames(method_dir: Path) -> tuple[list[str], list[Optional[str
     not exist.
     """
     if not method_dir.is_dir():
-        return [], []
+        return [], [], []
     companion_suffixes = (
         "_labelmap.mha",
         "_mask.mha",
     )
-    image_paths: list[str] = []
-    labelmap_paths: list[Optional[str]] = []
-    mask_paths: list[Optional[str]] = []
+    image_paths: list[Path] = []
+    labelmap_paths: list[Optional[Path]] = []
+    mask_paths: list[Optional[Path]] = []
     for image in sorted(method_dir.glob("*.mha")):
         if image.name.endswith(companion_suffixes):
             continue
         stem = image.name[:-4]
         labelmap = method_dir / f"{stem}_labelmap.mha"
         mask = method_dir / f"{stem}_mask.mha"
-        image_paths.append(str(image))
-        labelmap_paths.append(str(labelmap) if labelmap.exists() else None)
-        mask_paths.append(str(mask) if mask.exists() else None)
+        image_paths.append(image)
+        labelmap_paths.append(labelmap if labelmap.exists() else None)
+        mask_paths.append(mask if mask.exists() else None)
     return image_paths, labelmap_paths, mask_paths
 
 
 # %%
-train_mask_files: list[list[Optional[str]]] = []
-for labelmap_paths in train_labelmap_files:
-    train_mask_files.append(
-        [
-            load_or_derive_mask(Path(s)) if s is not None else None
-            for s in labelmap_paths
-        ]
-    )
-
 for patient_id in train_subjects:
     src_dir = src_data_dir_base / patient_id
     seg_dir = labelmap_dir_base / patient_id
@@ -206,17 +199,18 @@ for patient_id in train_subjects:
         print(f"  Skipping {patient_id}: no valid frames in {src_dir}")
         continue
 
-    image_paths = [str(src_dir / f) for f in frame_names]
-    labelmap_paths: list[Optional[str]] = []
-    mask_paths: list[Optional[str]] = []
+    image_paths = [src_dir / f for f in frame_names]
+    labelmap_paths: list[Optional[Path]] = []
+    mask_paths: list[Optional[Path]] = []
     for f in frame_names:
         labelmap = seg_dir / f.replace(".nii.gz", "_labelmap.nii.gz")
-        labelmap_paths.append(str(labelmap) if labelmap.exists() else None)
+        labelmap_paths.append(labelmap if labelmap.exists() else None)
         mask = load_or_derive_mask(labelmap)
-        mask_paths.append(str(mask) if mask.exists() else None)
+        mask_paths.append(mask)
 
     train_image_files.append(image_paths)
     train_labelmap_files.append(labelmap_paths)
+    train_mask_files.append(mask_paths)
     valid_train_subjects.append(patient_id)
 
     n_seg = sum(1 for s in labelmap_paths if s is not None)
@@ -244,12 +238,24 @@ for subject_index, patient_id in enumerate(valid_train_subjects):
 
 # %%
 workflow = WorkflowFineTuneICONRegistration(
-    subject_image_files=train_image_files,
+    subject_image_files=[
+        [str(image_path) for image_path in image_paths]
+        for image_paths in train_image_files
+    ],
     output_dir=output_dir,
     fine_tune_name=fine_tune_name,
     subject_ids=valid_train_subjects,
-    subject_labelmap_files=train_labelmap_files,
-    subject_mask_files=train_mask_files,
+    subject_labelmap_files=[
+        [
+            str(labelmap_path) if labelmap_path is not None else None
+            for labelmap_path in labelmap_paths
+        ]
+        for labelmap_paths in train_labelmap_files
+    ],
+    subject_mask_files=[
+        [str(mask_path) if mask_path is not None else None for mask_path in mask_paths]
+        for mask_paths in train_mask_files
+    ],
     mask_dilation_mm=mask_dilation_mm,
     unigradicon_src_path=unigradicon_src_path,
     epochs=500,

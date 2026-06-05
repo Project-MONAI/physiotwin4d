@@ -605,6 +605,7 @@ class RegisterImagesANTS(RegisterImagesBase):
                     self.moving_mask,
                     initial_forward_transform,
                     self.fixed_image,
+                    interpolation_method="nearest",
                 )
 
         transform_type = None

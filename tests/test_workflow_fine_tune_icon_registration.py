@@ -46,7 +46,7 @@ def two_subject_dataset(tmp_path: Path) -> dict[str, Any]:
     output_dir = tmp_path / "ft_out"
 
     subject_image_files: list[list[str]] = []
-    subject_segmentation_files: list[list[Optional[str]]] = []
+    subject_labelmap_files: list[list[Optional[str]]] = []
     for patient_id in ("pm0001", "pm0002"):
         pdir = data_dir / patient_id
         pdir.mkdir()
@@ -60,14 +60,14 @@ def two_subject_dataset(tmp_path: Path) -> dict[str, Any]:
             images.append(str(image_path))
             segs.append(str(label_path))
         subject_image_files.append(images)
-        subject_segmentation_files.append(segs)
+        subject_labelmap_files.append(segs)
 
     return {
         "output_dir": output_dir,
         "fine_tune_name": "test_exp",
         "subject_ids": ["pm0001", "pm0002"],
         "subject_image_files": subject_image_files,
-        "subject_segmentation_files": subject_segmentation_files,
+        "subject_labelmap_files": subject_labelmap_files,
     }
 
 
@@ -139,7 +139,7 @@ def test_use_segmentations_and_use_masks_flags(tmp_path: Path) -> None:
     assert not none_wf.use_masks
 
     seg_only = WorkflowFineTuneICONRegistration(
-        **base, subject_segmentation_files=[["seg.nii.gz"]]
+        **base, subject_labelmap_files=[["seg.nii.gz"]]
     )
     assert seg_only.use_segmentations
     assert seg_only.use_masks  # derived from segs
@@ -195,7 +195,7 @@ def test_prepare_dataset_skips_frames_with_missing_segmentation(
         subject_image_files=[[str(img_a), str(img_b)]],
         output_dir=tmp_path / "out",
         fine_tune_name="exp",
-        subject_segmentation_files=[[str(seg_a), None]],
+        subject_labelmap_files=[[str(seg_a), None]],
         log_level=logging.CRITICAL,
     )
     dataset_json_path = workflow.prepare_dataset()
@@ -220,7 +220,7 @@ def test_prepare_dataset_uses_explicit_mask_over_derived(tmp_path: Path) -> None
         subject_image_files=[[str(image)]],
         output_dir=tmp_path / "out",
         fine_tune_name="exp",
-        subject_segmentation_files=[[str(seg)]],
+        subject_labelmap_files=[[str(seg)]],
         subject_mask_files=[[str(explicit_mask)]],
         log_level=logging.CRITICAL,
     )
@@ -269,7 +269,7 @@ def test_prepare_dataset_derives_mask_next_to_labelmap_by_default(
 
     seg_files = [
         Path(s)
-        for inner in workflow.subject_segmentation_files or []
+        for inner in workflow.subject_labelmap_files or []
         for s in inner
         if s is not None
     ]
@@ -299,7 +299,7 @@ def test_prepare_dataset_derives_mask_under_explicit_mask_dir(
     # None of the labelmap-adjacent locations should have been written to.
     seg_files = [
         Path(s)
-        for inner in workflow.subject_segmentation_files or []
+        for inner in workflow.subject_labelmap_files or []
         for s in inner
         if s is not None
     ]
