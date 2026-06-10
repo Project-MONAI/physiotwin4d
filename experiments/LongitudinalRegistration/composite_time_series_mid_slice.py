@@ -10,20 +10,24 @@ from typing import Optional
 import itk
 import numpy as np
 
-
 DEFAULT_IMAGE_REGEX = r"^pm00.*_init\.mha$"
 OUTPUT_FILENAME = "composite.mha"
 
 
 def select_directory() -> Optional[Path]:
     """Open a directory chooser and return the selected directory."""
-    root = tk.Tk()
-    root.withdraw()
-    root.update()
-    selected_dir = filedialog.askdirectory(
-        title="Select directory containing time-series MHA images"
-    )
-    root.destroy()
+    try:
+        root = tk.Tk()
+    except tk.TclError:
+        return None
+    try:
+        root.withdraw()
+        root.update()
+        selected_dir = filedialog.askdirectory(
+            title="Select directory containing time-series MHA images"
+        )
+    finally:
+        root.destroy()
     if not selected_dir:
         return None
     return Path(selected_dir)
