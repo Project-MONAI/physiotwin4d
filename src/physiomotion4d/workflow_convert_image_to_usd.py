@@ -19,8 +19,8 @@ from physiomotion4d import ConvertVTKToUSD
 from physiomotion4d.contour_tools import ContourTools
 from physiomotion4d.convert_image_4d_to_3d import ConvertImage4DTo3D
 from physiomotion4d.physiomotion4d_base import PhysioMotion4DBase
-from physiomotion4d.register_images_ants import RegisterImagesANTS
 from physiomotion4d.register_images_base import RegisterImagesBase
+from physiomotion4d.register_images_greedy import RegisterImagesGreedy
 from physiomotion4d.register_images_icon import RegisterImagesICON
 from physiomotion4d.segment_anatomy_base import SegmentAnatomyBase
 from physiomotion4d.segment_chest_total_segmentator import SegmentChestTotalSegmentator
@@ -36,7 +36,7 @@ SEGMENTATION_METHODS: tuple[str, ...] = (
 )
 
 #: Supported registration backend identifiers.
-REGISTRATION_METHODS: tuple[str, ...] = ("ANTS", "ICON")
+REGISTRATION_METHODS: tuple[str, ...] = ("Greedy", "ICON")
 
 
 class WorkflowConvertImageToUSD(PhysioMotion4DBase):
@@ -95,7 +95,7 @@ class WorkflowConvertImageToUSD(PhysioMotion4DBase):
                 or ``'HeartSimplewareTrimmedBranches'`` (HeartSimpleware with
                 pulmonary/great-vessel branches trimmed to the cardiac region).
             registration_method (str): Registration method to use:
-                ``'ANTS'`` or ``'ICON'`` (default: ``'ICON'``).
+                ``'Greedy'`` or ``'ICON'`` (default: ``'ICON'``).
             times_per_second: Frames per second for animated USD time series.
                 Defaults to 24.0, matching the underlying VTK-to-USD converter.
             log_level: Logging level (default: logging.INFO)
@@ -159,23 +159,23 @@ class WorkflowConvertImageToUSD(PhysioMotion4DBase):
 
         # Initialize registration method
         self.registrar: RegisterImagesBase
-        if self.registration_method == "ANTS":
-            self.log_info("Initializing ANTs registration...")
-            ants_registrar = RegisterImagesANTS(log_level=log_level)
-            ants_registrar.set_modality("ct")
-            ants_registrar.set_transform_type("Deformable")
+        if self.registration_method == "Greedy":
+            self.log_info("Initializing Greedy registration...")
+            greedy_registrar = RegisterImagesGreedy(log_level=log_level)
+            greedy_registrar.set_modality("ct")
+            greedy_registrar.set_transform_type("Deformable")
             if (
                 number_of_registration_iterations is not None
                 and number_of_registration_iterations > 0
             ):
-                ants_registrar.set_number_of_iterations(
+                greedy_registrar.set_number_of_iterations(
                     [
                         number_of_registration_iterations,
                         number_of_registration_iterations // 2,
                         0,
                     ]
                 )
-            self.registrar = ants_registrar
+            self.registrar = greedy_registrar
         else:  # ICON (default)
             self.log_info("Initializing ICON registration...")
             icon_registrar = RegisterImagesICON(log_level=log_level)

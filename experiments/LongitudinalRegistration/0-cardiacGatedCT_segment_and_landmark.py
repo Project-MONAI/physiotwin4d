@@ -32,7 +32,7 @@ from physiomotion4d.landmark_tools import LandmarkTools
 
 ref_data_dir = "d:/PhysioMotion4D/duke_data/ref_images"
 src_data_dir_base = "d:/PhysioMotion4D/duke_data/gated_nii"
-segmentation_dir_base = "d:/PhysioMotion4D/duke_data/simple_ascardio"
+segmentation_dir_base = "d:/PhysioMotion4D/duke_data/ascardio"
 
 ref_files = [
     os.path.join(ref_data_dir, f)

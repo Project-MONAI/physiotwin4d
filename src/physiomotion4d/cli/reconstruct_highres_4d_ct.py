@@ -4,7 +4,7 @@ Command-line interface for high-resolution 4D CT reconstruction workflow.
 
 This script provides a CLI to reconstruct high-resolution 4D CT time series from
 lower-resolution time-series images and a single high-resolution reference image
-using combined ANTS+ICON registration.
+using combined Greedy+ICON registration.
 """
 
 import argparse
@@ -47,8 +47,8 @@ Examples:
   %(prog)s \\
     --time-series-images frame_*.mha \\
     --fixed-image highres.mha \\
-    --registration-method ANTS_ICON \\
-    --ANTS-iterations 30 15 7 3 \\
+    --registration-method Greedy_ICON \\
+    --Greedy-iterations 30 15 7 3 \\
     --ICON-iterations 20 \\
     --output-dir ./results
 
@@ -81,9 +81,9 @@ Examples:
     # Registration configuration
     parser.add_argument(
         "--registration-method",
-        choices=["ANTS", "ICON", "ANTS_ICON"],
-        default="ANTS_ICON",
-        help="Registration method to use (default: ANTS_ICON)",
+        choices=["Greedy", "ICON", "Greedy_ICON"],
+        default="Greedy_ICON",
+        help="Registration method to use (default: Greedy_ICON)",
     )
     parser.add_argument(
         "--reference-frame",
@@ -106,10 +106,10 @@ Examples:
 
     # Registration iterations
     parser.add_argument(
-        "--ANTS-iterations",
+        "--Greedy-iterations",
         nargs="+",
         type=int,
-        help="ANTs multi-resolution iterations (e.g., 30 15 7 3). Default: [30, 15, 7, 3]",
+        help="Greedy multi-resolution iterations (e.g., 30 15 7 3). Default: [30, 15, 7, 3]",
     )
     parser.add_argument(
         "--ICON-iterations",
@@ -291,10 +291,10 @@ Examples:
             workflow.set_moving_masks(moving_masks)
 
         # Set number of iterations based on registration method and CLI arguments
-        if args.ants_iterations:
-            workflow.set_number_of_iterations_ANTS(args.ants_iterations)
+        if args.Greedy_iterations:
+            workflow.set_number_of_iterations_Greedy(args.Greedy_iterations)
         else:
-            workflow.set_number_of_iterations_ANTS([30, 15, 7, 3])
+            workflow.set_number_of_iterations_Greedy([30, 15, 7, 3])
 
         if args.icon_iterations:
             workflow.set_number_of_iterations_ICON(args.icon_iterations)

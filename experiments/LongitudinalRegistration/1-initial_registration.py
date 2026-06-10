@@ -27,22 +27,22 @@ ref_data_dir = Path("d:/PhysioMotion4D/duke_data/ref_images")
 src_data_dir_base = Path("d:/PhysioMotion4D/duke_data/gated_nii")
 segmentation_dir_base = Path("d:/PhysioMotion4D/duke_data/simple_ascardio")
 
-use_mask_list = [False]
-use_labelmap_list = [False]
+use_mask_list = [False, False]
+use_labelmap_list = [False, True]
 
 # ICON only
-use_mass_list = [False]
+use_mass_list = [False, False]
 
 methods_list = [
+    ["Greedy"],
     ["Greedy"],
 ]
 number_of_iterations_ANTS_list = [
     [40, 20, 10],
+    [40, 20, 10],
 ]
-number_of_iterations_greedy_list = [
-    [60, 20, 10],
-]
-number_of_iterations_ICON_list = [100]
+number_of_iterations_greedy_list = [[80, 40, 5], [40, 40, 10]]
+number_of_iterations_ICON_list = [100, 100]
 
 exclude_tokens = ["nop"]
 ref_suffix = "_ref"

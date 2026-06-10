@@ -17,9 +17,9 @@
 # Frames whose labelmap is missing on disk are dropped from the dataset.
 #
 # In addition to the original ``gated_nii`` frames, each patient's training
-# group is augmented with that patient's ANTS- and Greedy-warped frames
-# written by ``1-initial_registration.py`` (warped image + labelmap per gated
-# frame, under ``output_dir / <method> / <patient_id>``).  Because the warped
+# group is augmented with that patient's ANTS- and Greedy-init frames
+# written by ``1-initial_registration.py`` (init image + labelmap per gated
+# frame, under ``output_dir / <method> / <patient_id>``).  Because the init
 # frames are merged into the *same* ``subject_id`` group, uniGradICON pairs the
 # original gated frames and both backends' pre-registered frames together.
 
@@ -27,8 +27,6 @@
 import os
 from pathlib import Path
 from typing import Optional
-
-import itk
 
 from physiomotion4d import WorkflowFineTuneICONRegistration
 from physiomotion4d.labelmap_tools import LabelmapTools
@@ -49,12 +47,14 @@ output_dir = _HERE / "results_finetuning"
 fine_tune_name = "icon_finetuning"
 
 # Pre-registration augmentation: ``1-initial_registration.py`` warps every gated
-# moving frame into reference space with these backends and writes the warped
+# moving frame into reference space with these backends and writes the init
 # image + labelmap under ``initial_registration_dir / <method>.lower() /
-# <patient_id>``.  Those warped frames are merged into each patient's training
+# <patient_id>``.  Those init frames are merged into each patient's training
 # group below (section 4b).
-initial_registration_dir = output_dir
-initial_registration_methods = ["Greedy"]
+initial_registration_dirs = [
+    Path("d:/PhysioMotion4D/duke_data/greedy_registrations/results_l/greedy_40.40.10"),
+    Path("d:/PhysioMotion4D/duke_data/greedy_registrations/results_raw/greedy_80.40.5"),
+]
 
 # Fixed train/test split: sort patients in ``ref_data_dir`` by filename;
 # first 80% are train, last 20% are test.  ``2-recon_4d_icon_eval.py`` applies
@@ -120,49 +120,20 @@ labelmap_tools = LabelmapTools()
 
 
 # %%
-def load_or_derive_mask(labelmap_path: Path) -> Optional[Path]:
-    """Create (or reuse) a loss-function mask next to ``labelmap_path``.
-
-    Thresholds the labelmap at ``>0`` and dilates by ``mask_dilation_mm`` mm
-    via :meth:`LabelmapTools.convert_labelmap_to_mask`, writing the result as
-    ``<labelmap_stem>_mask.nii.gz`` in the labelmap's own directory.  Handles
-    both ``.nii.gz`` (original Simpleware labelmaps) and ``.mha``
-    (pre-registration warped labelmaps).  Returns the mask path; existing
-    masks on disk are reused unmodified.
-    """
-    if not labelmap_path.exists():
-        return None
-
-    name = labelmap_path.name
-    if name.endswith(".nii.gz"):
-        stem = name[:-7]
-    elif name.endswith(".mha"):
-        stem = name[:-4]
-    else:
-        stem = labelmap_path.stem
-    mask_p = labelmap_path.parent / f"{stem}_mask.nii.gz"
-    if not mask_p.exists():
-        mask = labelmap_tools.convert_labelmap_to_mask(
-            itk.imread(str(labelmap_path)), dilation_in_mm=mask_dilation_mm
-        )
-        itk.imwrite(mask, str(mask_p), compression=True)
-    return mask_p
-
-
-# %%
-def gather_warped_frames(
-    method_dir: Path,
+def gather_init_frames(
+    initial_registration_dir: Path,
 ) -> tuple[list[Path], list[Optional[Path]], list[Optional[Path]]]:
-    """Return ``(warped_image_paths, warped_labelmap_paths, warped_mask_paths)`` for one
-    ``initial_registration_dir / <method> / <patient_id>`` directory.
+    """Return ``(init_image_paths, init_labelmap_paths, init_mask_paths)`` for one
+    ``initial_registration_dir / <patient_id>`` directory.
 
-    Enumerates the warped moving images (``<stem>.mha``), excluding the
+    Enumerates the init moving images (``<stem>.mha``), excluding the
     ``_labelmap.mha`` and ``_mask.mha``
     companions, and pairs each with its ``<stem>_labelmap.mha`` (``None`` when
-    that labelmap is absent).  Returns empty lists when ``method_dir`` does
-    not exist.
+    that labelmap is absent).  Returns empty lists when
+    ``initial_registration_dir`` does not exist.
     """
-    if not method_dir.is_dir():
+    if not initial_registration_dir.is_dir():
+        print(f"  {patient_id}: registration dir {initial_registration_dir} not found")
         return [], [], []
     companion_suffixes = (
         "_labelmap.mha",
@@ -171,15 +142,23 @@ def gather_warped_frames(
     image_paths: list[Path] = []
     labelmap_paths: list[Optional[Path]] = []
     mask_paths: list[Optional[Path]] = []
-    for image in sorted(method_dir.glob("*.mha")):
+    for image in sorted(initial_registration_dir.glob("*.mha")):
         if image.name.endswith(companion_suffixes):
             continue
         stem = image.name[:-4]
-        labelmap = method_dir / f"{stem}_labelmap.mha"
-        mask = method_dir / f"{stem}_mask.mha"
+        labelmap = initial_registration_dir / f"{stem}_labelmap.mha"
+        mask = initial_registration_dir / f"{stem}_mask.mha"
+        if not image.exists() or not labelmap.exists() or not mask.exists():
+            print(
+                f"  {patient_id}: image {image} or labelmap {labelmap} or mask {mask} not found"
+            )
+            continue
         image_paths.append(image)
-        labelmap_paths.append(labelmap if labelmap.exists() else None)
-        mask_paths.append(mask if mask.exists() else None)
+        labelmap_paths.append(labelmap)
+        mask_paths.append(mask)
+    print(
+        f"  {patient_id}: {len(image_paths)} init frames, {len(labelmap_paths)} with labelmap, {len(mask_paths)} with mask"
+    )
     return image_paths, labelmap_paths, mask_paths
 
 
@@ -205,7 +184,7 @@ for patient_id in train_subjects:
     for f in frame_names:
         labelmap = seg_dir / f.replace(".nii.gz", "_labelmap.nii.gz")
         labelmap_paths.append(labelmap if labelmap.exists() else None)
-        mask = load_or_derive_mask(labelmap)
+        mask = seg_dir / f.replace(".nii.gz", "_mask.nii.gz")
         mask_paths.append(mask)
 
     train_image_files.append(image_paths)
@@ -218,23 +197,21 @@ for patient_id in train_subjects:
 
 
 for subject_index, patient_id in enumerate(valid_train_subjects):
-    for method_name in initial_registration_methods:
-        method_dir = initial_registration_dir / method_name.lower() / patient_id
-        warped_images, warped_labelmaps, warped_masks = gather_warped_frames(method_dir)
-        if not warped_images:
+    for initial_registration_dir in initial_registration_dirs:
+        initial_registration_patient_dir = initial_registration_dir / patient_id
+
+        init_images, init_labelmaps, init_masks = gather_init_frames(
+            initial_registration_patient_dir
+        )
+        if not init_images:
             print(
-                f"  {patient_id}/{method_name}: no initial-registered frames "
-                f"in {method_dir}"
+                f"  {patient_id}: no initial-registered frames "
+                f"in {initial_registration_dir}"
             )
             continue
-        train_image_files[subject_index].extend(warped_images)
-        train_labelmap_files[subject_index].extend(warped_labelmaps)
-        train_mask_files[subject_index].extend(warped_masks)
-        n_warped = sum(1 for labelmap in warped_labelmaps if labelmap is not None)
-        print(
-            f"  {patient_id}/{method_name}: +{len(warped_images)} warped frames, "
-            f"{n_warped} with labelmap"
-        )
+        train_image_files[subject_index].extend(init_images)
+        train_labelmap_files[subject_index].extend(init_labelmaps)
+        train_mask_files[subject_index].extend(init_masks)
 
 # %%
 workflow = WorkflowFineTuneICONRegistration(
@@ -256,7 +233,7 @@ workflow = WorkflowFineTuneICONRegistration(
         [str(mask_path) if mask_path is not None else None for mask_path in mask_paths]
         for mask_paths in train_mask_files
     ],
-    mask_dilation_mm=mask_dilation_mm,
+    mask_dilation_mm=0,  # masks are already dilated
     unigradicon_src_path=unigradicon_src_path,
     epochs=500,
 )

@@ -24,9 +24,10 @@ from typing import Optional
 import itk
 import numpy as np
 
-from physiomotion4d import RegisterTimeSeriesImages
+from physiomotion4d import RegisterTimeSeriesImages, SegmentHeartSimpleware
 from physiomotion4d.labelmap_tools import LabelmapTools
 from physiomotion4d.landmark_tools import LandmarkTools
+from physiomotion4d.transform_tools import TransformTools
 
 # %% [markdown]
 # ## 1. Hard-coded paths and configuration
@@ -37,11 +38,12 @@ timepoint_base_dir = Path("d:/PhysioMotion4D/duke_data/gated_nii")
 segmentation_base_dir = Path("d:/PhysioMotion4D/duke_data/simple_ascardio")
 
 _HERE = Path(__file__).parent
-output_dir = _HERE / "results"
+output_dir = _HERE / "results_icon_eval"
 finetuned_weights_path = (
-    output_dir
-    / "icon_finetuned"
-    / "icon_finetuned_model"
+    _HERE
+    / "results_finetuning"
+    / "icon_finetuning"
+    / "icon_finetuning_model-2"
     / "checkpoints"
     / "network_weights_final.trch"
 )
@@ -60,15 +62,11 @@ methods: list[tuple[str, Optional[Path]]] = [
 output_dir.mkdir(parents=True, exist_ok=True)
 detail_file = output_dir / "landmark_errors_by_point.csv"
 summary_file = output_dir / "registration_summary.csv"
+warped_ref_detail_file = output_dir / "warped_ref_landmark_errors_by_point.csv"
 if detail_file.exists():
     detail_file.unlink()
-
-# %% [markdown]
-# ## 2. Derive the held-out test cohort
-#
-# The fixed split is: sort ``ref_data_dir`` by filename, take the *first*
-# 80% of patients as train, the *last* 20% as test.  ``1-finetune_icon.py``
-# applies the same rule so the two scripts agree without any cached record.
+if warped_ref_detail_file.exists():
+    warped_ref_detail_file.unlink()
 
 # %%
 ref_files = sorted(
@@ -100,6 +98,9 @@ print(f"Held-out test subjects: {test_subjects}")
 # %%
 landmark_tools = LandmarkTools()
 labelmap_tools = LabelmapTools()
+transform_tools = TransformTools()
+segmenter = SegmentHeartSimpleware()
+segmenter.set_trim_branches(False)
 
 
 # %% [markdown]
@@ -186,27 +187,21 @@ for subject_id in test_subjects:
         method_dir.mkdir(parents=True, exist_ok=True)
 
         for index, image_file in enumerate(image_files):
-            if index == reference_index:
-                continue
             timepoint = timepoints[index]
-            timepoint_dir = method_dir / timepoint
-            timepoint_dir.mkdir(parents=True, exist_ok=True)
 
             inverse_transform = result["inverse_transforms"][index]
+
             itk.transformwrite(
                 result["forward_transforms"][index],
-                str(timepoint_dir / "time_to_reference.hdf"),
+                str(method_dir / f"{subject_id}_g{timepoint}_forward_tfm.hdf"),
                 compression=True,
             )
             itk.transformwrite(
                 inverse_transform,
-                str(timepoint_dir / "reference_to_time.hdf"),
+                str(method_dir / f"{subject_id}_g{timepoint}_inverse_tfm.hdf"),
                 compression=True,
             )
 
-            # inverse_transform follows the ITK resampler convention — it maps
-            # moving-grid points back to reference-grid points, which is what
-            # we need to warp time-point landmarks into reference space.
             timepoint_landmarks = moving_landmarks[index]
             shared = sorted(timepoint_landmarks.keys() & reference_landmarks.keys())
             errors: list[tuple[str, float]] = []
@@ -243,6 +238,95 @@ for subject_id in test_subjects:
                     "max_mm": float(np.max(values)) if values.size else "",
                 }
             )
+
+            # ------------------------------------------------------------------
+            # Warp the reference image back onto each time-point's grid, re-
+            # segment with SegmentHeartSimpleware, and compare the resulting
+            # landmarks with the time-point's own precomputed landmarks.
+            #
+            # Per transform_conventions.rst:
+            #   - warp fixed image -> moving grid  => inverse_transform +
+            #     TransformTools.transform_image  (pull-back)
+            #   - warp moving points -> fixed space => inverse_transform +
+            #     .TransformPoint()  (push-forward)
+            # Both use inverse_transform, but for opposite purposes.
+            # Here we use inverse_transform for image warping (row 3 of the
+            # table), placing the reference image in time-point space so
+            # Simpleware sees anatomy at the correct cardiac phase.
+            #
+            # Skip the reference frame — warping it to itself is trivial and
+            # its own landmarks are already the "ground truth" reference.
+            # ------------------------------------------------------------------
+            if index == reference_index:
+                continue
+
+            warped_ref = transform_tools.transform_image(
+                fixed_image,
+                inverse_transform,
+                moving_images[index],
+                interpolation_method="linear",
+            )
+            itk.imwrite(
+                warped_ref,
+                method_dir / f"{subject_id}_g{timepoint}_warped_ref.mha",
+                compression=True,
+            )
+
+            seg_result = segmenter.segment(warped_ref, contrast_enhanced_study=False)
+            warped_ref_labelmap = seg_result["labelmap"]
+            warped_ref_landmarks = segmenter.get_landmarks()
+
+            itk.imwrite(
+                warped_ref_labelmap,
+                str(method_dir / f"{subject_id}_g{timepoint}_warped_ref_labelmap.mha"),
+                compression=True,
+            )
+            landmark_tools.write_landmarks_3dslicer(
+                warped_ref_landmarks,
+                str(
+                    method_dir
+                    / f"{subject_id}_g{timepoint}_warped_ref_landmarks.mrk.json"
+                ),
+            )
+
+            # Both warped_ref_landmarks and timepoint_landmarks are in the
+            # time-point (moving) image space — compare directly.
+            tp_landmarks = moving_landmarks[index]
+            shared_warp = sorted(warped_ref_landmarks.keys() & tp_landmarks.keys())
+            warp_errors: list[tuple[str, float]] = []
+            for name in shared_warp:
+                err = float(
+                    np.linalg.norm(
+                        np.asarray(warped_ref_landmarks[name], dtype=np.float64)
+                        - np.asarray(tp_landmarks[name], dtype=np.float64)
+                    )
+                )
+                warp_errors.append((name, err))
+                print(f"    Warped-ref landmark {name}: {err:.3f} mm")
+
+            with warped_ref_detail_file.open("a", newline="", encoding="utf-8") as fh:
+                writer = csv.writer(fh)
+                if fh.tell() == 0:
+                    writer.writerow(
+                        [
+                            "subject_id",
+                            "method",
+                            "timepoint",
+                            "name",
+                            "error_mm",
+                        ]
+                    )
+                for name, err in warp_errors:
+                    writer.writerow([subject_id, method_name, timepoint, name, err])
+
+            warp_vals = np.asarray([e for _, e in warp_errors], dtype=np.float64)
+            if warp_vals.size:
+                print(
+                    f"  Warped-ref landmark errors ({timepoint}): "
+                    f"mean={float(np.mean(warp_vals)):.3f} mm  "
+                    f"median={float(np.median(warp_vals)):.3f} mm  "
+                    f"max={float(np.max(warp_vals)):.3f} mm"
+                )
 
 # %% [markdown]
 # ## 5. Write the wide-form per-timepoint summary CSV
@@ -291,3 +375,49 @@ for method_name, _ in methods:
         f"{float(np.max(arr)):>12.3f}"
     )
 print("=" * len(header))
+
+# %% [markdown]
+# ## 7. Per-method aggregate table: warped-reference landmark errors
+#
+# Compares landmarks extracted from the reference image warped back to each
+# time-point's grid (via ``inverse_transform``) against that time-point's own
+# precomputed landmarks.  Both sets are in the moving (time-point) image space,
+# so errors are Euclidean distances without any additional transform.
+
+# %%
+if warped_ref_detail_file.exists():
+    warp_groups: dict[str, list[float]] = {}
+    with warped_ref_detail_file.open(newline="", encoding="utf-8") as fh:
+        for row in csv.DictReader(fh):
+            warp_groups.setdefault(row["method"], []).append(float(row["error_mm"]))
+
+    warp_header = (
+        f"{'Method':<18}{'N':>8}{'Mean (mm)':>12}"
+        f"{'Median (mm)':>14}{'P95 (mm)':>12}{'Max (mm)':>12}"
+    )
+    print()
+    print("=" * len(warp_header))
+    print(
+        f"Warped-reference landmark error summary ({len(test_subjects)} test subjects)"
+    )
+    print("=" * len(warp_header))
+    print(warp_header)
+    print("-" * len(warp_header))
+    for method_name, _ in methods:
+        arr = np.asarray(warp_groups.get(method_name, []), dtype=np.float64)
+        if arr.size == 0:
+            print(f"{method_name:<18}{0:>8}{'':>12}{'':>14}{'':>12}{'':>12}")
+            continue
+        print(
+            f"{method_name:<18}"
+            f"{arr.size:>8}"
+            f"{float(np.mean(arr)):>12.3f}"
+            f"{float(np.median(arr)):>14.3f}"
+            f"{float(np.percentile(arr, 95)):>12.3f}"
+            f"{float(np.max(arr)):>12.3f}"
+        )
+    print("=" * len(warp_header))
+else:
+    print(
+        "No warped-reference landmark errors written (all frames were reference frames)."
+    )

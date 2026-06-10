@@ -5,7 +5,7 @@ the two halves of the longitudinal-registration ICON fine-tuning experiment
 from ``experiments/LongitudinalRegistration``:
 
 1. **Fine-tuning**: build a paired dataset JSON and YAML config from per-subject
-   lists of image files (with optional segmentation labelmaps and landmark CSVs)
+   lists of image files (with optional labelmaps and landmark CSVs)
    and launch ``unigradicon.finetuning.finetune`` as a subprocess.  Mirrors
    ``experiments/LongitudinalRegistration/1-finetune_icon.py``.
 2. **Apply**: load a fine-tuned uniGradICON checkpoint and register a list of
@@ -26,7 +26,7 @@ Conventions:
       transform that maps moving-grid points back to reference-grid points;
       ``forward_transform`` is the inverse direction (reference grid →
       moving grid).  Landmarks are warped using ``TransformPoint`` and
-      images/segmentations are resampled via
+      images/labelmaps are resampled via
       :meth:`TransformTools.transform_image`.
 """
 
@@ -57,7 +57,7 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
 
     **Stage 1: Fine-tuning** (file-based)
         Build a paired dataset JSON and YAML config from per-subject lists of
-        image, segmentation, and landmark files, then launch
+        image, labelmap, and landmark files, then launch
         ``unigradicon.finetuning.finetune`` as a subprocess.  Each subject's
         time-point images form one paired group (they share a ``subject_id``).
 
@@ -65,8 +65,8 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
         Register a list of moving images to a single reference image using the
         fine-tuned ICON weights and return both directions of the warp:
 
-        - moving images / segmentations / landmarks warped into reference space
-        - the reference image / segmentation / landmarks warped into each
+        - moving images / labelmaps / landmarks warped into reference space
+        - the reference image / labelmap / landmarks warped into each
           moving-image space
 
     Attributes:
@@ -80,9 +80,9 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
             identifiers).  Written into the dataset JSON's ``subject_id``
             field; falls back to synthetic ``subject_NNNN`` when ``None``.
         subject_labelmap_files (Optional[list[list[Optional[str]]]]):
-            Per-subject multi-label segmentation/labelmap paths aligned with
+            Per-subject multi-label labelmap paths aligned with
             ``subject_image_files``.  ``None`` (or per-image ``None``) means no
-            segmentation for that image.  If supplied for at least one image,
+            labelmap for that image.  If supplied for at least one image,
             paired-with-seg training is enabled.
         subject_mask_files (Optional[list[list[Optional[str]]]]):
             Per-subject binary mask paths aligned with ``subject_image_files``.
@@ -104,7 +104,7 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
         registrar (RegisterTimeSeriesImages): ICON-backend registrar used in
             :meth:`apply_registration`.
         transform_tools (TransformTools): Utility for resampling images and
-            segmentations.
+            labelmaps.
 
     Example:
         >>> # Stage 1: fine-tune
@@ -127,8 +127,8 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
         ...     reference_image=ref_image,
         ...     moving_images=moving_images,
         ...     weights_path=weights_path,
-        ...     reference_segmentation=ref_seg,
-        ...     moving_segmentations=moving_segs,
+        ...     reference_labelmap=ref_seg,
+        ...     moving_labelmaps=moving_segs,
         ... )
         >>> warped_to_ref = result['moving_to_reference_images']
         >>> warped_to_moving = result['reference_to_moving_images']
@@ -143,7 +143,7 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
         subject_labelmap_files: Optional[list[list[Optional[str]]]] = None,
         subject_mask_files: Optional[list[list[Optional[str]]]] = None,
         subject_landmark_files: Optional[list[list[Optional[str]]]] = None,
-        epochs: int = 2000,
+        epochs: int = 500,
         batch_size: int = 4,
         learning_rate: float = 5e-5,
         input_shape: tuple[int, int, int] = (175, 175, 175),
@@ -262,7 +262,7 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
         self.subject_mask_files = subject_mask_files
         self.subject_landmark_files = subject_landmark_files
 
-        self.use_segmentations: bool = subject_labelmap_files is not None
+        self.use_labelmaps: bool = subject_labelmap_files is not None
         self.use_masks: bool = (
             subject_mask_files is not None or subject_labelmap_files is not None
         )
@@ -295,7 +295,7 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
         self.labelmap_tools = LabelmapTools(log_level=log_level)
         self.registrar: Optional[RegisterTimeSeriesImages] = None
 
-        self._use_segmentations: bool = self.use_segmentations
+        self._use_labelmaps: bool = self.use_labelmaps
         self._use_masks: bool = self.use_masks
 
         self._dataset_json_path: Optional[Path] = None
@@ -374,7 +374,7 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
 
     def prepare_dataset(
         self,
-        use_segmentations: Optional[bool] = None,
+        use_labelmaps: Optional[bool] = None,
         use_masks: Optional[bool] = None,
     ) -> Path:
         """Write the uniGradICON dataset JSON from the configured file lists.
@@ -399,12 +399,12 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
         """
         self.experiment_dir.mkdir(parents=True, exist_ok=True)
 
-        if use_segmentations is None:
-            use_segmentations = self.use_segmentations
+        if use_labelmaps is None:
+            use_labelmaps = self.use_labelmaps
         if use_masks is None:
             use_masks = self.use_masks
 
-        self._use_segmentations = use_segmentations
+        self._use_labelmaps = use_labelmaps
         self._use_masks = use_masks
 
         dataset_entries: list[dict[str, str]] = []
@@ -415,7 +415,7 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
                 else f"subject_{subject_index:04d}"
             )
             seg_list: list[Optional[str]]
-            if not use_segmentations:
+            if not use_labelmaps:
                 seg_list = [None] * len(image_files)
             else:
                 seg_list = (
@@ -450,7 +450,7 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
                     "subject_id": subject_id,
                 }
 
-                if use_segmentations:
+                if use_labelmaps:
                     if seg_file is None or not Path(seg_file).exists():
                         self.log_warning(
                             "Skipping %s: segmentation missing for paired-with-seg "
@@ -536,7 +536,7 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
                 "dice_loss_weight": self.dice_loss_weight,
                 "lncc_sigma": self.lncc_sigma,
                 "loss_function_masking": self._use_masks,
-                "use_label": self._use_segmentations,
+                "use_label": False,
                 "roi_masking": False,
             },
             "datasets": [
@@ -637,11 +637,13 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
         reference_image: itk.Image,
         moving_images: list[itk.Image],
         weights_path: Optional[Union[str, Path]] = None,
-        reference_segmentation: Optional[itk.Image] = None,
+        reference_labelmap: Optional[itk.Image] = None,
+        reference_mask: Optional[itk.Image] = None,
         reference_landmarks: Optional[Landmarks] = None,
-        moving_segmentations: Optional[list[Optional[itk.Image]]] = None,
+        moving_labelmaps: Optional[list[Optional[itk.Image]]] = None,
+        moving_masks: Optional[list[Optional[itk.Image]]] = None,
         moving_landmarks: Optional[list[Optional[Landmarks]]] = None,
-        number_of_iterations: int = 20,
+        number_of_iterations: int = 100,
         modality: str = "ct",
     ) -> dict[str, Any]:
         """Register each moving image to the reference using fine-tuned ICON weights.
@@ -654,12 +656,12 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
           ROI; the same is done for the reference segmentation (used as the
           fixed mask).
         - Warps the moving image, segmentation, and landmarks into reference
-          space using ``forward_transform``.  Segmentations use nearest-neighbor
+          space using ``forward_transform``.  Labelmaps use nearest-neighbor
           interpolation.  Landmarks use ``inverse_transform.TransformPoint``
           (resampler-convention transform: maps moving-grid points back to
           reference-grid points).
         - Warps the reference image, segmentation, and landmarks into each
-          moving-image space using ``inverse_transform`` for image/segmentation
+          moving-image space using ``inverse_transform`` for image/labelmap
           resampling and ``forward_transform.TransformPoint`` for landmarks.
 
         Args:
@@ -669,15 +671,22 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
             weights_path: Path to a uniGradICON checkpoint (e.g.
                 ``Finetune_multi_final.trch``).  ``None`` uses the default
                 pretrained uniGradICON weights.
-            reference_segmentation: Optional multi-label labelmap aligned with
+            reference_labelmap: Optional multi-label labelmap aligned with
                 ``reference_image``.  Used to derive the fixed-image mask and
                 returned warped into each moving-image space.
+            reference_mask: Optional binary mask aligned with ``reference_image``.
+                Used to derive the fixed-image mask and returned warped into each
+                moving-image space.
             reference_landmarks: Optional ``{name: (x, y, z)}`` landmark dict in
                 LPS that will be warped into each moving-image space.
-            moving_segmentations: Optional per-moving multi-label labelmaps
+            moving_labelmaps: Optional per-moving multi-label labelmaps
                 aligned with ``moving_images``.  Used to derive per-moving
                 masks and returned warped into reference space.  Per-image
                 ``None`` entries are allowed.
+            moving_masks: Optional per-moving binary mask paths aligned with
+                ``moving_images``.  Used to derive per-moving masks and returned
+                warped into reference space.  Per-image ``None`` entries are
+                allowed.
             moving_landmarks: Optional per-moving landmark dicts in LPS.  Each
                 set is warped into reference space.  Per-image ``None`` entries
                 are allowed.
@@ -697,8 +706,8 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
                 - ``losses`` (``list[float]``): per-moving registration loss.
                 - ``moving_to_reference_images`` (``list[itk.Image]``): each
                   moving image resampled onto the reference grid.
-                - ``moving_to_reference_segmentations`` (``list[Optional[itk.Image]]``):
-                  each moving segmentation resampled onto the reference grid
+                - ``moving_to_reference_labelmaps`` (``list[Optional[itk.Image]]``):
+                  each moving labelmap resampled onto the reference grid
                   with nearest-neighbor interpolation.  ``None`` when the input
                   was ``None``.
                 - ``moving_to_reference_landmarks`` (``list[Optional[Landmarks]]``):
@@ -706,26 +715,31 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
                   ``None`` when the input was ``None``.
                 - ``reference_to_moving_images`` (``list[itk.Image]``): the
                   reference image resampled onto each moving grid.
-                - ``reference_to_moving_segmentations`` (``list[Optional[itk.Image]]``):
+                - ``reference_to_moving_labelmaps`` (``list[Optional[itk.Image]]``):
                   the reference segmentation resampled onto each moving grid
                   with nearest-neighbor interpolation.  ``None`` for every
-                  entry when ``reference_segmentation`` was ``None``.
+                  entry when ``reference_labelmap`` was ``None``.
                 - ``reference_to_moving_landmarks`` (``list[Optional[Landmarks]]``):
                   reference landmarks warped into each moving space.  ``None``
                   for every entry when ``reference_landmarks`` was ``None``.
 
         Raises:
             ValueError: If ``moving_images`` is empty.
-            ValueError: If ``moving_segmentations`` or ``moving_landmarks`` is
+            ValueError: If ``moving_labelmaps`` or ``moving_landmarks`` is
                 supplied with a length that does not match ``moving_images``.
         """
         if not moving_images:
             raise ValueError("moving_images must not be empty")
         num_moving = len(moving_images)
-        if moving_segmentations is not None and len(moving_segmentations) != num_moving:
+        if moving_labelmaps is not None and len(moving_labelmaps) != num_moving:
             raise ValueError(
-                f"moving_segmentations length ({len(moving_segmentations)}) must "
+                f"moving_labelmaps length ({len(moving_labelmaps)}) must "
                 f"match moving_images length ({num_moving})"
+            )
+        if moving_masks is not None and len(moving_masks) != num_moving:
+            raise ValueError(
+                f"moving_masks length ({len(moving_masks)}) must match "
+                f"moving_images length ({num_moving})"
             )
         if moving_landmarks is not None and len(moving_landmarks) != num_moving:
             raise ValueError(
@@ -740,40 +754,43 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
         else:
             self.log_info("ICON weights: %s", weights_path)
 
-        fixed_mask = (
-            self.labelmap_tools.convert_labelmap_to_mask(
-                reference_segmentation, dilation_in_mm=self.mask_dilation_mm
-            )
-            if reference_segmentation is not None
-            else None
-        )
-        moving_masks: Optional[list[Optional[itk.Image]]] = None
-        if moving_segmentations is not None:
-            moving_masks = [
-                (
-                    self.labelmap_tools.convert_labelmap_to_mask(
-                        seg, dilation_in_mm=self.mask_dilation_mm
-                    )
-                    if seg is not None
-                    else None
+        if reference_mask is None:
+            reference_mask = (
+                self.labelmap_tools.convert_labelmap_to_mask(
+                    reference_labelmap, dilation_in_mm=self.mask_dilation_mm
                 )
-                for seg in moving_segmentations
-            ]
+                if reference_labelmap is not None
+                else None
+            )
+
+        if moving_masks is None:
+            if moving_labelmaps is not None:
+                moving_masks = [
+                    (
+                        self.labelmap_tools.convert_labelmap_to_mask(
+                            labelmap, dilation_in_mm=self.mask_dilation_mm
+                        )
+                        if labelmap is not None
+                        else None
+                    )
+                    for labelmap in moving_labelmaps
+                ]
 
         self.registrar = RegisterTimeSeriesImages(
             registration_method="ICON", log_level=self.log_level
         )
         self.registrar.set_modality(modality)
         self.registrar.set_fixed_image(reference_image)
-        self.registrar.set_fixed_mask(fixed_mask)
+        self.registrar.set_fixed_mask(reference_mask)
         self.registrar.set_number_of_iterations_ICON(number_of_iterations)
         if weights_path is not None:
             self.registrar.registrar_ICON.set_weights_path(str(weights_path))
 
+        # TODO: set reference frame and register reference
         result = self.registrar.register_time_series(
             moving_images=moving_images,
             moving_masks=moving_masks,
-            moving_labelmaps=None,
+            moving_labelmaps=moving_labelmaps,
             reference_frame=0,
             register_reference=True,
             prior_weight=0.0,
@@ -783,10 +800,12 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
         losses = result["losses"]
 
         moving_to_reference_images: list[itk.Image] = []
-        moving_to_reference_segmentations: list[Optional[itk.Image]] = []
+        moving_to_reference_labelmaps: list[Optional[itk.Image]] = []
+        moving_to_reference_masks: list[Optional[itk.Image]] = []
         moving_to_reference_landmarks: list[Optional[Landmarks]] = []
         reference_to_moving_images: list[itk.Image] = []
-        reference_to_moving_segmentations: list[Optional[itk.Image]] = []
+        reference_to_moving_labelmaps: list[Optional[itk.Image]] = []
+        reference_to_moving_masks: list[Optional[itk.Image]] = []
         reference_to_moving_landmarks: list[Optional[Landmarks]] = []
 
         for index in range(num_moving):
@@ -805,41 +824,64 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
                 )
             )
 
-            moving_seg = (
-                moving_segmentations[index]
-                if moving_segmentations is not None
-                else None
+            moving_labelmap = (
+                moving_labelmaps[index] if moving_labelmaps is not None else None
             )
-            if moving_seg is not None:
-                moving_to_reference_segmentations.append(
+            if moving_labelmap is not None:
+                moving_to_reference_labelmaps.append(
                     self.transform_tools.transform_image(
-                        moving_seg,
+                        moving_labelmap,
                         forward_tfm,
                         reference_image,
                         interpolation_method="nearest",
                     )
                 )
             else:
-                moving_to_reference_segmentations.append(None)
+                moving_to_reference_labelmaps.append(None)
 
-            if reference_segmentation is not None:
-                reference_to_moving_segmentations.append(
+            if reference_labelmap is not None:
+                reference_to_moving_labelmaps.append(
                     self.transform_tools.transform_image(
-                        reference_segmentation,
+                        reference_labelmap,
                         inverse_tfm,
                         moving_image,
                         interpolation_method="nearest",
                     )
                 )
             else:
-                reference_to_moving_segmentations.append(None)
+                reference_to_moving_labelmaps.append(None)
 
-            moving_lms = (
+            moving_mask = moving_masks[index] if moving_masks is not None else None
+            if moving_mask is not None:
+                moving_to_reference_masks.append(
+                    self.transform_tools.transform_image(
+                        moving_mask,
+                        forward_tfm,
+                        reference_image,
+                        interpolation_method="nearest",
+                    )
+                )
+            else:
+                moving_to_reference_masks.append(None)
+
+            if reference_mask is not None:
+                reference_to_moving_masks.append(
+                    self.transform_tools.transform_image(
+                        reference_mask,
+                        inverse_tfm,
+                        moving_image,
+                        interpolation_method="nearest",
+                    )
+                )
+            else:
+                reference_to_moving_masks.append(None)
+
+            moving_lndmrks = (
                 moving_landmarks[index] if moving_landmarks is not None else None
             )
-            if moving_lms is not None:
+            if moving_lndmrks is not None:
                 moving_to_reference_landmarks.append(
-                    self._transform_landmarks(moving_lms, inverse_tfm)
+                    self._transform_landmarks(moving_lndmrks, inverse_tfm)
                 )
             else:
                 moving_to_reference_landmarks.append(None)
@@ -863,9 +905,11 @@ class WorkflowFineTuneICONRegistration(PhysioMotion4DBase):
             "inverse_transforms": inverse_transforms,
             "losses": losses,
             "moving_to_reference_images": moving_to_reference_images,
-            "moving_to_reference_segmentations": moving_to_reference_segmentations,
+            "moving_to_reference_labelmaps": moving_to_reference_labelmaps,
+            "moving_to_reference_masks": moving_to_reference_masks,
             "moving_to_reference_landmarks": moving_to_reference_landmarks,
             "reference_to_moving_images": reference_to_moving_images,
-            "reference_to_moving_segmentations": reference_to_moving_segmentations,
+            "reference_to_moving_labelmaps": reference_to_moving_labelmaps,
+            "reference_to_moving_masks": reference_to_moving_masks,
             "reference_to_moving_landmarks": reference_to_moving_landmarks,
         }

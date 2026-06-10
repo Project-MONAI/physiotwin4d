@@ -32,7 +32,7 @@ import pyvista as pv
 from physiomotion4d.contour_tools import ContourTools
 from physiomotion4d.labelmap_tools import LabelmapTools
 from physiomotion4d.physiomotion4d_base import PhysioMotion4DBase
-from physiomotion4d.register_images_ants import RegisterImagesANTS
+from physiomotion4d.register_images_greedy import RegisterImagesGreedy
 from physiomotion4d.register_images_icon import RegisterImagesICON
 from physiomotion4d.register_models_distance_maps import RegisterModelsDistanceMaps
 from physiomotion4d.register_models_icp import RegisterModelsICP
@@ -62,7 +62,7 @@ class WorkflowFitStatisticalModelToPatient(PhysioMotion4DBase):
     (e.g., cardiac models) to patient-specific surface models and images. The
     registration pipeline combines:
     - Initial model alignment using RegisterModelsICP (centroid + affine ICP)
-    - Mask-based deformable registration using RegisterModelsDistanceMaps (ANTs/ICON)
+    - Mask-based deformable registration using RegisterModelsDistanceMaps (Greedy/ICON)
     - Optional final mask-to-image refinement using Icon registration
 
     **Registration Pipeline:**
@@ -94,7 +94,7 @@ class WorkflowFitStatisticalModelToPatient(PhysioMotion4DBase):
         roi_dilation_mm (float): Dilation for ROI mask
         transform_tools (TransformTools): Transform utilities
         registrar_ICON (RegisterImagesICON): ICON registration instance
-        registrar_ANTS (RegisterImagesANTS): ANTs registration instance
+        registrar_Greedy (RegisterImagesGreedy): Greedy registration instance
         use_pca_registration (bool): Whether PCA registration is enabled (set via set_use_pca_registration)
         pca_model (dict): PCA model dict when PCA enabled; same structure as WorkflowCreateStatisticalModel output
         pca_number_of_modes (int): Number of PCA modes when PCA enabled
@@ -218,8 +218,8 @@ class WorkflowFitStatisticalModelToPatient(PhysioMotion4DBase):
                 ptype=itk.F,
             )
 
-        self.registrar_ANTS = RegisterImagesANTS()
-        self.registrar_ANTS.set_number_of_iterations([5, 2, 5])
+        self.registrar_Greedy = RegisterImagesGreedy()
+        self.registrar_Greedy.set_number_of_iterations([5, 2, 5])
         # Icon registration for final mask-to-image step
         self.registrar_ICON = RegisterImagesICON()
         self.registrar_ICON.set_modality("ct")
@@ -812,10 +812,10 @@ class WorkflowFitStatisticalModelToPatient(PhysioMotion4DBase):
         )
         patient_roi = self._auto_generate_roi_mask(patient_mask)
 
-        self.registrar_ANTS.set_fixed_image(self.patient_image)
-        self.registrar_ANTS.set_fixed_mask(patient_roi)
+        self.registrar_Greedy.set_fixed_image(self.patient_image)
+        self.registrar_Greedy.set_fixed_mask(patient_roi)
 
-        result = self.registrar_ANTS.register(
+        result = self.registrar_Greedy.register(
             moving_image=labelmap, moving_mask=labelmap_roi
         )
         self.m2i_inverse_transform = result["inverse_transform"]

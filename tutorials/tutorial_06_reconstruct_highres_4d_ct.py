@@ -45,7 +45,7 @@ if __name__ == "__main__":
     OUTPUT_DIR = TUTORIALS_DIR / "output" / "tutorial_06"
     BASELINES_DIR = REPO_ROOT / "tests" / "baselines"
     MAX_FRAMES = 4
-    REGISTRATION_METHOD = "ANTS"
+    REGISTRATION_METHOD = "Greedy_ICON"
     LOG_LEVEL = logging.INFO
 
     # %%
@@ -59,10 +59,10 @@ if __name__ == "__main__":
 
     if test_mode:
         max_frames = min(MAX_FRAMES, 3)
-        number_of_iterations_ANTS = [1, 0]
+        number_of_iterations_Greedy = [1, 0]
     else:
         max_frames = MAX_FRAMES
-        number_of_iterations_ANTS = [30, 15, 7, 3]
+        number_of_iterations_Greedy = [30, 15, 7, 3]
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -87,7 +87,7 @@ if __name__ == "__main__":
         log_level=log_level,
     )
     workflow.set_modality("ct")
-    workflow.set_number_of_iterations_ANTS(number_of_iterations_ANTS)
+    workflow.set_number_of_iterations_Greedy(number_of_iterations_Greedy)
 
     # %%
     # Workflow execution

@@ -4,7 +4,7 @@ This module provides the WorkflowReconstructHighres4DCT class for reconstructing
 a high-resolution 4D CT time series from lower-resolution time-series images and
 a single high-resolution reference image.
 
-The workflow uses ANTS+ICON combined registration to:
+The workflow uses Greedy+ICON combined registration to:
 1. Register each time-series image to the high-resolution reference
 2. Apply inverse transforms to reconstruct high-resolution time series
 3. Optionally upsample to the reference image resolution
@@ -16,7 +16,7 @@ This is particularly useful for cardiac CT where you have:
 
 Key Features:
     - Sequential time-series registration using RegisterTimeSeriesImages
-    - Combined ANTS+ICON registration for optimal results
+    - Combined Greedy+ICON registration for optimal results
     - Bidirectional registration from reference frame
     - Optional temporal smoothing with prior transforms
     - High-resolution reconstruction with optional upsampling
@@ -37,11 +37,11 @@ class WorkflowReconstructHighres4DCT(PhysioMotion4DBase):
 
     This class implements a workflow for reconstructing high-resolution dynamic
     CT images by registering low-resolution time-series images to a high-resolution
-    reference image using combined ANTS+ICON registration.
+    reference image using combined Greedy+ICON registration.
 
     **Registration Pipeline:**
         1. **Time Series Registration**: Register each time-series image to the
-           high-resolution reference using RegisterTimeSeriesImages with ANTS_ICON method
+           high-resolution reference using RegisterTimeSeriesImages with Greedy_ICON method
         2. **Reconstruction**: Apply inverse transforms to reconstruct high-resolution
            time series
         3. **Optional Upsampling**: Resample to isotropic high resolution
@@ -58,7 +58,7 @@ class WorkflowReconstructHighres4DCT(PhysioMotion4DBase):
         register_reference (bool): Whether to register reference frame
         prior_weight (float): Weight for temporal smoothing (0.0-1.0)
         upsample_to_fixed_resolution (bool): Whether to upsample reconstruction
-        registration_method (str): Registration method ('ANTS', 'ICON', or 'ANTS_ICON')
+        registration_method (str): Registration method ('Greedy', 'ICON', or 'Greedy_ICON')
         number_of_iterations: Iterations for registration
         registrar (RegisterTimeSeriesImages): Internal registration object
         forward_transforms (list[itk.Transform]): one per frame; each warps its
@@ -74,11 +74,11 @@ class WorkflowReconstructHighres4DCT(PhysioMotion4DBase):
         ...     time_series_images=lowres_images,
         ...     fixed_image=highres_reference,
         ...     reference_frame=3,
-        ...     registration_method='ANTS_ICON',
+        ...     registration_method='Greedy_ICON',
         ... )
         >>>
         >>> # Configure registration parameters
-        >>> workflow.set_number_of_iterations_ANTS([30, 15, 7])
+        >>> workflow.set_number_of_iterations_Greedy([30, 15, 7])
         >>> workflow.set_number_of_iterations_ICON(20)
         >>> workflow.set_prior_weight(0.5)
         >>>
@@ -97,7 +97,7 @@ class WorkflowReconstructHighres4DCT(PhysioMotion4DBase):
         fixed_image: itk.Image,
         reference_frame: int = 0,
         register_reference: bool = False,
-        registration_method: str = "ANTS_ICON",
+        registration_method: str = "Greedy_ICON",
         log_level: int | str = logging.INFO,
     ):
         """Initialize the high-resolution 4D CT reconstruction workflow.
@@ -113,7 +113,7 @@ class WorkflowReconstructHighres4DCT(PhysioMotion4DBase):
                 to the fixed image. If False, use identity transform for reference.
                 Default: False
             registration_method (str, optional): Registration method to use.
-                Options: 'ANTS', 'ICON', or 'ANTS_ICON'. Default: 'ANTS_ICON'
+                Options: 'Greedy', 'ICON', or 'Greedy_ICON'. Default: 'Greedy_ICON'
             log_level: Logging level (logging.DEBUG, logging.INFO, etc.).
                 Default: logging.INFO
 
@@ -137,9 +137,9 @@ class WorkflowReconstructHighres4DCT(PhysioMotion4DBase):
                 f"[0, {len(time_series_images) - 1}]"
             )
 
-        if registration_method not in ["ANTS", "ICON", "ANTS_ICON"]:
+        if registration_method not in ["Greedy", "ICON", "Greedy_ICON"]:
             raise ValueError(
-                f"registration_method must be 'ANTS', 'ICON', or 'ANTS_ICON', "
+                f"registration_method must be 'Greedy', 'ICON', or 'Greedy_ICON', "
                 f"got '{registration_method}'"
             )
 
@@ -159,7 +159,7 @@ class WorkflowReconstructHighres4DCT(PhysioMotion4DBase):
         self.moving_masks: Optional[list[Optional[itk.Image]]] = None
 
         # Set default number of iterations based on registration method
-        self.number_of_iterations_ANTS: list[int] = [30, 15, 7, 3]
+        self.number_of_iterations_Greedy: list[int] = [30, 15, 7, 3]
         self.number_of_iterations_ICON: int = 20
 
         # Initialize registrar
@@ -173,16 +173,16 @@ class WorkflowReconstructHighres4DCT(PhysioMotion4DBase):
         self.losses: Optional[list[float]] = None
         self.reconstructed_images: Optional[list[itk.Image]] = None
 
-    def set_number_of_iterations_ANTS(
-        self, number_of_iterations_ANTS: list[int]
+    def set_number_of_iterations_Greedy(
+        self, number_of_iterations_Greedy: list[int]
     ) -> None:
-        """Set the number of iterations for ANTs registration.
+        """Set the number of iterations for Greedy registration.
 
         Args:
-            number_of_iterations_ANTS: List of iterations for ANTs multi-resolution
+            number_of_iterations_Greedy: List of iterations for Greedy multi-resolution
                 (e.g., [30, 15, 7, 3] for four resolution levels)
         """
-        self.number_of_iterations_ANTS = number_of_iterations_ANTS
+        self.number_of_iterations_Greedy = number_of_iterations_Greedy
 
     def set_number_of_iterations_ICON(self, number_of_iterations_ICON: int) -> None:
         """Set the number of iterations for ICON registration.
@@ -280,7 +280,7 @@ class WorkflowReconstructHighres4DCT(PhysioMotion4DBase):
         self.registrar.set_fixed_image(self.fixed_image)
         self.registrar.set_modality(self.modality)
         self.registrar.set_mask_dilation(self.mask_dilation_mm)
-        self.registrar.set_number_of_iterations_ANTS(self.number_of_iterations_ANTS)
+        self.registrar.set_number_of_iterations_greedy(self.number_of_iterations_Greedy)
         self.registrar.set_number_of_iterations_ICON(self.number_of_iterations_ICON)
         self.registrar.set_fixed_mask(self.fixed_mask)
 
@@ -289,7 +289,9 @@ class WorkflowReconstructHighres4DCT(PhysioMotion4DBase):
         self.log_info(f"Reference frame: {self.reference_frame}")
         self.log_info(f"Register reference: {self.register_reference}")
         self.log_info(f"Prior weight: {self.prior_weight}")
-        self.log_info(f"Number of iterations (ANTs): {self.number_of_iterations_ANTS}")
+        self.log_info(
+            f"Number of iterations (Greedy): {self.number_of_iterations_Greedy}"
+        )
         self.log_info(f"Number of iterations (ICON): {self.number_of_iterations_ICON}")
 
         # Perform registration
