@@ -88,7 +88,6 @@ Regenerate it after any public API change: `py utils/generate_api_map.py`
   export by `vtk_to_usd.lps_points_to_usd` (USD +X=Left, +Y=Superior, +Z=Anterior)
 - Masks: ITK images with integer labels; consistent anatomy group IDs across all segmenters
 - Transforms: ITK composite transforms stored in `.hdf` files with compression
-- State axis order and shape explicitly in every docstring and comment that touches arrays
 
 ## Testing
 

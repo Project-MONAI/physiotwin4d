@@ -87,9 +87,9 @@ Examples:
     )
     parser.add_argument(
         "--registration-method",
-        choices=["ANTS", "ICON"],
+        choices=["Greedy", "ICON"],
         default="ICON",
-        help="Registration method to use: ANTS or ICON (default: ICON)",
+        help="Registration method to use: Greedy or ICON (default: ICON)",
     )
     parser.add_argument(
         "--fps",

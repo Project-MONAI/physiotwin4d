@@ -104,17 +104,11 @@ class ImageTools(PhysioMotion4DBase):
         Returns:
             SimpleITK image with identical data and metadata
 
-        Note:
-            Memory layout is preserved during conversion. Both ITK and SimpleITK
-            use (z, y, x) ordering for 3D images in numpy arrays.
-
         Example:
             >>> tools = ImageTools()
             >>> itk_image = itk.imread('image.nii.gz')
             >>> sitk_image = tools.convert_itk_image_to_sitk(itk_image)
         """
-        # Get numpy array from ITK image
-        # ITK array is in (z, y, x) or (z, y, x, components) format
         array = itk.array_from_image(itk_image)
 
         # Get image metadata
@@ -129,11 +123,8 @@ class ImageTools(PhysioMotion4DBase):
             is_vector = n_components > 1
 
         if is_vector:
-            # For vector images, SimpleITK expects (z, y, x, components) which is what we have
-            # Create SimpleITK image from numpy array
             sitk_image = sitk.GetImageFromArray(array, isVector=True)
         else:
-            # For scalar images, array is (z, y, x)
             sitk_image = sitk.GetImageFromArray(array, isVector=False)
 
         # Set metadata
@@ -162,17 +153,11 @@ class ImageTools(PhysioMotion4DBase):
         Returns:
             ITK image with identical data and metadata
 
-        Note:
-            Memory layout is preserved during conversion. Both SimpleITK and ITK
-            use (z, y, x) ordering for 3D images in numpy arrays.
-
         Example:
             >>> tools = ImageTools()
             >>> sitk_image = sitk.ReadImage('image.nii.gz')
             >>> itk_image = tools.convert_sitk_image_to_itk(sitk_image)
         """
-        # Get numpy array from SimpleITK image
-        # SimpleITK array is in (z, y, x) or (z, y, x, components) format
         array = sitk.GetArrayFromImage(sitk_image)
 
         # Get image metadata

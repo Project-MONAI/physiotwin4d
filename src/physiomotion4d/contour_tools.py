@@ -214,9 +214,7 @@ class ContourTools(PhysioMotion4DBase):
             voxel_grid_origin_lps[2] + voxel_pitch * binary_array.shape[2]
         )
 
-        # Create ITK image from the voxel array
-        # ITK uses ZYX ordering (numpy array convention), trimesh uses XYZ
-        # Need to transpose: (X, Y, Z) -> (Z, Y, X)
+        # transpose to match trimesh XYZ convention
         binary_array_zyx = np.transpose(binary_array, (2, 1, 0))
         binary_array_flip = np.flip(binary_array_zyx, axis=0)
         binary_image = itk.GetImageFromArray(binary_array_flip)

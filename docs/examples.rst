@@ -35,7 +35,7 @@ Complete end-to-end cardiac CT processing:
        contrast_enhanced=True,
        output_directory="./results",
        project_name="patient_001",
-       registration_method="ANTS",
+       registration_method="ICON",
    )
 
    # Run complete workflow
@@ -66,7 +66,7 @@ phase images:
        time_series_images=time_series_images,
        fixed_image=fixed_image,
        reference_frame=0,
-       registration_method="ANTS",
+       registration_method="Greedy_ICON",
    )
 
    result = workflow.run_workflow(upsample_to_fixed_resolution=True)
@@ -411,7 +411,7 @@ Batch process multiple datasets:
            contrast_enhanced=True,
            output_directory=f"results/{patient_id}",
            project_name=patient_id,
-           registration_method="ANTS",
+           registration_method="ICON",
        )
 
        try:
@@ -481,7 +481,7 @@ Run the supported end-to-end workflow API:
        contrast_enhanced=True,
        output_directory="./results",
        project_name="cardiac_model",
-       registration_method="ANTS",
+       registration_method="ICON",
    )
 
    final_usd = workflow.process()

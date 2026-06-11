@@ -244,7 +244,7 @@ Script
    ``tutorials/tutorial_08_dirlab_pca_time_series.py``
 
 Workflow
-   ``RegisterTimeSeriesImages`` with ``registration_method='ANTS_ICON'`` and
+   ``RegisterTimeSeriesImages`` with ``registration_method='Greedy_ICON'`` and
    ``TransformTools``
 
 Dataset

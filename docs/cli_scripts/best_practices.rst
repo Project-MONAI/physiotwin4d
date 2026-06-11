@@ -171,7 +171,7 @@ Registration Failure
 **Solutions**:
    * Select better reference image (less motion, better quality)
    * Increase ``--registration-iterations``
-   * Try alternative registration method (``--registration-method ANTS``)
+   * Try alternative registration method (``--registration-method Greedy``)
    * Verify phases are temporally ordered correctly
 
 Memory Errors

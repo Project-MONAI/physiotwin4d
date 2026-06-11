@@ -42,7 +42,7 @@ Time Series
 
    images = [itk.imread(f"phase_{idx:02d}.mha") for idx in range(10)]
 
-   registrar = RegisterTimeSeriesImages(registration_method="ANTS")
+   registrar = RegisterTimeSeriesImages(registration_method="Greedy")
    registrar.set_fixed_image(images[0])
    result = registrar.register_time_series(
        moving_images=images,

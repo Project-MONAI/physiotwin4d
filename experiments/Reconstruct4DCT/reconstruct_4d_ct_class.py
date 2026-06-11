@@ -53,22 +53,22 @@ if quick_run:
     num_files = len(files)
     reference_image_num = num_files // 2
 
-    # Registration parameters - only ANTs for quick run
-    registration_methods = ["ANTS", "ICON", "ANTS_ICON"]
-    number_of_iterations_list = [[8, 4, 1], 5, [[8, 4, 1], 5]]  # For ANTs and ICON
+    # Registration parameters - only Greedy for quick run
+    registration_methods = ["Greedy", "ICON", "Greedy_ICON"]
+    number_of_iterations_list = [[8, 4, 1], 5, [[8, 4, 1], 5]]  # For Greedy and ICON
 else:
     print("=== FULL RUN MODE ===")
     num_files = len(files)
     files_indx = list(range(num_files))
     reference_image_num = 7
 
-    # Registration parameters - both ANTs and ICON for full run
-    registration_methods = ["ANTS"]  # , "ICON", "ANTS_ICON"]
+    # Registration parameters - Greedy and ICON for full run
+    registration_methods = ["Greedy"]  # , "ICON", "Greedy_ICON"]
     number_of_iterations_list = [
         [30, 15, 7, 3],
-    ]  # For ANTs
+    ]  # For Greedy
     # 20,  # For ICON
-    # [[30, 15, 7, 3], 20],  # For ANTS_ICON
+    # [[30, 15, 7, 3], 20],  # For Greedy_ICON
     # ]
 
 # Common parameters
@@ -144,12 +144,12 @@ for method_idx, registration_method in enumerate(registration_methods):
     registrar.set_fixed_image(fixed_image)
 
     # Set iterations based on registration method
-    if registration_method == "ANTS":
-        registrar.set_number_of_iterations_ANTS(number_of_iterations)
+    if registration_method == "Greedy":
+        registrar.set_number_of_iterations_greedy(number_of_iterations)
     elif registration_method == "ICON":
         registrar.set_number_of_iterations_ICON(number_of_iterations)
-    elif registration_method == "ANTS_ICON":
-        registrar.set_number_of_iterations_ANTS(number_of_iterations[0])
+    elif registration_method == "Greedy_ICON":
+        registrar.set_number_of_iterations_greedy(number_of_iterations[0])
         registrar.set_number_of_iterations_ICON(number_of_iterations[1])
 
     # Perform registration

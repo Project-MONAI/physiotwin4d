@@ -61,11 +61,6 @@ class LabelmapTools(PhysioMotion4DBase):
         even on anisotropic grids; each per-axis count is clamped to at least
         1 voxel when ``dilation_in_mm > 0``.
 
-        Axis ordering: the labelmap is a scalar 3D ``itk.Image`` in ITK
-        world-axis order (X, Y, Z). All thresholding is performed on the numpy
-        view (Z, Y, X) and written back through ``CopyInformation``, so origin,
-        spacing, and direction are preserved.
-
         Args:
             labelmap: Multi-label or binary ``itk.Image``. Any non-zero voxel
                 that is not excluded is treated as foreground.
@@ -131,11 +126,6 @@ class LabelmapTools(PhysioMotion4DBase):
         each region is zero and NCC produces NaN gradients. Replacing it with
         this continuous encoding gives every region a smoothly varying signal
         while preserving label identity.
-
-        Axis ordering: ``labelmap`` is a scalar 3D ``itk.Image`` in ITK
-        world-axis order (X, Y, Z). All work is done on the numpy view
-        (Z, Y, X) and written back through ``CopyInformation``, so origin,
-        spacing, and direction are preserved.
 
         Args:
             labelmap: Multi-label (or binary) ``itk.Image`` of integer labels.

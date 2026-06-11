@@ -32,7 +32,7 @@ from physiomotion4d.physiomotion4d_base import PhysioMotion4DBase
 
 
 class ConvertImage4DTo3D(PhysioMotion4DBase):
-    """Split a 3D/4D ITK image (X, Y, Z [, T]) into a list of 3D ITK images."""
+    """Split a 3D/4D ITK image into a list of 3D ITK images."""
 
     def __init__(self, log_level: int | str = logging.INFO) -> None:
         """Initialize the 4D-to-3D image converter.
@@ -178,7 +178,7 @@ class ConvertImage4DTo3D(PhysioMotion4DBase):
         spacing_3d: np.ndarray,
         direction_3d: np.ndarray,
     ) -> None:
-        """Materialize ``self.img_3d`` from a (T, Z, Y, X) array + geometry."""
+        """Materialize ``self.img_3d`` from a time-series array + geometry."""
         direction_matrix = itk.matrix_from_array(np.ascontiguousarray(direction_3d))
         self.img_3d = []
         for t in range(arr_4d.shape[0]):

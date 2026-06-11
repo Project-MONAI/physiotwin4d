@@ -120,7 +120,7 @@ if __name__ == "__main__":
             fixed_image = time_series[0]
 
             registrar = RegisterTimeSeriesImages(
-                registration_method="ANTS_ICON",
+                registration_method="Greedy_ICON",
                 log_level=log_level,
             )
             registrar.set_modality("ct")

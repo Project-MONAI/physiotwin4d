@@ -321,33 +321,13 @@ class RegisterImagesICON(RegisterImagesBase):
 
         Mirrors the trilinear preprocessing path used by
         ``icon_registration.itk_wrapper.register_pair`` exactly.
-
-        Axis ordering:
-            - Input ``image`` is a scalar (single-channel) 3D ``itk.Image`` with
-              ITK world-axis order (X, Y, Z). ``np.array(image)`` returns a
-              C-contiguous array with axes **reversed** to (Z, Y, X) — ITK's
-              standard numpy view.
-            - ``torch.Tensor(arr)`` casts to ``float32`` (PyTorch's
-              ``FloatTensor`` constructor) regardless of the source dtype.
-            - Indexing with ``[None, None]`` prepends batch and channel
-              singleton axes, producing shape ``(1, 1, Z, Y, X)``. This is
-              PyTorch's NCDHW layout where ``D=Z``, ``H=Y``, ``W=X``.
-            - ``shape`` is ``self.net.identity_map.shape`` (5D, NCDHW); the
-              target spatial size is ``shape[2:] = (D_out, H_out, W_out)``.
-            - Return shape: ``(1, 1, D_out, H_out, W_out)``, float32,
-              C-contiguous on ``icon.config.device``.
+        ``[None, None]`` prepends batch and channel singletons; ``shape`` is
+        ``self.net.identity_map.shape`` (5D NCDHW).
 
         Notes:
-            - Single-channel scalar inputs only. Vector/multi-channel
-              ``itk.Image`` would yield ``(Z, Y, X, C)`` from ``np.array`` and
-              break the assumed NCDHW layout — not supported here, matching
-              ICON's own preprocessing.
-            - No explicit time axis: 4D series must be split into 3D
-              timepoints by the caller; pairs are processed one volume at a
-              time.
-            - No transpose is performed; the (Z, Y, X) numpy ordering is
-              consumed directly as (D, H, W). Voxel values, not world
-              coordinates, drive the trilinear resample.
+            - Single-channel scalar inputs only; vector ``itk.Image`` inputs
+              are not supported, matching ICON's own preprocessing.
+            - 4D series must be split into 3D timepoints by the caller.
         """
         arr = np.array(image)
         tensor = torch.Tensor(arr).to(icon.config.device)[None, None]
@@ -362,29 +342,14 @@ class RegisterImagesICON(RegisterImagesBase):
 
         Mirrors the mask preprocessing used by
         ``icon_registration.itk_wrapper.register_pair_with_mask`` exactly.
-
-        Axis ordering:
-            - Input ``mask`` is a scalar (single-channel) 3D ``itk.Image``
-              (typically ``uint8``/short labels) with ITK world-axis order
-              (X, Y, Z). ``np.array(mask)`` returns a C-contiguous array with
-              axes **reversed** to (Z, Y, X).
-            - ``torch.Tensor(arr)`` casts to ``float32`` (label values become
-              integral-valued floats; nearest-neighbor resampling preserves
-              them).
-            - ``[None, None]`` prepends batch and channel singletons →
-              ``(1, 1, Z, Y, X)`` in NCDHW (``D=Z``, ``H=Y``, ``W=X``).
-            - Target spatial size is ``shape[2:] = (D_out, H_out, W_out)``
-              from ``self.net.identity_map.shape``.
-            - Return shape: ``(1, 1, D_out, H_out, W_out)``, float32,
-              C-contiguous on ``icon.config.device``.
+        ``[None, None]`` prepends batch and channel singletons; ``shape`` is
+        ``self.net.identity_map.shape`` (5D NCDHW).
 
         Notes:
-            - Single-channel mask inputs only; multi-label masks are encoded
-              as scalar integer values, not channels. Vector ``itk.Image``
-              inputs are not supported.
-            - No time axis: per-volume 3D processing.
-            - Resampling uses ``mode='nearest'`` (no ``align_corners``) so
-              label identities are preserved.
+            - Single-channel mask inputs only; multi-label masks are scalar
+              integer values, not channels. Vector ``itk.Image`` inputs are
+              not supported.
+            - ``mode='nearest'`` preserves label identities.
         """
         arr = np.array(mask)
         tensor = torch.Tensor(arr).to(icon.config.device)[None, None]

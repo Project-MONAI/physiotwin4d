@@ -193,7 +193,6 @@ class RegisterImagesANTS(RegisterImagesBase):
             raise ValueError(f"Unsupported dtype: {dtype}")
 
         if is_vector:
-            # Vector images: ITK gives (z,y,x,components) or (y,x,components)
             spatial_shape = data.shape[:-1]  # drop components
         else:
             spatial_shape = data.shape

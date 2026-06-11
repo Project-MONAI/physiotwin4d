@@ -155,8 +155,8 @@ class RegisterImagesGreedy(RegisterImagesBase):
         downsampled grid lands at or just below the cap.
 
         Args:
-            reference_image: The fixed metric image (X, Y, Z) whose voxel count
-                drives the Greedy multi-component buffer size.
+            reference_image: The fixed metric image whose voxel count drives
+                the Greedy multi-component buffer size.
 
         Returns:
             Per-axis resampling scale in ``(0, 1]``.
@@ -183,7 +183,7 @@ class RegisterImagesGreedy(RegisterImagesBase):
         The physical extent is preserved exactly: the new per-axis spacing is
         chosen so ``new_size * new_spacing == old_size * old_spacing``, so the
         coarser grid covers the same world-space region with the same origin
-        and direction. Axis order is ITK world order (X, Y, Z).
+        and direction.
 
         Args:
             image: Scalar 3D ``itk.Image`` to resample.

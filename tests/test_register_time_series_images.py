@@ -26,27 +26,29 @@ class TestRegisterTimeSeriesImages:
 
     _class_name = "registration_time_series_images"
 
-    def test_registrar_initialization_ANTS(self) -> None:
-        """Test that RegisterTimeSeriesImages initializes correctly with ANTs."""
-        registrar = RegisterTimeSeriesImages(registration_method="ANTS")
+    def test_registrar_initialization_Greedy_ICON(self) -> None:
+        """Test that RegisterTimeSeriesImages initializes correctly with Greedy_ICON."""
+        registrar = RegisterTimeSeriesImages(registration_method="Greedy_ICON")
         assert registrar is not None, "Registrar not initialized"
-        assert registrar.registration_method_name == "ANTS", "Method not set correctly"
-        assert registrar.registrar_ANTS is not None, (
-            "Internal ANTs registrar not created"
+        assert registrar.registration_method_name == "Greedy_ICON", (
+            "Method not set correctly"
+        )
+        assert registrar.registrar_greedy is not None, (
+            "Internal Greedy registrar not created"
         )
         assert registrar.registrar_ICON is not None, (
             "Internal ICON registrar not created"
         )
 
-        print("\nTime series registrar initialized with ANTs")
+        print("\nTime series registrar initialized with Greedy_ICON")
 
     def test_registrar_initialization_ICON(self) -> None:
         """Test that RegisterTimeSeriesImages initializes correctly with ICON."""
         registrar = RegisterTimeSeriesImages(registration_method="ICON")
         assert registrar is not None, "Registrar not initialized"
         assert registrar.registration_method_name == "ICON", "Method not set correctly"
-        assert registrar.registrar_ANTS is not None, (
-            "Internal ANTs registrar not created"
+        assert registrar.registrar_greedy is not None, (
+            "Internal Greedy registrar not created"
         )
         assert registrar.registrar_ICON is not None, (
             "Internal ICON registrar not created"
@@ -56,9 +58,9 @@ class TestRegisterTimeSeriesImages:
 
     def test_registrar_initialization_greedy(self) -> None:
         """Test that RegisterTimeSeriesImages initializes correctly with Greedy."""
-        registrar = RegisterTimeSeriesImages(registration_method="greedy")
+        registrar = RegisterTimeSeriesImages(registration_method="Greedy")
         assert registrar is not None, "Registrar not initialized"
-        assert registrar.registration_method_name == "greedy", (
+        assert registrar.registration_method_name == "Greedy", (
             "Method not set correctly"
         )
         assert registrar.registrar_greedy is not None, (
@@ -79,7 +81,7 @@ class TestRegisterTimeSeriesImages:
 
     def test_set_modality(self) -> None:
         """Test setting imaging modality."""
-        registrar = RegisterTimeSeriesImages(registration_method="ANTS")
+        registrar = RegisterTimeSeriesImages(registration_method="Greedy")
         registrar.set_modality("ct")
         assert registrar.modality == "ct", "Modality not set correctly"
 
@@ -87,7 +89,7 @@ class TestRegisterTimeSeriesImages:
 
     def test_set_fixed_image(self, test_images: list[Any]) -> None:
         """Test setting fixed image."""
-        registrar = RegisterTimeSeriesImages(registration_method="ANTS")
+        registrar = RegisterTimeSeriesImages(registration_method="Greedy")
         fixed_image = test_images[0]
 
         registrar.set_fixed_image(fixed_image)
@@ -98,15 +100,17 @@ class TestRegisterTimeSeriesImages:
 
     def test_set_number_of_iterations(self) -> None:
         """Test setting number of iterations."""
-        registrar_ANTS = RegisterTimeSeriesImages(registration_method="ANTS")
-        iterations_ANTS = [30, 15, 5]
-
-        registrar_ANTS.set_number_of_iterations_ANTS(iterations_ANTS)
-        assert registrar_ANTS.number_of_iterations_ANTS == iterations_ANTS, (
-            "ANTs iterations not set correctly"
+        registrar_Greedy_ICON = RegisterTimeSeriesImages(
+            registration_method="Greedy_ICON"
         )
+        iterations_Greedy_ICON = [30, 15, 5]
 
-        registrar_greedy = RegisterTimeSeriesImages(registration_method="greedy")
+        registrar_Greedy_ICON.set_number_of_iterations_greedy(iterations_Greedy_ICON)
+        assert (
+            registrar_Greedy_ICON.number_of_iterations_greedy == iterations_Greedy_ICON
+        ), "Greedy_ICON iterations not set correctly"
+
+        registrar_greedy = RegisterTimeSeriesImages(registration_method="Greedy")
         iterations_greedy = [25, 10, 3]
 
         registrar_greedy.set_number_of_iterations_greedy(iterations_greedy)
@@ -136,10 +140,10 @@ class TestRegisterTimeSeriesImages:
         print(f"  Fixed image: {itk.size(fixed_image)}")
         print(f"  Number of moving images: {len(moving_images)}")
 
-        registrar = RegisterTimeSeriesImages(registration_method="ANTS")
+        registrar = RegisterTimeSeriesImages(registration_method="Greedy")
         registrar.set_modality("ct")
         registrar.set_fixed_image(fixed_image)
-        registrar.set_number_of_iterations_ANTS([20, 10, 2])
+        registrar.set_number_of_iterations_greedy([20, 10, 2])
 
         result = registrar.register_time_series(
             moving_images=moving_images,
@@ -217,10 +221,10 @@ class TestRegisterTimeSeriesImages:
         print(f"  Number of moving images: {len(moving_images)}")
         print("  Using prior transform weight: 0.5")
 
-        registrar = RegisterTimeSeriesImages(registration_method="ANTS")
+        registrar = RegisterTimeSeriesImages(registration_method="Greedy")
         registrar.set_modality("ct")
         registrar.set_fixed_image(fixed_image)
-        registrar.set_number_of_iterations_ANTS([20, 10, 2])
+        registrar.set_number_of_iterations_greedy([20, 10, 2])
 
         result = registrar.register_time_series(
             moving_images=moving_images,
@@ -274,10 +278,10 @@ class TestRegisterTimeSeriesImages:
 
         print("\nRegistering time series (identity start)...")
 
-        registrar = RegisterTimeSeriesImages(registration_method="ANTS")
+        registrar = RegisterTimeSeriesImages(registration_method="Greedy")
         registrar.set_modality("ct")
         registrar.set_fixed_image(fixed_image)
-        registrar.set_number_of_iterations_ANTS([20, 10, 2])
+        registrar.set_number_of_iterations_greedy([20, 10, 2])
 
         result = registrar.register_time_series(
             moving_images=moving_images,
@@ -302,10 +306,10 @@ class TestRegisterTimeSeriesImages:
 
         print("\nTesting different starting indices...")
 
-        registrar = RegisterTimeSeriesImages(registration_method="ANTS")
+        registrar = RegisterTimeSeriesImages(registration_method="Greedy")
         registrar.set_modality("ct")
         registrar.set_fixed_image(fixed_image)
-        registrar.set_number_of_iterations_ANTS([10, 5, 1])
+        registrar.set_number_of_iterations_greedy([10, 5, 1])
 
         # Test starting from beginning, middle, and end
         for starting_index in [0, 1]:
@@ -325,7 +329,7 @@ class TestRegisterTimeSeriesImages:
 
     def test_register_time_series_error_no_fixed_image(self) -> None:
         """Test that error is raised if fixed image not set."""
-        registrar = RegisterTimeSeriesImages(registration_method="ANTS")
+        registrar = RegisterTimeSeriesImages(registration_method="Greedy")
 
         moving_images = [None, None, None]  # Dummy list
 
@@ -338,7 +342,7 @@ class TestRegisterTimeSeriesImages:
         self, test_images: list[Any]
     ) -> None:
         """Test that error is raised for invalid starting index."""
-        registrar = RegisterTimeSeriesImages(registration_method="ANTS")
+        registrar = RegisterTimeSeriesImages(registration_method="Greedy")
         registrar.set_fixed_image(test_images[0])
 
         moving_images = test_images[1:4]
@@ -361,7 +365,7 @@ class TestRegisterTimeSeriesImages:
         self, test_images: list[Any]
     ) -> None:
         """Test that error is raised for invalid prior portion value."""
-        registrar = RegisterTimeSeriesImages(registration_method="ANTS")
+        registrar = RegisterTimeSeriesImages(registration_method="Greedy")
         registrar.set_fixed_image(test_images[0])
 
         moving_images = test_images[1:4]
@@ -391,10 +395,10 @@ class TestRegisterTimeSeriesImages:
 
         print("\nTesting transform application...")
 
-        registrar = RegisterTimeSeriesImages(registration_method="ANTS")
+        registrar = RegisterTimeSeriesImages(registration_method="Greedy")
         registrar.set_modality("ct")
         registrar.set_fixed_image(fixed_image)
-        registrar.set_number_of_iterations_ANTS([20, 10, 2])
+        registrar.set_number_of_iterations_greedy([20, 10, 2])
 
         result = registrar.register_time_series(
             moving_images=moving_images,
@@ -487,11 +491,11 @@ class TestRegisterTimeSeriesImages:
         print("\nTesting time series registration with mask...")
         print(f"  Mask voxels: {np.sum(fixed_mask_arr)}")
 
-        registrar = RegisterTimeSeriesImages(registration_method="ANTS")
+        registrar = RegisterTimeSeriesImages(registration_method="Greedy")
         registrar.set_modality("ct")
         registrar.set_fixed_image(fixed_image)
         registrar.set_fixed_mask(fixed_mask)
-        registrar.set_number_of_iterations_ANTS([20, 10, 2])
+        registrar.set_number_of_iterations_greedy([20, 10, 2])
 
         result = registrar.register_time_series(
             moving_images=moving_images,
@@ -513,10 +517,10 @@ class TestRegisterTimeSeriesImages:
         print(f"  Total images: {len(moving_images)}")
         print("  Starting from middle (index 2)")
 
-        registrar = RegisterTimeSeriesImages(registration_method="ANTS")
+        registrar = RegisterTimeSeriesImages(registration_method="Greedy")
         registrar.set_modality("ct")
         registrar.set_fixed_image(fixed_image)
-        registrar.set_number_of_iterations_ANTS([20, 10, 2])
+        registrar.set_number_of_iterations_greedy([20, 10, 2])
 
         result = registrar.register_time_series(
             moving_images=moving_images,

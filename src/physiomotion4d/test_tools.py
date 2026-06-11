@@ -519,12 +519,6 @@ class TestTools(PhysioMotion4DBase):
     ) -> Path:
         """Extract one slice from an ITK image and save a PNG via matplotlib.
 
-        The numpy array from ``itk.array_view_from_image`` has shape ``(Z, Y, X)``
-        (ITK stores X fastest; numpy reverses the axis order). Axis indices:
-        - axis=0: axial (constant-Z plane)
-        - axis=1: coronal (constant-Y plane)
-        - axis=2: sagittal (constant-X plane)
-
         Saves to the configured result artifact directory.
 
         Args:

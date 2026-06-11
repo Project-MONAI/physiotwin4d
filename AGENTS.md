@@ -153,8 +153,6 @@ Version bumping: `bumpver update --patch`, `--minor`, or `--major`.
 - Masks are ITK images with integer labels. Keep anatomy group IDs consistent
   across segmenters.
 - Transforms are ITK composite transforms stored in compressed `.hdf` files.
-- State axis order and shape explicitly in every docstring and comment that
-  touches arrays.
 
 ## Implementation Role
 

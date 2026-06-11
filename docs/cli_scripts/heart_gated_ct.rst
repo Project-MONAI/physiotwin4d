@@ -112,7 +112,7 @@ Optional Arguments
      - Number of registration refinement iterations
    * - ``--registration-method``
      - ``ICON``
-     - Registration method: ``ICON`` or ``ANTS``
+     - Registration method: ``ICON`` or ``Greedy``
 
 Processing Pipeline
 ===================
@@ -215,14 +215,14 @@ Research Dataset Processing
            --project-name ${case_name}
    done
 
-With ANTs Registration
-----------------------
+With Greedy Registration
+------------------------
 
 .. code-block:: bash
 
    physiomotion4d-convert-image-to-usd cardiac.nrrd \
        --contrast \
-       --registration-method ANTS \
+       --registration-method Greedy \
        --registration-iterations 50
 
 Best Practices
@@ -289,7 +289,7 @@ Registration Failures
 **Registration not converging**
    * Try different reference image (better quality phase)
    * Increase ``--registration-iterations``
-   * Switch registration method (``--registration-method ANTS``)
+   * Switch registration method (``--registration-method Greedy``)
 
 **Excessive deformation**
    * Verify sufficient temporal overlap between phases

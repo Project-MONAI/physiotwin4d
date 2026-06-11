@@ -888,7 +888,6 @@ class TransformTools(PhysioMotion4DBase):
             tfm, reference_image
         )
 
-        # Get displacement field as numpy array (z, y, x, 3)
         displacement_array = itk.GetArrayFromImage(displacement_field)
 
         # Get image size
@@ -978,7 +977,6 @@ class TransformTools(PhysioMotion4DBase):
         for k in range(size[2]):
             for j in range(size[1]):
                 for i in range(size[0]):
-                    # Get displacement vector at this point (z, y, x, 3)
                     displacement = displacement_array[k, j, i, :]
 
                     # Calculate magnitude
