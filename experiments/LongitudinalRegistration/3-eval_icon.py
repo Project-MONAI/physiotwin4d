@@ -51,7 +51,7 @@ exclude_tokens = ["nop"]
 timepoint_re = re.compile(r"_g(?P<timepoint>[0-9]{3})")
 
 # Each entry: name, reg_method, weights_path, use_mask, greedy_iters
-# All methods register gated frames to the 70th-percentile gated frame.
+# All methods register gated frames to the per-subject reference scan (*ref.nii.gz).
 all_methods = [
     {
         "name": "icon_default",

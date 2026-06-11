@@ -122,6 +122,7 @@ labelmap_tools = LabelmapTools()
 # %%
 def gather_init_frames(
     initial_registration_dir: Path,
+    patient_id: str,
 ) -> tuple[list[Path], list[Optional[Path]], list[Optional[Path]]]:
     """Return ``(init_image_paths, init_labelmap_paths, init_mask_paths)`` for one
     ``initial_registration_dir / <patient_id>`` directory.
@@ -201,7 +202,7 @@ for subject_index, patient_id in enumerate(valid_train_subjects):
         initial_registration_patient_dir = initial_registration_dir / patient_id
 
         init_images, init_labelmaps, init_masks = gather_init_frames(
-            initial_registration_patient_dir
+            initial_registration_patient_dir, patient_id
         )
         if not init_images:
             print(
