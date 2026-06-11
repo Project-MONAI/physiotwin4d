@@ -1,17 +1,16 @@
 # %% [markdown]
 # # Evaluate ICON default vs finetuned weights on held-out longitudinal CT
 #
-# Enumerates the Duke patient cohort by sorting ``ref_images/`` and uses the
-# *last 20%* of patients as the held-out test set — the same fixed split
-# applied by ``2-finetune_icon.py`` (first 80% train, last 20% test).  For
-# each test subject the 70th-percentile gated frame is selected as the
-# reference and every other frame is registered to it twice with
-# ``RegisterTimeSeriesImages``: once with the default uniGradICON weights and
-# once with the finetuned checkpoint from ``2-finetune_icon.py``.  The
-# resampler-convention inverse transform (which maps moving-grid points back
-# to reference-grid points) is applied to each time-point's precomputed
-# landmarks to land them in reference space, and the Euclidean error against
-# the reference landmarks is recorded.
+# Enumerates the Duke patient cohort from ``timepoint_base_dir`` subdirectories
+# and uses the *last 20%* of patients as the held-out test set — the same fixed
+# split applied by ``2-finetune_icon.py`` (first 80% train, last 20% test).
+# Each subject directory must contain exactly one file whose name ends with
+# ``ref.nii.gz``; that file is the fixed image for all registration methods.
+# All gated frames (``_g[0-9]{3}.nii.gz``) are registered to it as moving
+# images.  The resampler-convention inverse transform (which maps moving-grid
+# points back to reference-grid points) is applied to each time-point's
+# precomputed landmarks to land them in reference space, and the Euclidean
+# error against the reference landmarks is recorded.
 #
 # Run interactively cell-by-cell; all paths are hard-coded.
 
@@ -19,7 +18,6 @@
 import csv
 import re
 from pathlib import Path
-from typing import Optional
 
 import itk
 import numpy as np
@@ -33,7 +31,6 @@ from physiomotion4d.transform_tools import TransformTools
 # ## 1. Hard-coded paths and configuration
 
 # %%
-ref_data_dir = Path("d:/PhysioMotion4D/duke_data/ref_images")
 timepoint_base_dir = Path("d:/PhysioMotion4D/duke_data/gated_nii")
 segmentation_base_dir = Path("d:/PhysioMotion4D/duke_data/simple_ascardio")
 
@@ -50,13 +47,40 @@ finetuned_weights_path = (
 
 train_fraction = 0.8
 icon_iterations = None
-reference_percentile = 0.70
 exclude_tokens = ["nop"]
 timepoint_re = re.compile(r"_g(?P<timepoint>[0-9]{3})")
 
-methods: list[tuple[str, Optional[Path]]] = [
-    ("icon_default", None),
-    ("icon_finetuned", finetuned_weights_path),
+# Each entry: name, reg_method, weights_path, use_mask, greedy_iters
+# All methods register gated frames to the 70th-percentile gated frame.
+all_methods = [
+    {
+        "name": "icon_default",
+        "reg_method": "ICON",
+        "weights_path": None,
+        "use_mask": True,
+        "greedy_iters": None,
+    },
+    {
+        "name": "icon_finetuned",
+        "reg_method": "ICON",
+        "weights_path": finetuned_weights_path,
+        "use_mask": True,
+        "greedy_iters": None,
+    },
+    {
+        "name": "Greedy",
+        "reg_method": "Greedy",
+        "weights_path": None,
+        "use_mask": True,
+        "greedy_iters": [80, 40, 5],
+    },
+    {
+        "name": "Greedy_ICON",
+        "reg_method": "Greedy_ICON",
+        "weights_path": finetuned_weights_path,
+        "use_mask": True,
+        "greedy_iters": [80, 40, 5],
+    },
 ]
 
 output_dir.mkdir(parents=True, exist_ok=True)
@@ -69,12 +93,11 @@ if warped_ref_detail_file.exists():
     warped_ref_detail_file.unlink()
 
 # %%
-ref_files = sorted(
-    p
-    for p in ref_data_dir.iterdir()
-    if p.name.startswith("pm00") and p.suffixes[-2:] == [".nii", ".gz"]
+all_patient_ids = sorted(
+    p.name
+    for p in timepoint_base_dir.iterdir()
+    if p.is_dir() and p.name.startswith("pm00")
 )
-all_patient_ids = [p.name[:6] for p in ref_files]
 n_train = max(
     1, min(len(all_patient_ids) - 1, round(train_fraction * len(all_patient_ids)))
 )
@@ -84,6 +107,25 @@ print(
     f"first {n_train} train, last {len(test_subjects)} test."
 )
 print(f"Held-out test subjects: {test_subjects}")
+
+# %% [markdown]
+# ## 2. Validate that every test subject has exactly one reference file
+
+# %%
+missing = []
+for subject_id in test_subjects:
+    ref_candidates = list((timepoint_base_dir / subject_id).glob("*ref.nii.gz"))
+    if len(ref_candidates) != 1:
+        missing.append(
+            f"{subject_id}: found {len(ref_candidates)} ref file(s)"
+            + (f" {ref_candidates}" if ref_candidates else "")
+        )
+if missing:
+    raise FileNotFoundError(
+        "Missing or ambiguous ref.nii.gz for test subjects:\n"
+        + "\n".join(f"  {m}" for m in missing)
+    )
+print("All test subjects have exactly one ref.nii.gz")
 
 # %% [markdown]
 # ## 3. Reader instance used in the per-frame inner loop
@@ -104,48 +146,52 @@ segmenter.set_trim_branches(False)
 
 
 # %% [markdown]
-# ## 4. Register and score every test subject under both ICON methods
+# ## 4. Register and score every test subject under all methods
+#
+# All methods register each gated frame to the 70th-percentile gated frame as
+# the fixed image.  The per-frame metric pipeline is shared: landmark error and
+# warped-reference re-segmentation.
 
 # %%
 summary_rows: list[dict[str, object]] = []
 
 for subject_id in test_subjects:
-    source_dir = timepoint_base_dir / subject_id
-    print(f"Source directory: {source_dir}")
-
     seg_dir = segmentation_base_dir / subject_id
-    print(f"Segmentation directory: {seg_dir}")
+    source_dir = timepoint_base_dir / subject_id
+    print(f"\nSubject {subject_id}")
 
+    # --- Per-subject reference scan (fixed image for all methods) ---
+    ref_file = next(source_dir.glob("*ref.nii.gz"))
+    ref_stem = ref_file.name[:-7]
+    fixed_image = itk.imread(str(ref_file), pixel_type=itk.F)
+    fixed_mask_path = seg_dir / f"{ref_stem}_labelmap_mask.nii.gz"
+    fixed_labelmap_path = seg_dir / f"{ref_stem}_labelmap.nii.gz"
+    if fixed_mask_path.exists():
+        fixed_mask = itk.imread(str(fixed_mask_path))
+    else:
+        fixed_labelmap = itk.imread(str(fixed_labelmap_path))
+        fixed_mask = labelmap_tools.convert_labelmap_to_mask(
+            fixed_labelmap, dilation_in_mm=3.0
+        )
+        itk.imwrite(fixed_mask, str(fixed_mask_path), compression=True)
+    fixed_landmarks = landmark_tools.read_landmarks_3dslicer(
+        str(seg_dir / f"{ref_stem}_landmark.mrk.json")
+    )
+    print(f"  Fixed: {ref_file.name}")
+
+    # --- Gated frames (moving images, shared across all methods) ---
     image_files = [
         p
         for p in sorted(source_dir.glob("*.nii.gz"))
         if not any(t in p.name for t in exclude_tokens)
+        and timepoint_re.search(p.name) is not None
     ]
-    print(f"Found {len(image_files)} image files")
     stems = [p.name[:-7] for p in image_files]
+    timepoints = [timepoint_re.search(p.name).group("timepoint") for p in image_files]
     labelmap_files = [seg_dir / f"{s}_labelmap.nii.gz" for s in stems]
     mask_files = [seg_dir / f"{s}_labelmap_mask.nii.gz" for s in stems]
     landmark_files = [seg_dir / f"{s}_landmark.mrk.json" for s in stems]
-    timepoints = [timepoint_re.search(p.name).group("timepoint") for p in image_files]
-
-    reference_index = int(round(reference_percentile * (len(image_files) - 1)))
-    print(
-        f"\nSubject {subject_id}: {len(image_files)} time points, "
-        f"reference index {reference_index} (g{timepoints[reference_index]})"
-    )
-
-    fixed_image = itk.imread(str(image_files[reference_index]), pixel_type=itk.F)
-    fixed_labelmap = itk.imread(str(labelmap_files[reference_index]))
-    if mask_files[reference_index].exists():
-        fixed_mask = itk.imread(str(mask_files[reference_index]))
-    else:
-        fixed_mask = labelmap_tools.convert_labelmap_to_mask(
-            fixed_labelmap, dilation_in_mm=5.0
-        )
-        itk.imwrite(fixed_mask, str(mask_files[reference_index]), compression=True)
-    reference_landmarks = landmark_tools.read_landmarks_3dslicer(
-        landmark_files[reference_index]
-    )
+    print(f"  {len(image_files)} gated frames")
 
     moving_images = [itk.imread(str(p), pixel_type=itk.F) for p in image_files]
     moving_labelmaps = [itk.imread(str(p)) for p in labelmap_files]
@@ -153,46 +199,57 @@ for subject_id in test_subjects:
         landmark_tools.read_landmarks_3dslicer(str(p)) for p in landmark_files
     ]
     moving_masks = []
-    for index, p in enumerate(mask_files):
+    for i, p in enumerate(mask_files):
         if not p.exists():
             mask = labelmap_tools.convert_labelmap_to_mask(
-                moving_labelmaps[index], dilation_in_mm=5.0
+                moving_labelmaps[i], dilation_in_mm=3.0
             )
             itk.imwrite(mask, str(p), compression=True)
             moving_masks.append(mask)
         else:
-            mask = itk.imread(str(p))
-            moving_masks.append(mask)
+            moving_masks.append(itk.imread(str(p)))
 
-    for method_name, weights_path in methods:
+    # --- Per-method registration and scoring ---
+    for method_cfg in all_methods:
+        method_name = str(method_cfg["name"])
+        reg_method = str(method_cfg["reg_method"])
+        weights_path = method_cfg["weights_path"]
+        use_mask = bool(method_cfg["use_mask"])
+        greedy_iters = method_cfg["greedy_iters"]
+
         print(f"  Method: {method_name}")
-        registrar = RegisterTimeSeriesImages(registration_method="ICON")
+        registrar = RegisterTimeSeriesImages(registration_method=reg_method)
         registrar.set_modality("ct")
         registrar.set_fixed_image(fixed_image)
-        registrar.set_fixed_mask(fixed_mask)
-        registrar.set_number_of_iterations_ICON(icon_iterations)
-        if weights_path is not None:
-            registrar.registrar_ICON.set_weights_path(str(weights_path))
+        if use_mask:
+            registrar.set_fixed_mask(fixed_mask)
+        if greedy_iters is not None:
+            registrar.set_number_of_iterations_greedy(greedy_iters)
+        if reg_method in ("ICON", "Greedy_ICON"):
+            registrar.set_number_of_iterations_ICON(icon_iterations)
+            if weights_path is not None:
+                registrar.registrar_ICON.set_weights_path(str(weights_path))
 
         result = registrar.register_time_series(
             moving_images=moving_images,
-            moving_masks=moving_masks,
-            moving_labelmaps=moving_labelmaps,
-            reference_frame=reference_index,
-            register_reference=False,
-            prior_weight=0.0,
+            moving_masks=moving_masks if use_mask else None,
+            moving_labelmaps=moving_labelmaps if use_mask else None,
+            register_reference=True,
+            reference_frame=0,  # Not used
+            prior_weight=0.0,  # Not used
         )
 
         method_dir = output_dir / method_name / subject_id
         method_dir.mkdir(parents=True, exist_ok=True)
 
-        for index, image_file in enumerate(image_files):
+        for index in range(len(image_files)):
             timepoint = timepoints[index]
-
+            forward_transform = result["forward_transforms"][index]
             inverse_transform = result["inverse_transforms"][index]
+            loss = float(result["losses"][index])
 
             itk.transformwrite(
-                result["forward_transforms"][index],
+                forward_transform,
                 str(method_dir / f"{subject_id}_g{timepoint}_forward_tfm.hdf"),
                 compression=True,
             )
@@ -202,15 +259,16 @@ for subject_id in test_subjects:
                 compression=True,
             )
 
+            # Landmark error: warp gated landmarks into fixed-image space.
             timepoint_landmarks = moving_landmarks[index]
-            shared = sorted(timepoint_landmarks.keys() & reference_landmarks.keys())
-            errors: list[tuple[str, float]] = []
+            shared = sorted(timepoint_landmarks.keys() & fixed_landmarks.keys())
+            errors = []
             for name in shared:
                 warped = inverse_transform.TransformPoint(timepoint_landmarks[name])
                 err = float(
                     np.linalg.norm(
                         np.asarray(warped, dtype=np.float64)
-                        - np.asarray(reference_landmarks[name], dtype=np.float64)
+                        - np.asarray(fixed_landmarks[name], dtype=np.float64)
                     )
                 )
                 errors.append((name, err))
@@ -229,9 +287,9 @@ for subject_id in test_subjects:
                 {
                     "subject_id": subject_id,
                     "method": method_name,
-                    "reference_timepoint": timepoints[reference_index],
+                    "reference_timepoint": ref_stem,
                     "timepoint": timepoint,
-                    "loss": float(result["losses"][index]),
+                    "loss": loss,
                     "n_landmarks": int(values.size),
                     "mean_mm": float(np.mean(values)) if values.size else "",
                     "median_mm": float(np.median(values)) if values.size else "",
@@ -239,27 +297,9 @@ for subject_id in test_subjects:
                 }
             )
 
-            # ------------------------------------------------------------------
-            # Warp the reference image back onto each time-point's grid, re-
-            # segment with SegmentHeartSimpleware, and compare the resulting
-            # landmarks with the time-point's own precomputed landmarks.
-            #
-            # Per transform_conventions.rst:
-            #   - warp fixed image -> moving grid  => inverse_transform +
-            #     TransformTools.transform_image  (pull-back)
-            #   - warp moving points -> fixed space => inverse_transform +
-            #     .TransformPoint()  (push-forward)
-            # Both use inverse_transform, but for opposite purposes.
-            # Here we use inverse_transform for image warping (row 3 of the
-            # table), placing the reference image in time-point space so
-            # Simpleware sees anatomy at the correct cardiac phase.
-            #
-            # Skip the reference frame — warping it to itself is trivial and
-            # its own landmarks are already the "ground truth" reference.
-            # ------------------------------------------------------------------
-            if index == reference_index:
-                continue
-
+            # Warp fixed image back onto the gated frame's grid, re-segment, and
+            # compare the resulting landmarks against the gated frame's own
+            # precomputed landmarks.
             warped_ref = transform_tools.transform_image(
                 fixed_image,
                 inverse_transform,
@@ -268,7 +308,7 @@ for subject_id in test_subjects:
             )
             itk.imwrite(
                 warped_ref,
-                method_dir / f"{subject_id}_g{timepoint}_warped_ref.mha",
+                str(method_dir / f"{subject_id}_g{timepoint}_warped_ref.mha"),
                 compression=True,
             )
 
@@ -289,11 +329,9 @@ for subject_id in test_subjects:
                 ),
             )
 
-            # Both warped_ref_landmarks and timepoint_landmarks are in the
-            # time-point (moving) image space — compare directly.
             tp_landmarks = moving_landmarks[index]
             shared_warp = sorted(warped_ref_landmarks.keys() & tp_landmarks.keys())
-            warp_errors: list[tuple[str, float]] = []
+            warp_errors = []
             for name in shared_warp:
                 err = float(
                     np.linalg.norm(
@@ -308,13 +346,7 @@ for subject_id in test_subjects:
                 writer = csv.writer(fh)
                 if fh.tell() == 0:
                     writer.writerow(
-                        [
-                            "subject_id",
-                            "method",
-                            "timepoint",
-                            "name",
-                            "error_mm",
-                        ]
+                        ["subject_id", "method", "timepoint", "name", "error_mm"]
                     )
                 for name, err in warp_errors:
                     writer.writerow([subject_id, method_name, timepoint, name, err])
@@ -361,7 +393,8 @@ print(f"Landmark error summary ({len(test_subjects)} test subjects)")
 print("=" * len(header))
 print(header)
 print("-" * len(header))
-for method_name, _ in methods:
+for method_cfg in all_methods:
+    method_name = str(method_cfg["name"])
     arr = np.asarray(groups.get(method_name, []), dtype=np.float64)
     if arr.size == 0:
         print(f"{method_name:<18}{0:>8}{'':>12}{'':>14}{'':>12}{'':>12}")
@@ -403,7 +436,8 @@ if warped_ref_detail_file.exists():
     print("=" * len(warp_header))
     print(warp_header)
     print("-" * len(warp_header))
-    for method_name, _ in methods:
+    for method_cfg in all_methods:
+        method_name = str(method_cfg["name"])
         arr = np.asarray(warp_groups.get(method_name, []), dtype=np.float64)
         if arr.size == 0:
             print(f"{method_name:<18}{0:>8}{'':>12}{'':>14}{'':>12}{'':>12}")

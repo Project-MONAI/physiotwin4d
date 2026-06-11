@@ -105,7 +105,7 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
 
         # Set default iterations based on registration method
         self.number_of_iterations_greedy: list[int] = [40, 20, 10]
-        self.number_of_iterations_ICON: int = 50
+        self.number_of_iterations_ICON: Optional[int] = 50
 
         if self.registration_method_name not in REGISTRATION_METHODS:
             raise ValueError(
@@ -117,7 +117,9 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
 
         self.smooth_prior_transform_sigma: float = 0.5
 
-    def set_number_of_iterations_ICON(self, number_of_iterations_ICON: int) -> None:
+    def set_number_of_iterations_ICON(
+        self, number_of_iterations_ICON: Optional[int]
+    ) -> None:
         """Set the number of iterations for ICON registration.
 
         Args:
@@ -236,7 +238,6 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
                 is used (each registration starts from identity). Higher values
                 provide more temporal smoothness but may propagate errors.
                 Default: 0.0
-
         Returns:
             dict: Dictionary containing results:
                 - "forward_transforms" (list[itk.Transform]): one per image;

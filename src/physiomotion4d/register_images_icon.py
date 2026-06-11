@@ -76,7 +76,7 @@ class RegisterImagesICON(RegisterImagesBase):
         super().__init__(log_level=log_level)
 
         self.net = None
-        self.number_of_iterations: int = 50
+        self.number_of_iterations: Optional[int] = 50
         self.use_multi_modality: bool = False
         self.use_mass_preservation: bool = False
         self.weights_path: Optional[str] = None
@@ -99,7 +99,7 @@ class RegisterImagesICON(RegisterImagesBase):
         self.weights_path = weights_path
         self.net = None  # force reload on next register() call
 
-    def set_number_of_iterations(self, number_of_iterations: int) -> None:
+    def set_number_of_iterations(self, number_of_iterations: Optional[int]) -> None:
         """Set the number of iterations for ICON registration.
 
         Args:

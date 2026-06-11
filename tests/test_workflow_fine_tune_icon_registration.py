@@ -127,7 +127,7 @@ def test_init_rejects_mismatched_subject_ids_length(tmp_path: Path) -> None:
         )
 
 
-def test_use_segmentations_and_use_masks_flags(tmp_path: Path) -> None:
+def test_use_labelmaps_and_use_masks_flags(tmp_path: Path) -> None:
     """The two helper flags reflect supplied companions independently."""
     base: dict[str, Any] = {
         "subject_image_files": [["a"]],
@@ -135,19 +135,19 @@ def test_use_segmentations_and_use_masks_flags(tmp_path: Path) -> None:
         "fine_tune_name": "x",
     }
     none_wf = WorkflowFineTuneICONRegistration(**base)
-    assert not none_wf.use_segmentations
+    assert not none_wf.use_labelmaps
     assert not none_wf.use_masks
 
     seg_only = WorkflowFineTuneICONRegistration(
         **base, subject_labelmap_files=[["seg.nii.gz"]]
     )
-    assert seg_only.use_segmentations
+    assert seg_only.use_labelmaps
     assert seg_only.use_masks  # derived from segs
 
     mask_only = WorkflowFineTuneICONRegistration(
         **base, subject_mask_files=[["mask.nii.gz"]]
     )
-    assert not mask_only.use_segmentations
+    assert not mask_only.use_labelmaps
     assert mask_only.use_masks
 
 
@@ -349,8 +349,8 @@ def test_prepare_config_emits_uniGradICON_yaml(
     assert training["learning_rate"] == 1e-4
     assert training["input_shape"] == [64, 64, 64]
     assert training["gpus"] == [1]
-    # Driven by data availability.
-    assert training["use_label"] is True
+    # loss_function_masking is driven by data availability; use_label is always False.
+    assert training["use_label"] is False
     assert training["loss_function_masking"] is True
     assert training["roi_masking"] is False
 
@@ -505,7 +505,7 @@ def test_apply_registration_rejects_empty_moving(tmp_path: Path) -> None:
 
 
 def test_apply_registration_rejects_mismatched_companions(tmp_path: Path) -> None:
-    """moving_segmentations / moving_landmarks length must match moving_images."""
+    """moving_labelmaps / moving_landmarks length must match moving_images."""
     workflow = WorkflowFineTuneICONRegistration(
         subject_image_files=[["a"]],
         output_dir=tmp_path,
@@ -514,11 +514,11 @@ def test_apply_registration_rejects_mismatched_companions(tmp_path: Path) -> Non
     )
     ref = itk.image_from_array(np.zeros((3, 3, 3), dtype=np.float32))
     mov = itk.image_from_array(np.zeros((3, 3, 3), dtype=np.float32))
-    with pytest.raises(ValueError, match="moving_segmentations length"):
+    with pytest.raises(ValueError, match="moving_labelmaps length"):
         workflow.apply_registration(
             reference_image=ref,
             moving_images=[mov],
-            moving_segmentations=[],
+            moving_labelmaps=[],
         )
     with pytest.raises(ValueError, match="moving_landmarks length"):
         workflow.apply_registration(
