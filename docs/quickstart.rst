@@ -72,7 +72,7 @@ CUDA-capable GPU are required for practical runtime.
    python -c "from physiomotion4d import DataDownloadTools; DataDownloadTools.DownloadSlicerHeartCTData('data/test')"
 
    physiomotion4d-convert-image-to-usd data/test/TruncalValve_4DCT.seq.nrrd \
-       --registration-method ANTS \
+       --registration-method ICON \
        --output-dir output/quickstart \
        --project-name slicer_heart_quickstart
 
@@ -116,7 +116,7 @@ For more control, use the Python API:
        contrast_enhanced=True,
        output_directory="./results",
        project_name="cardiac_model",
-       registration_method="ANTS",
+       registration_method="ICON",
    )
 
 **Step 3: Run the workflow**
@@ -151,7 +151,7 @@ For more control over individual steps:
        contrast_enhanced=True,
        output_directory="./results",
        project_name="cardiac_model",
-       registration_method="ANTS",
+       registration_method="ICON",
    )
 
    final_usd = workflow.process()
@@ -314,7 +314,7 @@ Common Issues
 
 * Resample or crop the input image before running the workflow
 * Process fewer frames at once
-* Use ANTs registration with ``--registration-method ANTS`` when CUDA is unavailable
+* Use Greedy registration with ``--registration-method Greedy`` when CUDA is unavailable
 
 **Segmentation quality issues**
 

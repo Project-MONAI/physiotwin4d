@@ -56,7 +56,7 @@ Convert Image to USD
        output_directory="./results",
        project_name="patient_001",
        segmentation_method="ChestTotalSegmentator",
-       registration_method="ANTS",
+       registration_method="ICON",
    )
 
    final_usd = workflow.process()
@@ -157,7 +157,7 @@ High-Resolution 4D CT Reconstruction
        time_series_images=time_series_images,
        fixed_image=time_series_images[0],
        reference_frame=0,
-       registration_method="ANTS",
+       registration_method="Greedy_ICON",
    )
 
    result = workflow.run_workflow(upsample_to_fixed_resolution=True)

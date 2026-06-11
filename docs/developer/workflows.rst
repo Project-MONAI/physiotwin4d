@@ -39,7 +39,7 @@ Workflow Example
        contrast_enhanced=True,
        output_directory="./results",
        project_name="patient_001",
-       registration_method="ANTS",
+       registration_method="ICON",
    )
 
    final_usd = workflow.process()
