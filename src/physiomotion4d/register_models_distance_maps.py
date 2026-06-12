@@ -311,12 +311,18 @@ class RegisterModelsDistanceMaps(PhysioMotion4DBase):
                 icon_iterations,
             )
 
-            # Pre-align moving mask with the Greedy affine result
+            # Pre-align moving image and ROI mask into the fixed grid using the Greedy affine result
             moving_mask_affine_transformed = self.transform_tools.transform_image(
                 self.moving_mask_image,
                 forward_transform_Greedy,
                 self.reference_image,
                 interpolation_method="linear",
+            )
+            moving_mask_roi_affine_transformed = self.transform_tools.transform_image(
+                self.moving_mask_roi_image,
+                forward_transform_Greedy,
+                self.reference_image,
+                interpolation_method="nearest_neighbor",
             )
 
             # Configure and run ICON
@@ -326,7 +332,7 @@ class RegisterModelsDistanceMaps(PhysioMotion4DBase):
 
             result_ICON = self.registrar_ICON.register(
                 moving_image=moving_mask_affine_transformed,
-                moving_mask=self.moving_mask_roi_image,
+                moving_mask=moving_mask_roi_affine_transformed,
             )
             forward_transform_ICON = result_ICON["forward_transform"]
             inverse_transform_ICON = result_ICON["inverse_transform"]
