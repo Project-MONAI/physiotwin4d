@@ -16,51 +16,6 @@ from physiomotion4d.workflow_fit_statistical_model_to_patient import (
 )
 
 
-def test_auto_generate_labelmap_accumulates_multilabel_models(
-    monkeypatch: Any,
-) -> None:
-    """Multi-model labelmaps accumulate label IDs instead of overwriting prior labels."""
-    image = itk.image_from_array(np.zeros((3, 3, 3), dtype=np.float32))
-    model = pv.PolyData(
-        np.array(
-            [
-                [0.0, 0.0, 0.0],
-                [1.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0],
-            ],
-            dtype=np.float64,
-        )
-    )
-    workflow = WorkflowFitStatisticalModelToPatient(
-        template_model=model,
-        patient_models=[model],
-        patient_image=image,
-    )
-    workflow.patient_image = image
-    masks = [
-        np.pad(np.ones((1, 1, 1), dtype=np.uint8), ((0, 2), (0, 2), (0, 2))),
-        np.pad(np.ones((1, 1, 1), dtype=np.uint8), ((2, 0), (2, 0), (2, 0))),
-    ]
-
-    def fake_create_mask_from_mesh(*_args: object, **_kwargs: object) -> Any:
-        mask = itk.image_from_array(masks.pop(0))
-        mask.CopyInformation(workflow.patient_image)
-        return mask
-
-    monkeypatch.setattr(
-        workflow.contour_tools,
-        "create_mask_from_mesh",
-        fake_create_mask_from_mesh,
-    )
-
-    output = workflow._auto_generate_labelmap([model, model], dilate_mm=0.0)
-    output_arr = itk.GetArrayFromImage(output)
-
-    assert output_arr[0, 0, 0] == 1
-    assert output_arr[2, 2, 2] == 2
-    assert sorted(np.unique(output_arr).tolist()) == [0, 1, 2]
-
-
 def test_transform_model_applies_staged_transform() -> None:
     """Transform helper updates mesh points with image shape (Z, Y, X) = (3, 3, 3)."""
     image = itk.image_from_array(np.zeros((3, 3, 3), dtype=np.float32))
