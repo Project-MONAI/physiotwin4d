@@ -39,8 +39,6 @@ class ContourTools(PhysioMotion4DBase):
 
         Args:
             labelmap_image (itk.image): The labelmap image to create contours from
-            output_file (str, optional): If provided, save the contours to this VTP
-                file
 
         Returns:
             pv.PolyData: The contours as a PyVista PolyData object

@@ -240,10 +240,11 @@ Examples:
                 pca_model=pca_model,
                 pca_number_of_modes=args.pca_number_of_modes,
             )
-        if args.use_labelmap_to_labelmap:
-            workflow.set_use_labelmap_to_labelmap_registration(
-                args.use_labelmap_to_labelmap
-            )
+
+        workflow.set_use_labelmap_to_labelmap_registration(
+            args.use_labelmap_to_labelmap
+        )
+
         if args.use_labelmap_to_image:
             workflow.set_use_labelmap_to_image_registration(
                 True,
@@ -252,6 +253,7 @@ Examples:
                 template_labelmap_organ_extra_ids=args.template_labelmap_chamber_ids,
                 template_labelmap_background_ids=args.template_labelmap_background_ids,
             )
+
     except (ValueError, RuntimeError, OSError) as e:
         print(f"Error initializing workflow: {e}")
         traceback.print_exc()
@@ -290,13 +292,17 @@ Examples:
             output_labelmap_file = os.path.join(
                 args.output_dir, f"{args.output_prefix}_labelmap.nii.gz"
             )
-            itk.imwrite(workflow.l2i_template_labelmap, output_labelmap_file)
+            itk.imwrite(
+                workflow.l2i_template_labelmap, output_labelmap_file, compression=True
+            )
             print(f"  Registered labelmap: {output_labelmap_file}")
         elif workflow.l2l_template_labelmap is not None:
             output_labelmap_file = os.path.join(
                 args.output_dir, f"{args.output_prefix}_labelmap.nii.gz"
             )
-            itk.imwrite(workflow.l2l_template_labelmap, output_labelmap_file)
+            itk.imwrite(
+                workflow.l2l_template_labelmap, output_labelmap_file, compression=True
+            )
             print(f"  Registered labelmap: {output_labelmap_file}")
 
         # Save intermediate results if available

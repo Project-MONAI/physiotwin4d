@@ -21,21 +21,21 @@ from physiomotion4d.test_tools import TestTools
 
 # %%
 # Patient CT image (defines coordinate frame)
-patient_data_dir = Path.cwd().parent.parent / "data" / "CHOP-Valve4D" / "CT"
+patient_data_dir = Path(__file__).parent.parent.parent / "data" / "CHOP-Valve4D" / "CT"
 patient_ct_path = patient_data_dir / "RVOT28-Dias.mha"
 
 # Template model (moving)
-model_data_dir = Path.cwd().parent.parent / "data" / "KCL-Heart-Model"
+model_data_dir = Path(__file__).parent.parent.parent / "data" / "KCL-Heart-Model"
 model_labelmap_path = model_data_dir / "labelmap" / "average_labelmap_with_bkg.mha"
 model_pca_data_dir = (
-    Path.cwd().parent / "Heart-Create_Statistical_Model" / "kcl-heart-model"
+    Path(__file__).parent.parent / "Heart-Create_Statistical_Model" / "kcl-heart-model"
 )
 model_pca_json_path = model_pca_data_dir / "pca_model.json"
 model_mesh_path = model_pca_data_dir / "pca_mean.vtp"
 model_pca_n_modes = 10
 
 # Output directory
-output_dir = Path.cwd() / "results-chop"
+output_dir = Path(__file__).parent / "results-chop"
 
 # %%
 patient_image = itk.imread(str(patient_ct_path))
@@ -58,7 +58,7 @@ registrar.set_use_pca_registration(
     True, pca_model=model_pca_data, pca_number_of_modes=model_pca_n_modes
 )
 
-registrar.set_use_labelmap_to_labelmap_registration(True)
+# registrar.set_use_labelmap_to_labelmap_registration(True)
 
 # %%
 patient_image = registrar.patient_image
@@ -75,10 +75,6 @@ registered_model_surface = results["registered_template_model_surface"]
 
 registered_model.save(str(output_dir / "registered_model.vtp"))
 registered_model_surface.save(str(output_dir / "registered_model_surface.vtp"))
-registered_labelmap = results["registered_template_labelmap"]
-itk.imwrite(
-    registered_labelmap, str(output_dir / "registered_labelmap.mha"), compression=True
-)
 
 # %%
 pca_model = registrar.pca_template_model
