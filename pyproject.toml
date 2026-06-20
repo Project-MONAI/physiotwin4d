@@ -221,6 +221,8 @@ show_error_codes = true
 module = [
     "ants",
     "cupy",
+    "cupy_backends",
+    "cupy_backends.*",
     "icon_registration",
     "icon_registration.*",
     "itk",
