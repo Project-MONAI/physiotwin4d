@@ -99,6 +99,9 @@ class LabelmapTools(PhysioMotion4DBase):
         labelmap: itk.Image,
         max_distance_mm: float = 20.0,
         distance_scale: float = 5.0,
+        preserve_labels: bool = True,
+        fill_background_only: bool = False,
+        exclude_labels: Optional[list[int]] = None,
     ) -> itk.Image:
         """Encode a labelmap as a continuous label-plus-boundary-distance image.
 
@@ -140,17 +143,24 @@ class LabelmapTools(PhysioMotion4DBase):
         """
         labels = itk.array_from_image(labelmap)
 
-        # A voxel is on a label boundary when it differs from a 6-connected
-        # neighbor along any axis. Mark both voxels straddling each change.
-        boundary = np.zeros(labels.shape, dtype=bool)
-        for axis in range(labels.ndim):
-            changed = np.diff(labels, axis=axis) != 0
-            lower = [slice(None)] * labels.ndim
-            upper = [slice(None)] * labels.ndim
-            lower[axis] = slice(0, -1)
-            upper[axis] = slice(1, None)
-            boundary[tuple(lower)] |= changed
-            boundary[tuple(upper)] |= changed
+        if exclude_labels:
+            labels = np.where(np.isin(labels, exclude_labels), 0, labels)
+
+        if not fill_background_only:
+            # A voxel is on a label boundary when it differs from a 6-connected
+            # neighbor along any axis. Mark both voxels straddling each change.
+            boundary = np.zeros(labels.shape, dtype=bool)
+            for axis in range(labels.ndim):
+                changed = np.diff(labels, axis=axis) != 0
+                lower = [slice(None)] * labels.ndim
+                upper = [slice(None)] * labels.ndim
+                lower[axis] = slice(0, -1)
+                upper[axis] = slice(1, None)
+                boundary[tuple(lower)] |= changed
+                boundary[tuple(upper)] |= changed
+        else:
+            boundary = np.zeros(labels.shape, dtype=np.float32)
+            boundary[labels > 0] = 1.0
 
         if boundary.any():
             boundary_image = itk.image_from_array(boundary.astype(np.uint8))
@@ -161,16 +171,21 @@ class LabelmapTools(PhysioMotion4DBase):
             distance_filter.SetSquaredDistance(False)
             distance_filter.SetUseImageSpacing(True)
             distance_filter.Update()
-            distance = np.abs(
-                itk.array_from_image(distance_filter.GetOutput()).astype(np.float32)
+            distance = itk.array_from_image(distance_filter.GetOutput()).astype(
+                np.float32
             )
+            if not fill_background_only:
+                distance = np.abs(distance)
         else:
             # No inter-label boundary exists (single uniform label); every
             # voxel gets a zero offset.
             distance = np.zeros(labels.shape, dtype=np.float32)
 
         offset = np.clip(distance, 0.0, max_distance_mm) / distance_scale
-        encoded = labels.astype(np.float32) + offset
+        if preserve_labels:
+            encoded = labels.astype(np.float32) + offset
+        else:
+            encoded = offset
 
         encoded_image = itk.image_from_array(encoded)
         encoded_image.CopyInformation(labelmap)
