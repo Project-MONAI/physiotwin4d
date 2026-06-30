@@ -513,7 +513,7 @@ class RegisterModelsPCA(PhysioMotion4DBase):
             else:
                 n_invalid_points += 1
 
-        if n_invalid_points > 0.05 * n_valid_points:
+        if n_invalid_points >= 0.05 * n_valid_points:
             self.log_warning(
                 f"{n_invalid_points} of {n_valid_points + n_invalid_points} mapped outside of image. Rejecting."
             )

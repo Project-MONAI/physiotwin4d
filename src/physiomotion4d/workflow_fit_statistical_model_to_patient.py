@@ -60,9 +60,6 @@ class WorkflowFitStatisticalModelToPatient(PhysioMotion4DBase):
         3. **Labelmap-to-Labelmap**: Deformable registration using RegisterModelsDistanceMaps
         4. **Labelmap-to-Image**: Final refinement
 
-    **Labelmap Configuration:**
-        Labelmaps are automatically generated from models.
-
     Attributes:
         template_model (pv.DataSet): Generic anatomical model to be registered
         template_model_surface (pv.PolyData): Surface extracted from
@@ -84,6 +81,8 @@ class WorkflowFitStatisticalModelToPatient(PhysioMotion4DBase):
         use_pca_registration (bool): Whether PCA registration is enabled (set via set_use_pca_registration)
         pca_model (dict): PCA model dict when PCA enabled; same structure as WorkflowCreateStatisticalModel output
         pca_number_of_modes (int): Number of PCA modes when PCA enabled
+        labelmap_interior_object_ids (list): List of labelmap IDs corresponding to interior objects that should
+            not be used when computing a distance map.
         icp_forward_point_transform : ICP transforms
         icp_inverse_point_transform : ICP inverse transforms
         icp_template_model_surface: template model surface after ICP alignment
@@ -126,6 +125,7 @@ class WorkflowFitStatisticalModelToPatient(PhysioMotion4DBase):
         patient_image: Optional[itk.Image] = None,
         patient_labelmap: Optional[itk.Image] = None,
         template_labelmap: Optional[itk.Image] = None,
+        labelmap_interior_object_ids: Optional[list] = None,
         segmentation_method: str = "HeartSimplewareTrimmedBranches",
         log_level: int | str = logging.INFO,
     ):
@@ -138,6 +138,9 @@ class WorkflowFitStatisticalModelToPatient(PhysioMotion4DBase):
             patient_image: Optional patient image providing the target coordinate frame.
                 If None, a reference image is created from the patient model surface
                 via create_reference_image (contour_tools).
+            labelmap_interior_object_ids: Optional list of labelmap IDs that should
+                not be used when computing the distance map since they are interior (surrounded
+                by other objects).
             segmentation_method: Segmentation backend used by
                 WorkflowConvertImageToVTK when patient_models is None and
                 patient_image is provided. One of
@@ -161,6 +164,8 @@ class WorkflowFitStatisticalModelToPatient(PhysioMotion4DBase):
         self.template_labelmap_organ_mesh_ids: Optional[list[int]] = None
         self.template_labelmap_organ_extra_ids: Optional[list[int]] = None
         self.template_labelmap_background_ids: Optional[list[int]] = None
+
+        self.labelmap_interior_object_ids: Optional[list] = labelmap_interior_object_ids
 
         if patient_models is None and patient_image is not None:
             convert_image_to_vtk = WorkflowConvertImageToVTK(
@@ -270,7 +275,7 @@ class WorkflowFitStatisticalModelToPatient(PhysioMotion4DBase):
 
         Args:
             mask_dilation_mm: Dilation amount in millimeters for binary registration
-                mask generation. Default: 25mm
+                mask generation. Default: 10mm
         """
         self.mask_dilation_mm = mask_dilation_mm
 
@@ -497,14 +502,17 @@ class WorkflowFitStatisticalModelToPatient(PhysioMotion4DBase):
         else:
             pca_template_model = self.icp_template_model
             fixed_model = self.combined_patient_model
-            fixed_distance_map = self.labelmap_tools.create_distance_map(
-                self.patient_labelmap,
-                max_distance_mm=10.0,
-                distance_scale=5.0,
-                preserve_labels=False,
-                exclude_labels=[1, 2, 3, 4],  # Interior chambers
-                fill_background_only=True,
-            )
+            if self.patient_labelmap is not None:
+                fixed_distance_map = self.labelmap_tools.create_distance_map(
+                    self.patient_labelmap,
+                    max_distance_mm=10.0,
+                    distance_scale=5.0,
+                    preserve_labels=False,
+                    exclude_labels=self.labelmap_interior_object_ids,
+                    fill_background_only=True,
+                )
+            else:
+                fixed_distance_map = None
         assert pca_template_model is not None, "PCA template model must be set"
 
         self.pca_registrar = RegisterModelsPCA.from_pca_model(
