@@ -70,17 +70,19 @@ from typing import Any, Optional, cast
 import numpy as np
 import pyvista as pv
 import torch
-import torch_geometric.utils as pyg_utils
-from torch_geometric.data import Batch, Data
 
 from physiomotion4d.test_tools import TestTools
 
 try:
+    import torch_geometric.utils as pyg_utils
+    from torch_geometric.data import Batch, Data
+
     from physicsnemo.models.meshgraphnet import MeshGraphNet
 except ImportError as exc:
     raise ImportError(
-        "Tutorial 9a requires PhysicsNeMo. "
-        'Install with: pip install "physiomotion4d[physicsnemo]"'
+        "Tutorial 9a requires PhysicsNeMo and PyTorch Geometric. Install with:\n"
+        '  pip install "physiomotion4d[physicsnemo]"\n'
+        "  pip install torch-geometric"
     ) from exc
 
 

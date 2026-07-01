@@ -20,7 +20,7 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Optional, cast
 
 import pyvista as pv
 
@@ -92,7 +92,7 @@ if __name__ == "__main__":
                 sample_data.extract_surface(algorithm="dataset_surface")
             )
 
-    pca_model: dict[str, Any] | None = None
+    pca_model: Optional[dict[str, Any]] = None
     if pca_json.exists():
         with pca_json.open(encoding="utf-8") as f:
             pca_model = json.load(f)

@@ -253,6 +253,11 @@ def _physicsnemo_available() -> bool:
     return importlib.util.find_spec("physicsnemo") is not None
 
 
+def _torch_geometric_available() -> bool:
+    """True if the optional PyTorch Geometric dependency is importable."""
+    return importlib.util.find_spec("torch_geometric") is not None
+
+
 def _run_eval_tutorial(script_name: str) -> dict[str, Any]:
     """Run a Tutorial 10 eval script through its no-argument ``run_tutorial`` path.
 
@@ -292,6 +297,8 @@ class TestTutorial09aCardiacTrainMGN:
     def test_run(self) -> None:
         if not _physicsnemo_available():
             pytest.skip("PhysicsNeMo not installed (optional [physicsnemo] extra).")
+        if not _torch_geometric_available():
+            pytest.skip("torch-geometric not installed (required for MeshGraphNet).")
         if not _CARDIAC_FITTED_MESHES_DIR.exists():
             pytest.skip("Tutorial 8 cardiac output not present; run Tutorial 8 first.")
         results = _run_tutorial_script("tutorial_09a_cardiac_train_physicsnemo_mgn.py")
@@ -321,6 +328,8 @@ class TestTutorial10aCardiacEvalMGN:
     def test_run(self) -> None:
         if not _physicsnemo_available():
             pytest.skip("PhysicsNeMo not installed (optional [physicsnemo] extra).")
+        if not _torch_geometric_available():
+            pytest.skip("torch-geometric not installed (required for MeshGraphNet).")
         checkpoint = _TUTORIALS_DIR / "output_mgn" / "mgn_stage_model.pt"
         if not checkpoint.exists() or not _CARDIAC_FITTED_MESHES_DIR.exists():
             pytest.skip(

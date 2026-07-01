@@ -278,6 +278,16 @@ if __name__ == "__main__":
         n_pca = next(iter(subjects.values()))["pca_coeffs"].shape[0]
         n_mesh_points = next(iter(subjects.values()))["ref_points"].shape[0]
 
+        if (
+            use_mean_shape_coords
+            and mean_shape_coords is not None
+            and len(mean_shape_coords) != n_mesh_points
+        ):
+            raise RuntimeError(
+                "Mean-shape surface topology mismatch: expected "
+                f"{n_mesh_points} points but got {len(mean_shape_coords)}."
+            )
+
         # ------------------------------------------------------------------ #
         # 3. Validate explicit subject splits and derive training set         #
         # ------------------------------------------------------------------ #

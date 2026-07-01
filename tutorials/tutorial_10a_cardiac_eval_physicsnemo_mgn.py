@@ -47,9 +47,10 @@ from typing import Any, Optional, cast
 import numpy as np
 import pyvista as pv
 import torch
-from torch_geometric.data import Data
 
 try:
+    from torch_geometric.data import Data
+
     from physicsnemo.models.meshgraphnet import MeshGraphNet
 except ImportError as exc:
     raise ImportError(
@@ -176,7 +177,7 @@ def predict(
     subject: str,
     epoch: int,
     out_dir: Path,
-    stages: list[float] | None = None,
+    stages: Optional[list[float]] = None,
 ) -> dict[str, Any]:
     subject_dir = FITTED_MESHES_DIR / subject
     ref_file = subject_dir / f"{subject}_ssm_surface.vtp"
