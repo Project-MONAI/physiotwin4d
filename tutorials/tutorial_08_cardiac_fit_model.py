@@ -193,9 +193,11 @@ if __name__ == "__main__":
 
         # %%
         # Step 2: register every gated phase to the reference
-        gated_files = [
-            file for file in patient_dir.glob("*.nii.gz") if "nop" not in file.name
-        ]
+        gated_files = sorted(
+            file
+            for file in patient_dir.glob("*.nii.gz")
+            if file != ref_image_file and "nop" not in file.name and "_g" in file.stem
+        )
 
         time_series = []
         time_series_ids = []
@@ -266,6 +268,7 @@ if __name__ == "__main__":
                         patient_output_dir
                         / f"{patient_id}_g{time_id}_ref_labelmap.nii.gz"
                     ),
+                    compression=True,
                 )
             else:
                 fwd_tfm = itk.transformread(

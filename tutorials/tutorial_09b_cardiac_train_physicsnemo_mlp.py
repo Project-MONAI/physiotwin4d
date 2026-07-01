@@ -61,7 +61,7 @@ import shutil
 import sys
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 import numpy as np
 import pyvista as pv
@@ -144,6 +144,10 @@ if __name__ == "__main__":
             if part.startswith("g") and part[1:].isdigit():
                 return int(part[1:]) / 100.0
         raise ValueError(f"Cannot parse gating percentage from filename: {mesh_file}")
+
+    def _uncompiled_state_dict(model: torch.nn.Module) -> dict:
+        """Return the base model's state dict, unwrapping torch.compile if applied."""
+        return cast(dict, getattr(model, "_orig_mod", model).state_dict())
 
     def _infer_all_points(
         model: "FullyConnected",
@@ -254,12 +258,11 @@ if __name__ == "__main__":
                 logging.info(msg)
                 continue
 
+            ref_mesh = pv.read(str(ref_file))
             subjects[sid] = {
                 "subject_dir": subject_dir,
-                "ref_mesh": pv.read(str(ref_file)),
-                "ref_points": np.asarray(
-                    pv.read(str(ref_file)).points, dtype=np.float32
-                ),
+                "ref_mesh": ref_mesh,
+                "ref_points": np.asarray(ref_mesh.points, dtype=np.float32),
                 "pca_coeffs": np.array(
                     json.loads(pca_file.read_text(encoding="utf-8")), dtype=np.float32
                 ),
@@ -328,7 +331,9 @@ if __name__ == "__main__":
         resume_ckpt: Optional[dict] = None
         if resume_from_weights is not None:
             logging.info(f"Loading prior weights from {resume_from_weights}")
-            resume_ckpt = torch.load(str(resume_from_weights), map_location="cpu")
+            resume_ckpt = torch.load(
+                str(resume_from_weights), map_location="cpu", weights_only=True
+            )
             coordinate_mean = np.array(resume_ckpt["coordinate_mean"], dtype=np.float32)
             coordinate_scale = np.array(
                 resume_ckpt["coordinate_scale"], dtype=np.float32
@@ -425,14 +430,18 @@ if __name__ == "__main__":
                 displacement_scale = 1.0
         targets_array /= displacement_scale
 
-        val_inputs_array = np.vstack(val_inputs).astype(np.float32)
-        val_targets_array = (
-            np.vstack(val_targets).astype(np.float32) / displacement_scale
-        )
+        has_val = len(val_inputs) > 0
+        if has_val:
+            val_inputs_array = np.vstack(val_inputs).astype(np.float32)
+            val_targets_array = (
+                np.vstack(val_targets).astype(np.float32) / displacement_scale
+            )
+        else:
+            logging.info("No validation subjects configured; skipping val RMSE.")
 
         logging.info(
             f"Training set: {len(inputs_array):,} rows, "
-            f"val set: {len(val_inputs_array):,} rows, "
+            f"val set: {len(val_inputs) if has_val else 0:,} rows, "
             f"in_features={inputs_array.shape[1]}, "
             f"displacement_scale={displacement_scale:.4f} mm"
         )
@@ -473,8 +482,9 @@ if __name__ == "__main__":
         logging.info("Moving training and validation tensors to GPU ...")
         inputs_tensor = torch.from_numpy(inputs_array).to(device)
         targets_tensor = torch.from_numpy(targets_array).to(device)
-        val_inputs_tensor = torch.from_numpy(val_inputs_array).to(device)
-        val_targets_tensor = torch.from_numpy(val_targets_array).to(device)
+        if has_val:
+            val_inputs_tensor = torch.from_numpy(val_inputs_array).to(device)
+            val_targets_tensor = torch.from_numpy(val_targets_array).to(device)
         n_train = len(inputs_tensor)
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
         loss_fn = torch.nn.MSELoss()
@@ -523,7 +533,11 @@ if __name__ == "__main__":
             if (epoch + 1) % rmse_log_interval == 0 or epoch + 1 == epochs:
                 model.eval()
                 train_rmse = _batched_rmse_mm(inputs_tensor, targets_tensor)
-                val_rmse = _batched_rmse_mm(val_inputs_tensor, val_targets_tensor)
+                val_rmse = (
+                    _batched_rmse_mm(val_inputs_tensor, val_targets_tensor)
+                    if has_val
+                    else float("nan")
+                )
                 rmse_log.append(
                     {
                         "epoch": epoch + 1,
@@ -534,7 +548,7 @@ if __name__ == "__main__":
                 ckpt_path = (
                     output_dir / f"physicsnemo_stage_model_epoch_{epoch + 1:05d}.pt"
                 )
-                torch.save(model.state_dict(), ckpt_path)
+                torch.save(_uncompiled_state_dict(model), ckpt_path)
                 logging.info(
                     "INTERMITTENT TEST  epoch %05d/%d  "
                     "train RMSE=%.4f mm  val RMSE=%.4f mm  checkpoint=%s",
@@ -555,7 +569,7 @@ if __name__ == "__main__":
 
         torch.save(
             {
-                "model_state_dict": model.state_dict(),
+                "model_state_dict": _uncompiled_state_dict(model),
                 "in_features": in_features,
                 "layer_size": layer_size,
                 "num_layers": num_layers,

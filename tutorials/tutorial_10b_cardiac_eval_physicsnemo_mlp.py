@@ -84,6 +84,17 @@ DEFAULT_EPOCH = 5000
 DEFAULT_OUT_DIR = TUTORIALS_DIR / "output" / "eval_mlp" / DEFAULT_SUBJECT
 
 
+def _latest_epoch_checkpoint(output_dir: Path) -> Optional[int]:
+    """Return the highest epoch number among saved checkpoints, or None if none exist."""
+    epochs = []
+    for ckpt in output_dir.glob("physicsnemo_stage_model_epoch_*.pt"):
+        try:
+            epochs.append(int(ckpt.stem.rsplit("_", 1)[-1]))
+        except ValueError:
+            continue
+    return max(epochs) if epochs else None
+
+
 def _gating_stage_from_filename(mesh_file: Path) -> float:
     for part in mesh_file.stem.split("_"):
         if part.startswith("g") and part[1:].isdigit():
@@ -142,7 +153,7 @@ def predict(
             f"Metadata checkpoint not found: {meta_ckpt}\n"
             "Run Tutorial 9b (tutorial_09b_cardiac_train_physicsnemo_mlp.py) first."
         )
-    meta = torch.load(meta_ckpt, map_location="cpu", weights_only=False)
+    meta = torch.load(meta_ckpt, map_location="cpu", weights_only=True)
 
     epoch_ckpt = OUTPUT_DIR / f"physicsnemo_stage_model_epoch_{epoch:05d}.pt"
     if not epoch_ckpt.exists():
@@ -193,6 +204,17 @@ def predict(
             )
     else:
         coords = ref_points
+
+    if len(coords) != len(ref_points):
+        sys.exit(
+            f"Topology mismatch: coordinate surface has {len(coords)} points, "
+            f"but {ref_file} has {len(ref_points)} points."
+        )
+    if pca_coeffs.shape != pca_mean_vec.shape:
+        sys.exit(
+            f"PCA coefficient mismatch: subject has shape {pca_coeffs.shape}, "
+            f"checkpoint expects {pca_mean_vec.shape}."
+        )
 
     norm_coords = (coords - coordinate_mean) / coordinate_scale
     norm_pca = (pca_coeffs - pca_mean_vec) / pca_scale_vec
@@ -399,12 +421,16 @@ def _predict_arbitrary_stages(
 
 
 def run_tutorial() -> dict[str, Any]:
-    """Tutorial / test entry point: evaluate DEFAULT_SUBJECT at DEFAULT_EPOCH.
+    """Tutorial / test entry point: evaluate DEFAULT_SUBJECT at the latest checkpoint.
 
     Used when the script is run with no command-line arguments (cell-by-cell
-    execution or as a tutorial test).  Returns the prediction outputs dict.
+    execution or as a tutorial test).  Picks the highest-numbered checkpoint
+    under OUTPUT_DIR so this works whether Tutorial 9b ran a full training
+    pass or the reduced test-mode epoch count; falls back to DEFAULT_EPOCH if
+    no checkpoints are found. Returns the prediction outputs dict.
     """
-    return predict(DEFAULT_SUBJECT, DEFAULT_EPOCH, DEFAULT_OUT_DIR)
+    epoch = _latest_epoch_checkpoint(OUTPUT_DIR) or DEFAULT_EPOCH
+    return predict(DEFAULT_SUBJECT, epoch, DEFAULT_OUT_DIR)
 
 
 def main() -> None:

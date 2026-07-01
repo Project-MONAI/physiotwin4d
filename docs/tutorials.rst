@@ -55,23 +55,23 @@ Tutorials
        <p>Register respiratory CT phases and reconstruct a higher-resolution 4D volume series.</p>
        <span class="pm4d-card__meta">DirLab-4DCT</span>
      </a>
-     <a class="pm4d-card" href="#tutorial-7-dirlab-lung-lobe-pca-model">
-       <span class="pm4d-card__number">07</span>
-       <h2>DirLab Lung-Lobe PCA Model</h2>
-       <p>Build a surface PCA model from five lung lobes and fit it to all cases.</p>
-       <span class="pm4d-card__meta">DirLab-4DCT</span>
-     </a>
-     <a class="pm4d-card" href="#tutorial-8-dirlab-pca-time-series-propagation">
+     <a class="pm4d-card" href="#tutorial-8-fit-the-cardiac-ssm-and-propagate-through-gated-phases">
        <span class="pm4d-card__number">08</span>
-       <h2>DirLab PCA Time-Series Propagation</h2>
-       <p>Register respiratory phases with ANTs+ICON and propagate fitted meshes.</p>
-       <span class="pm4d-card__meta">Tutorial 7 output</span>
+       <h2>Fit the Cardiac SSM and Propagate Through Gated Phases</h2>
+       <p>Fit a PCA heart model to the reference phase and propagate it to every gated phase with ICON registration.</p>
+       <span class="pm4d-card__meta">Bring your own cardiac data</span>
      </a>
-     <a class="pm4d-card" href="#tutorial-9-physicsnemo-mesh-stage-model">
+     <a class="pm4d-card" href="#tutorial-9a-9b-train-a-physicsnemo-cardiac-stage-model">
        <span class="pm4d-card__number">09</span>
-       <h2>PhysicsNeMo Mesh Stage Model</h2>
-       <p>Train a PhysicsNeMo MLP to predict lung-lobe meshes at requested stages.</p>
+       <h2>Train a PhysicsNeMo Cardiac Stage Model</h2>
+       <p>Train a PhysicsNeMo MeshGraphNet (9a) or MLP (9b) to predict cardiac meshes at requested stages.</p>
        <span class="pm4d-card__meta">Tutorial 8 output</span>
+     </a>
+     <a class="pm4d-card" href="#tutorial-10a-10b-predict-and-evaluate-cardiac-surfaces">
+       <span class="pm4d-card__number">10</span>
+       <h2>Predict and Evaluate Cardiac Surfaces</h2>
+       <p>Load a Tutorial 9 checkpoint and predict cardiac surfaces at gated phases or caller-specified stages.</p>
+       <span class="pm4d-card__meta">Tutorial 9a / 9b output</span>
      </a>
    </section>
 
@@ -89,9 +89,12 @@ arguments.
 3. Run Tutorial 3 after downloading KCL-Heart-Model.
 4. Run Tutorial 4 after Tutorial 3 because it can consume the PCA model output.
 5. Run Tutorial 6 after downloading DirLab-4DCT.
-6. Run Tutorial 7 after downloading DirLab-4DCT.
-7. Run Tutorial 8 after Tutorial 7 because it consumes fitted PCA meshes.
-8. Run Tutorial 9 after Tutorial 8 because it trains from propagated meshes.
+6. Run Tutorial 8 after preparing your own cardiac gated CT, labelmaps, KCL
+   volume PCA model, and ICON weights (bring-your-own-data; see the note below).
+7. Run Tutorial 9a and/or 9b after Tutorial 8 because they train from its
+   fitted meshes.
+8. Run Tutorial 10a and/or 10b after Tutorial 9a / 9b because they evaluate
+   the trained checkpoints.
 
 Tutorial 1: Heart-Gated CT to Animated USD
 ==========================================
