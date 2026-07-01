@@ -487,7 +487,8 @@ if __name__ == "__main__":
         logging.info("Pre-stacking training and validation tensors onto GPU ...")
         train_node_feats_gpu = torch.stack([s[0] for s in train_samples]).to(device)
         train_targets_gpu = torch.stack([s[1] for s in train_samples]).to(device)
-        has_val = len(val_samples) > 0
+        n_val = len(val_samples)
+        has_val = n_val > 0
         if has_val:
             val_node_feats_gpu = torch.stack([s[0] for s in val_samples]).to(device)
             val_targets_gpu = torch.stack([s[1] for s in val_samples]).to(device)
@@ -516,6 +517,18 @@ if __name__ == "__main__":
         else:
             partial_batch_graph = full_batch_graph
             partial_edge_feats = full_edge_feats
+        if has_val:
+            n_val_partial = n_val % batch_size_graphs
+            if n_val_partial > 0:
+                val_partial_batch_graph = Batch.from_data_list(
+                    [shared_graph] * n_val_partial
+                ).to(device)
+                val_partial_edge_feats = shared_edge_feats.repeat(n_val_partial, 1).to(
+                    device
+                )
+            else:
+                val_partial_batch_graph = full_batch_graph
+                val_partial_edge_feats = full_edge_feats
 
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
         loss_fn = torch.nn.MSELoss()
@@ -598,8 +611,8 @@ if __name__ == "__main__":
                         val_targets_gpu,
                         full_batch_graph,
                         full_edge_feats,
-                        partial_batch_graph,
-                        partial_edge_feats,
+                        val_partial_batch_graph,
+                        val_partial_edge_feats,
                         displacement_scale,
                         batch_size_graphs,
                         n_mesh_points,
