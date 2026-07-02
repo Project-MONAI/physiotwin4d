@@ -180,7 +180,6 @@ landmark_tools = LandmarkTools()
 labelmap_tools = LabelmapTools()
 transform_tools = TransformTools()
 segmenter = SegmentHeartSimpleware()
-segmenter.set_trim_branches(False)
 
 
 # %% [markdown]
