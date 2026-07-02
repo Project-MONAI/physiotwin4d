@@ -24,7 +24,7 @@ class SegmentHeartSimplewareTrimmedBranches(SegmentHeartSimpleware):
         >>> labelmap = result['labelmap']
     """
 
-    def __init__(self, log_level: int | str = logging.INFO):
+    def __init__(self, log_level: int | str = logging.INFO) -> None:
         """Initialize the trimmed-branches heart segmentation.
 
         Args:

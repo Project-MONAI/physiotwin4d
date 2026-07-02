@@ -283,10 +283,8 @@ Examples:
         greedy_iterations = args.Greedy_iterations or [30, 15, 7, 3]
         if args.ICON_iterations is None or args.ICON_iterations > 0:
             icon_iterations = args.ICON_iterations
-        elif args.ICON_iterations <= 0:
-            icon_iterations = None
         else:
-            icon_iterations = 20
+            icon_iterations = None
         if isinstance(registration_method, RegisterImagesGreedyICON):
             registration_method.greedy.set_number_of_iterations(greedy_iterations)
             registration_method.icon.set_number_of_iterations(icon_iterations)
