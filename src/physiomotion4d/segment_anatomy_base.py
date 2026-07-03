@@ -10,9 +10,9 @@ from typing import Any
 
 import itk
 import numpy as np
-from itk import TubeTK as tube
 
 from .anatomy_taxonomy import AnatomyTaxonomy
+from .image_tools import ImageTools
 from .physiomotion4d_base import PhysioMotion4DBase
 
 
@@ -427,10 +427,13 @@ class SegmentAnatomyBase(PhysioMotion4DBase):
             InsideValue=1,
             OutsideValue=0,
         )
-        imMath = tube.ImageMath.New(connected_component_image)
-        imMath.Dilate(hole_fill, 1, 0)
-        imMath.Erode(hole_fill, 1, 0)
-        connected_component_image = imMath.GetOutputUChar()
+        image_tools = ImageTools()
+        connected_component_image = image_tools.binary_dilate_image(
+            connected_component_image, hole_fill, 1, 0
+        )
+        connected_component_image = image_tools.binary_erode_image(
+            connected_component_image, hole_fill, 1, 0
+        )
 
         labelmap_arr = itk.GetArrayFromImage(labelmap_image)
         connected_component_arr = itk.GetArrayFromImage(connected_component_image)

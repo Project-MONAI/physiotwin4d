@@ -55,7 +55,6 @@ keywords = [
 dependencies = [
     # Core medical imaging
     "itk>=5.3.0",
-    "itk-tubetk>=1.4.0",
     "nibabel>=4.0.0",
     "numpy>=1.21.0",
     "pydicom>=2.4.0",

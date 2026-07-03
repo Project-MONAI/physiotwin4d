@@ -26,7 +26,6 @@ class Mock(MagicMock):
 
 
 # Mock modules that need special handling
-sys.modules["itk.TubeTK"] = Mock()
 sys.modules["icon_registration.losses"] = Mock()
 sys.modules["icon_registration.network_wrappers"] = Mock()
 

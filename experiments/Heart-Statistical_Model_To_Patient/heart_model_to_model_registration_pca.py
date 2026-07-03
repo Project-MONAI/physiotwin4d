@@ -24,7 +24,6 @@ from pathlib import Path
 import itk
 import numpy as np
 import pyvista as pv
-from itk import TubeTK as ttk
 
 # Import from PhysioMotion4D package
 from physiomotion4d import (
@@ -33,6 +32,7 @@ from physiomotion4d import (
     RegisterModelsPCA,
     TransformTools,
 )
+from physiomotion4d.image_tools import ImageTools
 from physiomotion4d.test_tools import TestTools
 
 # %% [markdown]
@@ -75,10 +75,7 @@ print(f"  Original spacing: {itk.spacing(patient_image)}")
 
 # Resample to 1mm isotropic spacing
 print("Resampling to sotropic...")
-resampler = ttk.ResampleImage.New(Input=patient_image)
-resampler.SetMakeHighResIso(True)
-resampler.Update()
-patient_image = resampler.GetOutput()
+patient_image = ImageTools().make_isotropic_image(patient_image)
 
 print(f"  Resampled size: {itk.size(patient_image)}")
 print(f"  Resampled spacing: {itk.spacing(patient_image)}")
