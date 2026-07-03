@@ -105,7 +105,7 @@ PhysioMotion4D operates across several technically demanding domains:
 
 | Category              | Key Packages                                    |
 | --------------------- | ----------------------------------------------- |
-| **Medical Imaging**   | ITK, TubeTK, MONAI, nibabel, pynrrd             |
+| **Medical Imaging**   | ITK, MONAI, nibabel, pynrrd                     |
 | **Deep Learning**     | PyTorch, CuPy (CUDA 13), transformers           |
 | **Registration**      | ANTs, icon-registration, UniGradICON            |
 | **3D Graphics / USD** | VTK, PyVista, USD-core                          |

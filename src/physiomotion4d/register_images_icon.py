@@ -24,8 +24,7 @@ DEFAULT_FINETUNE_LEARNING_RATE = 2e-5
 
 def _load_icon():
     """Lazy-load icon_registration, torch, and unigradicon to avoid
-    initializing GPU/CUDA resources at import time, which interferes with
-    TubeTK's memory allocator on Windows."""
+    initializing GPU/CUDA resources at import time."""
     import icon_registration as icon
     import icon_registration.itk_wrapper
     import torch

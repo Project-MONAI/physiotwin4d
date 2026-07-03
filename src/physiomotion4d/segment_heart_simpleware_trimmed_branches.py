@@ -92,17 +92,20 @@ class SegmentHeartSimplewareTrimmedBranches(SegmentHeartSimpleware):
         #  3) Erode then Dilate Right Atrium label to clip vessels
         #
         #  Each label is isolated into its own binary mask before the
-        #  open (erode-then-dilate) operation so that, unlike TubeTK's
-        #  ImageMath applied in place to a multi-label image, the opening
-        #  of one label can never bleed into a neighboring label.
+        #  open (erode-then-dilate) operation so that the opening of one
+        #  label can never bleed into a neighboring label.
         simple_arr = heart_arr.copy()
         for label_id in (3, 4):
             label_mask_arr = (heart_arr == label_id).astype(np.uint8)
             label_mask_img = itk.image_from_array(label_mask_arr)
             label_mask_img.CopyInformation(labelmap_image)
             radius = round(7 / spacing[0])
-            label_mask_img = image_tools.binary_erode_image(label_mask_img, radius, 1, 0)
-            label_mask_img = image_tools.binary_dilate_image(label_mask_img, radius, 1, 0)
+            label_mask_img = image_tools.binary_erode_image(
+                label_mask_img, radius, 1, 0
+            )
+            label_mask_img = image_tools.binary_dilate_image(
+                label_mask_img, radius, 1, 0
+            )
 
             #  Keep only the largest connected component of this label
             label_mask_img = image_tools.keep_largest_connected_component(
