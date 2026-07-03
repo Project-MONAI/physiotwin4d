@@ -125,9 +125,14 @@ jobs:
     - name: Upload artifact for Pages
       uses: actions/upload-pages-artifact@v5
       with:
+        # Per-attempt name: artifacts persist across re-run attempts, and
+        # deploy-pages fails if two artifacts share the same name.
+        name: github-pages-${{ github.run_attempt }}
         path: ./docs-html
-        
+
     - name: Deploy to GitHub Pages
       id: deployment
       uses: actions/deploy-pages@v5
+      with:
+        artifact_name: github-pages-${{ github.run_attempt }}
 
