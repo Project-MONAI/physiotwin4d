@@ -2,8 +2,8 @@
 """
 Tests for SegmentHeartSimplewareTrimmedBranches.
 
-trim_branches() is implemented entirely with standard ITK filters (no
-TubeTK), so all tests below run on every supported Python version.
+trim_branches() is implemented entirely with standard ITK filters, so all
+tests below run on every supported Python version.
 """
 
 import os

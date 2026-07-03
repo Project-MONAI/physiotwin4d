@@ -159,7 +159,7 @@ print(WorkflowConvertImageToUSD.__name__)
 
 ### Key Dependencies
 
-- **Medical Imaging**: ITK, TubeTK, MONAI, nibabel, PyVista
+- **Medical Imaging**: ITK, MONAI, nibabel, PyVista
 - **AI/ML**: PyTorch, CuPy (CUDA 13), transformers, MONAI
 - **Registration**: icon-registration, unigradicon
 - **Visualization**: USD-core, PyVista

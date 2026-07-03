@@ -234,9 +234,6 @@ class ImageTools(PhysioMotion4DBase):
     def make_isotropic_image(self, image: itk.Image) -> itk.Image:
         """Resample a 3-D *image* to isotropic spacing using the finest voxel pitch.
 
-        Equivalent to TubeTK's ResampleImage.SetMakeHighResIso(True), implemented
-        with standard ITK ResampleImageFilter so that TubeTK is not needed here.
-
         Args:
             image: 3-D ITK image to resample.
 
@@ -282,10 +279,6 @@ class ImageTools(PhysioMotion4DBase):
     ) -> itk.Image:
         """Binary-dilate *image* with a ball structuring element.
 
-        Equivalent to TubeTK's ``ImageMath.Dilate(radius, foreground,
-        background)``, implemented with standard ITK
-        ``BinaryDilateImageFilter`` so that TubeTK is not needed here.
-
         Args:
             image: Binary (or label) image to dilate.
             radius: Radius, in voxels, of the ball structuring element.
@@ -322,10 +315,6 @@ class ImageTools(PhysioMotion4DBase):
     ) -> itk.Image:
         """Binary-erode *image* with a ball structuring element.
 
-        Equivalent to TubeTK's ``ImageMath.Erode(radius, foreground,
-        background)``, implemented with standard ITK
-        ``BinaryErodeImageFilter`` so that TubeTK is not needed here.
-
         Args:
             image: Binary (or label) image to erode.
             radius: Radius, in voxels, of the ball structuring element.
@@ -360,11 +349,6 @@ class ImageTools(PhysioMotion4DBase):
         fully_connected: bool = False,
     ) -> itk.Image:
         """Keep only the largest connected component of a binary image.
-
-        Equivalent to TubeTK's ``SegmentConnectedComponents`` with
-        ``SetKeepOnlyLargestComponent(True)``, implemented with standard ITK
-        connected-component and relabeling filters so that TubeTK is not
-        needed here.
 
         Args:
             image: Binary (non-zero = foreground) image.
