@@ -13,6 +13,7 @@ from typing import cast
 
 import itk
 
+from ..convert_image_4d_to_3d import ConvertImage4DTo3D
 from ..register_images_greedy import RegisterImagesGreedy
 from ..register_images_icon import RegisterImagesICON
 from ..segment_chest_total_segmentator import SegmentChestTotalSegmentator
@@ -147,9 +148,14 @@ Examples:
         if isinstance(registration_method, RegisterImagesICON):
             registration_method.set_mass_preservation(not args.contrast)
 
-        time_series_images = [
-            itk.imread(str(input_file)) for input_file in args.input_files
-        ]
+        if len(args.input_files) == 1:
+            convert_image_4d_to_3d = ConvertImage4DTo3D()
+            convert_image_4d_to_3d.load_image_4d(args.input_files[0])
+            time_series_images = convert_image_4d_to_3d.get_3d_images()
+        else:
+            time_series_images = [
+                itk.imread(str(input_file)) for input_file in args.input_files
+            ]
         if args.reference_image is not None:
             reference_image = itk.imread(str(args.reference_image))
         else:

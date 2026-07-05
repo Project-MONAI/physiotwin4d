@@ -131,6 +131,12 @@ class WorkflowConvertImageToUSD(PhysioMotion4DBase):
         self.reference_segmentation: Optional[dict[str, itk.Image]] = None
         self.reference_contours: dict[str, pv.PolyData] = {}
 
+        self.transformed_contours: dict[str, list[pv.PolyData]] = {
+            "all": [],
+            "dynamic": [],
+            "static": [],
+        }
+
     def process(self) -> str:
         """
         Execute the complete workflow from 4D CT to dynamic USD models.
@@ -358,12 +364,6 @@ class WorkflowConvertImageToUSD(PhysioMotion4DBase):
     def _transform_all_contours(self) -> None:
         """Transform contours for all time points using registration transforms."""
         self.log_info("Transforming contours for all time points...")
-
-        self.transformed_contours: dict[str, list[pv.PolyData]] = {
-            "all": [],
-            "dynamic": [],
-            "static": [],
-        }
 
         anatomy_types = ["all"]
         if len(self.dynamic_labelmap_ids) > 0:

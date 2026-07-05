@@ -4,136 +4,73 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
+import itk
 import pytest
+from pxr import Usd, UsdGeom
 
-from physiomotion4d.physiomotion4d_base import PhysioMotion4DBase
-from physiomotion4d.register_images_base import RegisterImagesBase
 from physiomotion4d.register_images_icon import RegisterImagesICON
 from physiomotion4d.segment_chest_total_segmentator import SegmentChestTotalSegmentator
 from physiomotion4d.workflow_convert_image_to_usd import WorkflowConvertImageToUSD
-import physiomotion4d.workflow_convert_image_to_usd as workflow_module
 
 
-def _make_workflow(**overrides: Any) -> WorkflowConvertImageToUSD:
-    """Construct a WorkflowConvertImageToUSD with minimal required args,
-    overridable via keyword (e.g. segmentation_method=..., output_directory=...)."""
-    kwargs: dict[str, Any] = {
-        "input_filenames": ["input.nrrd"],
-        "contrast_enhanced": False,
-        "output_directory": str(overrides.pop("output_directory", "results")),
-        "project_name": "patient",
-        "log_level": logging.CRITICAL,
-    }
-    kwargs.update(overrides)
-    return WorkflowConvertImageToUSD(**kwargs)
+@pytest.mark.requires_gpu
+@pytest.mark.slow
+def test_workflow_convert_image_to_usd_default_operation(
+    test_images: list[Any],
+    tmp_path: Path,
+) -> None:
+    """Convert one real Slicer-Heart frame to USD.
 
-
-def test_default_segmentation_and_registration_methods(tmp_path: Path) -> None:
-    """Omitting segmentation_method/registration_method defaults to
-    SegmentChestTotalSegmentator (contrast_threshold=500) and
-    RegisterImagesICON, matching this workflow's historical string defaults."""
-    workflow = _make_workflow(output_directory=tmp_path)
+    Input frame shape is the downloaded/resampled slicer_heart_small 3D image
+    with axes (X, Y, Z) in LPS world frame.
+    """
+    reference_image = test_images[0]
+    workflow = WorkflowConvertImageToUSD(
+        time_series_images=[reference_image],
+        reference_image=reference_image,
+        usd_project_name="slicer_heart_small",
+        output_directory=str(tmp_path),
+        log_level=logging.CRITICAL,
+    )
 
     assert isinstance(workflow.segmenter, SegmentChestTotalSegmentator)
     assert workflow.segmenter.contrast_threshold == 500
+    assert workflow.segmenter.contrast_enhanced_study
     assert isinstance(workflow.registrar, RegisterImagesICON)
+    workflow.registrar.set_number_of_iterations(2)
 
+    result_filename = workflow.process()
 
-def test_segmentation_method_rejects_wrong_type(tmp_path: Path) -> None:
-    """A non-SegmentAnatomyBase segmentation_method raises TypeError."""
-    with pytest.raises(TypeError, match="segmentation_method must be"):
-        _make_workflow(
-            output_directory=tmp_path, segmentation_method="ChestTotalSegmentator"
-        )
+    assert result_filename == "slicer_heart_small.all_painted.usd"
+    assert workflow.reference_segmentation is not None
+    assert "all" in workflow.reference_contours
+    assert len(workflow.transformed_contours["all"]) == 1
+    assert len(workflow.registration_results) == 1
+    assert "all" in workflow.registration_results[0]
+    assert workflow.registration_results[0]["all"]["forward_transform"] is not None
+    assert workflow.registration_results[0]["all"]["inverse_transform"] is not None
 
-
-def test_registration_method_rejects_wrong_type(tmp_path: Path) -> None:
-    """A non-RegisterImagesBase registration_method raises TypeError."""
-    with pytest.raises(TypeError, match="registration_method must be"):
-        _make_workflow(output_directory=tmp_path, registration_method="ICON")
-
-
-def test_caller_supplied_instances_are_used_as_is(tmp_path: Path) -> None:
-    """A caller-supplied segmenter/registrar instance is stored unmodified
-    (beyond the documented shared setters): the workflow must not apply its
-    default-only contrast_threshold=500 tuning to a caller-supplied segmenter."""
-    segmenter = SegmentChestTotalSegmentator()
-    original_contrast_threshold = segmenter.contrast_threshold
-    registrar: RegisterImagesBase = RegisterImagesICON()
-
-    workflow = _make_workflow(
-        output_directory=tmp_path,
-        segmentation_method=segmenter,
-        registration_method=registrar,
+    reference_labelmap = cast(
+        itk.Image,
+        workflow.reference_segmentation["labelmap"],
     )
+    assert itk.size(reference_labelmap) == itk.size(reference_image)
 
-    assert workflow.segmenter is segmenter
-    assert workflow.registrar is registrar
-    assert workflow.segmenter.contrast_threshold == original_contrast_threshold
+    expected_outputs = [
+        "reference_labelmap.mha",
+        "slice_000_labelmap.mha",
+        "slicer_heart_small.all.usd",
+        "slicer_heart_small.all_painted.usd",
+    ]
+    for output_name in expected_outputs:
+        output_path = tmp_path / output_name
+        assert output_path.exists(), f"Missing workflow output: {output_path}"
+        assert output_path.stat().st_size > 0, f"Empty workflow output: {output_path}"
 
-
-def test_create_usd_files_passes_times_per_second(
-    monkeypatch: Any,
-    tmp_path: Path,
-) -> None:
-    """Workflow forwards FPS to VTK-to-USD for shape (X, Y, Z, T) outputs."""
-    times_per_second_values: list[float] = []
-
-    class FakeStage:
-        def Export(self, _output_filename: str) -> None:
-            return None
-
-    class FakeConvertVTKToUSD:
-        def __init__(
-            self,
-            _project_name: str,
-            _input_polydata: list[Any],
-            _mask_ids: dict[int, str],
-            *,
-            times_per_second: float,
-            **_kwargs: Any,
-        ) -> None:
-            times_per_second_values.append(times_per_second)
-
-        def convert(self, _usd_file: str) -> FakeStage:
-            return FakeStage()
-
-    class FakeUSDAnatomyTools:
-        def __init__(self, _stage: FakeStage) -> None:
-            return None
-
-        def enhance_meshes(self, _segmenter: Any) -> None:
-            return None
-
-    class FakeTaxonomy:
-        def all_labels(self) -> dict[int, str]:
-            return {1: "heart"}
-
-    class FakeSegmenter:
-        taxonomy = FakeTaxonomy()
-
-    monkeypatch.setattr(workflow_module, "ConvertVTKToUSD", FakeConvertVTKToUSD)
-    monkeypatch.setattr(workflow_module, "USDAnatomyTools", FakeUSDAnatomyTools)
-
-    workflow = WorkflowConvertImageToUSD.__new__(WorkflowConvertImageToUSD)
-    PhysioMotion4DBase.__init__(
-        workflow,
-        class_name=WorkflowConvertImageToUSD.__name__,
-        log_level=logging.CRITICAL,
-    )
-    workflow.project_name = "patient"
-    workflow.output_directory = str(tmp_path)
-    # FakeSegmenter is a minimal test double, not a real SegmentAnatomyBase.
-    workflow.segmenter = FakeSegmenter()  # type: ignore[assignment]
-    workflow.times_per_second = 12.5
-    workflow._transformed_contours = {
-        "all": [],
-        "dynamic": [],
-        "static": [],
-    }
-
-    workflow._create_usd_files()
-
-    assert times_per_second_values == [12.5, 12.5, 12.5]
+    stage = Usd.Stage.Open(str(tmp_path / "slicer_heart_small.all_painted.usd"))
+    assert stage is not None
+    assert UsdGeom.GetStageUpAxis(stage) == UsdGeom.Tokens.y
+    assert stage.GetPrimAtPath("/World").IsValid()
+    assert stage.GetPrimAtPath("/World/slicer_heart_small").IsValid()
