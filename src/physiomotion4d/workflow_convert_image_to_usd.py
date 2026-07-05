@@ -136,7 +136,7 @@ class WorkflowConvertImageToUSD(PhysioMotion4DBase):
         Execute the complete workflow from 4D CT to dynamic USD models.
 
         Returns:
-            str: Path to the final dynamic anatomy USD file
+            str: Filename of the final all-anatomy painted USD file.
         """
         self.log_section("Image-to-USD Processing Pipeline")
 
@@ -153,7 +153,7 @@ class WorkflowConvertImageToUSD(PhysioMotion4DBase):
         self._create_usd_files()
 
         self.log_info("Processing pipeline completed successfully")
-        return f"{self.usd_project_name}.dynamic_painted.usd"
+        return f"{self.usd_project_name}.all_painted.usd"
 
     def _register_with_mask(
         self,
@@ -175,7 +175,7 @@ class WorkflowConvertImageToUSD(PhysioMotion4DBase):
         forward_transform_dynamic = cast(
             itk.Transform, registration_results["forward_transform"]
         )
-        if len(filename_prefix) > 0:
+        if self.save_assets and len(filename_prefix) > 0:
             itk.imwrite(
                 self.registrar.get_registered_image(),
                 os.path.join(
@@ -219,7 +219,7 @@ class WorkflowConvertImageToUSD(PhysioMotion4DBase):
         if len(self.dynamic_labelmap_ids) > 0:
             dynamic_labelmap_arr = itk.GetArrayFromImage(labelmap)
             dynamic_labelmap_arr = np.where(
-                dynamic_labelmap_arr in self.dynamic_labelmap_ids, 1, 0
+                np.isin(dynamic_labelmap_arr, self.dynamic_labelmap_ids), 1, 0
             )
             reference_dynamic_labelmap = itk.GetImageFromArray(dynamic_labelmap_arr)
             reference_dynamic_labelmap.CopyInformation(self.reference_image)
@@ -260,7 +260,9 @@ class WorkflowConvertImageToUSD(PhysioMotion4DBase):
                 self.registrar.set_fixed_mask(reference_dynamic_mask)
                 moving_dynamic_labelmap_arr = itk.GetArrayFromImage(moving_labelmap)
                 moving_dynamic_labelmap_arr = np.where(
-                    moving_dynamic_labelmap_arr in self.dynamic_labelmap_ids, 1, 0
+                    np.isin(moving_dynamic_labelmap_arr, self.dynamic_labelmap_ids),
+                    1,
+                    0,
                 )
                 moving_dynamic_labelmap = itk.GetImageFromArray(
                     moving_dynamic_labelmap_arr
@@ -278,7 +280,7 @@ class WorkflowConvertImageToUSD(PhysioMotion4DBase):
 
                 dynamic_registration_results = self._register_with_mask(
                     self.reference_image,
-                    reference_static_mask,
+                    reference_dynamic_mask,
                     moving_image,
                     moving_mask,
                     f"slice_{i:03d}_dynamic",
@@ -331,9 +333,9 @@ class WorkflowConvertImageToUSD(PhysioMotion4DBase):
         if len(self.dynamic_labelmap_ids) > 0:
             dynamic_labelmap_arr = itk.GetArrayFromImage(labelmap)
             dynamic_labelmap_arr = np.where(
-                dynamic_labelmap_arr not in self.dynamic_labelmap_ids,
-                0,
+                np.isin(dynamic_labelmap_arr, self.dynamic_labelmap_ids),
                 dynamic_labelmap_arr,
+                0,
             )
             dynamic_labelmap = itk.GetImageFromArray(dynamic_labelmap_arr)
             dynamic_labelmap.CopyInformation(labelmap)
@@ -341,7 +343,9 @@ class WorkflowConvertImageToUSD(PhysioMotion4DBase):
 
             static_labelmap_arr = itk.GetArrayFromImage(labelmap)
             static_labelmap_arr = np.where(
-                static_labelmap_arr in self.dynamic_labelmap_ids, 0, static_labelmap_arr
+                np.isin(static_labelmap_arr, self.dynamic_labelmap_ids),
+                0,
+                static_labelmap_arr,
             )
             static_labelmap = itk.GetImageFromArray(static_labelmap_arr)
             static_labelmap.CopyInformation(labelmap)

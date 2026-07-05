@@ -150,7 +150,10 @@ Examples:
         time_series_images = [
             itk.imread(str(input_file)) for input_file in args.input_files
         ]
-        reference_image = itk.imread(str(args.reference_image))
+        if args.reference_image is not None:
+            reference_image = itk.imread(str(args.reference_image))
+        else:
+            reference_image = time_series_images[int(len(time_series_images) * 0.7)]
         processor = WorkflowConvertImageToUSD(
             time_series_images=time_series_images,
             reference_image=reference_image,

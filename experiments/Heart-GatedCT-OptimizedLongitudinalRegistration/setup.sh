@@ -17,11 +17,15 @@ if [ ! -d "venv" ]; then
 fi
 
 # Detect venv Python path (Windows vs Linux/Mac)
-if [ -f "venv/Scripts/python" ]; then
-    PYTHON="venv/Scripts/python"
-else
-    PYTHON="venv/bin/python"
-fi
+for PYTHON_CANDIDATE in \
+    "venv/Scripts/python.exe" \
+    "venv/Scripts/python" \
+    "venv/bin/python"; do
+    if [ -f "$PYTHON_CANDIDATE" ]; then
+        PYTHON="$PYTHON_CANDIDATE"
+        break
+    fi
+done
 
 # Install all dependencies (including editable physiomotion4d and uniGradICON)
 "$PYTHON" -m pip install uv

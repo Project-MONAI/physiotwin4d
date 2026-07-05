@@ -121,21 +121,16 @@ all_methods = [
     },
 ]
 
-output_dir.mkdir(parents=True, exist_ok=True)
-detail_file = output_dir / "landmark_errors_by_point.csv"
-summary_file = output_dir / "registration_summary.csv"
-warped_ref_detail_file = output_dir / "warped_ref_landmark_errors_by_point.csv"
-if detail_file.exists():
-    detail_file.unlink()
-if warped_ref_detail_file.exists():
-    warped_ref_detail_file.unlink()
-
-# %%
 all_patient_ids = sorted(
     p.name
     for p in timepoint_base_dir.iterdir()
     if p.is_dir() and p.name.startswith("pm00")
 )
+if len(all_patient_ids) < 2:
+    raise ValueError(
+        f"Expected at least 2 subjects under {timepoint_base_dir}, "
+        f"found {len(all_patient_ids)}."
+    )
 n_train = max(
     1, min(len(all_patient_ids) - 1, round(train_fraction * len(all_patient_ids)))
 )
@@ -145,6 +140,15 @@ print(
     f"first {n_train} train, last {len(test_subjects)} test."
 )
 print(f"Held-out test subjects: {test_subjects}")
+
+output_dir.mkdir(parents=True, exist_ok=True)
+detail_file = output_dir / "landmark_errors_by_point.csv"
+summary_file = output_dir / "registration_summary.csv"
+warped_ref_detail_file = output_dir / "warped_ref_landmark_errors_by_point.csv"
+if detail_file.exists():
+    detail_file.unlink()
+if warped_ref_detail_file.exists():
+    warped_ref_detail_file.unlink()
 
 # %% [markdown]
 # ## 2. Validate that every test subject has exactly one reference file

@@ -63,7 +63,7 @@ print(f"  Original size: {itk.size(patient_image)}")
 print(f"  Original spacing: {itk.spacing(patient_image)}")
 
 # Resample to 1mm isotropic spacing
-print("Resampling to sotropic...")
+print("Resampling to isotropic...")
 patient_image = ImageTools().make_isotropic_image(patient_image)
 
 print(f"  Resampled size: {itk.size(patient_image)}")

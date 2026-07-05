@@ -427,7 +427,7 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
             mid_slice = (
                 connected_component_image.GetLargestPossibleRegion().GetSize()[2] // 2
             )
-            tmp_connected_component_arr = connected_component_arr[:, :, mid_slice]
+            tmp_connected_component_arr = connected_component_arr[mid_slice, :, :]
             ids = np.unique(tmp_connected_component_arr)
             if len(ids[ids != 0]) > 0:
                 connected_component_arr = tmp_connected_component_arr

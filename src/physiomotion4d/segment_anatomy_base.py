@@ -433,7 +433,7 @@ class SegmentAnatomyBase(PhysioMotion4DBase):
         Returns:
             dict[str, itk.image]: Dictionary containing:
                 - "labelmap": Detailed segmentation labelmap
-                - "masks": Dictionary of binary masks keyed by group name
+                - one binary mask image per anatomy group, keyed by group name
 
         Example:
             >>> result = segmenter.segment(ct_image)

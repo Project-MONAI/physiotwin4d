@@ -77,7 +77,10 @@ if quick_run:
     print("=== QUICK RUN MODE ===")
     total_num_files = len(files)
     target_num_files = 2
-    file_step = total_num_files // target_num_files
+    if total_num_files == 0:
+        raise FileNotFoundError(f"No slice_*.mha files found in {data_dir}")
+    target_num_files = min(target_num_files, total_num_files)
+    file_step = max(1, total_num_files // target_num_files)
     files = files[0:total_num_files:file_step]
     files_indx = list(range(0, total_num_files, file_step))
     num_files = len(files)
@@ -255,7 +258,7 @@ for method_idx, registration_method_name in enumerate(registration_method_names)
         # Generate grid image for visualization
         grid_image = tfm_tools.generate_grid_image(fixed_image, 30, 1)
 
-        print(f"Generating {registration_method.upper()} grid visualizations...")
+        print(f"Generating {registration_method_name.upper()} grid visualizations...")
         for i, img_indx in enumerate(files_indx):
             print(f"  Generating grid for slice {img_indx:03d}...")
 
@@ -269,7 +272,7 @@ for method_idx, registration_method_name in enumerate(registration_method_names)
                 inverse_grid_image,
                 os.path.join(
                     _RESULTS_DIR,
-                    f"slice_fixed_{registration_method}_inverse_grid_{img_indx:03d}.mha",
+                    f"slice_fixed_{registration_method_name}_inverse_grid_{img_indx:03d}.mha",
                 ),
                 compression=True,
             )
@@ -284,7 +287,7 @@ for method_idx, registration_method_name in enumerate(registration_method_names)
                 inverse_transform_image,
                 os.path.join(
                     _RESULTS_DIR,
-                    f"slice_{registration_method}_inverse_{img_indx:03d}_field.mha",
+                    f"slice_{registration_method_name}_inverse_{img_indx:03d}_field.mha",
                 ),
                 compression=True,
             )

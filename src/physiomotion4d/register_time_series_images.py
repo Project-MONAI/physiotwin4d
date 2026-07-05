@@ -82,7 +82,8 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
 
         Args:
             registration_method: Registration backend instance to use.
-                Defaults to a new RegisterImagesGreedy() when None.
+                Defaults to a new RegisterImagesGreedyICON when None, with
+                its greedy stage configured to use an Affine transform.
             log_level: Logging level (default: logging.INFO)
 
         Raises:

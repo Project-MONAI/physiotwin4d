@@ -64,7 +64,8 @@ def _split_by_occurrence(
         Ordered dict mapping group name → sub-data-frame.
     """
     occurrence = frame.groupby(key_cols, sort=False).cumcount() + 1  # 1-indexed
-    max_occ = int(occurrence.max())
+    max_occ_value = occurrence.max()
+    max_occ = 0 if frame.empty or pd.isna(max_occ_value) else int(max_occ_value)
     result: dict[str, pd.DataFrame] = {}
     for n in range(1, max_occ + 1):
         sub = frame[occurrence == n]
