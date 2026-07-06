@@ -23,6 +23,7 @@ from pathlib import Path
 import itk
 import pyvista as pv
 
+from physiomotion4d.contour_tools import ContourTools
 from physiomotion4d.segment_chest_total_segmentator_with_contrast import (
     SegmentChestTotalSegmentatorWithContrast,
 )
@@ -92,14 +93,14 @@ if __name__ == "__main__":
     # %%
     # Result saving
     surface_file = Path(
-        WorkflowConvertImageToVTK.save_combined_surface(
+        ContourTools.save_combined_surface(
             result["surfaces"],
             str(output_dir),
             prefix="patient",
         )
     )
     mesh_file = Path(
-        WorkflowConvertImageToVTK.save_combined_mesh(
+        ContourTools.save_combined_mesh(
             result["meshes"],
             str(output_dir),
             prefix="patient",

@@ -23,17 +23,16 @@ Typical usage::
     )
 
     # Combined single-file output (default)
-    WorkflowConvertImageToVTK.save_combined_surface(result['surfaces'], './out', prefix='patient')
-    WorkflowConvertImageToVTK.save_combined_mesh(result['meshes'], './out', prefix='patient')
+    ContourTools.save_combined_surface(result['surfaces'], './out', prefix='patient')
+    ContourTools.save_combined_mesh(result['meshes'], './out', prefix='patient')
 
     # Per-group split output
-    WorkflowConvertImageToVTK.save_surfaces(result['surfaces'], './out', prefix='patient')
-    WorkflowConvertImageToVTK.save_meshes(result['meshes'], './out', prefix='patient')
+    ContourTools.save_surfaces(result['surfaces'], './out', prefix='patient')
+    ContourTools.save_meshes(result['meshes'], './out', prefix='patient')
 """
 
 import logging
-import os
-from typing import Any, Optional, cast
+from typing import Any, Optional
 
 import itk
 import numpy as np
@@ -79,10 +78,12 @@ class WorkflowConvertImageToVTK(PhysioMotion4DBase):
 
     **I/O contract**
 
-    :meth:`run_workflow` performs *no* file I/O.  Use the static helpers
-    :meth:`save_surfaces`, :meth:`save_meshes`, :meth:`save_combined_surface`, and
-    :meth:`save_combined_mesh` — or the CLI ``physiomotion4d-convert-image-to-vtk`` — to
-    write results to disk.
+    :meth:`run_workflow` performs *no* file I/O.  Use
+    :class:`ContourTools`'s static helpers
+    :meth:`ContourTools.save_surfaces`, :meth:`ContourTools.save_meshes`,
+    :meth:`ContourTools.save_combined_surface`, and
+    :meth:`ContourTools.save_combined_mesh` — or the CLI
+    ``physiomotion4d-convert-image-to-vtk`` — to write results to disk.
     """
 
     def __init__(
@@ -189,80 +190,22 @@ class WorkflowConvertImageToVTK(PhysioMotion4DBase):
     def _extract_mesh(
         self, surface: pv.PolyData, mesh_target_reduction: float = 0.0
     ) -> Optional[pv.UnstructuredGrid]:
-        """Generate a tetrahedral volume mesh (VTU) from a closed surface via netgen.
+        """Generate a tetrahedral volume mesh (VTU) from a closed surface.
 
-        Optionally decimates the surface with
-        :meth:`pyvista.PolyDataFilters.decimate_pro` before meshing — netgen
-        has no post-hoc decimation of its own, so a coarser input surface is
-        the only way to get a coarser tetrahedral mesh out.
-
-        Builds netgen's surface mesh directly from *surface*'s indexed
-        points/triangles rather than round-tripping through an STL file.
-        STL has no shared-vertex topology, so every triangle corner is
-        written independently; float32 rounding during that round-trip can
-        make two corners that were exactly the same point diverge by ~1e-6,
-        which is well within netgen's own "identical point" merge tolerance
-        and makes its STL reader spin forever trying to reconcile them
-        (observed hang on the Taubin-smoothed surfaces this method actually
-        receives). Adding points/triangles directly preserves the exact
-        shared-vertex indices already present in *surface*, so there is
-        nothing for netgen to reconcile.
+        Delegates to :meth:`ContourTools.extract_mesh`.
 
         Args:
             surface: Closed, triangulated surface for one anatomy group (as
                 returned by :meth:`_extract_surface`).
             mesh_target_reduction: Fraction in ``[0, 1)`` of surface triangles
-                to remove via ``decimate_pro(mesh_target_reduction,
-                preserve_topology=True)`` before meshing.  ``0.0`` (default)
-                skips decimation and meshes the surface as given.
+                to remove before meshing.  ``0.0`` (default) skips decimation.
 
         Returns:
             :class:`pyvista.UnstructuredGrid` of tetrahedral cells, or
-            ``None`` if the surface is empty or netgen produced no volume
-            mesh from it.
+            ``None`` if the surface is empty or no volume mesh could be
+            generated from it.
         """
-        if surface.n_points == 0:
-            return None
-
-        meshing_surface = surface.triangulate().clean()
-        if mesh_target_reduction > 0.0:
-            meshing_surface = meshing_surface.decimate_pro(
-                mesh_target_reduction, preserve_topology=True
-            )
-
-        import netgen.meshing as ngm  # noqa: PLC0415
-
-        triangles = meshing_surface.faces.reshape(-1, 4)[:, 1:4]
-        ngmesh = ngm.Mesh()
-        ngmesh.dim = 3
-        point_ids = [
-            ngmesh.Add(ngm.MeshPoint(ngm.Pnt(*point)))
-            for point in meshing_surface.points
-        ]
-        face_descriptor = ngmesh.Add(ngm.FaceDescriptor(surfnr=1, domin=1, domout=0))
-        for triangle in triangles:
-            ngmesh.Add(ngm.Element2D(face_descriptor, [point_ids[i] for i in triangle]))
-        ngmesh.GenerateVolumeMesh()
-
-        elements = ngmesh.Elements3D()
-        if len(elements) == 0:
-            self.log_warning("netgen produced no volume mesh for this surface")
-            return None
-
-        points = ngmesh.Coordinates()
-        tets = np.array(
-            [[vertex.nr - 1 for vertex in element.vertices] for element in elements],
-            dtype=np.int64,
-        )
-        # netgen's tet vertex order is opposite VTK_TETRA's right-hand
-        # convention (confirmed by negative cell volumes); swapping the last
-        # two indices restores positive-volume orientation.
-        tets = tets[:, [0, 1, 3, 2]]
-        cells = np.hstack(
-            [np.full((tets.shape[0], 1), 4, dtype=np.int64), tets]
-        ).flatten()
-        cell_types = np.full(tets.shape[0], pv.CellType.TETRA, dtype=np.uint8)
-        return pv.UnstructuredGrid(cells, cell_types, points)
+        return self._contour_tools.extract_mesh(surface, mesh_target_reduction)
 
     # ─────────────────────────── Main workflow ─────────────────────────────
 
@@ -378,127 +321,3 @@ class WorkflowConvertImageToVTK(PhysioMotion4DBase):
             "labelmap": seg_result["labelmap"],
             "segmentation_masks": seg_masks,
         }
-
-    # ─────────────────────────── I/O helpers ───────────────────────────────
-
-    @staticmethod
-    def save_surfaces(
-        surfaces: dict[str, pv.PolyData],
-        output_dir: str,
-        prefix: str = "",
-    ) -> dict[str, str]:
-        """Save each group surface to its own VTP file.
-
-        Args:
-            surfaces: Mapping of anatomy group name → surface (from
-                :meth:`run_workflow`).
-            output_dir: Directory to write files into (created if absent).
-            prefix: Optional filename prefix.  Each file is named
-                ``{prefix}_{group}.vtp`` (or ``{group}.vtp`` when *prefix* is empty).
-
-        Returns:
-            Mapping of anatomy group name → absolute path of the saved file.
-        """
-        os.makedirs(output_dir, exist_ok=True)
-        saved: dict[str, str] = {}
-        for name, surface in surfaces.items():
-            stem = f"{prefix}_{name}" if prefix else name
-            path = os.path.join(output_dir, f"{stem}.vtp")
-            surface.save(path)
-            saved[name] = path
-        return saved
-
-    @staticmethod
-    def save_meshes(
-        meshes: dict[str, pv.UnstructuredGrid],
-        output_dir: str,
-        prefix: str = "",
-    ) -> dict[str, str]:
-        """Save each group tetrahedral volume mesh to its own VTU file.
-
-        Args:
-            meshes: Mapping of anatomy group name → mesh (from :meth:`run_workflow`).
-            output_dir: Directory to write files into (created if absent).
-            prefix: Optional filename prefix.  Each file is named
-                ``{prefix}_{group}.vtu`` (or ``{group}.vtu`` when *prefix* is empty).
-
-        Returns:
-            Mapping of anatomy group name → absolute path of the saved file.
-        """
-        os.makedirs(output_dir, exist_ok=True)
-        saved: dict[str, str] = {}
-        for name, mesh in meshes.items():
-            stem = f"{prefix}_{name}" if prefix else name
-            path = os.path.join(output_dir, f"{stem}.vtu")
-            mesh.save(path)
-            saved[name] = path
-        return saved
-
-    @staticmethod
-    def save_combined_surface(
-        surfaces: dict[str, pv.PolyData],
-        output_dir: str,
-        prefix: str = "",
-    ) -> str:
-        """Merge all group surfaces into a single VTP file.
-
-        The merged mesh retains per-cell ``Color`` (RGBA uint8) from each group's
-        annotation, enabling colour-by-anatomy rendering in Paraview, PyVista, etc.
-        Per-object ``field_data`` is not preserved in the merged file.
-
-        Args:
-            surfaces: Mapping of anatomy group name → surface.
-            output_dir: Directory to write the file into (created if absent).
-            prefix: Optional filename prefix.  Output is ``{prefix}_surfaces.vtp``
-                (or ``surfaces.vtp`` when *prefix* is empty).
-
-        Returns:
-            Absolute path to the saved VTP file.
-
-        Raises:
-            ValueError: If *surfaces* is empty.
-        """
-        if not surfaces:
-            raise ValueError("No surfaces to save.")
-        os.makedirs(output_dir, exist_ok=True)
-        stem = f"{prefix}_surfaces" if prefix else "surfaces"
-        output_file = os.path.join(output_dir, f"{stem}.vtp")
-        merged = cast(
-            pv.PolyData, pv.merge(list(surfaces.values()), merge_points=False)
-        )
-        merged.save(output_file)
-        return output_file
-
-    @staticmethod
-    def save_combined_mesh(
-        meshes: dict[str, pv.UnstructuredGrid],
-        output_dir: str,
-        prefix: str = "",
-    ) -> str:
-        """Merge all group meshes into a single VTU file.
-
-        The merged mesh retains per-cell ``Color`` (RGBA uint8) from each group's
-        annotation.  Per-object ``field_data`` is not preserved in the merged file.
-
-        Args:
-            meshes: Mapping of anatomy group name → tetrahedral volume mesh.
-            output_dir: Directory to write the file into (created if absent).
-            prefix: Optional filename prefix.  Output is ``{prefix}_meshes.vtu``
-                (or ``meshes.vtu`` when *prefix* is empty).
-
-        Returns:
-            Absolute path to the saved VTU file.
-
-        Raises:
-            ValueError: If *meshes* is empty.
-        """
-        if not meshes:
-            raise ValueError("No meshes to save.")
-        os.makedirs(output_dir, exist_ok=True)
-        stem = f"{prefix}_meshes" if prefix else "meshes"
-        output_file = os.path.join(output_dir, f"{stem}.vtu")
-        merged = cast(
-            pv.UnstructuredGrid, pv.merge(list(meshes.values()), merge_points=False)
-        )
-        merged.save(output_file)
-        return output_file

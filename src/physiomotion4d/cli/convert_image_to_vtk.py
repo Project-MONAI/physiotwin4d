@@ -177,7 +177,7 @@ Examples
     print("=" * 70)
 
     try:
-        from .. import WorkflowConvertImageToVTK
+        from .. import ContourTools, WorkflowConvertImageToVTK
 
         workflow = WorkflowConvertImageToVTK(
             segmentation_method=build_segmentation_method(
@@ -212,13 +212,13 @@ Examples
         if args.split_files:
             # One file per anatomy group
             if surfaces:
-                saved_surfaces = WorkflowConvertImageToVTK.save_surfaces(
+                saved_surfaces = ContourTools.save_surfaces(
                     surfaces, args.output_dir, prefix=prefix
                 )
                 for group, path in saved_surfaces.items():
                     print(f"  Surface  [{group:15s}] -> {path}")
             if meshes:
-                saved_meshes = WorkflowConvertImageToVTK.save_meshes(
+                saved_meshes = ContourTools.save_meshes(
                     meshes, args.output_dir, prefix=prefix
                 )
                 for group, path in saved_meshes.items():
@@ -226,12 +226,12 @@ Examples
         else:
             # Combined single-file output
             if surfaces:
-                surface_file = WorkflowConvertImageToVTK.save_combined_surface(
+                surface_file = ContourTools.save_combined_surface(
                     surfaces, args.output_dir, prefix=prefix
                 )
                 print(f"  Combined surface -> {surface_file}")
             if meshes:
-                mesh_file = WorkflowConvertImageToVTK.save_combined_mesh(
+                mesh_file = ContourTools.save_combined_mesh(
                     meshes, args.output_dir, prefix=prefix
                 )
                 print(f"  Combined mesh    -> {mesh_file}")

@@ -77,6 +77,7 @@ Image to VTK
    import itk
 
    from physiomotion4d import (
+       ContourTools,
        SegmentChestTotalSegmentatorWithContrast,
        WorkflowConvertImageToVTK,
    )
@@ -90,7 +91,7 @@ Image to VTK
        anatomy_groups=["heart", "major_vessels"],
    )
 
-   WorkflowConvertImageToVTK.save_combined_surface(
+   ContourTools.save_combined_surface(
        result["surfaces"],
        "./output",
        prefix="patient01",
