@@ -300,7 +300,7 @@ for usd_file in sorted(usd_files):
             )
 
 print("\n" + "=" * 60)
-print("✓ All conversions completed successfully!")
+print("All conversions completed successfully!")
 print("=" * 60)
 
 
@@ -318,15 +318,15 @@ def verify_usd_file(usd_path):
 
     stage = Usd.Stage.Open(str(usd_path))
     if not stage:
-        print("  ✗ Failed to open stage")
+        print("  FAILED: could not open stage")
         return False
 
     # Check default prim
     default_prim = stage.GetDefaultPrim()
     if not default_prim:
-        print("  ✗ No default prim")
+        print("  FAILED: no default prim")
         return False
-    print(f"  ✓ Default prim: {default_prim.GetPath()}")
+    print(f"  Default prim: {default_prim.GetPath()}")
 
     # Find mesh prims
     mesh_count = 0
@@ -336,13 +336,13 @@ def verify_usd_file(usd_path):
             mesh = UsdGeom.Mesh(prim)
             points = mesh.GetPointsAttr().Get()
             if points:
-                print(f"  ✓ Mesh '{prim.GetName()}': {len(points)} points")
+                print(f"  Mesh '{prim.GetName()}': {len(points)} points")
 
     if mesh_count == 0:
-        print("  ✗ No meshes found")
+        print("  FAILED: no meshes found")
         return False
 
-    print(f"  ✓ Total meshes: {mesh_count}")
+    print(f"  Total meshes: {mesh_count}")
     return True
 
 
@@ -358,9 +358,9 @@ for usd_file in sorted(usd_files):
 
 print("\n" + "=" * 60)
 if all_valid:
-    print("✓ All USD files are valid!")
+    print("All USD files are valid!")
 else:
-    print("✗ Some USD files have issues")
+    print("FAILED: some USD files have issues")
 print("=" * 60)
 
 # %% [markdown]

@@ -5,7 +5,7 @@ import os
 import itk
 import numpy as np
 
-from physiomotion4d import RegisterImagesANTS, TransformTools
+from physiomotion4d import RegisterImagesGreedy, TestTools, TransformTools
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -17,29 +17,17 @@ files = [
     if f.endswith(".mha") and f.startswith("slice_")
 ]
 
-quick_run = True
-
-num_files = None
-files_indx = None
-reference_image_num = None
-reg_method_data = None
+quick_run = TestTools.running_as_test()
 if quick_run:
-    total_num_files = len(files)
-    target_num_files = 5
-    file_step = total_num_files // target_num_files
-    files = files[0:total_num_files:file_step]
-    files_indx = list(range(0, total_num_files, file_step))
-    num_files = len(files)
-    reference_image_num = num_files // 2
-    # reg_method_data = zip(["ICON"], [RegisterImagesICON()], [2])
-    reg_method_data = zip(["ANTs"], [RegisterImagesANTS()], [[20, 10, 2]])
-else:
-    num_files = len(files)
-    files_indx = list(range(num_files))
-    reference_image_num = 7
-    reg_method_data = zip(["ANTs"], [RegisterImagesANTS()], [[30, 15, 5]])
-    # reg_method_data = zip(["ICON"], [RegisterImagesICON()], [20])
-    # reg_method_data = zip(["ICON","ANTs"], [RegisterImagesICON(), RegisterImagesANTS()], [20, [40, 20, 10]])
+    exit(0)
+
+num_files = len(files)
+files_indx = list(range(num_files))
+reference_image_num = 7
+reg_method_data = zip(["Greedy"], [RegisterImagesGreedy()], [[30, 15, 5]])
+# reg_method_data = zip(["ICON"], [RegisterImagesICON()], [20])
+# reg_method_data = zip(["ICON","ANTs"], [RegisterImagesICON(), RegisterImagesANTS()], [20, [40, 20, 10]])
+# (requires importing RegisterImagesANTS above before uncommenting)
 
 reference_image_file = os.path.join(
     data_dir, f"slice_{files_indx[reference_image_num]:03d}.mha"
@@ -168,9 +156,10 @@ def register_slices(
 
         prior_forward_transform = prior_forward_transform_ref
 
-        print(
-            f"registering: from {files_indx[start_i]} to {files_indx[end_i - step_i]} step {step_i}"
-        )
+        if start_i != end_i:
+            print(
+                f"registering: from {files_indx[start_i]} to {files_indx[end_i - step_i]} step {step_i}"
+            )
         for img_indx in range(start_i, end_i, step_i):
             img = images[img_indx]
             img_file_indx = files_indx[img_indx]

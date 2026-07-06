@@ -30,7 +30,6 @@ import itk
 
 from .physiomotion4d_base import PhysioMotion4DBase
 from .register_images_base import RegisterImagesBase
-from .register_images_greedy_icon import RegisterImagesGreedyICON
 from .register_time_series_images import RegisterTimeSeriesImages
 
 
@@ -76,21 +75,11 @@ class WorkflowReconstructHighres4DCT(PhysioMotion4DBase):
 
     Example:
         >>> # Initialize workflow with data
-        >>> registration_method = RegisterImagesGreedyICON()
-        >>> registration_method.greedy.set_number_of_iterations([30, 15, 7])
-        >>> registration_method.icon.set_number_of_iterations(20)
         >>> workflow = WorkflowReconstructHighres4DCT(
         ...     time_series_images=lowres_images,
         ...     fixed_image=highres_reference,
-        ...     reference_frame=3,
-        ...     registration_method=registration_method,
+        ...     reference_frame=7,
         ... )
-        >>>
-        >>> # Configure workflow-level registration parameters
-        >>> workflow.set_prior_weight(0.5)
-        >>>
-        >>> # Run complete workflow
-        >>> result = workflow.run_workflow(upsample_to_fixed_resolution=True)
         >>>
         >>> # Access results
         >>> reconstructed = result['reconstructed_images']
@@ -146,9 +135,9 @@ class WorkflowReconstructHighres4DCT(PhysioMotion4DBase):
                 f"[0, {len(time_series_images) - 1}]"
             )
 
-        if registration_method is None:
-            registration_method = RegisterImagesGreedyICON(log_level=log_level)
-        elif not isinstance(registration_method, RegisterImagesBase):
+        if registration_method is not None and not isinstance(
+            registration_method, RegisterImagesBase
+        ):
             raise TypeError(
                 "registration_method must be a RegisterImagesBase instance or None"
             )
@@ -161,7 +150,7 @@ class WorkflowReconstructHighres4DCT(PhysioMotion4DBase):
 
         # Initialize parameters with defaults
         self.prior_weight: float = 0.0
-        self.upsample_to_fixed_resolution: bool = False
+        self.upsample_to_fixed_resolution: bool = True
         self.modality: str = "ct"
         self.mask_dilation_mm: float = 0.0
         self.fixed_mask: Optional[itk.Image] = None
@@ -299,19 +288,23 @@ class WorkflowReconstructHighres4DCT(PhysioMotion4DBase):
             "losses": self.losses,
         }
 
-    def reconstruct_time_series(
-        self, upsample_to_fixed_resolution: bool = False
-    ) -> dict:
+    def set_upsample_to_fixed_resolution(
+        self, upsample_to_fixed_resolution: bool
+    ) -> None:
+        """Set whether to upsample the reconstructed time series to the fixed
+        resolution.
+
+        Args:
+            upsample_to_fixed_resolution (bool): Whether to upsample the reconstructed
+                time series to the fixed resolution.
+        """
+        self.upsample_to_fixed_resolution = upsample_to_fixed_resolution
+
+    def reconstruct_time_series(self) -> dict:
         """Reconstruct high-resolution time series using inverse transforms.
 
         Applies the inverse transforms from registration to reconstruct each
         time-series image in the high-resolution fixed image space.
-
-        Args:
-            upsample_to_fixed_resolution (bool, optional): If True, reconstructed
-                images will be upsampled to isotropic resolution (mean of fixed
-                image's X and Y spacing) while maintaining their original origin
-                and direction. Default: False
 
         Returns:
             dict: Dictionary containing:
@@ -331,13 +324,15 @@ class WorkflowReconstructHighres4DCT(PhysioMotion4DBase):
             "Stage 2: High-Resolution Time Series Reconstruction", width=70
         )
 
-        self.log_info(f"Upsampling to fixed resolution: {upsample_to_fixed_resolution}")
+        self.log_info(
+            f"Upsampling to fixed resolution: {self.upsample_to_fixed_resolution}"
+        )
 
         # Reconstruct time series
         self.reconstructed_images = self.registrar.reconstruct_time_series(
             moving_images=self.time_series_images,
             inverse_transforms=self.inverse_transforms,
-            upsample_to_fixed_resolution=upsample_to_fixed_resolution,
+            upsample_to_fixed_resolution=self.upsample_to_fixed_resolution,
         )
 
         self.log_info("Stage 2 complete: Time series reconstruction finished.")
@@ -351,17 +346,12 @@ class WorkflowReconstructHighres4DCT(PhysioMotion4DBase):
 
         return {"reconstructed_images": self.reconstructed_images}
 
-    def run_workflow(self, upsample_to_fixed_resolution: bool = False) -> dict:
+    def run_workflow(self) -> dict:
         """Execute the complete high-resolution 4D CT reconstruction workflow.
 
         Runs the full pipeline:
         1. Register time series to high-resolution reference
         2. Reconstruct high-resolution time series using inverse transforms
-
-        Args:
-            upsample_to_fixed_resolution (bool, optional): If True, reconstructed
-                images will be upsampled to isotropic high resolution.
-                Default: False
 
         Returns:
             dict: Dictionary containing all results:
@@ -383,15 +373,15 @@ class WorkflowReconstructHighres4DCT(PhysioMotion4DBase):
         self.log_info(f"  Registration method: {registrar_type}")
         self.log_info(f"  Reference frame: {self.reference_frame}")
         self.log_info(f"  Prior weight: {self.prior_weight}")
-        self.log_info(f"  Upsample reconstruction: {upsample_to_fixed_resolution}")
+        self.log_info(
+            f"  Upsample to fixed resolution: {self.upsample_to_fixed_resolution}"
+        )
 
         # Stage 1: Register time series
         _ = self.register_time_series()
 
         # Stage 2: Reconstruct high-resolution time series
-        _ = self.reconstruct_time_series(
-            upsample_to_fixed_resolution=upsample_to_fixed_resolution
-        )
+        _ = self.reconstruct_time_series()
 
         self.log_section("RECONSTRUCTION WORKFLOW COMPLETE", width=70)
         assert self.reconstructed_images is not None, "Reconstructed images must be set"

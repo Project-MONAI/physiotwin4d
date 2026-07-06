@@ -68,9 +68,7 @@ class TestSegmentChestTotalSegmentator:
         print(f"  Input image size: {itk.size(input_image)}")
 
         # Run segmentation
-        result = segmenter_total_segmentator.segment(
-            input_image, contrast_enhanced_study=False
-        )
+        result = segmenter_total_segmentator.segment(input_image)
 
         # Verify result is a dictionary with expected keys
         assert isinstance(result, dict), "Result should be a dictionary"
@@ -125,9 +123,7 @@ class TestSegmentChestTotalSegmentator:
         for i, input_image in enumerate(test_images[0:2]):
             print(f"\nSegmenting time point {i}...")
 
-            result = segmenter_total_segmentator.segment(
-                input_image, contrast_enhanced_study=False
-            )
+            result = segmenter_total_segmentator.segment(input_image)
             results.append(result)
 
             # Save labelmap for each time point
@@ -150,9 +146,7 @@ class TestSegmentChestTotalSegmentator:
         input_image = test_images[0]
 
         # Run segmentation
-        result = segmenter_total_segmentator.segment(
-            input_image, contrast_enhanced_study=False
-        )
+        result = segmenter_total_segmentator.segment(input_image)
 
         # Check each anatomy group mask
         anatomy_groups = [
@@ -194,16 +188,15 @@ class TestSegmentChestTotalSegmentator:
         input_image = test_images[0]
 
         # Test without contrast
-        result_no_contrast = segmenter_total_segmentator.segment(
-            input_image, contrast_enhanced_study=False
-        )
+        segmenter_total_segmentator.set_contrast_enhanced_study(False)
+        result_no_contrast = segmenter_total_segmentator.segment(input_image)
         contrast_mask_no = result_no_contrast["contrast"]
 
         # Test with contrast flag
-        result_with_contrast = segmenter_total_segmentator.segment(
-            input_image, contrast_enhanced_study=True
-        )
+        segmenter_total_segmentator.set_contrast_enhanced_study(True)
+        result_with_contrast = segmenter_total_segmentator.segment(input_image)
         contrast_mask_yes = result_with_contrast["contrast"]
+        segmenter_total_segmentator.set_contrast_enhanced_study(False)
 
         # Both should return valid masks
         assert contrast_mask_no is not None, "Contrast mask (no flag) is None"
@@ -229,9 +222,7 @@ class TestSegmentChestTotalSegmentator:
 
         # Preprocessing is done internally by segment(), not exposed as public method
         # Just verify that segment() works (which includes preprocessing)
-        result = segmenter_total_segmentator.segment(
-            input_image, contrast_enhanced_study=False
-        )
+        result = segmenter_total_segmentator.segment(input_image)
 
         # Check that segmentation was successful (which means preprocessing worked)
         assert result is not None, "Segmentation result is None"
@@ -249,9 +240,7 @@ class TestSegmentChestTotalSegmentator:
         input_image = test_images[0]
 
         # Run full segmentation to get labelmap
-        result = segmenter_total_segmentator.segment(
-            input_image, contrast_enhanced_study=False
-        )
+        result = segmenter_total_segmentator.segment(input_image)
         labelmap = result["labelmap"]
 
         # Postprocessing is part of segment(), verify output is properly sized

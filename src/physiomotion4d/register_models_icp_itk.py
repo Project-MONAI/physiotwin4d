@@ -140,7 +140,7 @@ class RegisterModelsICPITK(PhysioMotion4DBase):
         self.fixed_distance_map = None
         self._interpolator = None
 
-        self.log_info("  ✓ Fixed model set successfully!")
+        self.log_info("  Fixed model set successfully!")
 
     def _evaluate_distance_metric(
         self,

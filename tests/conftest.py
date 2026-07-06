@@ -519,9 +519,7 @@ def test_labelmaps(
         labelmap_file = slice_file.with_name(f"{slice_file.stem}_labelmap.mha")
         if not labelmap_file.exists():
             print(f"\nSegmenting {slice_file.name} ...")
-            result = segmenter_total_segmentator.segment(
-                img, contrast_enhanced_study=False
-            )
+            result = segmenter_total_segmentator.segment(img)
             itk.imwrite(result["labelmap"], str(labelmap_file), compression=True)
 
         labelmap = itk.imread(str(labelmap_file))

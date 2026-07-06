@@ -6,8 +6,8 @@ from typing import Optional
 import itk
 import numpy as np
 from data_dirlab_4d_ct import DataDirLab4DCT
-from itk import TubeTK as tube
 
+from physiomotion4d.image_tools import ImageTools
 from physiomotion4d.register_images_icon import RegisterImagesICON
 from physiomotion4d.segment_chest_total_segmentator import SegmentChestTotalSegmentator
 from physiomotion4d.transform_tools import TransformTools
@@ -33,10 +33,7 @@ if __name__ == "__main__":
     # %%
     def dilate_mask(mask: Optional[itk.image], dilation: int) -> Optional[itk.image]:
         if mask is not None:
-            im_math = tube.ImageMath.New(mask)
-            im_math.Dilate(dilation, 1, 0)
-            dilated_mask = im_math.GetOutputShort()
-            return dilated_mask
+            return ImageTools().binary_dilate_image(mask, dilation, 1, 0)
         return None
 
     def register_image(

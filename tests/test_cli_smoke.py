@@ -68,6 +68,14 @@ def test_convert_image_to_usd_cli_passes_fps(
     input_file = tmp_path / "input.mha"
     input_file.write_text("placeholder")
     captured_kwargs: dict[str, Any] = {}
+    fake_image = object()
+
+    class FakeConvertImage4DTo3D:
+        def load_image_4d(self, input_filename: str) -> None:
+            assert input_filename == str(input_file)
+
+        def get_3d_images(self) -> list[object]:
+            return [fake_image]
 
     class FakeWorkflowConvertImageToUSD:
         def __init__(self, **kwargs: Any) -> None:
@@ -76,6 +84,11 @@ def test_convert_image_to_usd_cli_passes_fps(
         def process(self) -> str:
             return "output.usd"
 
+    monkeypatch.setattr(
+        module,
+        "ConvertImage4DTo3D",
+        FakeConvertImage4DTo3D,
+    )
     monkeypatch.setattr(
         physiomotion4d,
         "WorkflowConvertImageToUSD",
@@ -95,4 +108,6 @@ def test_convert_image_to_usd_cli_passes_fps(
     )
 
     assert module.main() == 0
+    assert captured_kwargs["time_series_images"] == [fake_image]
+    assert captured_kwargs["reference_image"] is fake_image
     assert captured_kwargs["times_per_second"] == 30.0

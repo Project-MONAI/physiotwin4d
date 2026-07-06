@@ -17,12 +17,22 @@ if [ ! -d "venv" ]; then
 fi
 
 # Detect venv Python path (Windows vs Linux/Mac)
-if [ -f "venv/Scripts/python" ]; then
-    PYTHON="venv/Scripts/python"
-else
-    PYTHON="venv/bin/python"
+PYTHON=""
+for PYTHON_CANDIDATE in \
+    "venv/Scripts/python.exe" \
+    "venv/Scripts/python" \
+    "venv/bin/python"; do
+    if [ -f "$PYTHON_CANDIDATE" ]; then
+        PYTHON="$PYTHON_CANDIDATE"
+        break
+    fi
+done
+
+if [ -z "$PYTHON" ]; then
+    echo "Python not found in venv, exiting."
+    exit 1
 fi
 
 # Install all dependencies (including editable physiomotion4d and uniGradICON)
 "$PYTHON" -m pip install uv
-"$PYTHON" -m uv pip install -e .
+"$PYTHON" -m uv pip install -e ".[dev,docs,test,cuda13]"

@@ -276,7 +276,7 @@ class RegisterModelsPCA(PhysioMotion4DBase):
                 f"got {actual_pca_eigenvector_size}"
             )
 
-        logger.info("  ✓ Data validation successful!")
+        logger.info("  Data validation successful!")
         logger.info("PCA model data loaded successfully!")
 
         return cls.from_pca_model(
@@ -422,7 +422,7 @@ class RegisterModelsPCA(PhysioMotion4DBase):
         self._pca_template_model_points_itk = None
 
         self._create_itk_points()
-        self.log_info("  ✓ Average model set successfully!")
+        self.log_info("  Average model set successfully!")
 
     def _mean_distance_metric(
         self,

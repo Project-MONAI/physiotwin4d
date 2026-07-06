@@ -663,6 +663,10 @@ class RegisterImagesANTS(RegisterImagesBase):
         # -x $brainlesionmask
 
         if self.fixed_mask is not None and self.moving_mask is not None:
+            # mask_all_stages=True re-applies the mask at every pyramid
+            # level and is significantly more expensive than masking only
+            # the final stage. fast_mode trades that extra precision for
+            # speed (e.g. in automated tests).
             registration_result = ants.registration(
                 fixed=self._itk_to_ants_image(self.fixed_image_pre),
                 mask=self._itk_to_ants_image(self.fixed_mask),
@@ -673,7 +677,7 @@ class RegisterImagesANTS(RegisterImagesBase):
                 aff_metric=aff_metric,
                 syn_metric=syn_metric,
                 use_histogram_matching=False,
-                mask_all_stages=True,
+                mask_all_stages=not self.fast_mode,
                 verbose=False,
                 reg_iterations=self.number_of_iterations,
             )

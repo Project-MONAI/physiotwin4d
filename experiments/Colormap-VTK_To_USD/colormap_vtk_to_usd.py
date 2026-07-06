@@ -10,13 +10,6 @@
 # 2. **Custom intensity ranges**: Control value-to-color mapping
 # 3. **Point data visualization**: Map scalar data to colors on 3D meshes
 # 4. **Time-varying data**: Create animated USD files with colored meshes
-#
-# ## Requirements
-#
-# ```bash
-# pip install physiomotion4d pyvista numpy
-# ```
-
 # %% [markdown]
 # ## Setup and Imports
 
@@ -114,7 +107,7 @@ converter.set_colormap(
 # Convert to USD
 output_file = output_dir / "example1_plasma_auto.usd"
 converter.convert(str(output_file))
-print(f"\n✓ Created: {output_file}")
+print(f"\nCreated: {output_file}")
 
 # %% [markdown]
 # ## Example 2: Rainbow Colormap with Custom Range
@@ -141,7 +134,7 @@ converter.set_colormap(
 output_file = output_dir / "example2_rainbow_custom.usd"
 print("Creating file:", output_file)
 stage = converter.convert(str(output_file))
-print(f"✓ Created: {output_file}")
+print(f"Created: {output_file}")
 
 # %% [markdown]
 # ## Example 3: Heat Colormap for Temperature Data
@@ -166,7 +159,7 @@ converter.set_colormap(
 
 output_file = output_dir / "example3_heat_temperature.usd"
 stage = converter.convert(str(output_file))
-print(f"✓ Created: {output_file}")
+print(f"Created: {output_file}")
 
 # %% [markdown]
 # ## Example 4: Coolwarm (Diverging) Colormap
@@ -191,7 +184,7 @@ converter.set_colormap(
 
 output_file = output_dir / "example4_coolwarm_diverging.usd"
 stage = converter.convert(str(output_file))
-print(f"✓ Created: {output_file}")
+print(f"Created: {output_file}")
 
 # %% [markdown]
 # ## Example 5: Grayscale Colormap
@@ -214,7 +207,7 @@ converter.set_colormap(
 
 output_file = output_dir / "example5_grayscale.usd"
 stage = converter.convert(str(output_file))
-print(f"✓ Created: {output_file}")
+print(f"Created: {output_file}")
 
 # %% [markdown]
 # ## Example 6: Random Colormap for Categorical Data
@@ -243,7 +236,7 @@ converter.set_colormap(
 
 output_file = output_dir / "example6_random_categorical.usd"
 stage = converter.convert(str(output_file))
-print(f"✓ Created: {output_file}")
+print(f"Created: {output_file}")
 
 # %% [markdown]
 # ## Example 7: Method Chaining for Concise API Usage
@@ -269,7 +262,7 @@ stage = (
     .convert(str(output_file))
 )
 
-print(f"✓ Created: {output_file}")
+print(f"Created: {output_file}")
 
 # %% [markdown]
 # ## Summary: Available Colormaps and Features

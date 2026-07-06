@@ -192,32 +192,32 @@ Examples
                     surfaces, args.output_dir, prefix=prefix
                 )
                 for group, path in saved_surfaces.items():
-                    print(f"  Surface  [{group:15s}] → {path}")
+                    print(f"  Surface  [{group:15s}] -> {path}")
             if meshes:
                 saved_meshes = WorkflowConvertImageToVTK.save_meshes(
                     meshes, args.output_dir, prefix=prefix
                 )
                 for group, path in saved_meshes.items():
-                    print(f"  Mesh     [{group:15s}] → {path}")
+                    print(f"  Mesh     [{group:15s}] -> {path}")
         else:
             # Combined single-file output
             if surfaces:
                 surface_file = WorkflowConvertImageToVTK.save_combined_surface(
                     surfaces, args.output_dir, prefix=prefix
                 )
-                print(f"  Combined surface → {surface_file}")
+                print(f"  Combined surface -> {surface_file}")
             if meshes:
                 mesh_file = WorkflowConvertImageToVTK.save_combined_mesh(
                     meshes, args.output_dir, prefix=prefix
                 )
-                print(f"  Combined mesh    → {mesh_file}")
+                print(f"  Combined mesh    -> {mesh_file}")
 
         if args.save_labelmap:
             labelmap = result["labelmap"]
             stem = f"{prefix}_labelmap" if prefix else "labelmap"
             labelmap_file = os.path.join(args.output_dir, f"{stem}.nii.gz")
             itk.imwrite(labelmap, labelmap_file)
-            print(f"  Labelmap         → {labelmap_file}")
+            print(f"  Labelmap         -> {labelmap_file}")
 
     except (ValueError, OSError, RuntimeError) as exc:
         print(f"Error saving results: {exc}")

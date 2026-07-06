@@ -234,9 +234,6 @@ class ImageTools(PhysioMotion4DBase):
     def make_isotropic_image(self, image: itk.Image) -> itk.Image:
         """Resample a 3-D *image* to isotropic spacing using the finest voxel pitch.
 
-        Equivalent to TubeTK's ResampleImage.SetMakeHighResIso(True), implemented
-        with standard ITK ResampleImageFilter so that TubeTK is not needed here.
-
         Args:
             image: 3-D ITK image to resample.
 
@@ -272,6 +269,122 @@ class ImageTools(PhysioMotion4DBase):
         result = resampler.GetOutput()
         result.DisconnectPipeline()
         return result
+
+    def binary_dilate_image(
+        self,
+        image: itk.Image,
+        radius: int,
+        foreground_value: int = 1,
+        background_value: int = 0,
+    ) -> itk.Image:
+        """Binary-dilate *image* with a ball structuring element.
+
+        Args:
+            image: Binary (or label) image to dilate.
+            radius: Radius, in voxels, of the ball structuring element.
+            foreground_value: Pixel value treated as foreground (default: 1).
+            background_value: Pixel value written for background voxels
+                (default: 0).
+
+        Returns:
+            Dilated image with the same pixel type as *image*.
+        """
+        ImageType = type(image)
+        dimension = image.GetImageDimension()
+        StructuringElementType = itk.FlatStructuringElement[dimension]
+        structuring_element = StructuringElementType.Ball(int(radius))
+
+        dilate_filter = itk.BinaryDilateImageFilter[
+            ImageType, ImageType, StructuringElementType
+        ].New()
+        dilate_filter.SetInput(image)
+        dilate_filter.SetKernel(structuring_element)
+        dilate_filter.SetForegroundValue(foreground_value)
+        dilate_filter.SetBackgroundValue(background_value)
+        dilate_filter.Update()
+        result = dilate_filter.GetOutput()
+        result.DisconnectPipeline()
+        return result
+
+    def binary_erode_image(
+        self,
+        image: itk.Image,
+        radius: int,
+        foreground_value: int = 1,
+        background_value: int = 0,
+    ) -> itk.Image:
+        """Binary-erode *image* with a ball structuring element.
+
+        Args:
+            image: Binary (or label) image to erode.
+            radius: Radius, in voxels, of the ball structuring element.
+            foreground_value: Pixel value treated as foreground (default: 1).
+            background_value: Pixel value written for eroded-away voxels
+                (default: 0).
+
+        Returns:
+            Eroded image with the same pixel type as *image*.
+        """
+        ImageType = type(image)
+        dimension = image.GetImageDimension()
+        StructuringElementType = itk.FlatStructuringElement[dimension]
+        structuring_element = StructuringElementType.Ball(int(radius))
+
+        erode_filter = itk.BinaryErodeImageFilter[
+            ImageType, ImageType, StructuringElementType
+        ].New()
+        erode_filter.SetInput(image)
+        erode_filter.SetKernel(structuring_element)
+        erode_filter.SetForegroundValue(foreground_value)
+        erode_filter.SetBackgroundValue(background_value)
+        erode_filter.Update()
+        result = erode_filter.GetOutput()
+        result.DisconnectPipeline()
+        return result
+
+    def keep_largest_connected_component(
+        self,
+        image: itk.Image,
+        foreground_value: int = 1,
+        fully_connected: bool = False,
+    ) -> itk.Image:
+        """Keep only the largest connected component of a binary image.
+
+        Args:
+            image: Binary (non-zero = foreground) image.
+            foreground_value: Value written for the retained component's
+                voxels (default: 1).
+            fully_connected: Whether diagonally-adjacent voxels are
+                considered connected (default: False, i.e. face connectivity
+                only).
+
+        Returns:
+            Binary image, same pixel type as *image*, containing only the
+            largest connected component with value *foreground_value*
+            (background is 0).
+        """
+        # SimpleITK's filters are not templated on pixel type in the Python
+        # layer, so this avoids the itk.ConnectedComponentImageFilter /
+        # itk.RelabelComponentImageFilter Python wrappings, which only cover
+        # a limited set of input/output pixel type combinations that vary
+        # across ITK Python builds.
+        ImageType = type(image)
+        sitk_image = self.convert_itk_image_to_sitk(image)
+
+        cc_image = sitk.ConnectedComponent(sitk_image, fully_connected)
+        relabeled = sitk.RelabelComponent(cc_image, sortByObjectSize=True)
+        largest = sitk.BinaryThreshold(
+            relabeled,
+            lowerThreshold=1,
+            upperThreshold=1,
+            insideValue=foreground_value,
+            outsideValue=0,
+        )
+
+        result = self.convert_sitk_image_to_itk(largest)
+        if type(result) is ImageType:
+            return result
+        return itk.cast_image_filter(result, ttype=(type(result), ImageType))
 
     @overload
     def flip_image(

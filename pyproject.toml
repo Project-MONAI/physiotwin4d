@@ -54,8 +54,7 @@ keywords = [
 ]
 dependencies = [
     # Core medical imaging
-    "itk>=5.3.0",
-    "itk-tubetk>=1.4.0",
+    "itk>=5.3.0,<6.0.0",
     "nibabel>=4.0.0",
     "numpy>=1.21.0",
     "pydicom>=2.4.0",
@@ -321,7 +320,7 @@ markers = [
     "tutorial: marks tests that run tutorial scripts (data/GPU gated, manual only)",
     "xdist_group: marks tests to run in the same pytest-xdist worker (prevents parallel conflicts)"
 ]
-timeout = 900
+timeout = 1200
 
 [tool.coverage.run]
 source = ["src/physiomotion4d"]

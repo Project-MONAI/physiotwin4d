@@ -24,7 +24,6 @@ from pathlib import Path
 import itk
 import numpy as np
 import pyvista as pv
-from itk import TubeTK as ttk
 
 # Import from PhysioMotion4D package
 from physiomotion4d import (
@@ -33,6 +32,7 @@ from physiomotion4d import (
     RegisterModelsPCA,
     TransformTools,
 )
+from physiomotion4d.image_tools import ImageTools
 from physiomotion4d.test_tools import TestTools
 
 # %% [markdown]
@@ -74,18 +74,15 @@ print(f"  Original size: {itk.size(patient_image)}")
 print(f"  Original spacing: {itk.spacing(patient_image)}")
 
 # Resample to 1mm isotropic spacing
-print("Resampling to sotropic...")
-resampler = ttk.ResampleImage.New(Input=patient_image)
-resampler.SetMakeHighResIso(True)
-resampler.Update()
-patient_image = resampler.GetOutput()
+print("Resampling to isotropic...")
+patient_image = ImageTools().make_isotropic_image(patient_image)
 
 print(f"  Resampled size: {itk.size(patient_image)}")
 print(f"  Resampled spacing: {itk.spacing(patient_image)}")
 
 # Save preprocessed image
 itk.imwrite(patient_image, str(output_dir / "patient_image.mha"), compression=True)
-print("✓ Saved preprocessed image")
+print("Saved preprocessed image")
 
 # %% [markdown]
 # ## Load and Process Heart Segmentation Mask
@@ -125,7 +122,7 @@ if flip0 or flip1 or flip2:
     patient_heart_mask_image = flip_filter.GetOutput()
     patient_heart_mask_image.SetDirection(id_mat)
 
-    print("✓ Images flipped to standard orientation")
+    print("Images flipped to standard orientation")
 
 # Save oriented images
 itk.imwrite(
@@ -177,7 +174,7 @@ icp_result = icp_registrar.register(
 icp_registered_model_surface = icp_result["registered_model"]
 icp_forward_point_transform = icp_result["forward_point_transform"]
 
-print("\n✓ ICP affine registration complete")
+print("\nICP affine registration complete")
 print("   Transform =", icp_result["forward_point_transform"])
 
 # Save aligned model
@@ -199,7 +196,7 @@ icp_registered_model = transform_tools.transform_pvcontour(
     template_model, icp_forward_point_transform
 )
 icp_registered_model.save(str(output_dir / "icp_registered_model.vtk"))
-print("\n✓ Applied ICP transform to full model mesh")
+print("\nApplied ICP transform to full model mesh")
 
 # %% [markdown]
 # ## Initialize PCA Registration
@@ -222,7 +219,7 @@ pca_registrar = RegisterModelsPCA.from_pca_model(
 
 itk.imwrite(pca_registrar.fixed_distance_map, str(output_dir / "distance_map.mha"))
 
-print("✓ PCA registrar initialized")
+print("PCA registrar initialized")
 print("  Applying ICP alignment as the post-PCA transform")
 print(f"  Number of points: {len(pca_registrar.pca_template_model.points)}")
 print(f"  Number of PCA modes: {pca_registrar.pca_number_of_modes}")
@@ -248,7 +245,7 @@ itk.imwrite(dm, str(output_dir / "target_distance_map.mha"))
 
 pca_registered_model_surface = result["registered_model"]
 
-print("\n✓ PCA registration complete")
+print("\nPCA registration complete")
 
 # %% [markdown]
 # ### Display Registration Results
@@ -269,7 +266,7 @@ print("\nOptimized PCA Coefficients (in units of std deviations):")
 for i, coef in enumerate(result["pca_coefficients"]):
     print(f"  Mode {i + 1:2d}: {coef:7.4f}")
 
-print("\n✓ Registration pipeline complete!")
+print("\nRegistration pipeline complete!")
 
 # %% [markdown]
 # ## Save Registration Results
@@ -396,4 +393,4 @@ if not TestTools.running_as_test():
 pca_registered_model_with_displacement.save(
     str(output_dir / "pca_registered_model_with_signed_displacement.vtp")
 )
-print("\n✓ Saved model with signed displacement data")
+print("\nSaved model with signed displacement data")

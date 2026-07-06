@@ -27,8 +27,8 @@ Basic Usage
        --fixed-image highres_reference.mha \
        --output-dir ./results
 
-With Upsampling
-===============
+Choosing a Reference Frame
+===========================
 
 .. code-block:: bash
 
@@ -36,7 +36,6 @@ With Upsampling
        --time-series-images frame_000.mha frame_001.mha frame_002.mha \
        --fixed-image highres_reference.mha \
        --reference-frame 0 \
-       --upsample \
        --output-dir ./results
 
 Registration Options

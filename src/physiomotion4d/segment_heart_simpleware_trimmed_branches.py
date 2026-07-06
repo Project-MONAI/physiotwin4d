@@ -9,8 +9,8 @@ import logging
 
 import itk
 import numpy as np
-from itk import TubeTK as tube
 
+from .image_tools import ImageTools
 from .segment_heart_simpleware import SegmentHeartSimpleware
 
 
@@ -20,7 +20,7 @@ class SegmentHeartSimplewareTrimmedBranches(SegmentHeartSimpleware):
 
     Example:
         >>> segmenter = SegmentHeartSimplewareTrimmedBranches()
-        >>> result = segmenter.segment(ct_image, contrast_enhanced_study=True)
+        >>> result = segmenter.segment(ct_image)
         >>> labelmap = result['labelmap']
     """
 
@@ -85,63 +85,47 @@ class SegmentHeartSimplewareTrimmedBranches(SegmentHeartSimpleware):
         heart_arr[heart_arr == 6] = 0
         heart_arr[heart_arr == 5] = 0
 
-        img = itk.image_from_array(heart_arr)
-        img.CopyInformation(labelmap_image)
-        imMath = tube.ImageMath.New(img)
+        image_tools = ImageTools()
+        spacing = labelmap_image.GetSpacing()
 
         #  2) Erode then Dilate Left Atrium label to clip vessels
-        spacing = labelmap_image.GetSpacing()
-        imMath.Erode(round(7 / spacing[0]), 3, 0)
-        imMath.Dilate(round(7 / spacing[0]), 3, 0)
-
         #  3) Erode then Dilate Right Atrium label to clip vessels
-        imMath.Erode(round(7 / spacing[0]), 4, 0)
-        imMath.Dilate(round(7 / spacing[0]), 4, 0)
-        simple_img = imMath.GetOutput()
-        simple_arr = itk.array_from_image(simple_img)
+        #
+        #  Each label is isolated into its own binary mask before the
+        #  open (erode-then-dilate) operation so that the opening of one
+        #  label can never bleed into a neighboring label.
+        simple_arr = heart_arr.copy()
+        for label_id in (3, 4):
+            label_mask_arr = (heart_arr == label_id).astype(np.uint8)
+            label_mask_img = itk.image_from_array(label_mask_arr)
+            label_mask_img.CopyInformation(labelmap_image)
+            radius = round(7 / spacing[0])
+            label_mask_img = image_tools.binary_erode_image(
+                label_mask_img, radius, 1, 0
+            )
+            label_mask_img = image_tools.binary_dilate_image(
+                label_mask_img, radius, 1, 0
+            )
 
-        #  Keep the largest component of the left atrium
-        simple_arr_3 = simple_arr.copy()
-        simple_arr_3[simple_arr_3 != 3] = 0
-        simple_arr_3[simple_arr_3 == 3] = 1
-        simple_img_3 = itk.image_from_array(simple_arr_3)
-        connComp = tube.SegmentConnectedComponents.New(simple_img_3)
-        connComp.SetKeepOnlyLargestComponent(True)
-        connComp.Update()
-        mask_img_3 = connComp.GetOutput()
-        mask_arr_3 = itk.array_from_image(mask_img_3)
-        simple_arr_3[mask_arr_3 == 0] = 0
+            #  Keep only the largest connected component of this label
+            label_mask_img = image_tools.keep_largest_connected_component(
+                label_mask_img, foreground_value=1
+            )
+            label_mask_arr = itk.array_from_image(label_mask_img)
 
-        #  Keep the largest component of the right atrium
-        simple_arr_4 = simple_arr.copy()
-        simple_arr_4[simple_arr_4 != 4] = 0
-        simple_arr_4[simple_arr_4 == 4] = 1
-        simple_img_4 = itk.image_from_array(simple_arr_4)
-        connComp = tube.SegmentConnectedComponents.New(simple_img_4)
-        connComp.SetKeepOnlyLargestComponent(True)
-        connComp.Update()
-        mask_img_4 = connComp.GetOutput()
-        mask_arr_4 = itk.array_from_image(mask_img_4)
-        simple_arr_4[mask_arr_4 == 0] = 0
-
-        #  Replace the left and right atrium labels with the largest components
-        simple_arr[simple_arr == 3] = 0
-        simple_arr[simple_arr == 4] = 0
-        simple_arr[simple_arr_3 > 0] = 3
-        simple_arr[simple_arr_4 > 0] = 4
-        simple_img = itk.image_from_array(simple_arr)
-        simple_img.CopyInformation(labelmap_image)
+            simple_arr[simple_arr == label_id] = 0
+            simple_arr[label_mask_arr > 0] = label_id
 
         #  4) Dilate all others = keep_mask
         keep_mask_arr = heart_arr.copy()
         keep_mask_arr[keep_mask_arr == 2] = 1
         keep_mask_arr[keep_mask_arr == 5] = 1
         keep_mask_arr[keep_mask_arr != 1] = 0
-        keep_mask = itk.image_from_array(keep_mask_arr)
+        keep_mask = itk.image_from_array(keep_mask_arr.astype(np.uint8))
         keep_mask.CopyInformation(labelmap_image)
-        imMath.SetInput(keep_mask)
-        imMath.Dilate(round(7 / spacing[0]), 1, 0)
-        keep_mask = imMath.GetOutput()
+        keep_mask = image_tools.binary_dilate_image(
+            keep_mask, round(7 / spacing[0]), 1, 0
+        )
         keep_mask_arr = itk.array_from_image(keep_mask)
 
         #  Add the left and right atrium labels to the keep_mask
@@ -155,12 +139,14 @@ class SegmentHeartSimplewareTrimmedBranches(SegmentHeartSimpleware):
         keep_mask_arr = heart_arr.copy()
         keep_mask_arr[keep_mask_arr == 1] = 0
         keep_mask_arr[keep_mask_arr > 0] = 1
-        keep_mask = itk.image_from_array(keep_mask_arr)
+        keep_mask = itk.image_from_array(keep_mask_arr.astype(np.uint8))
         keep_mask.CopyInformation(labelmap_image)
-        imMath.SetInput(keep_mask)
-        imMath.Dilate(round(5 / spacing[0]), 1, 0)
-        imMath.Erode(round(2 / spacing[0]), 1, 0)
-        heart_mask = imMath.GetOutput()
+        keep_mask = image_tools.binary_dilate_image(
+            keep_mask, round(5 / spacing[0]), 1, 0
+        )
+        heart_mask = image_tools.binary_erode_image(
+            keep_mask, round(2 / spacing[0]), 1, 0
+        )
 
         #  Insert the heart and myo labels back into the labelmap
         heart_mask_arr = itk.array_from_image(heart_mask)
@@ -175,11 +161,9 @@ class SegmentHeartSimplewareTrimmedBranches(SegmentHeartSimpleware):
         #  Add in missing pieces / gaps of the myocardium
         lv_arr = heart_arr.copy()
         lv_arr[lv_arr != 1] = 0
-        lv_img = itk.image_from_array(lv_arr)
+        lv_img = itk.image_from_array(lv_arr.astype(np.uint8))
         lv_img.CopyInformation(labelmap_image)
-        imMath.SetInput(lv_img)
-        imMath.Dilate(round(2 / spacing[0]), 1, 0)
-        lv_img = imMath.GetOutput()
+        lv_img = image_tools.binary_dilate_image(lv_img, round(2 / spacing[0]), 1, 0)
         lv_arr = itk.array_from_image(lv_img)
         lv_arr = lv_arr * 5  # Myocardium label is 5
 

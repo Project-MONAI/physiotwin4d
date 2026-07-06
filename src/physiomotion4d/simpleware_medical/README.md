@@ -67,7 +67,7 @@ segmenter = SegmentHeartSimpleware()
 ct_image = itk.imread("heart_ct.nii.gz")
 
 # Perform segmentation
-result = segmenter.segment(ct_image, contrast_enhanced_study=True)
+result = segmenter.segment(ct_image)
 
 # Access results
 labelmap = result['labelmap']

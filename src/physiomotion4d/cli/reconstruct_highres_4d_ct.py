@@ -37,7 +37,6 @@ Examples:
     --time-series-images frame_000.mha frame_001.mha frame_002.mha \\
     --fixed-image highres.mha \\
     --reference-frame 1 \\
-    --upsample \\
     --output-dir ./results
 
   # Reconstruction with temporal smoothing
@@ -121,14 +120,6 @@ Examples:
         type=int,
         default=None,
         help="ICON fine-tuning iterations. Default: None",
-    )
-
-    # Reconstruction options
-    parser.add_argument(
-        "--upsample",
-        action="store_true",
-        default=False,
-        help="Upsample reconstructed images to fixed image resolution (default: False)",
     )
 
     # Mask options
@@ -321,9 +312,8 @@ Examples:
         # Execute reconstruction workflow
         print("\nStarting reconstruction pipeline...")
         print("=" * 70)
-        result = workflow.run_workflow(
-            upsample_to_fixed_resolution=args.upsample,
-        )
+        workflow.set_upsample_to_fixed_resolution(True)
+        result = workflow.run_workflow()
 
         # Save results
         print("\n" + "=" * 70)

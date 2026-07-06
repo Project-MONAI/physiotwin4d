@@ -52,6 +52,9 @@ class RegisterImagesBase(PhysioMotion4DBase):
         fixed_image_pre (itk.image): Preprocessed fixed image
         fixed_mask (itk.image): Binary mask for fixed image ROI
         mask_dilation_mm (float): Mask dilation amount in millimeters
+        fast_mode (bool): When True, subclasses may use cheaper/less-accurate
+            registration settings to trade quality for speed (e.g. in
+            automated tests). Defaults to False.
 
     Example:
         >>> class MyRegistration(RegisterImagesBase):
@@ -105,6 +108,8 @@ class RegisterImagesBase(PhysioMotion4DBase):
         self.moving_labelmap: Optional[itk.Image] = None
 
         self.mask_dilation_mm: float = 5.0
+
+        self.fast_mode: bool = False
 
         self.forward_transform: Optional[itk.Transform] = None
         self.inverse_transform: Optional[itk.Transform] = None

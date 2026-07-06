@@ -21,7 +21,7 @@ if __name__ == "__main__":
     # %%
     # Number of cardiac frames and step size; downstream scripts must use the same values.
     N_FRAMES = 21
-    FRAME_STEP = 4 if test_mode else 1
+    FRAME_STEP = 21 if test_mode else 1
 
     data_dir = _HERE.parent.parent / "data" / "Slicer-Heart-CT"
 
@@ -34,7 +34,9 @@ if __name__ == "__main__":
     # %%
     seg = SegmentChestTotalSegmentator()
     seg.contrast_threshold = 500
-    result = seg.segment(fixed_image, contrast_enhanced_study=True)
+    seg.fast_mode = test_mode
+    seg.set_contrast_enhanced_study(True)
+    result = seg.segment(fixed_image)
     # %%
     labelmap_mask = result["labelmap"]
     lung_mask = result["lung"]
@@ -78,13 +80,14 @@ if __name__ == "__main__":
     # %%
     reg = RegisterImagesANTS()
     reg.set_mask_dilation(5)
-    reg.set_number_of_iterations([10, 5, 2])
+    reg.fast_mode = test_mode
+    reg.set_number_of_iterations([2, 1, 1] if test_mode else [10, 5, 2])
 
     # %%
     for i in range(0, N_FRAMES, FRAME_STEP):
         print(f"Processing slice {i:03d}")
         moving_image = itk.imread(str(data_dir / f"slice_{i:03d}.mha"))
-        result = seg.segment(moving_image, contrast_enhanced_study=True)
+        result = seg.segment(moving_image)
         labelmap_mask = result["labelmap"]
         lung_mask = result["lung"]
         heart_mask = result["heart"]
@@ -99,11 +102,15 @@ if __name__ == "__main__":
         )
 
         # Register the whole image
+        print(f"  Registering whole image for slice {i:03d}...")
         reg.set_fixed_image(fixed_image)
         reg.set_fixed_mask(None)
         results = reg.register(moving_image)
+        print(f"  Done registering whole image for slice {i:03d}.")
         inverse_transform = results["inverse_transform"]
         forward_transform = results["forward_transform"]
+        whole_image_forward_transform = forward_transform
+        whole_image_inverse_transform = inverse_transform
         moving_image_reg = TransformTools().transform_image(
             moving_image, forward_transform, fixed_image, "sinc"
         )  # Final resampling with sinc
@@ -123,18 +130,28 @@ if __name__ == "__main__":
             compression=True,
         )
 
-        # Register the dynamic anatomy mask
+        # Register the dynamic anatomy mask. In test mode, masked ANTs
+        # registration (mask applied at every pyramid level) is far more
+        # expensive than the unmasked whole-image case above; reuse the
+        # whole-image transform instead of re-registering with a mask.
         heart_arr = itk.GetArrayFromImage(heart_mask)
         contrast_arr = itk.GetArrayFromImage(contrast_mask)
         major_vessels_arr = itk.GetArrayFromImage(major_vessels_mask)
         dynamic_anatomy_arr = heart_arr + contrast_arr + major_vessels_arr
         moving_image_dynamic_anatomy_mask = itk.GetImageFromArray(dynamic_anatomy_arr)
         moving_image_dynamic_anatomy_mask.CopyInformation(moving_image)
-        reg.set_fixed_image(fixed_image)
-        reg.set_fixed_mask(fixed_image_dynamic_anatomy_mask)
-        results = reg.register(moving_image, moving_image_dynamic_anatomy_mask)
-        inverse_transform = results["inverse_transform"]
-        forward_transform = results["forward_transform"]
+        if test_mode:
+            print(f"  Reusing whole-image transform for slice {i:03d} (test mode).")
+            forward_transform = whole_image_forward_transform
+            inverse_transform = whole_image_inverse_transform
+        else:
+            print(f"  Registering dynamic anatomy mask for slice {i:03d}...")
+            reg.set_fixed_image(fixed_image)
+            reg.set_fixed_mask(fixed_image_dynamic_anatomy_mask)
+            results = reg.register(moving_image, moving_image_dynamic_anatomy_mask)
+            print(f"  Done registering dynamic anatomy mask for slice {i:03d}.")
+            inverse_transform = results["inverse_transform"]
+            forward_transform = results["forward_transform"]
         moving_image_reg_dynamic_anatomy = TransformTools().transform_image(
             moving_image, forward_transform, fixed_image, "sinc"
         )  # Final resampling with sinc
@@ -159,7 +176,7 @@ if __name__ == "__main__":
             compression=True,
         )
 
-        # Register the static anatomy mask
+        # Register the static anatomy mask (same test-mode shortcut as above).
         lung_arr = itk.GetArrayFromImage(lung_mask)
         bone_arr = itk.GetArrayFromImage(bone_mask)
         other_arr = itk.GetArrayFromImage(other_mask)
@@ -167,11 +184,18 @@ if __name__ == "__main__":
             lung_arr + bone_arr + other_arr
         )
         moving_image_static_mask.CopyInformation(moving_image)
-        reg.set_fixed_image(fixed_image)
-        reg.set_fixed_mask(fixed_image_static_mask)
-        results = reg.register(moving_image, moving_image_static_mask)
-        inverse_transform = results["inverse_transform"]
-        forward_transform = results["forward_transform"]
+        if test_mode:
+            print(f"  Reusing whole-image transform for slice {i:03d} (test mode).")
+            forward_transform = whole_image_forward_transform
+            inverse_transform = whole_image_inverse_transform
+        else:
+            print(f"  Registering static anatomy mask for slice {i:03d}...")
+            reg.set_fixed_image(fixed_image)
+            reg.set_fixed_mask(fixed_image_static_mask)
+            results = reg.register(moving_image, moving_image_static_mask)
+            print(f"  Done registering static anatomy mask for slice {i:03d}.")
+            inverse_transform = results["inverse_transform"]
+            forward_transform = results["forward_transform"]
         moving_image_reg_static = TransformTools().transform_image(
             moving_image, forward_transform, fixed_image, "sinc"
         )  # Final resampling with sinc

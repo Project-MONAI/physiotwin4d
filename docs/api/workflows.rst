@@ -166,7 +166,8 @@ High-Resolution 4D CT Reconstruction
        registration_method=RegisterImagesGreedyICON(),
    )
 
-   result = workflow.run_workflow(upsample_to_fixed_resolution=True)
+   workflow.set_upsample_to_fixed_resolution(True)
+   result = workflow.run_workflow()
 
 See Also
 ========

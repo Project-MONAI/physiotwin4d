@@ -2,9 +2,7 @@
 
 import argparse
 import re
-import tkinter as tk
 from pathlib import Path
-from tkinter import filedialog
 from typing import Optional
 
 import itk
@@ -17,9 +15,20 @@ OUTPUT_FILENAME = "composite.mha"
 def select_directory() -> Optional[Path]:
     """Open a directory chooser and return the selected directory."""
     try:
+        import tkinter as tk
+        from tkinter import filedialog
+    except ImportError as exc:
+        raise RuntimeError(
+            "tkinter is unavailable; pass the directory path on the command line."
+        ) from exc
+
+    try:
         root = tk.Tk()
-    except tk.TclError:
-        return None
+    except tk.TclError as exc:
+        raise RuntimeError(
+            "tkinter could not open a directory picker; pass the directory path "
+            "on the command line."
+        ) from exc
     try:
         root.withdraw()
         root.update()
@@ -149,7 +158,11 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     input_dir = args.directory
     if input_dir is None:
-        input_dir = select_directory()
+        try:
+            input_dir = select_directory()
+        except RuntimeError as exc:
+            print(f"Error: {exc}")
+            return 1
     if input_dir is None:
         print("No directory selected")
         return 1

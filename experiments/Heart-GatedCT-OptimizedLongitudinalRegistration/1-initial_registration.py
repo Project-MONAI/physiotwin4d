@@ -178,13 +178,19 @@ def crop_image_to_mask(
         print("No mask provided, using image as mask")
     else:
         mask_arr = itk.array_from_image(mask)
+    shape_z, shape_y, shape_x = mask_arr.shape
     bounding_box = np.where(mask_arr > 0)
-    min_x = np.min(bounding_box[2])
-    max_x = np.max(bounding_box[2])
-    min_y = np.min(bounding_box[1])
-    max_y = np.max(bounding_box[1])
-    min_z = np.min(bounding_box[0])
-    max_z = np.max(bounding_box[0])
+    if not mask_arr.any() or bounding_box[0].size == 0:
+        min_x, max_x = 0, shape_x - 1
+        min_y, max_y = 0, shape_y - 1
+        min_z, max_z = 0, shape_z - 1
+    else:
+        min_x = int(np.min(bounding_box[2]))
+        max_x = int(np.max(bounding_box[2]))
+        min_y = int(np.min(bounding_box[1]))
+        max_y = int(np.max(bounding_box[1]))
+        min_z = int(np.min(bounding_box[0]))
+        max_z = int(np.max(bounding_box[0]))
     margin_x = int((max_x - min_x) * margin_fraction)
     margin_y = int((max_y - min_y) * margin_fraction)
     margin_z = int((max_z - min_z) * margin_fraction)
@@ -194,25 +200,20 @@ def crop_image_to_mask(
     max_y += margin_y
     min_z -= margin_z
     max_z += margin_z
-    if min_x < 0:
-        min_x = 0
-    if min_y < 0:
-        min_y = 0
-    if min_z < 0:
-        min_z = 0
-    max_size = image.GetLargestPossibleRegion().GetSize()
-    if max_x >= max_size[0]:
-        max_x = max_size[0] - 1
-    if max_y >= max_size[1]:
-        max_y = max_size[1] - 1
-    if max_z >= max_size[2]:
-        max_z = max_size[2] - 1
+    min_x = max(0, min(min_x, shape_x - 1))
+    min_y = max(0, min(min_y, shape_y - 1))
+    min_z = max(0, min(min_z, shape_z - 1))
+    max_x = max(0, min(max_x, shape_x - 1))
+    max_y = max(0, min(max_y, shape_y - 1))
+    max_z = max(0, min(max_z, shape_z - 1))
     print(f"array shape: {mask_arr.shape}")
     print(
         f"min_x: {min_x}, max_x: {max_x}, min_y: {min_y}, max_y: {max_y}, min_z: {min_z}, max_z: {max_z}"
     )
     new_image_arr = itk.array_from_image(image)
-    new_image_arr = new_image_arr[min_z:max_z, min_y:max_y, min_x:max_x]
+    new_image_arr = new_image_arr[
+        min_z : max_z + 1, min_y : max_y + 1, min_x : max_x + 1
+    ]
     new_origin = image.TransformIndexToPhysicalPoint(
         [int(min_x), int(min_y), int(min_z)]
     )
@@ -223,7 +224,9 @@ def crop_image_to_mask(
 
     if labelmap is not None:
         new_labelmap_arr = itk.array_from_image(labelmap)
-        new_labelmap_arr = new_labelmap_arr[min_z:max_z, min_y:max_y, min_x:max_x]
+        new_labelmap_arr = new_labelmap_arr[
+            min_z : max_z + 1, min_y : max_y + 1, min_x : max_x + 1
+        ]
         new_labelmap = itk.image_from_array(new_labelmap_arr)
         new_labelmap.CopyInformation(new_image)
     else:
@@ -231,7 +234,9 @@ def crop_image_to_mask(
 
     if mask is not None:
         new_mask_arr = itk.array_from_image(mask)
-        new_mask_arr = new_mask_arr[min_z:max_z, min_y:max_y, min_x:max_x]
+        new_mask_arr = new_mask_arr[
+            min_z : max_z + 1, min_y : max_y + 1, min_x : max_x + 1
+        ]
         new_mask = itk.image_from_array(new_mask_arr)
         new_mask.CopyInformation(new_image)
     else:

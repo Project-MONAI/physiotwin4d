@@ -9,11 +9,13 @@ TotalSegmentator's output labels.
 import logging
 import os
 import tempfile
+from typing import Optional
 
 import itk
 import nibabel as nib
 import numpy as np
 
+from .image_tools import ImageTools
 from .segment_anatomy_base import SegmentAnatomyBase
 
 
@@ -38,10 +40,14 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
 
     Attributes:
         target_spacing (float): Target spacing set to 1.5mm for TotalSegmentator.
+        contrast_threshold (int): Lower intensity threshold used to detect
+            contrast-enhanced blood when contrast-enhanced-study detection
+            is enabled via :meth:`set_contrast_enhanced_study`.
 
     Example:
         >>> segmenter = SegmentChestTotalSegmentator()
-        >>> result = segmenter.segment(ct_image, contrast_enhanced_study=True)
+        >>> segmenter.set_contrast_enhanced_study(True)
+        >>> result = segmenter.segment(ct_image)
         >>> labelmap = result['labelmap']
         >>> heart_mask = result['heart']
     """
@@ -61,8 +67,10 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
 
         self.target_spacing = 1.5
 
-        # TotalSegmentator class indices, grouped by anatomy. Contrast (135)
-        # and the generic soft_tissue label (133) come from the base class.
+        self.contrast_enhanced_study: bool = False
+        self.contrast_threshold: int = 700
+
+        # TotalSegmentator class indices, grouped by anatomy.
         for group_name, organs in (
             (
                 "heart",
@@ -197,7 +205,12 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
                     90: "brain",
                     15: "esophagus",
                     16: "trachea",
+                    133: "soft_tissue",
                 },
+            ),
+            (
+                "contrast",
+                {135: "contrast"},
             ),
         ):
             for label_id, organ_name in organs.items():
@@ -245,43 +258,58 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
             itk.imwrite(preprocessed_image, tmp_file, compression=True)
             nib_image = nib.load(tmp_file)
 
-            # For higher performance, you can use fast=True, which uses a
-            # faster but less accurate model.
-            output_nib_image1 = totalsegmentator(nib_image, task="total", device="gpu")
+            # fast_mode trades accuracy for speed (e.g. for automated tests):
+            # it runs only the 'total' task with TotalSegmentator's faster
+            # model, skipping the 'body' background-fill and 'lung_vessels'
+            # overlay passes below.
+            # nr_thr_resamp defaults to 1; TotalSegmentator's post-prediction
+            # resampling back to native resolution is CPU-bound and benefits
+            # from parallelizing across the available cores.
+            resamp_threads = min(8, os.cpu_count() or 1) if self.fast_mode else 1
+            output_nib_image1 = totalsegmentator(
+                nib_image,
+                task="total",
+                device="gpu",
+                fast=self.fast_mode,
+                nr_thr_resamp=resamp_threads,
+            )
             labelmap_arr1 = output_nib_image1.get_fdata().astype(np.uint8)
 
-            output_nib_image2 = totalsegmentator(nib_image, task="body", device="gpu")
-            labelmap_arr2 = output_nib_image2.get_fdata().astype(np.uint8)
+            if self.fast_mode:
+                final_arr = labelmap_arr1
+            else:
+                output_nib_image2 = totalsegmentator(
+                    nib_image, task="body", device="gpu"
+                )
+                labelmap_arr2 = output_nib_image2.get_fdata().astype(np.uint8)
 
-            output_nib_image3 = totalsegmentator(
-                nib_image, task="lung_vessels", device="gpu"
-            )
-            labelmap_arr3 = output_nib_image3.get_fdata().astype(np.uint8)
+                output_nib_image3 = totalsegmentator(
+                    nib_image, task="lung_vessels", device="gpu"
+                )
+                labelmap_arr3 = output_nib_image3.get_fdata().astype(np.uint8)
 
-            # The data from nibabel is in RAS orientation with xyz axis order.
-            # The combination logic can be performed on these numpy arrays.
-            mask1 = labelmap_arr1 == 0
-            mask2 = labelmap_arr2 > 0
-            mask = mask1 & mask2
-            # The base class registers (133, "soft_tissue") as a generic
-            # placeholder; use that id to fill the body mask where
-            # TotalSegmentator's 'total' task didn't classify anything.
-            soft_tissue_id = next(
-                label_id
-                for label_id, name in self.taxonomy.labels_in_group(
-                    "soft_tissue"
-                ).items()
-                if name == "soft_tissue"
-            )
-            final_arr = np.where(mask, soft_tissue_id, labelmap_arr1)
+                mask1 = labelmap_arr1 == 0
+                mask2 = labelmap_arr2 > 0
+                mask = mask1 & mask2
+                soft_tissue_id = next(
+                    label_id
+                    for label_id, name in self.taxonomy.labels_in_group(
+                        "soft_tissue"
+                    ).items()
+                    if name == "soft_tissue"
+                )
+                final_arr = np.where(mask, soft_tissue_id, labelmap_arr1)
 
-            # labelmap_arr3 contains: 1=arteries, 2=veins, 3=airways, 4=airways_wall
-            final_arr = np.where(labelmap_arr3 == 1, 120, final_arr)  # lung arteries
-            final_arr = np.where(labelmap_arr3 == 2, 121, final_arr)  # lung veins
-            final_arr = np.where(labelmap_arr3 == 3, 122, final_arr)  # lung airways
-            final_arr = np.where(
-                labelmap_arr3 == 4, 123, final_arr
-            )  # lung airways wall
+                # labelmap_arr3 contains: 1=arteries, 2=veins, 3=airways,
+                # 4=airways_wall
+                final_arr = np.where(
+                    labelmap_arr3 == 1, 120, final_arr
+                )  # lung arteries
+                final_arr = np.where(labelmap_arr3 == 2, 121, final_arr)  # lung veins
+                final_arr = np.where(labelmap_arr3 == 3, 122, final_arr)  # lung airways
+                final_arr = np.where(
+                    labelmap_arr3 == 4, 123, final_arr
+                )  # lung airways wall
             # To create an ITK image, we save the result and read it back with
             # ITK. This correctly handles the coordinate system and data
             # layout conversions.
@@ -295,3 +323,196 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
             labelmap_image.CopyInformation(preprocessed_image)
 
         return labelmap_image
+
+    def set_contrast_enhanced_study(self, contrast_enhanced_study: bool) -> None:
+        """Enable or disable contrast-enhanced-study detection.
+
+        When enabled, :meth:`segment` runs an additional connected-component
+        pass (see :meth:`segment_contrast_agent`) to identify contrast-enhanced
+        blood vessels and cardiac chambers, labeling them under the
+        ``"contrast"`` taxonomy group.
+
+        Args:
+            contrast_enhanced_study (bool): Whether the study uses contrast
+                enhancement.
+
+        Example:
+            >>> segmenter.set_contrast_enhanced_study(True)
+        """
+        self.contrast_enhanced_study = contrast_enhanced_study
+
+    def postprocess_after_labelmap(
+        self, input_image: itk.image, labelmap_image: itk.image
+    ) -> itk.image:
+        """Run contrast-enhanced-study detection when enabled.
+
+        Overrides :meth:`SegmentAnatomyBase.postprocess_after_labelmap`.
+
+        Args:
+            input_image (itk.image): The original, unpreprocessed input image
+            labelmap_image (itk.image): The postprocessed segmentation labelmap
+
+        Returns:
+            itk.image: The labelmap, with contrast-enhanced regions labeled
+                if :attr:`contrast_enhanced_study` is True; unchanged otherwise
+        """
+        if self.contrast_enhanced_study:
+            return self.segment_contrast_agent(input_image, labelmap_image)
+        return labelmap_image
+
+    def segment_connected_component(
+        self,
+        preprocessed_image: itk.image,
+        labelmap_image: itk.image,
+        lower_threshold: int,
+        upper_threshold: int,
+        labelmap_ids: Optional[list[int]] = None,
+        mask_id: int = 0,
+        use_mid_slice: bool = True,
+        hole_fill: int = 2,
+    ) -> itk.image:
+        """
+        Segment connected components based on intensity thresholding.
+
+        Identifies connected regions within intensity thresholds and existing
+        anatomical masks, then selects the largest component. This is useful
+        for segmenting structures like contrast-enhanced blood or specific
+        tissue types.
+
+        Args:
+            preprocessed_image (itk.image): The preprocessed input image
+            labelmap_image (itk.image): Existing labelmap to constrain search
+            lower_threshold (int): Lower intensity threshold
+            upper_threshold (int): Upper intensity threshold
+            labelmap_ids (Optional[list[int]]): List of label IDs to search within.
+                If None, searches within all existing labels
+            mask_id (int): ID to assign to the segmented component
+            use_mid_slice (bool): If True, find largest component in middle
+                slice only; if False, use entire 3D volume
+            hole_fill (int): Number of pixels to dilate/erode for hole filling
+
+        Returns:
+            itk.image: Updated labelmap with new component labeled as mask_id
+
+        Example:
+            >>> # Segment contrast-enhanced blood
+            >>> updated_labels = segmenter.segment_connected_component(
+            ...     preprocessed_image, labels, 700, 4000, mask_id=135
+            ... )
+        """
+        thresh_image = itk.binary_threshold_image_filter(
+            Input=preprocessed_image,
+            LowerThreshold=lower_threshold,
+            UpperThreshold=upper_threshold,
+            InsideValue=1,
+            OutsideValue=0,
+        )
+        thresh_arr = itk.GetArrayFromImage(thresh_image).astype(np.int16)
+        thresh_image = itk.GetImageFromArray(thresh_arr)
+        thresh_image.CopyInformation(preprocessed_image)
+
+        label_arr = itk.GetArrayFromImage(labelmap_image)
+        if labelmap_ids is None:
+            labelmap_ids = list(self.taxonomy.all_labels().keys())
+        label_arr = np.isin(label_arr, labelmap_ids)
+        label_image = itk.GetImageFromArray(label_arr.astype(np.int16))
+        label_image.CopyInformation(labelmap_image)
+
+        connected_component_image = itk.connected_component_image_filter(
+            Input=thresh_image,
+            MaskImage=label_image,
+        )
+
+        connected_component_arr = itk.GetArrayFromImage(connected_component_image)
+        if use_mid_slice:
+            mid_slice = (
+                connected_component_image.GetLargestPossibleRegion().GetSize()[2] // 2
+            )
+            tmp_connected_component_arr = connected_component_arr[mid_slice, :, :]
+            ids = np.unique(tmp_connected_component_arr)
+            if len(ids[ids != 0]) > 0:
+                connected_component_arr = tmp_connected_component_arr
+
+        ids = np.unique(connected_component_arr)
+        ids = ids[ids != 0]
+        if ids.size == 0:
+            self.log_debug(
+                "segment_connected_component: no connected components found "
+                "in threshold [%d, %d]; returning labelmap unchanged",
+                lower_threshold,
+                upper_threshold,
+            )
+            return labelmap_image
+        component_sums = [np.sum(connected_component_arr == id) for id in ids]
+        largest_id = ids[np.argmax(component_sums)]
+        connected_component_image = itk.binary_threshold_image_filter(
+            Input=connected_component_image,
+            LowerThreshold=int(largest_id),
+            UpperThreshold=int(largest_id),
+            InsideValue=1,
+            OutsideValue=0,
+        )
+        image_tools = ImageTools()
+        connected_component_image = image_tools.binary_dilate_image(
+            connected_component_image, hole_fill, 1, 0
+        )
+        connected_component_image = image_tools.binary_erode_image(
+            connected_component_image, hole_fill, 1, 0
+        )
+
+        labelmap_arr = itk.GetArrayFromImage(labelmap_image)
+        connected_component_arr = itk.GetArrayFromImage(connected_component_image)
+        connected_component_mask = connected_component_arr > 0
+        mask = label_arr & connected_component_mask
+        labelmap_arr = np.where(mask, mask_id, labelmap_arr)
+        results_image = itk.GetImageFromArray(labelmap_arr.astype(np.uint8))
+        results_image.CopyInformation(preprocessed_image)
+
+        return results_image
+
+    def segment_contrast_agent(
+        self, preprocessed_image: itk.image, labelmap_image: itk.image
+    ) -> itk.image:
+        """
+        Include contrast-enhanced blood in the labelmap.
+
+        Segments high-intensity regions corresponding to contrast-enhanced
+        blood vessels and cardiac chambers. Uses connected component analysis
+        focused on the middle slice where the heart is typically located.
+
+        Args:
+            preprocessed_image (itk.image): The preprocessed CT image
+            labelmap_image (itk.image): Existing segmentation labelmap
+
+        Returns:
+            itk.image: Updated labelmap with contrast-enhanced regions labeled
+
+        Note:
+            Assumes the mid-z slice of the data contains the heart.
+
+        Example:
+            >>> contrast_labels = segmenter.segment_contrast_agent(preprocessed_image, base_labels)
+        """
+        thoracic_ids = (
+            list(self.taxonomy.labels_in_group("heart").keys())
+            + list(self.taxonomy.labels_in_group("lung").keys())
+            + list(self.taxonomy.labels_in_group("major_vessels").keys())
+            + [0]
+        )
+        contrast_ids = list(self.taxonomy.labels_in_group("contrast").keys())
+        if len(contrast_ids) == 0:
+            self.log_warning("No contrast-enhanced regions found in the labelmap")
+            return labelmap_image
+
+        results_image = self.segment_connected_component(
+            preprocessed_image,
+            labelmap_image,
+            lower_threshold=self.contrast_threshold,
+            upper_threshold=4000,
+            labelmap_ids=thoracic_ids,
+            mask_id=contrast_ids[-1],
+            use_mid_slice=True,
+            hole_fill=3,
+        )
+
+        return results_image

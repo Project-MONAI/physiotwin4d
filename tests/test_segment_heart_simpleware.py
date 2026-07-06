@@ -98,7 +98,7 @@ class TestSegmentHeartSimpleware:
         print("\nSegmenting cardiac CT...")
         print(f"  Image size: {itk.size(input_image)}")
 
-        result = segmenter_simpleware.segment(input_image, contrast_enhanced_study=True)
+        result = segmenter_simpleware.segment(input_image)
 
         assert isinstance(result, dict), "Result should be a dictionary"
         # The Simpleware segmenter only registers the groups it actually
@@ -153,7 +153,7 @@ class TestSegmentHeartSimpleware:
             pytest.skip("Simpleware Medical not found. Install to run this test.")
 
         input_image = test_images[3]
-        result = segmenter_simpleware.segment(input_image, contrast_enhanced_study=True)
+        result = segmenter_simpleware.segment(input_image)
 
         # Only assert on groups Simpleware/ASCardio actually populates.
         anatomy_groups = [
@@ -190,7 +190,7 @@ class TestSegmentHeartSimpleware:
             pytest.skip("Simpleware Medical not found. Install to run this test.")
 
         input_image = test_images[3]
-        result = segmenter_simpleware.segment(input_image, contrast_enhanced_study=True)
+        result = segmenter_simpleware.segment(input_image)
         contrast_mask = result["contrast"]
         assert contrast_mask is not None
         assert itk.size(contrast_mask) == itk.size(input_image)
@@ -206,7 +206,7 @@ class TestSegmentHeartSimpleware:
             pytest.skip("Simpleware Medical not found. Install to run this test.")
 
         input_image = test_images[3]
-        result = segmenter_simpleware.segment(input_image, contrast_enhanced_study=True)
+        result = segmenter_simpleware.segment(input_image)
         labelmap = result["labelmap"]
 
         assert itk.size(labelmap) == itk.size(input_image), "Labelmap size mismatch"

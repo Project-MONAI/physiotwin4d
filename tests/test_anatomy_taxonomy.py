@@ -114,16 +114,12 @@ def test_anatomy_group_dataclass_default_organs() -> None:
 
 
 def test_segment_anatomy_base_default_taxonomy_seeded() -> None:
-    """SegmentAnatomyBase seeds contrast (135) and soft_tissue (133)."""
     # Import lazily to avoid pulling itk in test collection if it's unused
     # by sibling tests in this module.
     from physiomotion4d import SegmentAnatomyBase
 
     seg = SegmentAnatomyBase()
-    assert seg.taxonomy.group_for_id(135) == "contrast"
-    assert seg.taxonomy.group_for_id(133) == "soft_tissue"
-    assert seg.label_to_type("contrast") == "contrast"
-    assert seg.label_to_type("soft_tissue") == "soft_tissue"
+    assert len(seg.taxonomy.all_labels()) == 0
 
 
 if __name__ == "__main__":  # pragma: no cover

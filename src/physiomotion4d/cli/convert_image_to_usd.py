@@ -9,10 +9,15 @@ generating dynamic USD models suitable for visualization in NVIDIA Omniverse.
 import argparse
 import os
 import sys
+from typing import cast
 
-from ._method_factories import build_registration_method, build_segmentation_method
+import itk
+
+from ..convert_image_4d_to_3d import ConvertImage4DTo3D
 from ..register_images_greedy import RegisterImagesGreedy
 from ..register_images_icon import RegisterImagesICON
+from ..segment_chest_total_segmentator import SegmentChestTotalSegmentator
+from ._method_factories import build_registration_method, build_segmentation_method
 
 
 def main() -> int:
@@ -118,7 +123,11 @@ Examples:
 
         segmentation_method = build_segmentation_method(args.segmentation_method)
         if args.segmentation_method == "ChestTotalSegmentator":
-            segmentation_method.contrast_threshold = 500
+            segmentation_method_tot = cast(
+                SegmentChestTotalSegmentator, segmentation_method
+            )
+            segmentation_method_tot.set_contrast_enhanced_study(args.contrast)
+            segmentation_method_tot.contrast_threshold = 500
         registration_method = build_registration_method(args.registration_method)
         if (
             args.registration_iterations is not None
@@ -139,12 +148,23 @@ Examples:
         if isinstance(registration_method, RegisterImagesICON):
             registration_method.set_mass_preservation(not args.contrast)
 
+        if len(args.input_files) == 1:
+            convert_image_4d_to_3d = ConvertImage4DTo3D()
+            convert_image_4d_to_3d.load_image_4d(args.input_files[0])
+            time_series_images = convert_image_4d_to_3d.get_3d_images()
+        else:
+            time_series_images = [
+                itk.imread(str(input_file)) for input_file in args.input_files
+            ]
+        if args.reference_image is not None:
+            reference_image = itk.imread(str(args.reference_image))
+        else:
+            reference_image = time_series_images[int(len(time_series_images) * 0.7)]
         processor = WorkflowConvertImageToUSD(
-            input_filenames=args.input_files,
-            contrast_enhanced=args.contrast,
+            time_series_images=time_series_images,
+            reference_image=reference_image,
+            usd_project_name=args.project_name,
             output_directory=args.output_dir,
-            project_name=args.project_name,
-            reference_image_filename=args.reference_image,
             segmentation_method=segmentation_method,
             registration_method=registration_method,
             times_per_second=args.times_per_second,

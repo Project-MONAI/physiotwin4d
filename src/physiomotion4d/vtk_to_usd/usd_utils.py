@@ -279,7 +279,7 @@ def create_primvar(
 
     # Log if name was changed
     if sanitized_name != array.name:
-        logger.debug(f"Sanitized primvar name: '{array.name}' → '{sanitized_name}'")
+        logger.debug(f"Sanitized primvar name: '{array.name}' -> '{sanitized_name}'")
 
     # Validate array size for meshes
     if isinstance(geom, UsdGeom.Mesh):

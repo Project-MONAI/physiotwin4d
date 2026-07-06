@@ -337,7 +337,7 @@ def test_experiment_reconstruct_4dct() -> None:
     - Each script must complete before the next begins
     - Failure in one script stops execution of remaining scripts
     """
-    run_experiment_scripts("Reconstruct4DCT", timeout_per_script=7200)
+    run_experiment_scripts("Reconstruct4DCT", timeout_per_script=1200)
 
 
 @pytest.mark.experiment

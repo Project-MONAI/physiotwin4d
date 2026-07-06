@@ -270,6 +270,10 @@ class ConvertImage4DTo3D(PhysioMotion4DBase):
         """Return the 3D ITK image at the given time index."""
         return self.img_3d[index]
 
+    def get_3d_images(self) -> list[itk.Image]:
+        """Return the list of 3D ITK images."""
+        return self.img_3d
+
     def get_number_of_3d_images(self) -> int:
         """Return the number of 3D images currently held."""
         return len(self.img_3d)

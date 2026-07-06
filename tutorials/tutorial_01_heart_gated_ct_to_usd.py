@@ -112,9 +112,6 @@ if __name__ == "__main__":
     else:
         number_of_registration_iterations = 10
 
-    registration_method = RegisterImagesICON(log_level=log_level)
-    registration_method.set_number_of_iterations(number_of_registration_iterations)
-
     # %%
     frame_files = sorted(data_dir.glob("slice_???.mha"))
     if test_mode:
@@ -129,23 +126,34 @@ if __name__ == "__main__":
             + "See data/README.md for download instructions."
         )
 
+    time_series_images = [itk.imread(str(path)) for path in input_filenames]
+    reference_image = time_series_images[int(0.7 * len(time_series_images))]
+
+    print("Number of time-series images:", len(time_series_images))
+
     # %%
     # Workflow initialization
+    registration_method = RegisterImagesICON(log_level=log_level)
+    registration_method.set_number_of_iterations(number_of_registration_iterations)
+
     workflow = WorkflowConvertImageToUSD(
-        input_filenames=input_filenames,
-        contrast_enhanced=True,
+        time_series_images=time_series_images,
+        reference_image=reference_image,
         output_directory=str(output_dir),
-        project_name="cardiac_model",
+        usd_project_name="cardiac_model",
         registration_method=registration_method,
         log_level=log_level,
-        save_registered_images=True,
-        save_registration_transforms=True,
-        save_labelmaps=True,
+        save_assets=True,
     )
 
     # %%
     # Workflow execution
-    usd_file = output_dir / workflow.process()
+    usd_files = workflow.process()
+    # if dynamic_labelmap_ids is not None, there are two USD files
+    if len(workflow.dynamic_labelmap_ids) > 0:
+        usd_file = output_dir / usd_files["dynamic"]
+    else:
+        usd_file = output_dir / usd_files["all"]
 
     # %%
     # Result saving

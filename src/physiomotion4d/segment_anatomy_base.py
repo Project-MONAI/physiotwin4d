@@ -10,7 +10,6 @@ from typing import Any
 
 import itk
 import numpy as np
-from itk import TubeTK as tube
 
 from .anatomy_taxonomy import AnatomyTaxonomy
 from .physiomotion4d_base import PhysioMotion4DBase
@@ -42,17 +41,15 @@ class SegmentAnatomyBase(PhysioMotion4DBase):
     Attributes:
         target_spacing (float): Target isotropic spacing for resampling.
         rescale_intensity_range (bool): Whether to rescale intensity values.
-        contrast_threshold (int): Threshold for contrast agent detection.
+        fast_mode (bool): When True, subclasses may skip auxiliary model
+            passes and use faster/less-accurate models to trade segmentation
+            fidelity for speed (e.g. in automated tests). Defaults to False.
         taxonomy (AnatomyTaxonomy): Group→organ mapping shared with
             :class:`physiomotion4d.USDAnatomyTools`.
     """
 
     def __init__(self, log_level: int | str = logging.INFO):
         """Initialize the SegmentAnatomyBase class.
-
-        Sets up default parameters for image preprocessing and seeds the
-        anatomy taxonomy with the two base-class default organs (contrast
-        and soft_tissue). Subclasses should:
 
         1. Add their organ groups via ``self.taxonomy.add_organ(...)``.
         2. Call :meth:`_finalize_other_group` to fill in unclaimed ids.
@@ -69,16 +66,11 @@ class SegmentAnatomyBase(PhysioMotion4DBase):
         self.output_intensity_scale_range: list[int] = [-1024, 3071]
         self.output_intensity_clip_range: list[int] = [-1024, 3071]
 
-        self.contrast_threshold: int = 700
+        self.fast_mode: bool = False
 
         # Single source of truth for the anatomy hierarchy. Subclasses
         # populate this; USDAnatomyTools and ConvertVTKToUSD consume it.
         self.taxonomy = AnatomyTaxonomy()
-        # Base-class default labels that downstream code relies on existing.
-        # Subclasses can override by adding the same id under a different
-        # group, or leave these in place.
-        self.taxonomy.add_organ("contrast", 135, "contrast")
-        self.taxonomy.add_organ("soft_tissue", 133, "soft_tissue")
 
     def _finalize_other_group(self) -> None:
         """Fill the ``other`` group with any unclaimed ids in [1, 256).
@@ -335,159 +327,26 @@ class SegmentAnatomyBase(PhysioMotion4DBase):
 
         return results_image
 
-    def segment_connected_component(
-        self,
-        preprocessed_image: itk.image,
-        labelmap_image: itk.image,
-        lower_threshold: int,
-        upper_threshold: int,
-        labelmap_ids: None | list[int] = None,
-        mask_id: int = 0,
-        use_mid_slice: bool = True,
-        hole_fill: int = 2,
+    def postprocess_after_labelmap(
+        self, input_image: itk.image, labelmap_image: itk.image
     ) -> itk.image:
         """
-        Segment connected components based on intensity thresholding.
+        Hook for subclass-specific labelmap refinement before mask creation.
 
-        Identifies connected regions within intensity thresholds and existing
-        anatomical masks, then selects the largest component. This is useful
-        for segmenting structures like contrast-enhanced blood or specific
-        tissue types.
-
-        Args:
-            preprocessed_image (itk.image): The preprocessed input image
-            labelmap_image (itk.image): Existing labelmap to constrain search
-            lower_threshold (int): Lower intensity threshold
-            upper_threshold (int): Upper intensity threshold
-            labelmap_ids (None | list[int]): List of label IDs to search within.
-                If None, searches within all existing labels
-            mask_id (int): ID to assign to the segmented component
-            use_mid_slice (bool): If True, find largest component in middle
-                slice only; if False, use entire 3D volume
-            hole_fill (int): Number of pixels to dilate/erode for hole filling
-
-        Returns:
-            itk.image: Updated labelmap with new component labeled as mask_id
-
-        Example:
-            >>> # Segment contrast-enhanced blood
-            >>> updated_labels = segmenter.segment_connected_component(
-            ...     preprocessed_image, labels, 700, 4000, mask_id=135
-            ... )
-        """
-        thresh_image = itk.binary_threshold_image_filter(
-            Input=preprocessed_image,
-            LowerThreshold=lower_threshold,
-            UpperThreshold=upper_threshold,
-            InsideValue=1,
-            OutsideValue=0,
-        )
-        thresh_arr = itk.GetArrayFromImage(thresh_image).astype(np.int16)
-        thresh_image = itk.GetImageFromArray(thresh_arr)
-        thresh_image.CopyInformation(preprocessed_image)
-
-        label_arr = itk.GetArrayFromImage(labelmap_image)
-        if labelmap_ids is None:
-            labelmap_ids = list(self.taxonomy.all_labels().keys())
-        label_arr = np.isin(label_arr, labelmap_ids)
-        label_image = itk.GetImageFromArray(label_arr.astype(np.int16))
-        label_image.CopyInformation(labelmap_image)
-
-        connected_component_image = itk.connected_component_image_filter(
-            Input=thresh_image,
-            MaskImage=label_image,
-        )
-
-        connected_component_arr = itk.GetArrayFromImage(connected_component_image)
-        if use_mid_slice:
-            mid_slice = (
-                connected_component_image.GetLargestPossibleRegion().GetSize()[2] // 2
-            )
-            tmp_connected_component_arr = connected_component_arr[:, :, mid_slice]
-            ids = np.unique(tmp_connected_component_arr)
-            if len(ids[ids != 0]) > 0:
-                connected_component_arr = tmp_connected_component_arr
-
-        ids = np.unique(connected_component_arr)
-        ids = ids[ids != 0]
-        if ids.size == 0:
-            self.log_debug(
-                "segment_connected_component: no connected components found "
-                "in threshold [%d, %d]; returning labelmap unchanged",
-                lower_threshold,
-                upper_threshold,
-            )
-            return labelmap_image
-        component_sums = [np.sum(connected_component_arr == id) for id in ids]
-        largest_id = ids[np.argmax(component_sums)]
-        connected_component_image = itk.binary_threshold_image_filter(
-            Input=connected_component_image,
-            LowerThreshold=int(largest_id),
-            UpperThreshold=int(largest_id),
-            InsideValue=1,
-            OutsideValue=0,
-        )
-        imMath = tube.ImageMath.New(connected_component_image)
-        imMath.Dilate(hole_fill, 1, 0)
-        imMath.Erode(hole_fill, 1, 0)
-        connected_component_image = imMath.GetOutputUChar()
-
-        labelmap_arr = itk.GetArrayFromImage(labelmap_image)
-        connected_component_arr = itk.GetArrayFromImage(connected_component_image)
-        connected_component_mask = connected_component_arr > 0
-        mask = label_arr & connected_component_mask
-        labelmap_arr = np.where(mask, mask_id, labelmap_arr)
-        results_image = itk.GetImageFromArray(labelmap_arr.astype(np.uint8))
-        results_image.CopyInformation(preprocessed_image)
-
-        return results_image
-
-    def segment_contrast_agent(
-        self, preprocessed_image: itk.image, labelmap_image: itk.image
-    ) -> itk.image:
-        """
-        Include contrast-enhanced blood in the labelmap.
-
-        Segments high-intensity regions corresponding to contrast-enhanced
-        blood vessels and cardiac chambers. Uses connected component analysis
-        focused on the middle slice where the heart is typically located.
+        Called by :meth:`segment` after :meth:`postprocess_labelmap`, and
+        before the per-group masks are derived from the labelmap. The base
+        implementation is a no-op; subclasses that offer optional features
+        gated behind their own settings (e.g. TotalSegmentator's
+        contrast-enhanced-study detection) override this to apply them.
 
         Args:
-            preprocessed_image (itk.image): The preprocessed CT image
-            labelmap_image (itk.image): Existing segmentation labelmap
+            input_image (itk.image): The original, unpreprocessed input image
+            labelmap_image (itk.image): The postprocessed segmentation labelmap
 
         Returns:
-            itk.image: Updated labelmap with contrast-enhanced regions labeled
-
-        Note:
-            Assumes the mid-z slice of the data contains the heart.
-
-        Example:
-            >>> contrast_labels = segmenter.segment_contrast_agent(preprocessed_image, base_labels)
+            itk.image: The labelmap to use for mask creation
         """
-        thorasic_ids = (
-            list(self.taxonomy.labels_in_group("heart").keys())
-            + list(self.taxonomy.labels_in_group("lung").keys())
-            + list(self.taxonomy.labels_in_group("major_vessels").keys())
-            + [0]
-        )
-        contrast_ids = list(self.taxonomy.labels_in_group("contrast").keys())
-        if len(contrast_ids) == 0:
-            self.log_warning("No contrast-enhanced regions found in the labelmap")
-            return labelmap_image
-
-        results_image = self.segment_connected_component(
-            preprocessed_image,
-            labelmap_image,
-            lower_threshold=self.contrast_threshold,
-            upper_threshold=4000,
-            labelmap_ids=thorasic_ids,
-            mask_id=contrast_ids[-1],
-            use_mid_slice=True,
-            hole_fill=3,
-        )
-
-        return results_image
+        return labelmap_image
 
     def create_anatomy_group_masks(
         self, labelmap_image: itk.image
@@ -560,34 +419,24 @@ class SegmentAnatomyBase(PhysioMotion4DBase):
     def segment(
         self,
         input_image: itk.image,
-        contrast_enhanced_study: bool = False,
     ) -> dict[str, itk.image]:
         """
-        Perform complete chest CT segmentation.
+        Perform complete anatomy segmentation.
 
         This is the main segmentation method that coordinates preprocessing,
-        segmentation, contrast agent detection (if applicable), postprocessing,
-        and anatomical group mask creation.
+        segmentation, subclass-specific labelmap refinement, and anatomical
+        group mask creation.
 
         Args:
-            input_image (itk.image): The input 3D CT image to segment
-            contrast_enhanced_study (bool): Whether the study uses contrast
-                enhancement. If True, performs additional contrast agent
-                segmentation to identify enhanced blood vessels
+            input_image (itk.image): The input 3D image to segment
 
         Returns:
             dict[str, itk.image]: Dictionary containing:
                 - "labelmap": Detailed segmentation labelmap
-                - "lung": Binary mask of pulmonary structures
-                - "heart": Binary mask of cardiac structures
-                - "major_vessels": Binary mask of major blood vessels
-                - "bone": Binary mask of skeletal structures
-                - "soft_tissue": Binary mask of soft tissue organs
-                - "other": Binary mask of remaining structures
-                - "contrast": Binary mask of contrast-enhanced regions
+                - one binary mask image per anatomy group, keyed by group name
 
         Example:
-            >>> result = segmenter.segment(ct_image, contrast_enhanced_study=True)
+            >>> result = segmenter.segment(image)
             >>> labelmap = result['labelmap']
             >>> heart_mask = result['heart']
         """
@@ -597,8 +446,7 @@ class SegmentAnatomyBase(PhysioMotion4DBase):
 
         labelmap_image = self.postprocess_labelmap(labelmap_image, input_image)
 
-        if contrast_enhanced_study:
-            labelmap_image = self.segment_contrast_agent(input_image, labelmap_image)
+        labelmap_image = self.postprocess_after_labelmap(input_image, labelmap_image)
 
         masks = self.create_anatomy_group_masks(labelmap_image)
 

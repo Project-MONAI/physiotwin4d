@@ -14,7 +14,7 @@
 #
 # Output files follow the input stem:
 # - `<stem>_labelmap.nii.gz`
-# - `<stem>_landmark.csv`
+# - `<stem>_landmark.mrk.json`
 #
 
 # %%
@@ -93,7 +93,7 @@ def segment_images(
             if not os.path.exists(labelmap_path) or not os.path.exists(landmark_path):
                 image_path = os.path.join(src_dir, f)
                 input_image = itk.imread(image_path, pixel_type=itk.F)
-                results = segmenter.segment(input_image, contrast_enhanced_study=False)
+                results = segmenter.segment(input_image)
                 labelmap = results["labelmap"]
                 itk.imwrite(labelmap, str(labelmap_path), compression=True)
 

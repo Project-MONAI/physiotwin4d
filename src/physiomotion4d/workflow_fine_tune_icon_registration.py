@@ -1,18 +1,13 @@
 """Fine-tune uniGradICON registration and apply the fine-tuned weights.
 
-This module provides :class:`WorkflowFineTuneICONRegistration`, which packages
-the two halves of the longitudinal-registration ICON fine-tuning experiment
-from ``experiments/LongitudinalRegistration``:
+This module provides :class:`WorkflowFineTuneICONRegistration`
 
 1. **Fine-tuning**: build a paired dataset JSON and YAML config from per-subject
    lists of image files (with optional labelmaps and landmark CSVs)
-   and launch ``unigradicon.finetuning.finetune`` as a subprocess.  Mirrors
-   ``experiments/LongitudinalRegistration/1-finetune_icon.py``.
+   and launch ``unigradicon.finetuning.finetune`` as a subprocess.
 2. **Apply**: load a fine-tuned uniGradICON checkpoint and register a list of
    moving images to a single reference image using
-   :class:`RegisterTimeSeriesImages` (ICON backend).  Mirrors the per-subject
-   registration loop in
-   ``experiments/LongitudinalRegistration/recon_4d_icon_eval.py``.
+   :class:`RegisterTimeSeriesImages` (ICON backend).
 
 Conventions:
     - Fine-tuning is file-based: it reads images/labelmaps/landmarks from disk
