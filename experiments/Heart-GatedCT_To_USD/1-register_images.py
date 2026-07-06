@@ -35,7 +35,8 @@ if __name__ == "__main__":
     seg = SegmentChestTotalSegmentator()
     seg.contrast_threshold = 500
     seg.fast_mode = test_mode
-    result = seg.segment(fixed_image, contrast_enhanced_study=True)
+    seg.set_contrast_enhanced_study(True)
+    result = seg.segment(fixed_image)
     # %%
     labelmap_mask = result["labelmap"]
     lung_mask = result["lung"]
@@ -86,7 +87,8 @@ if __name__ == "__main__":
     for i in range(0, N_FRAMES, FRAME_STEP):
         print(f"Processing slice {i:03d}")
         moving_image = itk.imread(str(data_dir / f"slice_{i:03d}.mha"))
-        result = seg.segment(moving_image, contrast_enhanced_study=True)
+        result = seg.segment(moving_image)
+        seg.set_contrast_enhanced_study(True)
         labelmap_mask = result["labelmap"]
         lung_mask = result["lung"]
         heart_mask = result["heart"]

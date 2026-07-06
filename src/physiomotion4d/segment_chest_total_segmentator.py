@@ -9,6 +9,7 @@ TotalSegmentator's output labels.
 import logging
 import os
 import tempfile
+from typing import Optional
 
 import itk
 import nibabel as nib
@@ -365,7 +366,7 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
         labelmap_image: itk.image,
         lower_threshold: int,
         upper_threshold: int,
-        labelmap_ids: None | list[int] = None,
+        labelmap_ids: Optional[list[int]] = None,
         mask_id: int = 0,
         use_mid_slice: bool = True,
         hole_fill: int = 2,
@@ -383,7 +384,7 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
             labelmap_image (itk.image): Existing labelmap to constrain search
             lower_threshold (int): Lower intensity threshold
             upper_threshold (int): Upper intensity threshold
-            labelmap_ids (None | list[int]): List of label IDs to search within.
+            labelmap_ids (Optional[list[int]]): List of label IDs to search within.
                 If None, searches within all existing labels
             mask_id (int): ID to assign to the segmented component
             use_mid_slice (bool): If True, find largest component in middle
@@ -492,7 +493,7 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
         Example:
             >>> contrast_labels = segmenter.segment_contrast_agent(preprocessed_image, base_labels)
         """
-        thorasic_ids = (
+        thoracic_ids = (
             list(self.taxonomy.labels_in_group("heart").keys())
             + list(self.taxonomy.labels_in_group("lung").keys())
             + list(self.taxonomy.labels_in_group("major_vessels").keys())
@@ -508,7 +509,7 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
             labelmap_image,
             lower_threshold=self.contrast_threshold,
             upper_threshold=4000,
-            labelmap_ids=thorasic_ids,
+            labelmap_ids=thoracic_ids,
             mask_id=contrast_ids[-1],
             use_mid_slice=True,
             hole_fill=3,

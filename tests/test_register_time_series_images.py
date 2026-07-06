@@ -30,13 +30,13 @@ class TestRegisterTimeSeriesImages:
     _class_name = "registration_time_series_images"
 
     def test_registrar_initialization_default(self) -> None:
-        """Test that the default registration_method is RegisterImagesGreedy."""
+        """Test that the default registration_method is RegisterImagesGreedyICON."""
         registrar = RegisterTimeSeriesImages()
-        assert isinstance(registrar.registrar, RegisterImagesGreedy), (
-            "Default registrar should be RegisterImagesGreedy"
+        assert isinstance(registrar.registrar, RegisterImagesGreedyICON), (
+            "Default registrar should be RegisterImagesGreedyICON"
         )
 
-        print("\nTime series registrar defaults to RegisterImagesGreedy")
+        print("\nTime series registrar defaults to RegisterImagesGreedyICON")
 
     def test_registrar_initialization_Greedy_ICON(self) -> None:
         """Initializes correctly with a RegisterImagesGreedyICON instance."""
@@ -204,6 +204,9 @@ class TestRegisterTimeSeriesImages:
         test_tools.write_result_image(
             moving_image, "basic_time_series_registered_0.mha"
         )
+        results_dir = test_directories["output"] / self._class_name
+        assert (results_dir / "basic_forward_transform_0.hdf").exists()
+        assert (results_dir / "basic_time_series_registered_0.mha").exists()
 
     def test_register_time_series_with_prior(
         self, test_images: list[Any], test_directories: dict[str, Path]
@@ -262,6 +265,9 @@ class TestRegisterTimeSeriesImages:
         test_tools.write_result_image(
             moving_image, "prior_time_series_registered_0.mha"
         )
+        results_dir = test_directories["output"] / self._class_name
+        assert (results_dir / "prior_forward_transform_0.hdf").exists()
+        assert (results_dir / "prior_time_series_registered_0.mha").exists()
 
     def test_register_time_series_identity_start(self, test_images: list[Any]) -> None:
         """Test time series registration with identity for starting image."""
@@ -432,6 +438,8 @@ class TestRegisterTimeSeriesImages:
         test_tools.write_result_image(
             registered_image, "transform_application_time_series_0.mha"
         )
+        results_dir = test_directories["output"] / self._class_name
+        assert (results_dir / "transform_application_time_series_0.mha").exists()
 
     def test_register_time_series_ICON(self, test_images: list[Any]) -> None:
         """Test time series registration with ICON method."""

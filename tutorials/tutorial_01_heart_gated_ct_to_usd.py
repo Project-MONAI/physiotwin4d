@@ -143,7 +143,12 @@ if __name__ == "__main__":
 
     # %%
     # Workflow execution
-    usd_file = output_dir / workflow.process()
+    usd_files = workflow.process()
+    # if dynamic_labelmap_ids is not None, there are two USD files
+    if len(workflow.dynamic_labelmap_ids) > 0:
+        usd_file = output_dir / usd_files["dynamic"]
+    else:
+        usd_file = output_dir / usd_files["all"]
 
     # %%
     # Result saving

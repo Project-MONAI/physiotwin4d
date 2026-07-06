@@ -158,7 +158,11 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     input_dir = args.directory
     if input_dir is None:
-        input_dir = select_directory()
+        try:
+            input_dir = select_directory()
+        except RuntimeError as exc:
+            print(f"Error: {exc}")
+            return 1
     if input_dir is None:
         print("No directory selected")
         return 1

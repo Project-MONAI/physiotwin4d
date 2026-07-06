@@ -173,8 +173,7 @@ if input_image is not None:
 
     try:
         # Perform segmentation
-        # For Simpleware, set contrast_enhanced_study=False always!
-        result = segmenter.segment(input_image, contrast_enhanced_study=False)
+        result = segmenter.segment(input_image)
 
         print("\nSegmentation completed successfully!")
 

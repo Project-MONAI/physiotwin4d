@@ -27,6 +27,7 @@ reference_image_num = 7
 reg_method_data = zip(["Greedy"], [RegisterImagesGreedy()], [[30, 15, 5]])
 # reg_method_data = zip(["ICON"], [RegisterImagesICON()], [20])
 # reg_method_data = zip(["ICON","ANTs"], [RegisterImagesICON(), RegisterImagesANTS()], [20, [40, 20, 10]])
+# (requires importing RegisterImagesANTS above before uncommenting)
 
 reference_image_file = os.path.join(
     data_dir, f"slice_{files_indx[reference_image_num]:03d}.mha"

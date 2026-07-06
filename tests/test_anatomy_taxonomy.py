@@ -119,7 +119,7 @@ def test_segment_anatomy_base_default_taxonomy_seeded() -> None:
     from physiomotion4d import SegmentAnatomyBase
 
     seg = SegmentAnatomyBase()
-    assert seg is not None
+    assert len(seg.taxonomy.all_labels()) == 0
 
 
 if __name__ == "__main__":  # pragma: no cover

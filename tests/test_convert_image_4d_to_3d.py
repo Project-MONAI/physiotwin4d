@@ -36,6 +36,8 @@ class TestConvertImage4DTo3D:
 
         output_dir = test_directories["output"] / "convert_image_4d_to_3d"
         output_dir.mkdir(parents=True, exist_ok=True)
+        for stale_file in output_dir.glob("test_slice_*.mha"):
+            stale_file.unlink()
 
         conv.save_3d_images(output_dir, "test_slice")
 

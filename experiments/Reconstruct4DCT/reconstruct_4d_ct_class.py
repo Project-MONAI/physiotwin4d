@@ -12,6 +12,7 @@
 
 # %%
 import os
+from typing import Optional
 
 import itk
 import numpy as np
@@ -29,7 +30,7 @@ from physiomotion4d.test_tools import TestTools
 _HERE = os.path.dirname(os.path.abspath(__file__))
 
 
-def _build_registrar(method_name: str, iterations=None) -> RegisterImagesBase:
+def _build_registrar(method_name: str, iterations=None) -> Optional[RegisterImagesBase]:
     """Build a registrar instance for one of "Greedy", "ICON", or
     "Greedy_ICON". When `iterations` is given, it matches this experiment's
     `number_of_iterations_list` shape: a list for Greedy, an int for ICON,

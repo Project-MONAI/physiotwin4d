@@ -455,6 +455,35 @@ class TestFlipImage:
                 f"flip_and_make_identity should set {name} direction to identity"
             )
 
+    def test_keep_largest_connected_component_keeps_largest_blob(
+        self, image_tools: ImageTools
+    ) -> None:
+        """Pure connected-component unit test on a synthetic 10x10x10 mask
+        with two disjoint blobs (shape (X, Y, Z) = (10, 10, 10))."""
+        arr = np.zeros((10, 10, 10), dtype=np.uint8)
+        arr[1:3, 1:3, 1:3] = 1  # small blob (8 voxels)
+        arr[5:9, 5:9, 5:9] = 1  # large blob (64 voxels)
+        image = itk.image_from_array(arr)
+
+        result = image_tools.keep_largest_connected_component(image)
+        result_arr = itk.array_from_image(result)
+
+        assert result_arr[1:3, 1:3, 1:3].sum() == 0
+        assert result_arr[5:9, 5:9, 5:9].sum() == arr[5:9, 5:9, 5:9].sum()
+
+    def test_keep_largest_connected_component_no_foreground_returns_empty(
+        self, image_tools: ImageTools
+    ) -> None:
+        """An all-background mask (shape (X, Y, Z) = (8, 8, 8)) returns
+        an all-background result."""
+        arr = np.zeros((8, 8, 8), dtype=np.uint8)
+        image = itk.image_from_array(arr)
+
+        result = image_tools.keep_largest_connected_component(image)
+        result_arr = itk.array_from_image(result)
+
+        assert result_arr.sum() == 0
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v", "-s"])

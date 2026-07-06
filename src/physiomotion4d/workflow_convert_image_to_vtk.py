@@ -39,17 +39,6 @@ from .segment_anatomy_base import SegmentAnatomyBase
 from .segment_chest_total_segmentator import SegmentChestTotalSegmentator
 from .usd_anatomy_tools import USDAnatomyTools
 
-#: Ordered tuple of anatomy group names matching :meth:`SegmentAnatomyBase.segment` keys.
-ANATOMY_GROUPS: tuple[str, ...] = (
-    "heart",
-    "lung",
-    "major_vessels",
-    "bone",
-    "soft_tissue",
-    "other",
-    "contrast",
-)
-
 
 class WorkflowConvertImageToVTK(PhysioMotion4DBase):
     """Segment a CT image and produce per-anatomy-group VTK surfaces and meshes.
@@ -63,8 +52,9 @@ class WorkflowConvertImageToVTK(PhysioMotion4DBase):
 
     **Output anatomy groups**
 
-    ``heart``, ``lung``, ``major_vessels``, ``bone``, ``soft_tissue``, ``other``,
-    ``contrast``.  Groups that are empty after segmentation are silently skipped.
+    Determined by the active segmenter's :attr:`SegmentAnatomyBase.taxonomy`
+    (see :attr:`ANATOMY_GROUPS`).  Groups that are empty after segmentation
+    are silently skipped.
 
     **VTK object annotation**
 
@@ -85,9 +75,6 @@ class WorkflowConvertImageToVTK(PhysioMotion4DBase):
     :meth:`save_combined_mesh` — or the CLI ``physiomotion4d-convert-image-to-vtk`` — to
     write results to disk.
     """
-
-    #: Valid anatomy group names.
-    ANATOMY_GROUPS: tuple[str, ...] = ANATOMY_GROUPS
 
     def __init__(
         self,
@@ -116,6 +103,12 @@ class WorkflowConvertImageToVTK(PhysioMotion4DBase):
         self._segmenter: SegmentAnatomyBase = segmentation_method
         self._contour_tools: ContourTools = ContourTools(log_level=log_level)
 
+        #: Anatomy group names registered by the active segmenter's taxonomy,
+        #: in the order they were first added.
+        self.ANATOMY_GROUPS: tuple[str, ...] = tuple(
+            self._segmenter.taxonomy.group_names()
+        )
+
         # Build anatomy-group → RGB color from USDAnatomyTools.
         # USDAnatomyTools sets up its color dicts entirely in __init__ without
         # accessing the stage, so stage=None is safe for this lookup-only use.
@@ -123,7 +116,7 @@ class WorkflowConvertImageToVTK(PhysioMotion4DBase):
         supported_types = set(_anatomy_tools.get_anatomy_types())
         self._anatomy_color_map: dict[str, tuple[float, float, float]] = {
             group: _anatomy_tools.get_anatomy_diffuse_color(group)
-            for group in ANATOMY_GROUPS
+            for group in self.ANATOMY_GROUPS
             if group in supported_types
         }
 
@@ -227,9 +220,9 @@ class WorkflowConvertImageToVTK(PhysioMotion4DBase):
                 :class:`SegmentChestTotalSegmentator`); requesting ``True``
                 with any other segmenter raises :class:`ValueError`.
             anatomy_groups: Subset of anatomy groups to process.  ``None`` (default)
-                processes all non-empty groups.  Valid names: ``'heart'``,
-                ``'lung'``, ``'major_vessels'``, ``'bone'``, ``'soft_tissue'``,
-                ``'other'``, ``'contrast'``.
+                processes all non-empty groups.  Valid names are given by
+                :attr:`ANATOMY_GROUPS`, derived from the active segmenter's
+                taxonomy.
 
         Returns:
             ``dict`` with the following keys:

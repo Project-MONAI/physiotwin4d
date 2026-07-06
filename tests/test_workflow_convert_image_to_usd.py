@@ -7,12 +7,89 @@ from pathlib import Path
 from typing import Any, cast
 
 import itk
+import numpy as np
 import pytest
 from pxr import Usd, UsdGeom
 
+from physiomotion4d.register_images_base import RegisterImagesBase
 from physiomotion4d.register_images_icon import RegisterImagesICON
 from physiomotion4d.segment_chest_total_segmentator import SegmentChestTotalSegmentator
 from physiomotion4d.workflow_convert_image_to_usd import WorkflowConvertImageToUSD
+
+
+def _small_image() -> itk.Image:
+    """A tiny synthetic image, shape (X, Y, Z) = (3, 3, 3), LPS world frame."""
+    return itk.image_from_array(np.zeros((3, 3, 3), dtype=np.float32))
+
+
+def test_default_segmentation_and_registration_methods(tmp_path: Path) -> None:
+    """Omitting segmentation_method/registration_method defaults to
+    SegmentChestTotalSegmentator (contrast_threshold=500) and
+    RegisterImagesICON, matching this workflow's documented defaults."""
+    reference_image = _small_image()
+    workflow = WorkflowConvertImageToUSD(
+        time_series_images=[reference_image],
+        reference_image=reference_image,
+        usd_project_name="patient",
+        output_directory=str(tmp_path),
+        log_level=logging.CRITICAL,
+    )
+
+    assert isinstance(workflow.segmenter, SegmentChestTotalSegmentator)
+    assert workflow.segmenter.contrast_threshold == 500
+    assert isinstance(workflow.registrar, RegisterImagesICON)
+
+
+def test_segmentation_method_rejects_wrong_type(tmp_path: Path) -> None:
+    """A non-SegmentAnatomyBase segmentation_method raises TypeError."""
+    reference_image = _small_image()
+    with pytest.raises(TypeError, match="segmentation_method must be"):
+        WorkflowConvertImageToUSD(
+            time_series_images=[reference_image],
+            reference_image=reference_image,
+            usd_project_name="patient",
+            output_directory=str(tmp_path),
+            segmentation_method="ChestTotalSegmentator",  # type: ignore[arg-type]
+            log_level=logging.CRITICAL,
+        )
+
+
+def test_registration_method_rejects_wrong_type(tmp_path: Path) -> None:
+    """A non-RegisterImagesBase registration_method raises TypeError."""
+    reference_image = _small_image()
+    with pytest.raises(TypeError, match="registration_method must be"):
+        WorkflowConvertImageToUSD(
+            time_series_images=[reference_image],
+            reference_image=reference_image,
+            usd_project_name="patient",
+            output_directory=str(tmp_path),
+            registration_method="ICON",  # type: ignore[arg-type]
+            log_level=logging.CRITICAL,
+        )
+
+
+def test_caller_supplied_instances_are_used_as_is(tmp_path: Path) -> None:
+    """A caller-supplied segmenter/registrar instance is stored unmodified
+    (beyond the documented shared setters): the workflow must not apply its
+    default-only contrast_threshold=500 tuning to a caller-supplied segmenter."""
+    reference_image = _small_image()
+    segmenter = SegmentChestTotalSegmentator()
+    original_contrast_threshold = segmenter.contrast_threshold
+    registrar: RegisterImagesBase = RegisterImagesICON()
+
+    workflow = WorkflowConvertImageToUSD(
+        time_series_images=[reference_image],
+        reference_image=reference_image,
+        usd_project_name="patient",
+        output_directory=str(tmp_path),
+        segmentation_method=segmenter,
+        registration_method=registrar,
+        log_level=logging.CRITICAL,
+    )
+
+    assert workflow.segmenter is segmenter
+    assert workflow.registrar is registrar
+    assert workflow.segmenter.contrast_threshold == original_contrast_threshold
 
 
 @pytest.mark.requires_gpu
