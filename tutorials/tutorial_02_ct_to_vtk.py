@@ -84,7 +84,7 @@ if __name__ == "__main__":
     # surface_target_reduction decimates each exported VTP surface;
     # mesh_target_reduction decimates the surface netgen tetrahedralizes into
     # each VTU volume mesh (a coarser input surface yields a coarser mesh).
-    result = workflow.run_workflow(
+    result = workflow.process(
         input_image=ct_image,
         surface_target_reduction=0.5,
         mesh_target_reduction=0.7,

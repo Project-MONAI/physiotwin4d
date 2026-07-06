@@ -184,7 +184,7 @@ Examples
                 args.segmentation_method, contrast=args.contrast
             ),
         )
-        result = workflow.run_workflow(
+        result = workflow.process(
             input_image=input_image,
             anatomy_groups=args.anatomy_groups,
             surface_target_reduction=args.surface_target_reduction,

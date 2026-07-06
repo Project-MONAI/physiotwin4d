@@ -554,7 +554,7 @@ class ContourTools(PhysioMotion4DBase):
 
         Args:
             surfaces: Mapping of name → surface (e.g. the ``'surfaces'``
-                value from :meth:`WorkflowConvertImageToVTK.run_workflow`).
+                value from :meth:`WorkflowConvertImageToVTK.process`).
             output_dir: Directory to write files into (created if absent).
             prefix: Optional filename prefix.  Each file is named
                 ``{prefix}_{name}.vtp`` (or ``{name}.vtp`` when *prefix* is empty).
@@ -581,7 +581,7 @@ class ContourTools(PhysioMotion4DBase):
 
         Args:
             meshes: Mapping of name → mesh (e.g. the ``'meshes'`` value from
-                :meth:`WorkflowConvertImageToVTK.run_workflow`).
+                :meth:`WorkflowConvertImageToVTK.process`).
             output_dir: Directory to write files into (created if absent).
             prefix: Optional filename prefix.  Each file is named
                 ``{prefix}_{name}.vtu`` (or ``{name}.vtu`` when *prefix* is empty).

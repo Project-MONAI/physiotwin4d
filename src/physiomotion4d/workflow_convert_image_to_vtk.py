@@ -18,7 +18,7 @@ Typical usage::
     ct = itk.imread('chest_ct.nii.gz')
     segmenter = SegmentChestTotalSegmentatorWithContrast()
     workflow = WorkflowConvertImageToVTK(segmentation_method=segmenter)
-    result = workflow.run_workflow(
+    result = workflow.process(
         ct, surface_target_reduction=0.5, mesh_target_reduction=0.7
     )
 
@@ -67,7 +67,7 @@ class WorkflowConvertImageToVTK(PhysioMotion4DBase):
     **VTK object annotation**
 
     Each :class:`pyvista.PolyData` surface and :class:`pyvista.UnstructuredGrid` mesh
-    returned by :meth:`run_workflow` carries:
+    returned by :meth:`process` carries:
 
     - ``field_data['AnatomyGroup']`` — anatomy group name, e.g. ``'heart'``.
     - ``field_data['SegmentationLabelNames']`` — individual structure names within the
@@ -78,7 +78,7 @@ class WorkflowConvertImageToVTK(PhysioMotion4DBase):
 
     **I/O contract**
 
-    :meth:`run_workflow` performs *no* file I/O.  Use
+    :meth:`process` performs *no* file I/O.  Use
     :class:`ContourTools`'s static helpers
     :meth:`ContourTools.save_surfaces`, :meth:`ContourTools.save_meshes`,
     :meth:`ContourTools.save_combined_surface`, and
@@ -209,7 +209,7 @@ class WorkflowConvertImageToVTK(PhysioMotion4DBase):
 
     # ─────────────────────────── Main workflow ─────────────────────────────
 
-    def run_workflow(
+    def process(
         self,
         input_image: Any,
         anatomy_groups: Optional[list[str]] = None,

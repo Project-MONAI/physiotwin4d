@@ -86,7 +86,7 @@ Image to VTK
    workflow = WorkflowConvertImageToVTK(
        segmentation_method=SegmentChestTotalSegmentatorWithContrast()
    )
-   result = workflow.run_workflow(
+   result = workflow.process(
        input_image=image,
        anatomy_groups=["heart", "major_vessels"],
    )
