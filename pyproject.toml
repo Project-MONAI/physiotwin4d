@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "physiotwin4d"
 version = "2026.07.0"
-description = "Medical imaging package for generating anatomic models in Omniverse with physiological motion from 4D medical images"
+description = "Methods, workflows, tutorials, and CLI for creating personalized physiological digital twins from 3D medical images"
 authors = [
     {name = "Stephen R. Aylward", email = "saylward@nvidia.com"}
 ]

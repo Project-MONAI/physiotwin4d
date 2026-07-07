@@ -10,8 +10,12 @@ General Questions
 What is PhysioTwin4D?
 -----------------------
 
-PhysioTwin4D is a medical imaging package that converts 4D CT scans into dynamic 
-3D models for visualization in NVIDIA Omniverse.
+PhysioTwin4D is a collection of methods, workflows, tutorials, and CLI tools for
+creating personalized physiological digital twins: starting from a 3D medical
+image of a subject, extracting anatomic models, and then using AI surrogates to
+estimate the subject's physiological processes (initially cardiac and
+respiratory motion, expanding to electrophysiology, blood flow, and organ
+perfusion).
 
 What data formats are supported?
 ---------------------------------
@@ -104,6 +108,6 @@ More Questions?
 ===============
 
 * Check the :doc:`cli_scripts/heart_gated_ct`
-* Browse :doc:`examples`
+* Browse :doc:`tutorials`
 * Open an issue on `GitHub <https://github.com/Project-MONAI/physiotwin4d/issues>`_
 

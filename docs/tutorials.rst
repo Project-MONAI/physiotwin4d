@@ -11,10 +11,10 @@ Tutorials
      <p class="pt4d-kicker">PhysioTwin4D tutorials</p>
      <h1>Build animated medical USD workflows for NVIDIA Omniverse</h1>
      <p>
-       Nine focused tutorials walk through CT segmentation, registration,
-       statistical model fitting, high-resolution 4D reconstruction, and USD
-       export. Each card links to implementation details, datasets, and the
-       percent-cell Python script used to run the workflow.
+       Tutorials are the primary examples: runnable, percent-cell Python
+       scripts that exercise the real workflow, registration, and
+       segmentation classes end-to-end. Each card links to the workflow it
+       demonstrates, its dataset, and the inner API calls the script makes.
      </p>
    </section>
 
@@ -108,6 +108,41 @@ Workflow
 Dataset
    Slicer-Heart-CT, prepared before running the tutorial.
 
+Preview
+   .. figure:: assets/example.gif
+      :alt: Tutorial 1 input preview (placeholder)
+      :width: 45%
+
+      Input (placeholder — a real capture lands in a follow-up PR)
+
+   .. figure:: assets/example.gif
+      :alt: Tutorial 1 output preview (placeholder)
+      :width: 45%
+
+      Output (placeholder — a real capture lands in a follow-up PR)
+
+Inner API usage
+   The tutorial builds a registration method, hands it to the workflow, and
+   calls ``process()`` once:
+
+   .. code-block:: python
+
+      registration_method = RegisterImagesICON(log_level=log_level)
+      registration_method.set_number_of_iterations(number_of_registration_iterations)
+
+      workflow = WorkflowConvertImageToUSD(
+          time_series_images=time_series_images,
+          reference_image=reference_image,
+          output_directory=str(output_dir),
+          usd_project_name="cardiac_model",
+          registration_method=registration_method,
+          save_assets=True,
+      )
+      usd_files = workflow.process()
+
+   Swap in ``RegisterImagesGreedy()`` or ``RegisterImagesANTS()`` for
+   CPU-only environments.
+
 Run
    .. code-block:: bash
 
@@ -129,6 +164,38 @@ Workflow
 Dataset
    Slicer-Heart-CT, prepared before running the tutorial.
 
+Preview
+   .. figure:: assets/example.gif
+      :alt: Tutorial 2 input preview (placeholder)
+      :width: 45%
+
+      Input (placeholder — a real capture lands in a follow-up PR)
+
+   .. figure:: assets/example.gif
+      :alt: Tutorial 2 output preview (placeholder)
+      :width: 45%
+
+      Output (placeholder — a real capture lands in a follow-up PR)
+
+Inner API usage
+   The workflow owns a segmentation method and turns each anatomy group into
+   decimated VTK surfaces and volume meshes:
+
+   .. code-block:: python
+
+      workflow = WorkflowConvertImageToVTK(
+          segmentation_method=SegmentChestTotalSegmentatorWithContrast(
+              log_level=log_level
+          ),
+      )
+      result = workflow.process(
+          input_image=ct_image,
+          surface_target_reduction=0.5,
+          mesh_target_reduction=0.7,
+      )
+
+   Use ``SegmentChestTotalSegmentator`` instead for non-contrast studies.
+
 Run
    .. code-block:: bash
 
@@ -148,6 +215,32 @@ Workflow
 
 Dataset
    KCL-Heart-Model, downloaded manually.
+
+Preview
+   .. figure:: assets/example.gif
+      :alt: Tutorial 3 input preview (placeholder)
+      :width: 45%
+
+      Input (placeholder — a real capture lands in a follow-up PR)
+
+   .. figure:: assets/example.gif
+      :alt: Tutorial 3 output preview (placeholder)
+      :width: 45%
+
+      Output (placeholder — a real capture lands in a follow-up PR)
+
+Inner API usage
+   The workflow aligns every sample mesh to the reference mesh and fits a
+   PCA shape model in one call:
+
+   .. code-block:: python
+
+      workflow = WorkflowCreateStatisticalModel(
+          sample_meshes=sample_meshes,
+          reference_mesh=reference_mesh,
+          pca_number_of_components=pca_components,
+      )
+      result = workflow.run_workflow()
 
 Run
    .. code-block:: bash
@@ -169,6 +262,34 @@ Workflow
 Dataset
    KCL-Heart-Model, downloaded manually.
 
+Preview
+   .. figure:: assets/example.gif
+      :alt: Tutorial 4 input preview (placeholder)
+      :width: 45%
+
+      Input (placeholder — a real capture lands in a follow-up PR)
+
+   .. figure:: assets/example.gif
+      :alt: Tutorial 4 output preview (placeholder)
+      :width: 45%
+
+      Output (placeholder — a real capture lands in a follow-up PR)
+
+Inner API usage
+   The workflow registers a template model to patient surfaces with ICP,
+   with optional PCA-constrained shape fitting when a PCA model is supplied:
+
+   .. code-block:: python
+
+      workflow = WorkflowFitStatisticalModelToPatient(
+          template_model=template_model,
+          patient_models=patient_models,
+      )
+      if pca_model is not None:
+          workflow.set_use_pca_registration(True, pca_model=pca_model)
+      result = workflow.run_workflow()
+      registered_surface = result["registered_template_model_surface"]
+
 Run
    .. code-block:: bash
 
@@ -189,6 +310,39 @@ Workflow
 Dataset
    Output from Tutorial 2.
 
+Preview
+   .. figure:: assets/example.gif
+      :alt: Tutorial 5 input preview (placeholder)
+      :width: 45%
+
+      Input (placeholder — a real capture lands in a follow-up PR)
+
+   .. figure:: assets/example.gif
+      :alt: Tutorial 5 output preview (placeholder)
+      :width: 45%
+
+      Output (placeholder — a real capture lands in a follow-up PR)
+
+Inner API usage
+   The supported workflow wrapper converts one or more VTK files into an
+   animated, materially-painted USD stage:
+
+   .. code-block:: python
+
+      workflow = WorkflowConvertVTKToUSD(
+          vtk_files=[vtk_file],
+          output_usd=output_usd,
+          appearance="anatomy",
+          anatomy_type="heart",
+          separate_by_connectivity=True,
+      )
+      usd_file = workflow.run()
+
+   For callers who need more control than the workflow wrapper offers (e.g.
+   converting in-memory PyVista/VTK objects instead of files, or applying a
+   colormap), use :class:`physiotwin4d.ConvertVTKToUSD` directly — it is the
+   supported public entry point for VTK-to-USD conversion.
+
 Run
    .. code-block:: bash
 
@@ -208,6 +362,39 @@ Workflow
 
 Dataset
    DirLab-4DCT, downloaded manually.
+
+Preview
+   .. figure:: assets/example.gif
+      :alt: Tutorial 6 input preview (placeholder)
+      :width: 45%
+
+      Input (placeholder — a real capture lands in a follow-up PR)
+
+   .. figure:: assets/example.gif
+      :alt: Tutorial 6 output preview (placeholder)
+      :width: 45%
+
+      Output (placeholder — a real capture lands in a follow-up PR)
+
+Inner API usage
+   The workflow registers every phase to a fixed reference with a chained
+   Greedy-then-ICON registrar and reconstructs each phase at the reference
+   resolution:
+
+   .. code-block:: python
+
+      registration_method = RegisterImagesGreedyICON(log_level=log_level)
+      registration_method.greedy.set_number_of_iterations(number_of_iterations_Greedy)
+
+      workflow = WorkflowReconstructHighres4DCT(
+          time_series_images=time_series,
+          fixed_image=fixed_image,
+          reference_frame=0,
+          registration_method=registration_method,
+      )
+      workflow.set_modality("ct")
+      result = workflow.run_workflow()
+      reconstructed_images = result["reconstructed_images"]
 
 Run
    .. code-block:: bash
@@ -242,6 +429,50 @@ Dataset
    Bring your own cardiac gated CT, labelmaps, KCL volume PCA model, and ICON
    weights under ``D:/PhysioTwin4D/``.
 
+Preview
+   .. figure:: assets/example.gif
+      :alt: Tutorial 8 input preview (placeholder)
+      :width: 45%
+
+      Input (placeholder — a real capture lands in a follow-up PR)
+
+   .. figure:: assets/example.gif
+      :alt: Tutorial 8 output preview (placeholder)
+      :width: 45%
+
+      Output (placeholder — a real capture lands in a follow-up PR)
+
+Inner API usage
+   Step 1 fits the SSM to the reference phase with PCA-constrained
+   registration; step 2 propagates the fitted mesh to every gated phase by
+   reusing the reference-to-phase ICON transforms from
+   ``WorkflowReconstructHighres4DCT``:
+
+   .. code-block:: python
+
+      ssm_fit_workflow = WorkflowFitStatisticalModelToPatient(
+          template_model=ssm_mean_mesh,
+          patient_image=ref_image,
+          patient_models=[ref_surface],
+          patient_labelmap=ref_labelmap,
+          labelmap_interior_object_ids=LABELMAP_INTERIOR_OBJECT_IDS,
+      )
+      ssm_fit_workflow.set_use_pca_registration(
+          use_pca_registration=True, pca_model=ssm_model, pca_uses_surface=False,
+      )
+      ssm_fit_workflow_result = ssm_fit_workflow.run_workflow()
+      ssm_pca_coefficients = ssm_fit_workflow.pca_coefficients
+
+      icon_registration_method = RegisterImagesICON()
+      icon_registration_method.set_weights_path(str(ICON_WEIGHTS_PATH))
+      reg_workflow = WorkflowReconstructHighres4DCT(
+          time_series_images=time_series,
+          fixed_image=ref_image,
+          registration_method=icon_registration_method,
+      )
+      reg_result = reg_workflow.run_workflow()
+      reconstructed_images = reg_result["reconstructed_images"]
+
 Run
    .. code-block:: bash
 
@@ -258,12 +489,30 @@ Script
    ``tutorials/tutorial_09a_cardiac_train_physicsnemo_mgn.py`` (MeshGraphNet) and
    ``tutorials/tutorial_09b_cardiac_train_physicsnemo_mlp.py`` (MLP)
 
-Workflow
-   ``physicsnemo.models.meshgraphnet.MeshGraphNet`` (9a) and
-   ``physicsnemo.models.mlp.FullyConnected`` (9b), trained on Tutorial 8 meshes.
+Inner API usage
+   Unlike Tutorials 1-8, these do not build a ``physiotwin4d`` workflow —
+   they import a PhysicsNeMo model class directly and train it on Tutorial 8's
+   fitted meshes: ``physicsnemo.models.meshgraphnet.MeshGraphNet`` (9a) or
+   ``physicsnemo.models.mlp.FullyConnected`` (9b). They are the intended
+   template for future cardiac, respiratory, and electrophysiology AI
+   surrogates, following the same fit -> propagate -> train -> predict
+   pattern as the rest of the workflow layer.
 
 Dataset
    Tutorial 8 fitted-mesh outputs.
+
+Preview
+   .. figure:: assets/example.gif
+      :alt: Tutorial 9 input preview (placeholder)
+      :width: 45%
+
+      Input (placeholder — a real capture lands in a follow-up PR)
+
+   .. figure:: assets/example.gif
+      :alt: Tutorial 9 output preview (placeholder)
+      :width: 45%
+
+      Output (placeholder — a real capture lands in a follow-up PR)
 
 Extra install
    PhysicsNeMo is an optional dependency. Install with
@@ -287,12 +536,27 @@ Script
    ``tutorials/tutorial_10a_cardiac_eval_physicsnemo_mgn.py`` (MeshGraphNet) and
    ``tutorials/tutorial_10b_cardiac_eval_physicsnemo_mlp.py`` (MLP)
 
-Workflow
-   Load a Tutorial 9 checkpoint and predict cardiac surfaces for one subject at
-   each gated phase (with error statistics) or at caller-specified stages.
+Inner API usage
+   Loads a Tutorial 9 checkpoint and predicts cardiac surfaces for one
+   subject at each gated phase (with error statistics) or at
+   caller-specified stages — the AI surrogate standing in for
+   ``WorkflowReconstructHighres4DCT`` at inference time.
 
 Dataset
    Tutorial 9a / 9b trained checkpoints plus the Tutorial 8 fitted meshes.
+
+Preview
+   .. figure:: assets/example.gif
+      :alt: Tutorial 10 input preview (placeholder)
+      :width: 45%
+
+      Input (placeholder — a real capture lands in a follow-up PR)
+
+   .. figure:: assets/example.gif
+      :alt: Tutorial 10 output preview (placeholder)
+      :width: 45%
+
+      Output (placeholder — a real capture lands in a follow-up PR)
 
 Run
    .. code-block:: bash

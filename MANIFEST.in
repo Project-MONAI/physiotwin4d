@@ -3,7 +3,6 @@ include README.md
 include LICENSE
 include CLAUDE.md
 include CHANGELOG.md
-include doc/PYPI_RELEASE_GUIDE.md
 
 # Include configuration files
 include pyproject.toml

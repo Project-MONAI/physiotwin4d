@@ -11,8 +11,9 @@
      <p class="pt4d-kicker">PhysioTwin4D tutorials</p>
      <h1>Build animated medical USD workflows for NVIDIA Omniverse</h1>
      <p>
-       PhysioTwin4D converts 3D and 4D medical scans into dynamic OpenUSD
-       assets for NVIDIA Omniverse. Start with the tutorial cards, then use the
+       PhysioTwin4D is a collection of methods, workflows, tutorials, and CLI
+       tools for creating personalized physiological digital twins from 3D
+       medical images. Start with the tutorial cards, then use the
        documentation sections below for installation, CLI workflows, API
        references, developer notes, and contribution guidance.
      </p>
@@ -91,9 +92,9 @@
          <h3>Getting Started</h3>
          <p>Run your first workflow and understand the basic CT-to-USD processing path.</p>
        </a>
-       <a class="pt4d-topic-card" href="examples.html">
-         <h3>Examples</h3>
-         <p>Review focused usage patterns for common cardiac, lung, segmentation, and USD tasks.</p>
+       <a class="pt4d-topic-card" href="tutorials.html">
+         <h3>Tutorials &amp; Examples</h3>
+         <p>Runnable scripts covering cardiac, lung, segmentation, and USD tasks, with the inner workflow-class calls each one makes.</p>
        </a>
        <a class="pt4d-topic-card" href="cli_scripts/overview.html">
          <h3>CLI Workflows</h3>
@@ -144,7 +145,6 @@ per-tutorial implementation details.
    installation
    quickstart
    tutorials
-   examples
    architecture
 
 .. toctree::
@@ -208,7 +208,6 @@ per-tutorial implementation details.
    faq
    troubleshooting
    references
-   changelog
 
 Clinical Use
 ============

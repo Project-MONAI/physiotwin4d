@@ -2,8 +2,9 @@
 Extending PhysioTwin4D
 ========================
 
-PhysioTwin4D is an early-alpha toolkit. Prefer small, explicit extensions
-that match the current class boundaries over large compatibility layers.
+PhysioTwin4D is an early-alpha toolkit for creating personalized physiological
+digital twins. Prefer small, explicit extensions that match the current class
+boundaries over large compatibility layers.
 
 Where to Start
 ==============

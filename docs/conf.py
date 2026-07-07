@@ -66,7 +66,6 @@ exclude_patterns = [
     "Thumbs.db",
     ".DS_Store",
     "API_MAP.md",
-    "PYPI_RELEASE_GUIDE.md",
     "README.md",
 ]
 

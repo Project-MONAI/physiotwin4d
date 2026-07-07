@@ -275,6 +275,6 @@ Next Steps
 ==========
 
 * Continue to :doc:`quickstart` for your first PhysioTwin4D workflow
-* Explore :doc:`examples` for common use cases
+* Explore :doc:`tutorials` for runnable, workflow-by-workflow examples
 * Read :doc:`cli_scripts/overview` for detailed command-line workflows
 

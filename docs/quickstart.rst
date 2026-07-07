@@ -291,7 +291,7 @@ Next Steps
 
 Now that you've completed your first workflow:
 
-* Explore :doc:`examples` for more use cases
+* Explore :doc:`tutorials` for more runnable examples
 * Read detailed :doc:`cli_scripts/overview`
 * Learn about :doc:`api/segmentation/index` options
 * Understand :doc:`api/registration/index` methods
