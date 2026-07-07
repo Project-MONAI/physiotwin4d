@@ -10,12 +10,12 @@ from pathlib import Path
 import itk
 import pyvista as pv
 
-# Import from PhysioMotion4D package
-from physiomotion4d import (
+# Import from PhysioTwin4D package
+from physiotwin4d import (
     SegmentHeartSimplewareTrimmedBranches,
     WorkflowFitStatisticalModelToPatient,
 )
-from physiomotion4d.test_tools import TestTools
+from physiotwin4d.test_tools import TestTools
 
 # %% [markdown]
 # ## Define File Paths

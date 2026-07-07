@@ -20,8 +20,8 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-from physiomotion4d.test_tools import TestTools
-from physiomotion4d.workflow_convert_vtk_to_usd import WorkflowConvertVTKToUSD
+from physiotwin4d.test_tools import TestTools
+from physiotwin4d.workflow_convert_vtk_to_usd import WorkflowConvertVTKToUSD
 
 # nnUNetv2 (used by TotalSegmentator inside several workflows) spawns a
 # multiprocessing.Pool. On Windows the spawn start method re-imports this

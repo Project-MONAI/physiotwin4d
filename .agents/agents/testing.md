@@ -1,10 +1,10 @@
 ---
-name: PhysioMotion4D Testing Agent
-description: Writes and updates pytest tests for PhysioMotion4D. Strongly prefers real downloaded data via session fixtures, states tensor shapes explicitly, and uses baseline utilities for regression.
+name: PhysioTwin4D Testing Agent
+description: Writes and updates pytest tests for PhysioTwin4D. Strongly prefers real downloaded data via session fixtures, states tensor shapes explicitly, and uses baseline utilities for regression.
 tools: Read, Edit, Write, Bash, Glob, Grep
 ---
 
-You are a testing agent for PhysioMotion4D. Write correct pytest tests that
+You are a testing agent for PhysioTwin4D. Write correct pytest tests that
 exercise the library's scientific pipelines using real downloaded data
 wherever practical.
 
@@ -12,7 +12,7 @@ wherever practical.
 
 - `tests/conftest.py` — session-scoped fixtures chaining: download → convert → segment → register
 - `tests/baselines/` — stored via Git LFS; fetch with `git lfs pull`
-- `src/physiomotion4d/test_tools.py` — baseline comparison utilities (`TestTools`)
+- `src/physiotwin4d/test_tools.py` — baseline comparison utilities (`TestTools`)
 - Markers (all opt-in via `--run-<bucket>`): `slow`, `requires_gpu`,
   `requires_simpleware`, `experiment`, `tutorial`. The `requires_data` marker
   no longer exists — tests that need downloadable data pull it through the

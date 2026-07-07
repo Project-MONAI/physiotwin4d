@@ -4,7 +4,7 @@ Model Registration Developer Guide
 
 Model registration aligns template meshes to patient surfaces and masks. The
 supported high-level entry point is
-:class:`physiomotion4d.WorkflowFitStatisticalModelToPatient`.
+:class:`physiotwin4d.WorkflowFitStatisticalModelToPatient`.
 
 Recommended Entry Point
 =======================
@@ -14,7 +14,7 @@ Recommended Entry Point
    import itk
    import pyvista as pv
 
-   from physiomotion4d import WorkflowFitStatisticalModelToPatient
+   from physiotwin4d import WorkflowFitStatisticalModelToPatient
 
    workflow = WorkflowFitStatisticalModelToPatient(
        template_model=pv.read("template_heart.vtu"),
@@ -29,10 +29,10 @@ Lower-Level Classes
 
 The workflow composes these lower-level registration classes:
 
-* :class:`physiomotion4d.RegisterModelsICP`
-* :class:`physiomotion4d.RegisterModelsICPITK`
-* :class:`physiomotion4d.RegisterModelsDistanceMaps`
-* :class:`physiomotion4d.RegisterModelsPCA`
+* :class:`physiotwin4d.RegisterModelsICP`
+* :class:`physiotwin4d.RegisterModelsICPITK`
+* :class:`physiotwin4d.RegisterModelsDistanceMaps`
+* :class:`physiotwin4d.RegisterModelsPCA`
 
 Use these directly only when developing or testing a specific registration
 stage. Their constructors and return dictionaries are documented in

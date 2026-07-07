@@ -2,11 +2,11 @@
 Segmentation Base Class
 ========================
 
-.. module:: physiomotion4d.segment_anatomy_base
-.. currentmodule:: physiomotion4d
+.. module:: physiotwin4d.segment_anatomy_base
+.. currentmodule:: physiotwin4d
 
 ``SegmentAnatomyBase`` defines the shared chest-anatomy segmentation contract
-used by PhysioMotion4D segmentation implementations. It owns an
+used by PhysioTwin4D segmentation implementations. It owns an
 :class:`AnatomyTaxonomy` instance that subclasses populate to declare which
 anatomy groups (and which organ labels within each group) they produce.
 
@@ -27,7 +27,7 @@ Concrete segmenters accept an ITK image and return a dictionary of ITK images:
 
    import itk
 
-   from physiomotion4d import SegmentChestTotalSegmentator
+   from physiotwin4d import SegmentChestTotalSegmentator
 
    image = itk.imread("chest_ct.nrrd")
    segmenter = SegmentChestTotalSegmentator()
@@ -91,7 +91,7 @@ Extending Segmentation
 
 New runtime segmentation classes should:
 
-1. Inherit from :class:`SegmentAnatomyBase` (or another :class:`PhysioMotion4DBase`
+1. Inherit from :class:`SegmentAnatomyBase` (or another :class:`PhysioTwin4DBase`
    subclass if no anatomy taxonomy is needed).
 2. Populate ``self.taxonomy`` with ``add_organ`` calls in ``__init__``.
 3. Call ``self._finalize_other_group()`` once all groups have been registered.

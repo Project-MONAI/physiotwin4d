@@ -2,7 +2,7 @@
 convert_image_to_usd (CLI)
 ==========================
 
-.. automodule:: physiomotion4d.cli.convert_image_to_usd
+.. automodule:: physiotwin4d.cli.convert_image_to_usd
    :members:
    :undoc-members:
    :show-inheritance:

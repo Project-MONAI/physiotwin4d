@@ -34,7 +34,7 @@ at inference time.
 Bring Your Own Data
 -------------------
 This is a bring-your-own-data tutorial: the path constants below point at a local
-``D:/PhysioMotion4D/`` layout produced by Tutorial 8, not at the repository
+``D:/PhysioTwin4D/`` layout produced by Tutorial 8, not at the repository
 ``data/`` directory.  Edit them to match your own data location.
 
 Data Required
@@ -46,7 +46,7 @@ Extra Install Required
 ----------------------
 PhysicsNeMo and PyTorch Geometric must be installed::
 
-    pip install "physiomotion4d[physicsnemo]"
+    pip install "physiotwin4d[physicsnemo]"
     pip install torch-geometric
 
 ``torch_scatter`` (a PyTorch Geometric backend) must be built from source when using a
@@ -71,7 +71,7 @@ import numpy as np
 import pyvista as pv
 import torch
 
-from physiomotion4d.test_tools import TestTools
+from physiotwin4d.test_tools import TestTools
 
 try:
     import torch_geometric.utils as pyg_utils
@@ -81,7 +81,7 @@ try:
 except ImportError as exc:
     raise ImportError(
         "Tutorial 9a requires PhysicsNeMo and PyTorch Geometric. Install with:\n"
-        '  pip install "physiomotion4d[physicsnemo]"\n'
+        '  pip install "physiotwin4d[physicsnemo]"\n'
         "  pip install torch-geometric"
     ) from exc
 
@@ -89,8 +89,8 @@ except ImportError as exc:
 if __name__ == "__main__":
     # %%
     TUTORIALS_DIR = Path(__file__).resolve().parent
-    FITTED_MESHES_DIR = Path("D:/PhysioMotion4D/duke_data/fitted_kcl_meshes")
-    PCA_MEAN_VTU = Path("D:/PhysioMotion4D/kcl-heart-pca/pca-vol-kcl/pca_mean.vtu")
+    FITTED_MESHES_DIR = Path("D:/PhysioTwin4D/duke_data/fitted_kcl_meshes")
+    PCA_MEAN_VTU = Path("D:/PhysioTwin4D/kcl-heart-pca/pca-vol-kcl/pca_mean.vtu")
     EPOCHS = 1500
     OUTPUT_DIR = TUTORIALS_DIR / "output_mgn"
     RMSE_LOG_INTERVAL = 100

@@ -1,8 +1,8 @@
 ---
-description: Inspect a PhysioMotion4D implementation and its existing tests, propose a real-data-driven test plan with baseline comparisons, then create or update pytest tests. Explains how to run them.
+description: Inspect a PhysioTwin4D implementation and its existing tests, propose a real-data-driven test plan with baseline comparisons, then create or update pytest tests. Explains how to run them.
 ---
 
-Write or update tests for the following in PhysioMotion4D:
+Write or update tests for the following in PhysioTwin4D:
 
 $ARGUMENTS
 

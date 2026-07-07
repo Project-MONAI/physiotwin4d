@@ -2,8 +2,8 @@
 Registration Base Class
 ====================================
 
-.. module:: physiomotion4d.register_images_base
-.. currentmodule:: physiomotion4d
+.. module:: physiotwin4d.register_images_base
+.. currentmodule:: physiotwin4d
 
 Abstract base class for all image registration methods.
 

@@ -4,11 +4,11 @@ Tutorials
 
 .. raw:: html
 
-   <section class="pm4d-hero">
-     <div class="pm4d-hero__brand">
+   <section class="pt4d-hero">
+     <div class="pt4d-hero__brand">
        <img src="_static/nvidia-logo.svg" alt="NVIDIA logo">
      </div>
-     <p class="pm4d-kicker">PhysioMotion4D tutorials</p>
+     <p class="pt4d-kicker">PhysioTwin4D tutorials</p>
      <h1>Build animated medical USD workflows for NVIDIA Omniverse</h1>
      <p>
        Nine focused tutorials walk through CT segmentation, registration,
@@ -18,60 +18,60 @@ Tutorials
      </p>
    </section>
 
-   <section class="pm4d-card-grid" aria-label="Tutorial cards">
-     <a class="pm4d-card" href="#tutorial-1-heart-gated-ct-to-animated-usd">
-       <span class="pm4d-card__number">01</span>
+   <section class="pt4d-card-grid" aria-label="Tutorial cards">
+     <a class="pt4d-card" href="#tutorial-1-heart-gated-ct-to-animated-usd">
+       <span class="pt4d-card__number">01</span>
        <h2>Heart-Gated CT to Animated USD</h2>
        <p>Convert cardiac 4D CT frames into registered contours and an animated OpenUSD model.</p>
-       <span class="pm4d-card__meta">Slicer-Heart-CT</span>
+       <span class="pt4d-card__meta">Slicer-Heart-CT</span>
      </a>
-     <a class="pm4d-card" href="#tutorial-2-ct-segmentation-to-vtk-surfaces">
-       <span class="pm4d-card__number">02</span>
+     <a class="pt4d-card" href="#tutorial-2-ct-segmentation-to-vtk-surfaces">
+       <span class="pt4d-card__number">02</span>
        <h2>CT Segmentation to VTK Surfaces</h2>
        <p>Segment one CT phase and export patient anatomy as VTK PolyData surfaces.</p>
-       <span class="pm4d-card__meta">Slicer-Heart-CT</span>
+       <span class="pt4d-card__meta">Slicer-Heart-CT</span>
      </a>
-     <a class="pm4d-card" href="#tutorial-3-create-a-pca-shape-model">
-       <span class="pm4d-card__number">03</span>
+     <a class="pt4d-card" href="#tutorial-3-create-a-pca-shape-model">
+       <span class="pt4d-card__number">03</span>
        <h2>Create a PCA Shape Model</h2>
        <p>Build a statistical shape model from aligned cardiac meshes.</p>
-       <span class="pm4d-card__meta">KCL-Heart-Model</span>
+       <span class="pt4d-card__meta">KCL-Heart-Model</span>
      </a>
-     <a class="pm4d-card" href="#tutorial-4-fit-statistical-model-to-patient">
-       <span class="pm4d-card__number">04</span>
+     <a class="pt4d-card" href="#tutorial-4-fit-statistical-model-to-patient">
+       <span class="pt4d-card__number">04</span>
        <h2>Fit Statistical Model to Patient</h2>
        <p>Fit a PCA heart model to patient-specific anatomy for model-based reconstruction.</p>
-       <span class="pm4d-card__meta">Tutorial 3 output</span>
+       <span class="pt4d-card__meta">Tutorial 3 output</span>
      </a>
-     <a class="pm4d-card" href="#tutorial-5-vtk-surface-series-to-animated-usd">
-       <span class="pm4d-card__number">05</span>
+     <a class="pt4d-card" href="#tutorial-5-vtk-surface-series-to-animated-usd">
+       <span class="pt4d-card__number">05</span>
        <h2>VTK Surface Series to Animated USD</h2>
        <p>Convert VTK meshes into a time-sampled USD scene for Omniverse playback.</p>
-       <span class="pm4d-card__meta">Tutorial 2 output</span>
+       <span class="pt4d-card__meta">Tutorial 2 output</span>
      </a>
-     <a class="pm4d-card" href="#tutorial-6-reconstruct-high-resolution-4d-ct">
-       <span class="pm4d-card__number">06</span>
+     <a class="pt4d-card" href="#tutorial-6-reconstruct-high-resolution-4d-ct">
+       <span class="pt4d-card__number">06</span>
        <h2>Reconstruct High-Resolution 4D CT</h2>
        <p>Register respiratory CT phases and reconstruct a higher-resolution 4D volume series.</p>
-       <span class="pm4d-card__meta">DirLab-4DCT</span>
+       <span class="pt4d-card__meta">DirLab-4DCT</span>
      </a>
-     <a class="pm4d-card" href="#tutorial-8-fit-the-cardiac-ssm-and-propagate-through-gated-phases">
-       <span class="pm4d-card__number">08</span>
+     <a class="pt4d-card" href="#tutorial-8-fit-the-cardiac-ssm-and-propagate-through-gated-phases">
+       <span class="pt4d-card__number">08</span>
        <h2>Fit the Cardiac SSM and Propagate Through Gated Phases</h2>
        <p>Fit a PCA heart model to the reference phase and propagate it to every gated phase with ICON registration.</p>
-       <span class="pm4d-card__meta">Bring your own cardiac data</span>
+       <span class="pt4d-card__meta">Bring your own cardiac data</span>
      </a>
-     <a class="pm4d-card" href="#tutorial-9a-9b-train-a-physicsnemo-cardiac-stage-model">
-       <span class="pm4d-card__number">09</span>
+     <a class="pt4d-card" href="#tutorial-9a-9b-train-a-physicsnemo-cardiac-stage-model">
+       <span class="pt4d-card__number">09</span>
        <h2>Train a PhysicsNeMo Cardiac Stage Model</h2>
        <p>Train a PhysicsNeMo MeshGraphNet (9a) or MLP (9b) to predict cardiac meshes at requested stages.</p>
-       <span class="pm4d-card__meta">Tutorial 8 output</span>
+       <span class="pt4d-card__meta">Tutorial 8 output</span>
      </a>
-     <a class="pm4d-card" href="#tutorial-10a-10b-predict-and-evaluate-cardiac-surfaces">
-       <span class="pm4d-card__number">10</span>
+     <a class="pt4d-card" href="#tutorial-10a-10b-predict-and-evaluate-cardiac-surfaces">
+       <span class="pt4d-card__number">10</span>
        <h2>Predict and Evaluate Cardiac Surfaces</h2>
        <p>Load a Tutorial 9 checkpoint and predict cardiac surfaces at gated phases or caller-specified stages.</p>
-       <span class="pm4d-card__meta">Tutorial 9a / 9b output</span>
+       <span class="pt4d-card__meta">Tutorial 9a / 9b output</span>
      </a>
    </section>
 
@@ -81,7 +81,7 @@ Recommended Run Order
 Tutorials are ``# %%`` percent-cell Python scripts. Each script defines its
 data and output paths near the top, using repository ``data/`` and ``output/``
 directories by default. Edit those constants for tutorial exploration, or use
-the installed ``physiomotion4d-*`` CLI commands when you need command-line path
+the installed ``physiotwin4d-*`` CLI commands when you need command-line path
 arguments.
 
 1. Run Tutorials 1 and 2 after preparing Slicer-Heart-CT data.
@@ -223,7 +223,7 @@ Outputs
    Tutorials 8-10 form the cardiac mesh stage-prediction pipeline and are
    **bring-your-own-data**: unlike Tutorials 1-6 they do not use the repository
    ``data/`` directory or a downloadable sample. Their path constants point at a
-   local ``D:/PhysioMotion4D/`` cardiac layout (gated CT, labelmaps, the KCL
+   local ``D:/PhysioTwin4D/`` cardiac layout (gated CT, labelmaps, the KCL
    volume PCA model, and ICON weights); edit those constants to match your own
    data. The former DirLab lung-lobe PCA tutorial (number 7) has been removed;
    numbering continues at 8.
@@ -240,7 +240,7 @@ Workflow
 
 Dataset
    Bring your own cardiac gated CT, labelmaps, KCL volume PCA model, and ICON
-   weights under ``D:/PhysioMotion4D/``.
+   weights under ``D:/PhysioTwin4D/``.
 
 Run
    .. code-block:: bash
@@ -267,7 +267,7 @@ Dataset
 
 Extra install
    PhysicsNeMo is an optional dependency. Install with
-   ``pip install "physiomotion4d[physicsnemo]"`` (requires Python >= 3.11). The
+   ``pip install "physiotwin4d[physicsnemo]"`` (requires Python >= 3.11). The
    MeshGraphNet variant also requires ``torch-geometric``.
 
 Run

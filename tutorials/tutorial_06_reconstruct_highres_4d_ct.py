@@ -23,9 +23,9 @@ from pathlib import Path
 
 import itk
 
-from physiomotion4d.register_images_greedy_icon import RegisterImagesGreedyICON
-from physiomotion4d.test_tools import TestTools
-from physiomotion4d.workflow_reconstruct_highres_4d_ct import (
+from physiotwin4d.register_images_greedy_icon import RegisterImagesGreedyICON
+from physiotwin4d.test_tools import TestTools
+from physiotwin4d.workflow_reconstruct_highres_4d_ct import (
     WorkflowReconstructHighres4DCT,
 )
 

@@ -75,9 +75,9 @@ from pathlib import Path
 
 import itk
 
-from physiomotion4d.register_images_icon import RegisterImagesICON
-from physiomotion4d.test_tools import TestTools
-from physiomotion4d.workflow_convert_image_to_usd import (
+from physiotwin4d.register_images_icon import RegisterImagesICON
+from physiotwin4d.test_tools import TestTools
+from physiotwin4d.workflow_convert_image_to_usd import (
     WorkflowConvertImageToUSD,
 )
 

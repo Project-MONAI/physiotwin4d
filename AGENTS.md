@@ -2,7 +2,7 @@
 
 Role-based guidance for AI agents working in this repository.
 
-PhysioMotion4D converts 4D CT scans into animated USD models for NVIDIA
+PhysioTwin4D converts 4D CT scans into animated USD models for NVIDIA
 Omniverse. It is an **early-alpha** scientific Python library. Clarity beats
 premature optimization. Breaking changes are acceptable. Backward compatibility
 is not a goal.
@@ -87,7 +87,7 @@ python -m pytest tests/ -v --run-all
 python -m pytest tests/ -v --run-gpu --run-slow
 
 # Coverage
-python -m pytest tests/ --cov=src/physiomotion4d --cov-report=html
+python -m pytest tests/ --cov=src/physiotwin4d --cov-report=html
 
 # Create missing baselines
 python -m pytest tests/ --create-baselines
@@ -102,7 +102,7 @@ Version bumping: `bumpver update --patch`, `--minor`, or `--major`.
   do not assume Python 3.11 is missing. The Codex sandbox can break the
   launcher or venv path.
 - Use the temporary validation environment instead:
-  `C:\Users\saylward\AppData\Local\Temp\pm4d-uv-env\Scripts\python.exe`.
+  `C:\Users\saylward\AppData\Local\Temp\pt4d-uv-env\Scripts\python.exe`.
   It has been verified as Python 3.11.9 with `ruff` available.
 - Run that temporary venv outside the sandbox when needed. Treat this as an
   environment/sandbox workaround, not a dependency or installation problem.
@@ -111,9 +111,9 @@ Version bumping: `bumpver update --patch`, `--minor`, or `--major`.
 
 - Read the relevant source files before proposing changes.
 - Runtime classes for workflows, segmentation, registration, and USD tools
-  inherit from `PhysioMotion4DBase`; new runtime classes must too. Standalone
+  inherit from `PhysioTwin4DBase`; new runtime classes must too. Standalone
   utility scripts and data/container/helper classes do not.
-- In classes that inherit from `PhysioMotion4DBase`, use `self.log_info()` and
+- In classes that inherit from `PhysioTwin4DBase`, use `self.log_info()` and
   `self.log_debug()`, never `print()`. Standalone scripts may use `print()`.
 - No emojis in `.py` files; avoid them in docs too. Windows cp1252 encoding
   has broken this project before.
@@ -182,7 +182,7 @@ Version bumping: `bumpver update --patch`, `--minor`, or `--major`.
 - State image shape and axis order in every test docstring, for example:
   `shape (X, Y, Z, T) = (64, 64, 32, 1), LPS world frame`.
 - When a test produces an image or surface, compare against a baseline using
-  `src/physiomotion4d/test_tools.py` utilities such as `TestTools`.
+  `src/physiotwin4d/test_tools.py` utilities such as `TestTools`.
 - Store baselines under `tests/baselines/`, which is tracked by Git LFS. Run
   `git lfs pull` after cloning.
 - Run with `--create-baselines` to materialize missing baselines on first use.

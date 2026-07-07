@@ -5,7 +5,7 @@ import os
 
 import pyvista as pv
 
-from physiomotion4d import ConvertVTKToUSD
+from physiotwin4d import ConvertVTKToUSD
 
 # nnUNetv2 (used by TotalSegmentator) spawns a multiprocessing.Pool. On Windows
 # the spawn start method re-imports this script in each child; without the
@@ -20,8 +20,8 @@ if __name__ == "__main__":
         # Segment chest from CT images to generate vtk files
         import itk
 
-        from physiomotion4d.contour_tools import ContourTools
-        from physiomotion4d.segment_chest_total_segmentator_with_contrast import (
+        from physiotwin4d.contour_tools import ContourTools
+        from physiotwin4d.segment_chest_total_segmentator_with_contrast import (
             SegmentChestTotalSegmentatorWithContrast,
         )
 

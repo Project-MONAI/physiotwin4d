@@ -11,7 +11,7 @@ from typing import Any, Optional
 import pytest
 from pxr import Usd, UsdGeom
 
-from physiomotion4d import USDTools
+from physiotwin4d import USDTools
 
 
 def get_time_metadata(filepath: str) -> dict[str, Any]:

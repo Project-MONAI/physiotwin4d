@@ -2,7 +2,7 @@
 download_data (CLI)
 ===================
 
-.. automodule:: physiomotion4d.cli.download_data
+.. automodule:: physiotwin4d.cli.download_data
    :members:
    :undoc-members:
    :show-inheritance:

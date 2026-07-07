@@ -13,7 +13,7 @@ name: Nightly Health
 # documentation site published by docs.yml.  Use the workflow status badge
 # for a live pass/fail indicator in README:
 #
-#   [![Nightly Health](https://github.com/Project-MONAI/physiomotion4d/actions/workflows/nightly-health.yml/badge.svg)](https://github.com/Project-MONAI/physiomotion4d/actions/workflows/nightly-health.yml)
+#   [![Nightly Health](https://github.com/Project-MONAI/physiotwin4d/actions/workflows/nightly-health.yml/badge.svg)](https://github.com/Project-MONAI/physiotwin4d/actions/workflows/nightly-health.yml)
 
 on:
   schedule:
@@ -58,8 +58,8 @@ jobs:
         # Python 3.11 is required because the [physicsnemo] extra pulls in
         # nvidia-physicsnemo, which requires Python >= 3.11.
         run: |
-          & py -m venv "$env:RUNNER_TEMP\physiomotion4d-venv"
-          echo "$env:RUNNER_TEMP\physiomotion4d-venv\Scripts" >> $env:GITHUB_PATH
+          & py -m venv "$env:RUNNER_TEMP\physiotwin4d-venv"
+          echo "$env:RUNNER_TEMP\physiotwin4d-venv\Scripts" >> $env:GITHUB_PATH
 
       - name: Cache uv packages
         uses: actions/cache@v4
@@ -113,7 +113,7 @@ jobs:
         continue-on-error: true
         run: |
           pytest tests/ -v --run-all `
-            --cov=physiomotion4d `
+            --cov=physiotwin4d `
             --cov-report=xml `
             --cov-report=json `
             --junitxml=test-results.xml

@@ -5,7 +5,7 @@ import os
 import itk
 import numpy as np
 
-from physiomotion4d import RegisterImagesGreedy, TestTools, TransformTools
+from physiotwin4d import RegisterImagesGreedy, TestTools, TransformTools
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 

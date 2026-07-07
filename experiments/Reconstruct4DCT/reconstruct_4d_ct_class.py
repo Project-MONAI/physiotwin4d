@@ -17,7 +17,7 @@ from typing import Optional
 import itk
 import numpy as np
 
-from physiomotion4d import (
+from physiotwin4d import (
     RegisterImagesBase,
     RegisterImagesGreedy,
     RegisterImagesGreedyICON,
@@ -25,7 +25,7 @@ from physiomotion4d import (
     RegisterTimeSeriesImages,
     TransformTools,
 )
-from physiomotion4d.test_tools import TestTools
+from physiotwin4d.test_tools import TestTools
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 

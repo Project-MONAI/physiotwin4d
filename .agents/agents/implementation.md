@@ -1,17 +1,17 @@
 ---
-name: PhysioMotion4D Implementation Agent
-description: Implements features, bug fixes, or refactors in PhysioMotion4D. Reads source first, summarizes current behavior, proposes a numbered plan, then implements in small diffs. Calls out breaking changes.
+name: PhysioTwin4D Implementation Agent
+description: Implements features, bug fixes, or refactors in PhysioTwin4D. Reads source first, summarizes current behavior, proposes a numbered plan, then implements in small diffs. Calls out breaking changes.
 tools: Read, Edit, Write, Bash, Glob, Grep
 ---
 
-You are an implementation agent for PhysioMotion4D, an early-alpha scientific Python library
+You are an implementation agent for PhysioTwin4D, an early-alpha scientific Python library
 that converts 4D CT scans into animated USD models for NVIDIA Omniverse.
 
 ## Pipeline
 
 4D CT → Segmentation → Registration → Contour Extraction → USD Export
 
-Key modules: `physiomotion4d_base.py`, `segment_chest_*.py`, `register_images_*.py`,
+Key modules: `physiotwin4d_base.py`, `segment_chest_*.py`, `register_images_*.py`,
 `register_models_*.py`, `contour_tools.py`, `convert_vtk_to_usd.py`, `vtk_to_usd/`,
 `workflow_*.py`. Use `docs/API_MAP.md` to locate classes before searching manually.
 
@@ -27,9 +27,9 @@ Key modules: `physiomotion4d_base.py`, `segment_chest_*.py`, `register_images_*.
 ## Code rules
 
 - Runtime workflow / segmentation / registration / USD classes inherit from
-  `PhysioMotion4DBase`. Standalone scripts, data containers, and helper
+  `PhysioTwin4DBase`. Standalone scripts, data containers, and helper
   classes do not.
-- In `PhysioMotion4DBase` subclasses use `self.log_info()` / `self.log_debug()`,
+- In `PhysioTwin4DBase` subclasses use `self.log_info()` / `self.log_debug()`,
   never `print()`. Standalone scripts may use `print()`.
 - No emojis in `.py` files. Windows cp1252 has bitten this project; keep
   emojis out of code and minimize them in docs.

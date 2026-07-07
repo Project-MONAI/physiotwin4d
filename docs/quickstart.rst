@@ -2,12 +2,12 @@
 Quick Start
 ===========
 
-This guide will help you get started with PhysioMotion4D quickly.
+This guide will help you get started with PhysioTwin4D quickly.
 
 .. warning::
 
-   **Not validated for clinical use.** PhysioMotion4D
-   {{ pm4d_project_version }} beta is a research and visualization toolkit, not
+   **Not validated for clinical use.** PhysioTwin4D
+   {{ pt4d_project_version }} beta is a research and visualization toolkit, not
    a medical device. Do not use it for diagnosis, treatment planning, or
    clinical decision-making.
 
@@ -34,7 +34,7 @@ After preparing the Slicer-Heart-CT data, run the first two tutorials:
    python tutorials/tutorial_02_ct_to_vtk.py
 
 Tutorial paths are defined near the top of each script. To use different paths,
-edit the script constants or use the installed ``physiomotion4d-*`` CLI commands.
+edit the script constants or use the installed ``physiotwin4d-*`` CLI commands.
 See ``tutorials/README.md`` for dataset download instructions and the
 recommended run order.
 
@@ -57,7 +57,7 @@ Prerequisites
 
 Before starting, ensure you have:
 
-* PhysioMotion4D installed (see :doc:`installation`)
+* PhysioTwin4D installed (see :doc:`installation`)
 * NVIDIA GPU with CUDA 13 - recommended for production performance; see :doc:`installation` for the ``[cuda13]`` extra. A CPU-only PyPI install works for evaluation but is slow.
 * 4D cardiac CT data or access to sample datasets
 
@@ -73,9 +73,9 @@ CUDA-capable GPU are required for practical runtime.
 
 .. code-block:: bash
 
-   python -c "from physiomotion4d import DataDownloadTools; DataDownloadTools.DownloadSlicerHeartCTData('data/test')"
+   python -c "from physiotwin4d import DataDownloadTools; DataDownloadTools.DownloadSlicerHeartCTData('data/test')"
 
-   physiomotion4d-convert-image-to-usd data/test/TruncalValve_4DCT.seq.nrrd \
+   physiotwin4d-convert-image-to-usd data/test/TruncalValve_4DCT.seq.nrrd \
        --registration-method ICON \
        --output-dir output/quickstart \
        --project-name slicer_heart_quickstart
@@ -88,13 +88,13 @@ The fastest way to process cardiac CT data is using the command-line interface:
 .. code-block:: bash
 
    # Process a single 4D cardiac CT file
-   physiomotion4d-convert-image-to-usd cardiac_4d.nrrd --contrast --output-dir ./results
+   physiotwin4d-convert-image-to-usd cardiac_4d.nrrd --contrast --output-dir ./results
 
    # Process multiple time frames
-   physiomotion4d-convert-image-to-usd frame_*.nrrd --contrast --project-name patient_001
+   physiotwin4d-convert-image-to-usd frame_*.nrrd --contrast --project-name patient_001
 
    # With custom settings
-   physiomotion4d-convert-image-to-usd cardiac.nrrd \
+   physiotwin4d-convert-image-to-usd cardiac.nrrd \
        --contrast \
        --reference-image ref.mha \
        --registration-iterations 50 \
@@ -109,7 +109,7 @@ For more control, use the Python API:
 
 .. code-block:: python
 
-   from physiomotion4d import RegisterImagesICON, WorkflowConvertImageToUSD
+   from physiotwin4d import RegisterImagesICON, WorkflowConvertImageToUSD
 
 **Step 2: Initialize with your data**
 
@@ -146,7 +146,7 @@ For more control over individual steps:
 
 .. code-block:: python
 
-   from physiomotion4d import RegisterImagesICON, WorkflowConvertImageToUSD
+   from physiotwin4d import RegisterImagesICON, WorkflowConvertImageToUSD
 
    # Initialize workflow
    workflow = WorkflowConvertImageToUSD(
@@ -168,7 +168,7 @@ If you only need segmentation:
 
 .. code-block:: python
 
-   from physiomotion4d import SegmentChestTotalSegmentatorWithContrast
+   from physiotwin4d import SegmentChestTotalSegmentatorWithContrast
    import itk
 
    # Initialize segmenter (use SegmentChestTotalSegmentator for non-contrast studies)
@@ -195,7 +195,7 @@ For standalone registration:
 
 .. code-block:: python
 
-   from physiomotion4d.register_images_icon import RegisterImagesICON
+   from physiotwin4d.register_images_icon import RegisterImagesICON
    import itk
 
    # Initialize registration
@@ -223,7 +223,7 @@ Convert VTK time series to USD:
 
 .. code-block:: python
 
-   from physiomotion4d import ConvertVTKToUSD
+   from physiotwin4d import ConvertVTKToUSD
 
    vtk_files = [f"heart_frame_{i:03d}.vtp" for i in range(10)]
    time_codes = [float(i) for i in range(len(vtk_files))]
@@ -242,7 +242,7 @@ Download Sample Cardiac CT Data
 
 .. code-block:: python
 
-   from physiomotion4d import DataDownloadTools
+   from physiotwin4d import DataDownloadTools
 
    data_file = DataDownloadTools.DownloadSlicerHeartCTData("sample_data")
    assert DataDownloadTools.VerifySlicerHeartCTData("sample_data")
@@ -251,7 +251,7 @@ DirLab-4DCT data is manual-only; see ``data/README.md`` before running the
 high-resolution 4D CT reconstruction tutorial. Tutorials 8-10 are
 bring-your-own-data cardiac tutorials; see :doc:`tutorials` for their dataset
 layout. Tutorials 9a/9b/10a/10b additionally require the optional
-``physicsnemo`` extra (``pip install "physiomotion4d[physicsnemo]"``);
+``physicsnemo`` extra (``pip install "physiotwin4d[physicsnemo]"``);
 PhysicsNeMo itself requires Python >= 3.11.
 
 Visualizing Results
@@ -302,9 +302,9 @@ Now that you've completed your first workflow:
    **About CLI Commands and Experiments:**
 
    * **CLI Commands** ⭐ **PRIMARY RESOURCE** - Production-ready workflows with proper class usage
-     (``physiomotion4d-convert-image-to-usd``, ``physiomotion4d-create-statistical-model``,
-     ``physiomotion4d-fit-statistical-model-to-patient``).
-     See ``src/physiomotion4d/cli/`` for implementation details.
+     (``physiotwin4d-convert-image-to-usd``, ``physiotwin4d-create-statistical-model``,
+     ``physiotwin4d-fit-statistical-model-to-patient``).
+     See ``src/physiotwin4d/cli/`` for implementation details.
 
    * **experiments/** - Research prototypes and design explorations. These demonstrate conceptual
      approaches for adapting workflows to new anatomical regions and digital twin applications,

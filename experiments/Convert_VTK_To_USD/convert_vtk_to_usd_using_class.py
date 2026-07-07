@@ -30,7 +30,7 @@ import numpy as np
 import pyvista as pv
 from pxr import Usd, UsdGeom, UsdShade
 
-from physiomotion4d import ContourTools, ConvertVTKToUSD
+from physiotwin4d import ContourTools, ConvertVTKToUSD
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")

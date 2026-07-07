@@ -2,7 +2,7 @@
 convert_image_to_vtk (CLI)
 ==========================
 
-.. automodule:: physiomotion4d.cli.convert_image_to_vtk
+.. automodule:: physiotwin4d.cli.convert_image_to_vtk
    :members:
    :undoc-members:
    :show-inheritance:

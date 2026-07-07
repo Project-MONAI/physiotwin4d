@@ -9,12 +9,12 @@ import itk
 import numpy as np
 import pyvista as pv
 
-from physiomotion4d.segment_heart_simpleware import SegmentHeartSimpleware
-from physiomotion4d.segment_heart_simpleware_trimmed_branches import (
+from physiotwin4d.segment_heart_simpleware import SegmentHeartSimpleware
+from physiotwin4d.segment_heart_simpleware_trimmed_branches import (
     SegmentHeartSimplewareTrimmedBranches,
 )
-from physiomotion4d.workflow_convert_image_to_vtk import WorkflowConvertImageToVTK
-from physiomotion4d.workflow_fit_statistical_model_to_patient import (
+from physiotwin4d.workflow_convert_image_to_vtk import WorkflowConvertImageToVTK
+from physiotwin4d.workflow_fit_statistical_model_to_patient import (
     WorkflowFitStatisticalModelToPatient,
 )
 
@@ -105,7 +105,7 @@ def test_fit_workflow_routes_default_to_image_to_vtk_with_trimmed_branches(
             return {"meshes": {"heart": heart_mesh}}
 
     monkeypatch.setattr(
-        "physiomotion4d.workflow_fit_statistical_model_to_patient."
+        "physiotwin4d.workflow_fit_statistical_model_to_patient."
         "WorkflowConvertImageToVTK",
         _FakeConvertImageToVTK,
     )

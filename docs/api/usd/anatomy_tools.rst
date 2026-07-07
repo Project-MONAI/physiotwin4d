@@ -2,14 +2,14 @@
 USD Anatomy Tools
 ====================================
 
-.. currentmodule:: physiomotion4d
+.. currentmodule:: physiotwin4d
 
 Specialized tools for anatomical structure handling in USD.
 
 Module Reference
 ================
 
-.. automodule:: physiomotion4d.usd_anatomy_tools
+.. automodule:: physiotwin4d.usd_anatomy_tools
    :members:
    :undoc-members:
 

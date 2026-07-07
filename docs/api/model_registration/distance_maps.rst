@@ -2,8 +2,8 @@
 Distance Map Registration
 ====================================
 
-.. module:: physiomotion4d.register_models_distance_maps
-.. currentmodule:: physiomotion4d
+.. module:: physiotwin4d.register_models_distance_maps
+.. currentmodule:: physiotwin4d
 
 Register models using distance field optimization.
 

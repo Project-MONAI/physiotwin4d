@@ -1,8 +1,8 @@
 ---
-description: Inspect changed PhysioMotion4D code and existing docstrings, update docstrings and inline comments with accurate shape/axis information, and regenerate docs/API_MAP.md if public APIs changed.
+description: Inspect changed PhysioTwin4D code and existing docstrings, update docstrings and inline comments with accurate shape/axis information, and regenerate docs/API_MAP.md if public APIs changed.
 ---
 
-Update documentation for the following in PhysioMotion4D:
+Update documentation for the following in PhysioTwin4D:
 
 $ARGUMENTS
 

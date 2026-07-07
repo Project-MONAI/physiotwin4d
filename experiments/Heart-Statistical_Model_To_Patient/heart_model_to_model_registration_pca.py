@@ -25,15 +25,15 @@ import itk
 import numpy as np
 import pyvista as pv
 
-# Import from PhysioMotion4D package
-from physiomotion4d import (
+# Import from PhysioTwin4D package
+from physiotwin4d import (
     ContourTools,
     RegisterModelsICP,
     RegisterModelsPCA,
     TransformTools,
 )
-from physiomotion4d.image_tools import ImageTools
-from physiomotion4d.test_tools import TestTools
+from physiotwin4d.image_tools import ImageTools
+from physiotwin4d.test_tools import TestTools
 
 # %% [markdown]
 # ## Define File Paths

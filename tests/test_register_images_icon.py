@@ -14,8 +14,8 @@ import itk
 import numpy as np
 import pytest
 
-from physiomotion4d.register_images_icon import RegisterImagesICON
-from physiomotion4d.transform_tools import TransformTools
+from physiotwin4d.register_images_icon import RegisterImagesICON
+from physiotwin4d.transform_tools import TransformTools
 
 
 @pytest.mark.requires_gpu

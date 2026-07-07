@@ -7,8 +7,8 @@ from typing import Union
 
 import pytest
 
-from physiomotion4d.cli import download_data
-from physiomotion4d.data_download_tools import DataDownloadTools
+from physiotwin4d.cli import download_data
+from physiotwin4d.data_download_tools import DataDownloadTools
 
 
 def test_download_data_cli_uses_default_dataset_and_directory(

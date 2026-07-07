@@ -10,7 +10,7 @@ as a tutorial test via the ``run_tutorial`` entry point (which uses the
 ``DEFAULT_SUBJECT`` / ``DEFAULT_EPOCH`` constants below).
 
 This is a bring-your-own-data tutorial: the path constants below point at a local
-``D:/PhysioMotion4D/`` layout and the Tutorial 9a run directory, not at the
+``D:/PhysioTwin4D/`` layout and the Tutorial 9a run directory, not at the
 repository ``data/`` directory.
 
 Usage (command line)
@@ -55,14 +55,14 @@ try:
 except ImportError as exc:
     raise ImportError(
         "Requires PhysicsNeMo and PyTorch Geometric. Install with:\n"
-        '  pip install "physiomotion4d[physicsnemo]"\n'
+        '  pip install "physiotwin4d[physicsnemo]"\n'
         "  pip install torch-geometric"
     ) from exc
 
 logger = logging.getLogger("tutorial_10a_cardiac_eval_physicsnemo_mgn")
 
 TUTORIALS_DIR = Path(__file__).resolve().parent
-FITTED_MESHES_DIR = Path("D:/PhysioMotion4D/duke_data/fitted_kcl_meshes")
+FITTED_MESHES_DIR = Path("D:/PhysioTwin4D/duke_data/fitted_kcl_meshes")
 # Tutorial 9a run directory to evaluate (matches that trainer's OUTPUT_DIR).
 OUTPUT_DIR = TUTORIALS_DIR / "output_mgn"
 

@@ -1,0 +1,670 @@
+"""
+Tools for creating and manipulating contours.
+"""
+
+from __future__ import annotations
+
+import logging
+import os
+from typing import Optional, cast
+
+import itk
+import numpy as np
+import pyvista as pv
+import trimesh
+
+from .image_tools import ImageTools
+from .physiotwin4d_base import PhysioTwin4DBase
+from .transform_tools import TransformTools
+
+
+class ContourTools(PhysioTwin4DBase):
+    """
+    Tools for creating and manipulating contours.
+    """
+
+    def __init__(self, log_level: int | str = logging.INFO):
+        """Initialize ContourTools.
+
+        Args:
+            log_level: Logging level (default: logging.INFO)
+        """
+        super().__init__(class_name=self.__class__.__name__, log_level=log_level)
+
+    def extract_contours(
+        self,
+        labelmap_image: itk.image,
+    ) -> pv.PolyData:
+        """
+        Make contours from a labelmap image.
+
+        Args:
+            labelmap_image (itk.image): The labelmap image to create contours from
+
+        Returns:
+            pv.PolyData: The contours as a PyVista PolyData object
+        """
+        labels = pv.wrap(itk.vtk_image_from_image(labelmap_image))
+        contours = cast(
+            pv.PolyData,
+            labels.contour_labels(
+                boundary_style="all",
+                pad_background=False,
+                smoothing=True,
+                smoothing_iterations=10,
+                output_mesh_type="triangles",
+            ),
+        )
+
+        contours.smooth_taubin(
+            inplace=True,
+            n_iter=50,
+            pass_band=0.05,
+        )
+
+        # self.contours.decimate_pro(
+        # inplace=True,
+        # reduction=0.7,
+        # feature_angle=45,
+        # preserve_topology=True,
+        # )
+
+        return contours
+
+    def extract_mesh(
+        self, surface: pv.PolyData, mesh_target_reduction: float = 0.0
+    ) -> Optional[pv.UnstructuredGrid]:
+        """Generate a tetrahedral volume mesh (VTU) from a closed surface via netgen.
+
+        Optionally decimates the surface with
+        :meth:`pyvista.PolyDataFilters.decimate_pro` before meshing — netgen
+        has no post-hoc decimation of its own, so a coarser input surface is
+        the only way to get a coarser tetrahedral mesh out.
+
+        Builds netgen's surface mesh directly from *surface*'s indexed
+        points/triangles rather than round-tripping through an STL file.
+        STL has no shared-vertex topology, so every triangle corner is
+        written independently; float32 rounding during that round-trip can
+        make two corners that were exactly the same point diverge by ~1e-6,
+        which is well within netgen's own "identical point" merge tolerance
+        and makes its STL reader spin forever trying to reconcile them
+        (observed hang on Taubin-smoothed surfaces, e.g. from
+        :meth:`extract_contours`). Adding points/triangles directly preserves
+        the exact shared-vertex indices already present in *surface*, so
+        there is nothing for netgen to reconcile.
+
+        Args:
+            surface: Closed, triangulated surface for one anatomy group (as
+                returned by :meth:`extract_contours`).
+            mesh_target_reduction: Fraction in ``[0, 1)`` of surface triangles
+                to remove via ``decimate_pro(mesh_target_reduction,
+                preserve_topology=True)`` before meshing.  ``0.0`` (default)
+                skips decimation and meshes the surface as given.
+
+        Returns:
+            :class:`pyvista.UnstructuredGrid` of tetrahedral cells, or
+            ``None`` if the surface is empty or netgen produced no volume
+            mesh from it.
+        """
+        if surface.n_points == 0:
+            return None
+
+        meshing_surface = surface.triangulate().clean()
+        if mesh_target_reduction > 0.0:
+            meshing_surface = meshing_surface.decimate_pro(
+                mesh_target_reduction, preserve_topology=True
+            )
+
+        import netgen.meshing as ngm  # noqa: PLC0415
+
+        triangles = meshing_surface.faces.reshape(-1, 4)[:, 1:4]
+        ngmesh = ngm.Mesh()
+        ngmesh.dim = 3
+        point_ids = [
+            ngmesh.Add(ngm.MeshPoint(ngm.Pnt(*point)))
+            for point in meshing_surface.points
+        ]
+        face_descriptor = ngmesh.Add(ngm.FaceDescriptor(surfnr=1, domin=1, domout=0))
+        for triangle in triangles:
+            ngmesh.Add(ngm.Element2D(face_descriptor, [point_ids[i] for i in triangle]))
+        ngmesh.GenerateVolumeMesh()
+
+        elements = ngmesh.Elements3D()
+        if len(elements) == 0:
+            self.log_warning("netgen produced no volume mesh for this surface")
+            return None
+
+        points = ngmesh.Coordinates()
+        tets = np.array(
+            [[vertex.nr - 1 for vertex in element.vertices] for element in elements],
+            dtype=np.int64,
+        )
+        # netgen's tet vertex order is opposite VTK_TETRA's right-hand
+        # convention (confirmed by negative cell volumes); swapping the last
+        # two indices restores positive-volume orientation.
+        tets = tets[:, [0, 1, 3, 2]]
+        cells = np.hstack(
+            [np.full((tets.shape[0], 1), 4, dtype=np.int64), tets]
+        ).flatten()
+        cell_types = np.full(tets.shape[0], pv.CellType.TETRA, dtype=np.uint8)
+        return pv.UnstructuredGrid(cells, cell_types, points)
+
+    def transform_contours(
+        self,
+        contours: pv.PolyData,
+        tfm: itk.Transform,
+        with_deformation_magnitude: bool = False,
+    ) -> pv.PolyData:
+        """
+        Transform contours using a given transform.
+
+        Args:
+            tfm (itk.Transform): The transform to use
+
+        Returns:
+            pv.PolyData: The transformed contours with deformation magnitude
+        """
+        new_contours = TransformTools().transform_pvcontour(
+            contours, tfm, with_deformation_magnitude=with_deformation_magnitude
+        )
+
+        return new_contours
+
+    def merge_meshes(
+        self, meshes: list[pv.PolyData]
+    ) -> tuple[pv.PolyData, list[pv.PolyData]]:
+        """
+        Merge multiple fixed meshes into a single mesh.
+
+        Returns
+        -------
+        pv.PolyData
+            Merged mesh
+        """
+        self.log_info("Merging meshes...")
+        trimesh_meshes: list[trimesh.Trimesh] = []
+        if hasattr(meshes[0], "n_faces_strict"):
+            trimesh_meshes = [
+                trimesh.Trimesh(
+                    vertices=mesh.points,
+                    faces=mesh.faces.reshape((mesh.n_faces_strict, 4))[:, 1:],
+                )
+                for mesh in meshes
+            ]
+        else:
+            trimesh_meshes = [
+                trimesh.Trimesh(
+                    vertices=mesh.points, faces=mesh.faces.reshape(-1, 4)[:, 1:4]
+                )
+                for mesh in meshes
+            ]
+
+        # Merge meshes
+        merged_trimesh = trimesh.util.concatenate(trimesh_meshes)
+        flip_matrix = np.array(
+            [[-1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]
+        )
+        merged_trimesh.apply_transform(flip_matrix)  # Apply flip transformation
+        for mesh in trimesh_meshes:
+            mesh.apply_transform(flip_matrix)
+
+        merged_mesh = pv.wrap(merged_trimesh)
+        pv_meshes = [pv.wrap(mesh) for mesh in trimesh_meshes]
+
+        return merged_mesh, pv_meshes
+
+    def create_reference_image(
+        self,
+        mesh: pv.DataSet,
+        spatial_resolution: float = 0.5,
+        buffer_factor: float = 0.25,
+        ptype: type = itk.F,
+    ) -> itk.Image:
+        """
+        Create a reference image from a mesh.
+        """
+        points = np.array(mesh.points)
+        min_bounds = points.min(axis=0)
+        max_bounds = points.max(axis=0)
+        min_bounds = min_bounds - buffer_factor * (max_bounds - min_bounds)
+        max_bounds = max_bounds + buffer_factor * (max_bounds - min_bounds)
+        region = (
+            ((max_bounds - min_bounds) / spatial_resolution + 1)
+            .astype(np.int32)
+            .tolist()
+        )
+        itk_region = itk.ImageRegion[3]()
+        itk_region.SetSize(region)
+        reference_image = itk.Image[ptype, 3].New()
+        reference_image.SetRegions(itk_region)
+        reference_image.SetSpacing([spatial_resolution] * 3)
+        reference_image.SetOrigin(min_bounds.tolist())
+        reference_image.Allocate()
+        return reference_image
+
+    def create_mask_from_mesh(
+        self,
+        mesh: pv.DataSet | pv.UnstructuredGrid,
+        reference_image: itk.Image,
+    ) -> itk.Image:
+        ref_spacing = np.array(reference_image.GetSpacing())
+
+        # Create trimesh object with LPS coordinates
+        if isinstance(mesh, pv.UnstructuredGrid):
+            mesh = mesh.extract_surface(algorithm="dataset_surface")
+
+        if hasattr(mesh, "n_faces_strict"):
+            # PyVista PolyData
+            num_points_per_face = len(mesh.faces) // mesh.n_faces_strict
+            faces = mesh.faces.reshape((mesh.n_faces_strict, num_points_per_face))[
+                :, 1:
+            ]
+        else:
+            # Handle other mesh types
+            faces = mesh.faces.reshape((-1, 4))[:, 1:]
+
+        trimesh_mesh = trimesh.Trimesh(vertices=mesh.points, faces=faces)
+
+        # Determine voxel spacing (use minimum spacing from reference)
+        voxel_pitch = float(np.min(ref_spacing))
+
+        # Voxelize the mesh
+        # trimesh.voxelized() creates a grid aligned with the mesh's bounding box
+        # The voxel grid origin is at the minimum corner of the bounding box
+        vox = trimesh_mesh.voxelized(pitch=voxel_pitch)
+        binary_array = vox.matrix.astype(np.uint8)
+
+        # Get the physical origin of the voxel grid in LPS space
+        # trimesh voxel grids use a transformation matrix, and the voxel grid starts
+        # at the mesh's minimum bounds. The physical origin is where voxel [0,0,0]
+        # center is located.
+        # Get mesh bounds in LPS coordinates
+        mesh_bounds_lps = (
+            trimesh_mesh.bounds
+        )  # shape (2, 3): [[x_min, y_min, z_min], [x_max, y_max, z_max]]
+
+        # The voxel grid origin is at the minimum corner, but ITK origin is the CENTER
+        # of voxel (0,0,0)
+        # So we need to add half a voxel pitch to each dimension
+        voxel_grid_origin_lps = mesh_bounds_lps[0] + voxel_pitch / 2.0
+        voxel_grid_origin_lps[2] = (
+            voxel_grid_origin_lps[2] + voxel_pitch * binary_array.shape[2]
+        )
+
+        # transpose to match trimesh XYZ convention
+        binary_array_zyx = np.transpose(binary_array, (2, 1, 0))
+        binary_array_flip = np.flip(binary_array_zyx, axis=0)
+        binary_image = itk.GetImageFromArray(binary_array_flip)
+
+        # Set ITK image metadata in LPS coordinates
+        # Origin: where the center of voxel (0,0,0) is located in physical space
+        binary_image.SetOrigin(voxel_grid_origin_lps)
+
+        # Spacing: uniform voxel pitch in all directions
+        binary_image.SetSpacing([voxel_pitch] * 3)
+
+        # Direction: use identity for now (axis-aligned), will be handled by resampling
+        # Flip Z axis to match ITK convention
+        ref_dir = itk.array_from_matrix(binary_image.GetDirection())
+        ref_dir[2, 2] = -ref_dir[2, 2]
+        binary_image.SetDirection(ref_dir)
+
+        # Fill holes to create solid mask
+        ImageType = type(binary_image)
+        fill_filter = itk.BinaryFillholeImageFilter[ImageType].New()
+        fill_filter.SetInput(binary_image)
+        fill_filter.SetForegroundValue(1)
+        fill_filter.Update()
+        mask_image = fill_filter.GetOutput()
+
+        resampler = itk.ResampleImageFilter.New(Input=mask_image)
+        resampler.SetReferenceImage(reference_image)
+        resampler.SetUseReferenceImage(True)
+        resampler.SetInterpolator(
+            itk.NearestNeighborInterpolateImageFunction.New(mask_image)
+        )
+        resampler.SetDefaultPixelValue(0)
+        resampler.Update()
+        mask_image = resampler.GetOutput()
+
+        return mask_image
+
+    def create_labelmap_from_meshes(
+        self,
+        meshes: list[pv.DataSet | pv.UnstructuredGrid],
+        reference_image: itk.Image,
+    ) -> itk.Image:
+        """
+        Create a labelmap from a list of meshes.
+        """
+        labelmap_arr = np.zeros(
+            (
+                reference_image.GetLargestPossibleRegion().GetSize()[2],
+                reference_image.GetLargestPossibleRegion().GetSize()[1],
+                reference_image.GetLargestPossibleRegion().GetSize()[0],
+            ),
+            dtype=np.uint16,
+        )
+        for i, mesh in enumerate(meshes):
+            mask_image = self.create_mask_from_mesh(mesh, reference_image)
+            mask_arr = itk.GetArrayFromImage(mask_image)
+            labelmap_arr[mask_arr > 0] = i + 1
+
+        labelmap_image = itk.GetImageFromArray(labelmap_arr)
+        labelmap_image.CopyInformation(reference_image)
+
+        return labelmap_image
+
+    def create_distance_map(
+        self,
+        mesh: pv.DataSet | pv.UnstructuredGrid,
+        reference_image: itk.Image,
+        squared_distance: bool = False,
+        negative_inside: bool = True,
+        zero_inside: bool = False,
+        norm_to_max_distance: float = 0.0,
+    ) -> itk.Image:
+        self.log_info("Computing signed distance map...")
+
+        # Convert mask to binary
+        points = mesh.points
+
+        size = reference_image.GetLargestPossibleRegion().GetSize()
+
+        # NumPy convention is (z, y, x); ITK GetSize() returns (x, y, z)
+        tmp_arr = np.zeros((size[2], size[1], size[0]), dtype=np.int32)
+        itk_point = itk.Point[itk.D, 3]()
+        point_count = 0
+        for point in points:
+            itk_point[0] = float(point[0])
+            itk_point[1] = float(point[1])
+            itk_point[2] = float(point[2])
+            indx = reference_image.TransformPhysicalPointToIndex(itk_point)
+            if (
+                indx[0] < 0
+                or indx[1] < 0
+                or indx[2] < 0
+                or indx[0] >= size[0]
+                or indx[1] >= size[1]
+                or indx[2] >= size[2]
+            ):
+                continue
+            tmp_arr[indx[2], indx[1], indx[0]] = 1
+            point_count += 1
+
+        self.log_info(
+            "Distance map: %d/%d surface points within reference image",
+            point_count,
+            len(points),
+        )
+        if point_count == 0:
+            self.log_warning(
+                "No surface points fall within the reference image! "
+                "Distance map will be constant. "
+                "Mesh bounds: %s  Image origin: %s  Image size: %s  Image spacing: %s",
+                str(mesh.bounds),
+                str(reference_image.GetOrigin()),
+                str(size),
+                str(reference_image.GetSpacing()),
+            )
+
+        tmp_binary_image = itk.GetImageFromArray(tmp_arr.astype(np.uint8))
+        tmp_binary_image.CopyInformation(reference_image)
+        assert (
+            tmp_binary_image.GetLargestPossibleRegion().GetSize()
+            == reference_image.GetLargestPossibleRegion().GetSize()
+        )
+
+        distance_filter = itk.SignedMaurerDistanceMapImageFilter.New(
+            Input=tmp_binary_image
+        )
+        distance_filter.SetSquaredDistance(False)
+        distance_filter.SetUseImageSpacing(True)
+        distance_filter.Update()
+        distance_image = distance_filter.GetOutput()
+
+        distance_arr = itk.GetArrayFromImage(distance_image).astype(np.float32)
+        if zero_inside:
+            distance_arr = np.clip(distance_arr, 0.0, None)
+        if not negative_inside:
+            distance_arr = np.abs(distance_arr)
+        if squared_distance:
+            distance_arr = np.sign(distance_arr) * distance_arr**2
+        if norm_to_max_distance != 0.0:
+            distance_arr = distance_arr / norm_to_max_distance
+            distance_arr = np.clip(distance_arr, -1.0, 1.0)
+        distance_image = itk.GetImageFromArray(distance_arr)
+        distance_image.CopyInformation(reference_image)
+
+        return distance_image
+
+    def create_deformation_field(
+        self,
+        points: np.ndarray,
+        point_displacements: np.ndarray,
+        reference_image: itk.Image,
+        blur_sigma: float = 2.5,
+        ptype: type = itk.D,
+    ) -> itk.Image:
+        """
+        Create a displacement map from model points and displacements.
+        """
+        size = reference_image.GetLargestPossibleRegion().GetSize()
+        norm_map = np.zeros((size[2], size[1], size[0])).astype(np.float32)
+        displacement_map_x = np.zeros((size[2], size[1], size[0])).astype(np.float32)
+        displacement_map_y = np.zeros((size[2], size[1], size[0])).astype(np.float32)
+        displacement_map_z = np.zeros((size[2], size[1], size[0])).astype(np.float32)
+        itk_point = itk.Point[itk.D, 3]()
+        for i, point in enumerate(points):
+            itk_point[0] = float(point[0])
+            itk_point[1] = float(point[1])
+            itk_point[2] = float(point[2])
+            indx = reference_image.TransformPhysicalPointToIndex(itk_point)
+            if (
+                indx[0] < 0
+                or indx[1] < 0
+                or indx[2] < 0
+                or indx[0] >= size[0]
+                or indx[1] >= size[1]
+                or indx[2] >= size[2]
+            ):
+                continue
+            displacement_map_x[int(indx[2]), int(indx[1]), int(indx[0])] = (
+                point_displacements[i, 0]
+            )
+            displacement_map_y[int(indx[2]), int(indx[1]), int(indx[0])] = (
+                point_displacements[i, 1]
+            )
+            displacement_map_z[int(indx[2]), int(indx[1]), int(indx[0])] = (
+                point_displacements[i, 2]
+            )
+            norm_map[int(indx[2]), int(indx[1]), int(indx[0])] = 1
+
+        norm_img = itk.GetImageFromArray(norm_map)
+        norm_img.CopyInformation(reference_image)
+        assert (
+            norm_img.GetLargestPossibleRegion().GetSize()
+            == reference_image.GetLargestPossibleRegion().GetSize()
+        )
+
+        blurred_norm = itk.SmoothingRecursiveGaussianImageFilter(
+            Input=norm_img, Sigma=blur_sigma
+        )
+        blurred_norm_arr = itk.GetArrayFromImage(blurred_norm)
+        blurred_norm_arr = np.where(blurred_norm_arr < 1.0e-4, 1.0e-4, blurred_norm_arr)
+
+        deformation_field_x_img = itk.GetImageFromArray(displacement_map_x)
+        deformation_field_x_img.CopyInformation(reference_image)
+        deformation_field_x_img = itk.SmoothingRecursiveGaussianImageFilter(
+            Input=deformation_field_x_img, Sigma=blur_sigma
+        )
+
+        deformation_field_y_img = itk.GetImageFromArray(displacement_map_y)
+        deformation_field_y_img.CopyInformation(reference_image)
+        deformation_field_y_img = itk.SmoothingRecursiveGaussianImageFilter(
+            Input=deformation_field_y_img, Sigma=blur_sigma
+        )
+
+        deformation_field_z_img = itk.GetImageFromArray(displacement_map_z)
+        deformation_field_z_img.CopyInformation(reference_image)
+        deformation_field_z_img = itk.SmoothingRecursiveGaussianImageFilter(
+            Input=deformation_field_z_img, Sigma=blur_sigma
+        )
+
+        deformation_field_x = (
+            itk.GetArrayFromImage(deformation_field_x_img) / blurred_norm_arr
+        )
+        deformation_field_y = (
+            itk.GetArrayFromImage(deformation_field_y_img) / blurred_norm_arr
+        )
+        deformation_field_z = (
+            itk.GetArrayFromImage(deformation_field_z_img) / blurred_norm_arr
+        )
+
+        deformation_field_x = np.where(
+            blurred_norm_arr > 1.0e-3, deformation_field_x, 0.0
+        )
+        deformation_field_y = np.where(
+            blurred_norm_arr > 1.0e-3, deformation_field_y, 0.0
+        )
+        deformation_field_z = np.where(
+            blurred_norm_arr > 1.0e-3, deformation_field_z, 0.0
+        )
+
+        deformation_field = np.stack(
+            [deformation_field_x, deformation_field_y, deformation_field_z], axis=-1
+        )
+
+        image_tools = ImageTools()
+        deformation_field_img = image_tools.convert_array_to_image_of_vectors(
+            deformation_field, reference_image, ptype=ptype
+        )
+
+        return deformation_field_img
+
+    # ─────────────────────────── I/O helpers ───────────────────────────────
+
+    @staticmethod
+    def save_surfaces(
+        surfaces: dict[str, pv.PolyData],
+        output_dir: str,
+        prefix: str = "",
+    ) -> dict[str, str]:
+        """Save each named surface to its own VTP file.
+
+        Args:
+            surfaces: Mapping of name → surface (e.g. the ``'surfaces'``
+                value from :meth:`WorkflowConvertImageToVTK.process`).
+            output_dir: Directory to write files into (created if absent).
+            prefix: Optional filename prefix.  Each file is named
+                ``{prefix}_{name}.vtp`` (or ``{name}.vtp`` when *prefix* is empty).
+
+        Returns:
+            Mapping of name → absolute path of the saved file.
+        """
+        os.makedirs(output_dir, exist_ok=True)
+        saved: dict[str, str] = {}
+        for name, surface in surfaces.items():
+            stem = f"{prefix}_{name}" if prefix else name
+            path = os.path.join(output_dir, f"{stem}.vtp")
+            surface.save(path)
+            saved[name] = path
+        return saved
+
+    @staticmethod
+    def save_meshes(
+        meshes: dict[str, pv.UnstructuredGrid],
+        output_dir: str,
+        prefix: str = "",
+    ) -> dict[str, str]:
+        """Save each named volume mesh to its own VTU file.
+
+        Args:
+            meshes: Mapping of name → mesh (e.g. the ``'meshes'`` value from
+                :meth:`WorkflowConvertImageToVTK.process`).
+            output_dir: Directory to write files into (created if absent).
+            prefix: Optional filename prefix.  Each file is named
+                ``{prefix}_{name}.vtu`` (or ``{name}.vtu`` when *prefix* is empty).
+
+        Returns:
+            Mapping of name → absolute path of the saved file.
+        """
+        os.makedirs(output_dir, exist_ok=True)
+        saved: dict[str, str] = {}
+        for name, mesh in meshes.items():
+            stem = f"{prefix}_{name}" if prefix else name
+            path = os.path.join(output_dir, f"{stem}.vtu")
+            mesh.save(path)
+            saved[name] = path
+        return saved
+
+    @staticmethod
+    def save_combined_surface(
+        surfaces: dict[str, pv.PolyData],
+        output_dir: str,
+        prefix: str = "",
+    ) -> str:
+        """Merge all named surfaces into a single VTP file.
+
+        The merged mesh retains per-cell ``Color`` (RGBA uint8) from each
+        surface's annotation, enabling colour-by-anatomy rendering in
+        Paraview, PyVista, etc.  Per-object ``field_data`` is not preserved
+        in the merged file.
+
+        Args:
+            surfaces: Mapping of name → surface.
+            output_dir: Directory to write the file into (created if absent).
+            prefix: Optional filename prefix.  Output is ``{prefix}_surfaces.vtp``
+                (or ``surfaces.vtp`` when *prefix* is empty).
+
+        Returns:
+            Absolute path to the saved VTP file.
+
+        Raises:
+            ValueError: If *surfaces* is empty.
+        """
+        if not surfaces:
+            raise ValueError("No surfaces to save.")
+        os.makedirs(output_dir, exist_ok=True)
+        stem = f"{prefix}_surfaces" if prefix else "surfaces"
+        output_file = os.path.join(output_dir, f"{stem}.vtp")
+        merged = cast(
+            pv.PolyData, pv.merge(list(surfaces.values()), merge_points=False)
+        )
+        merged.save(output_file)
+        return output_file
+
+    @staticmethod
+    def save_combined_mesh(
+        meshes: dict[str, pv.UnstructuredGrid],
+        output_dir: str,
+        prefix: str = "",
+    ) -> str:
+        """Merge all named volume meshes into a single VTU file.
+
+        The merged mesh retains per-cell ``Color`` (RGBA uint8) from each
+        mesh's annotation.  Per-object ``field_data`` is not preserved in the
+        merged file.
+
+        Args:
+            meshes: Mapping of name → volume mesh.
+            output_dir: Directory to write the file into (created if absent).
+            prefix: Optional filename prefix.  Output is ``{prefix}_meshes.vtu``
+                (or ``meshes.vtu`` when *prefix* is empty).
+
+        Returns:
+            Absolute path to the saved VTU file.
+
+        Raises:
+            ValueError: If *meshes* is empty.
+        """
+        if not meshes:
+            raise ValueError("No meshes to save.")
+        os.makedirs(output_dir, exist_ok=True)
+        stem = f"{prefix}_meshes" if prefix else "meshes"
+        output_file = os.path.join(output_dir, f"{stem}.vtu")
+        merged = cast(
+            pv.UnstructuredGrid, pv.merge(list(meshes.values()), merge_points=False)
+        )
+        merged.save(output_file)
+        return output_file

@@ -4,7 +4,7 @@
 Brain Vessel Modeling Status
 ============================
 
-PhysioMotion4D does not currently install a brain-vessel modeling CLI command.
+PhysioTwin4D does not currently install a brain-vessel modeling CLI command.
 Earlier research experiments helped shape the toolkit, but they are not
 supported usage examples for users or developers.
 

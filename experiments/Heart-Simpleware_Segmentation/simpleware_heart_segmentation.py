@@ -16,7 +16,7 @@
 # - Automated heart chamber segmentation (LV, RV, LA, RA)
 # - Myocardium segmentation
 # - Major vessel segmentation (aorta, pulmonary artery, coronary arteries)
-# - Integration with PhysioMotion4D workflows
+# - Integration with PhysioTwin4D workflows
 
 # %% [markdown]
 # ## 1. Setup and Imports
@@ -32,9 +32,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pyvista as pv
 
-from physiomotion4d.landmark_tools import LandmarkTools
-from physiomotion4d.segment_heart_simpleware import SegmentHeartSimpleware
-from physiomotion4d.test_tools import TestTools
+from physiotwin4d.landmark_tools import LandmarkTools
+from physiotwin4d.segment_heart_simpleware import SegmentHeartSimpleware
+from physiotwin4d.test_tools import TestTools
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 

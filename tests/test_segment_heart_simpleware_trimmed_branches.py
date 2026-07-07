@@ -12,8 +12,8 @@ import itk
 import numpy as np
 import pytest
 
-from physiomotion4d.segment_heart_simpleware import SegmentHeartSimpleware
-from physiomotion4d.segment_heart_simpleware_trimmed_branches import (
+from physiotwin4d.segment_heart_simpleware import SegmentHeartSimpleware
+from physiotwin4d.segment_heart_simpleware_trimmed_branches import (
     SegmentHeartSimplewareTrimmedBranches,
 )
 

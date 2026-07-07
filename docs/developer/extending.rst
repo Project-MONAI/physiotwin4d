@@ -1,8 +1,8 @@
 ========================
-Extending PhysioMotion4D
+Extending PhysioTwin4D
 ========================
 
-PhysioMotion4D is an early-alpha toolkit. Prefer small, explicit extensions
+PhysioTwin4D is an early-alpha toolkit. Prefer small, explicit extensions
 that match the current class boundaries over large compatibility layers.
 
 Where to Start
@@ -22,9 +22,9 @@ Runtime Class Pattern
 
    import logging
 
-   from physiomotion4d import PhysioMotion4DBase
+   from physiotwin4d import PhysioTwin4DBase
 
-   class MyWorkflow(PhysioMotion4DBase):
+   class MyWorkflow(PhysioTwin4DBase):
        def __init__(self, input_file: str, log_level: int | str = logging.INFO):
            super().__init__(class_name="MyWorkflow", log_level=log_level)
            self.input_file = input_file

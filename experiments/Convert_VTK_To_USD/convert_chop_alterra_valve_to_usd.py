@@ -29,13 +29,13 @@
 import re
 from pathlib import Path
 
-from physiomotion4d import ConvertVTKToUSD
+from physiotwin4d import ConvertVTKToUSD
 
 # Use as a test
-from physiomotion4d.test_tools import TestTools
+from physiotwin4d.test_tools import TestTools
 
 # Import USDTools for post-processing colormap
-from physiomotion4d.usd_tools import USDTools
+from physiotwin4d.usd_tools import USDTools
 
 # %% [markdown]
 # ## 1. Discover and Organize Time-Series Files

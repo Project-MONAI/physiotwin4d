@@ -10,7 +10,7 @@ Usage:
     python utils/generate_api_map.py [root_dir]
 
 If root_dir is omitted, uses the parent of the directory containing this
-script (i.e. the physiomotion4d project root).
+script (i.e. the physiotwin4d project root).
 """
 
 from __future__ import annotations

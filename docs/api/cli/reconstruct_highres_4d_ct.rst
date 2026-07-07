@@ -2,7 +2,7 @@
 reconstruct_highres_4d_ct (CLI)
 ===============================
 
-.. automodule:: physiomotion4d.cli.reconstruct_highres_4d_ct
+.. automodule:: physiotwin4d.cli.reconstruct_highres_4d_ct
    :members:
    :undoc-members:
    :show-inheritance:

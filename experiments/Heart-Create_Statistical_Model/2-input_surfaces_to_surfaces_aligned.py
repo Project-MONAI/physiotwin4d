@@ -22,9 +22,9 @@ import numpy as np
 import pandas as pd
 import pyvista as pv
 
-from physiomotion4d.contour_tools import ContourTools
-from physiomotion4d.test_tools import TestTools
-from physiomotion4d.register_models_icp import RegisterModelsICP
+from physiotwin4d.contour_tools import ContourTools
+from physiotwin4d.test_tools import TestTools
+from physiotwin4d.register_models_icp import RegisterModelsICP
 
 _HERE = Path(__file__).parent
 

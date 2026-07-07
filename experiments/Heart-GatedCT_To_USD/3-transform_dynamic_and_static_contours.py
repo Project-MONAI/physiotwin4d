@@ -5,11 +5,11 @@ import os
 import itk
 import pyvista as pv
 
-from physiomotion4d import ConvertVTKToUSD
-from physiomotion4d.contour_tools import ContourTools
-from physiomotion4d.segment_chest_total_segmentator import SegmentChestTotalSegmentator
-from physiomotion4d.test_tools import TestTools
-from physiomotion4d.usd_anatomy_tools import USDAnatomyTools
+from physiotwin4d import ConvertVTKToUSD
+from physiotwin4d.contour_tools import ContourTools
+from physiotwin4d.segment_chest_total_segmentator import SegmentChestTotalSegmentator
+from physiotwin4d.test_tools import TestTools
+from physiotwin4d.usd_anatomy_tools import USDAnatomyTools
 
 # Defensive: this script only reads `seg.all_mask_ids` today, but if anyone
 # ever adds a `seg.segment(...)` call it would trigger the nnUNet

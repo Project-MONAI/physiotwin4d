@@ -2,15 +2,15 @@
 Test Tools
 ==========
 
-.. currentmodule:: physiomotion4d
+.. currentmodule:: physiotwin4d
 
-Baseline vs. result image comparison utilities used by the PhysioMotion4D
+Baseline vs. result image comparison utilities used by the PhysioTwin4D
 pytest suite.
 
 Module Reference
 ================
 
-.. automodule:: physiomotion4d.test_tools
+.. automodule:: physiotwin4d.test_tools
    :members:
    :undoc-members:
    :show-inheritance:

@@ -22,7 +22,7 @@ import pyvista as pv
 
 from sklearn.decomposition import PCA  # SparsePCA, ...
 
-from physiomotion4d.test_tools import TestTools
+from physiotwin4d.test_tools import TestTools
 
 _HERE = Path(__file__).parent
 

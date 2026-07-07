@@ -21,13 +21,13 @@ train / val / test via the explicit ``TEST_SUBJECTS`` / ``VAL_SUBJECTS`` lists.
 Bring Your Own Data
 -------------------
 This is a bring-your-own-data tutorial: the path constants below point at a local
-``D:/PhysioMotion4D/`` layout produced by Tutorial 8, not at the repository
+``D:/PhysioTwin4D/`` layout produced by Tutorial 8, not at the repository
 ``data/`` directory.  Edit them to match your own data location.
 
 Data Required
 -------------
 Run Tutorial 8 first so
-``D:/PhysioMotion4D/duke_data/fitted_kcl_meshes/pm00??/`` contains:
+``D:/PhysioTwin4D/duke_data/fitted_kcl_meshes/pm00??/`` contains:
 
   * ``pm00XX_ssm_surface.vtp``        - reference (template) SSM surface
   * ``pm00XX_ssm_pca_coefficients.json`` - fitted PCA coefficient vector
@@ -44,9 +44,9 @@ Outputs (under ``OUTPUT_DIR``)
 
 Extra Install Required
 ----------------------
-PhysicsNeMo is an optional dependency of PhysioMotion4D. Install it with::
+PhysicsNeMo is an optional dependency of PhysioTwin4D. Install it with::
 
-    pip install "physiomotion4d[physicsnemo]"
+    pip install "physiotwin4d[physicsnemo]"
 
 PhysicsNeMo itself requires Python >= 3.11.
 """
@@ -68,14 +68,14 @@ import pyvista as pv
 import torch
 
 
-from physiomotion4d.test_tools import TestTools
+from physiotwin4d.test_tools import TestTools
 
 try:
     from physicsnemo.models.mlp import FullyConnected
 except ImportError as exc:  # pragma: no cover - import-time guard
     raise ImportError(
         "Tutorial 9b requires PhysicsNeMo, which is an optional dependency. "
-        'Install with: pip install "physiomotion4d[physicsnemo]" '
+        'Install with: pip install "physiotwin4d[physicsnemo]" '
         "(requires Python >= 3.11).",
     ) from exc
 
@@ -89,8 +89,8 @@ except ImportError as exc:  # pragma: no cover - import-time guard
 if __name__ == "__main__":
     # %%
     TUTORIALS_DIR = Path(__file__).resolve().parent
-    FITTED_MESHES_DIR = Path("D:/PhysioMotion4D/duke_data/fitted_kcl_meshes")
-    PCA_MEAN_VTU = Path("D:/PhysioMotion4D/kcl-heart-pca/pca-vol-kcl/pca_mean.vtu")
+    FITTED_MESHES_DIR = Path("D:/PhysioTwin4D/duke_data/fitted_kcl_meshes")
+    PCA_MEAN_VTU = Path("D:/PhysioTwin4D/kcl-heart-pca/pca-vol-kcl/pca_mean.vtu")
     EPOCHS = 10000
     OUTPUT_DIR = TUTORIALS_DIR / "output"
     RMSE_LOG_INTERVAL = (

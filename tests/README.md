@@ -1,6 +1,6 @@
-# PhysioMotion4D Tests
+# PhysioTwin4D Tests
 
-This directory contains comprehensive test suites for the PhysioMotion4D package, validating the complete medical imaging to Omniverse pipeline.
+This directory contains comprehensive test suites for the PhysioTwin4D package, validating the complete medical imaging to Omniverse pipeline.
 
 ## Documentation
 
@@ -132,7 +132,7 @@ pytest tests/test_experiments.py::test_experiment_heart_gated_ct_to_usd -v -s --
 ### Common Test Commands
 ```bash
 # Run with coverage
-pytest tests/ --cov=src/physiomotion4d --cov-report=html
+pytest tests/ --cov=src/physiotwin4d --cov-report=html
 
 # Run a specific test class or method
 pytest tests/test_usd_merge.py::TestUSDMerge::test_merge_usd_files_copy_method -v
@@ -161,7 +161,7 @@ All test runs automatically generate a comprehensive timing report at the end sh
   Simpleware Medical install. Opt in: `--run-simpleware`. (Combine with
   `--run-gpu` and `--run-slow`.)
 - `@pytest.mark.requires_physicsnemo` — Tests needing the optional
-  `[physicsnemo]` extra (`pip install "physiomotion4d[physicsnemo]"`, requires
+  `[physicsnemo]` extra (`pip install "physiotwin4d[physicsnemo]"`, requires
   Python >= 3.11). Opt in: `--run-physicsnemo`.
 - `@pytest.mark.experiment` — End-to-end experiment notebooks (EXTREMELY
   SLOW, never in CI). Opt in: `--run-experiments`.

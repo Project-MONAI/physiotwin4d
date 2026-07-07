@@ -1,6 +1,6 @@
-# PyPI Release Guide for PhysioMotion4D
+# PyPI Release Guide for PhysioTwin4D
 
-This guide provides step-by-step instructions for building and uploading PhysioMotion4D to PyPI.
+This guide provides step-by-step instructions for building and uploading PhysioTwin4D to PyPI.
 
 ## Prerequisites
 
@@ -47,7 +47,7 @@ password = pypi-AgENdGVzdC5weXBp...  # Your TestPyPI token
 Edit `pyproject.toml`:
 ```toml
 [tool.bumpver]
-current_version = "2026.05.07"  # Update this
+current_version = "2026.07.0"  # Update this
 ```
 
 Or use bumpver:
@@ -94,11 +94,11 @@ pytest tests/
 pip install -e .
 
 # Verify imports
-python -c "import physiomotion4d; print(physiomotion4d.__version__)"
+python -c "import physiotwin4d; print(physiotwin4d.__version__)"
 
 # Test CLI commands
-physiomotion4d --help
-physiomotion4d-convert-image-to-usd --help
+physiotwin4d --help
+physiotwin4d-convert-image-to-usd --help
 ```
 
 ## Building the Package
@@ -118,17 +118,17 @@ python -m build
 ```
 
 This creates:
-- `dist/physiomotion4d-2026.05.07.tar.gz` (source distribution)
-- `dist/physiomotion4d-2026.05.07-py3-none-any.whl` (wheel distribution)
+- `dist/physiotwin4d-2026.07.0.tar.gz` (source distribution)
+- `dist/physiotwin4d-2026.07.0-py3-none-any.whl` (wheel distribution)
 
 ### 3. Verify Build Contents
 
 ```bash
 # List contents of the wheel
-unzip -l dist/physiomotion4d-*.whl
+unzip -l dist/physiotwin4d-*.whl
 
 # Check if all necessary files are included
-tar -tzf dist/physiomotion4d-*.tar.gz
+tar -tzf dist/physiotwin4d-*.tar.gz
 ```
 
 ## Testing on TestPyPI (Recommended)
@@ -149,7 +149,7 @@ source test_env/bin/activate  # On Windows: test_env\Scripts\activate
 # Install from TestPyPI
 pip install --index-url https://test.pypi.org/simple/ \
     --extra-index-url https://pypi.org/simple \
-    physiomotion4d
+    physiotwin4d
 ```
 
 Note: `--extra-index-url` is needed because dependencies are on PyPI, not TestPyPI.
@@ -158,16 +158,16 @@ Note: `--extra-index-url` is needed because dependencies are on PyPI, not TestPy
 
 ```python
 # Test imports
-import physiomotion4d
-from physiomotion4d import WorkflowConvertImageToUSD
+import physiotwin4d
+from physiotwin4d import WorkflowConvertImageToUSD
 
-print(f"Version: {physiomotion4d.__version__}")
+print(f"Version: {physiotwin4d.__version__}")
 print(WorkflowConvertImageToUSD.__name__)
 ```
 
 ```bash
 # Test CLI
-physiomotion4d-convert-image-to-usd --help
+physiotwin4d-convert-image-to-usd --help
 ```
 
 ## Publishing to PyPI
@@ -189,7 +189,7 @@ twine upload dist/*
 
 ### 3. Verify Upload
 
-Visit: https://pypi.org/project/physiomotion4d/
+Visit: https://pypi.org/project/physiotwin4d/
 
 ### 4. Test Installation from PyPI
 
@@ -199,10 +199,10 @@ python -m venv pypi_test
 source pypi_test/bin/activate
 
 # Install from PyPI
-pip install physiomotion4d
+pip install physiotwin4d
 
 # Verify
-python -c "import physiomotion4d; print(physiomotion4d.__version__)"
+python -c "import physiotwin4d; print(physiotwin4d.__version__)"
 ```
 
 ## Post-Release Steps
@@ -210,14 +210,14 @@ python -c "import physiomotion4d; print(physiomotion4d.__version__)"
 ### 1. Tag the Release in Git
 
 ```bash
-git tag -a v2026.05.07 -m "Release version 2026.05.07"
-git push origin v2026.05.07
+git tag -a v2026.07.0 -m "Release version 2026.07.0"
+git push origin v2026.07.0
 ```
 
 ### 2. Create GitHub/GitLab Release
 
 Create a release on your repository with:
-- Tag: `v2026.05.07`
+- Tag: `v2026.07.0`
 - Release notes from `docs/changelog.rst`
 - Attach distribution files (optional)
 
@@ -240,7 +240,7 @@ Create a release on your repository with:
 **Problem**: Import errors after installation
 ```bash
 # Solution: Verify package structure
-# Check that src/physiomotion4d/__init__.py exports necessary classes
+# Check that src/physiotwin4d/__init__.py exports necessary classes
 ```
 
 ### Upload Errors
@@ -297,7 +297,7 @@ python -m build --sdist
 pip install -e ".[dev,test]"
 
 # View package information
-python -m pip show physiomotion4d
+python -m pip show physiotwin4d
 ```
 
 ## Best Practices

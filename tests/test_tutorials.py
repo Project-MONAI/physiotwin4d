@@ -29,7 +29,7 @@ from typing import Any
 
 import pytest
 
-from physiomotion4d.test_tools import TestTools
+from physiotwin4d.test_tools import TestTools
 
 # Tolerances for screenshot comparison. Loose to survive minor rendering
 # differences across OS / GPU / driver versions.
@@ -42,7 +42,7 @@ _REPO_ROOT = Path(__file__).parent.parent
 @pytest.fixture(autouse=True)
 def _enable_tutorial_test_mode(monkeypatch: pytest.MonkeyPatch) -> None:
     """Run tutorials against repo data/test through TestTools mode switching."""
-    monkeypatch.setenv("PHYSIOMOTION_RUNNING_AS_TEST", "1")
+    monkeypatch.setenv("PHYSIOTWIN_RUNNING_AS_TEST", "1")
 
 
 def _compare_screenshots(
@@ -236,14 +236,14 @@ class TestTutorial05VTKToUSD:
 # -----------------------------------------------------------------------------
 # Tutorials 8-10 - Cardiac mesh stage-prediction pipeline (bring-your-own-data)
 #
-# These tutorials use a local ``D:/PhysioMotion4D/`` cardiac dataset and (for
+# These tutorials use a local ``D:/PhysioTwin4D/`` cardiac dataset and (for
 # Tutorials 9 and 10) the optional PhysicsNeMo dependency, so they are skipped
 # automatically unless that data / those checkpoints are present. They produce
 # no screenshots; the tests assert the tutorial ran and populated
 # ``tutorial_results``.
 # -----------------------------------------------------------------------------
 
-_CARDIAC_DATA_ROOT = Path("D:/PhysioMotion4D")
+_CARDIAC_DATA_ROOT = Path("D:/PhysioTwin4D")
 _CARDIAC_FITTED_MESHES_DIR = _CARDIAC_DATA_ROOT / "duke_data" / "fitted_kcl_meshes"
 _TUTORIALS_DIR = _REPO_ROOT / "tutorials"
 
@@ -281,7 +281,7 @@ class TestTutorial08CardiacFitModel:
     def test_run(self) -> None:
         if not (_CARDIAC_DATA_ROOT / "duke_data" / "gated_nii").exists():
             pytest.skip(
-                "Cardiac dataset not present at D:/PhysioMotion4D/. Tutorial 8 is "
+                "Cardiac dataset not present at D:/PhysioTwin4D/. Tutorial 8 is "
                 "bring-your-own-data; see tutorials/README.md."
             )
         results = _run_tutorial_script("tutorial_08_cardiac_fit_model.py")

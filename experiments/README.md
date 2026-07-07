@@ -1,7 +1,7 @@
-# PhysioMotion4D Experiments
+# PhysioTwin4D Experiments
 
 This directory contains research and design experiments that informed the development
-of the PhysioMotion4D library.
+of the PhysioTwin4D library.
 
 **These are not examples of how to use the library**.
 
@@ -14,9 +14,9 @@ of the PhysioMotion4D library.
 - Command-line tools and parameter specifications
 
 See:
-- **CLI Commands**: Run `physiomotion4d-convert-image-to-usd --help`, `physiomotion4d-create-statistical-model --help`, and `physiomotion4d-fit-statistical-model-to-patient --help`
-- **CLI Implementation**: `src/physiomotion4d/cli/` for Python API examples
-- **Library Classes**: `src/physiomotion4d/` for all workflow and utility classes
+- **CLI Commands**: Run `physiotwin4d-convert-image-to-usd --help`, `physiotwin4d-create-statistical-model --help`, and `physiotwin4d-fit-statistical-model-to-patient --help`
+- **CLI Implementation**: `src/physiotwin4d/cli/` for Python API examples
+- **Library Classes**: `src/physiotwin4d/` for all workflow and utility classes
 
 The experiments here serve as **conceptual references** showing the research process
 and design explorations that can inform adaptation to new digital twin models and tasks.
@@ -36,8 +36,8 @@ These experiments demonstrate key digital twin workflows that can be adapted to 
 anatomical regions, imaging modalities, and physiological motion tasks.
 
 > **Note:** For production implementations of these workflows, use the CLI commands
-> (`physiomotion4d-convert-image-to-usd`, `physiomotion4d-create-statistical-model`, `physiomotion4d-fit-statistical-model-to-patient`) or consult
-> the CLI implementation in `src/physiomotion4d/cli/` for proper class usage and parameter specifications.
+> (`physiotwin4d-convert-image-to-usd`, `physiotwin4d-create-statistical-model`, `physiotwin4d-fit-statistical-model-to-patient`) or consult
+> the CLI implementation in `src/physiotwin4d/cli/` for proper class usage and parameter specifications.
 
 ### `Reconstruct4DCT` - High-Resolution 4D Reconstruction
 
@@ -177,7 +177,7 @@ to new anatomical regions, physiological processes, and digital twin application
 ### General Adaptation Strategy
 
 1. **Study the experiment conceptually** - Understand the workflow stages and data transformations
-2. **Consult the CLI implementation** - See `src/physiomotion4d/cli/` to identify production classes and methods that implement similar functionality
+2. **Consult the CLI implementation** - See `src/physiotwin4d/cli/` to identify production classes and methods that implement similar functionality
 3. **Identify customization points:**
    - Registration parameters (metrics, transforms, optimization)
    - Segmentation models (custom training, fine-tuning, label mappings)
@@ -189,7 +189,7 @@ to new anatomical regions, physiological processes, and digital twin application
 ### Key Takeaway
 
 These experiments are **starting points for exploration**, not copy-paste solutions.
-The **CLI commands and implementations in `src/physiomotion4d/cli/`** are the production-quality
+The **CLI commands and implementations in `src/physiotwin4d/cli/`** are the production-quality
 code you should use and extend for real-world digital twin projects.
 
 ## Automated Testing
@@ -215,7 +215,7 @@ pytest tests/test_experiments.py::test_experiment_structure -v --run-experiments
 
 ### Test Features
 
-- **Test-mode flag** - When run as tests (pytest with `--run-experiments`), the runner sets `PHYSIOMOTION_RUNNING_AS_TEST=1`. Scripts can read this (e.g. via `physiomotion4d.test_tools.TestTools.running_as_test()`) and use reduced parameters so test runs stay fast. See [tests/EXPERIMENT_TESTS_GUIDE.md](../tests/EXPERIMENT_TESTS_GUIDE.md#running-as-test-physiomotion_running_as_test).
+- **Test-mode flag** - When run as tests (pytest with `--run-experiments`), the runner sets `PHYSIOTWIN_RUNNING_AS_TEST=1`. Scripts can read this (e.g. via `physiotwin4d.test_tools.TestTools.running_as_test()`) and use reduced parameters so test runs stay fast. See [tests/EXPERIMENT_TESTS_GUIDE.md](../tests/EXPERIMENT_TESTS_GUIDE.md#running-as-test-physiotwin_running_as_test).
 - **One test per subdirectory** - Each experiment subdirectory gets its own test function
 - **Alphanumeric ordering** - Scripts execute in alphanumeric order (e.g., `0-`, `1-`, `2-`)
 - **Long timeouts** - Each script has up to 1 hour execution time, tests have multi-hour timeouts
@@ -274,13 +274,13 @@ Each subdirectory represents a different experimental domain:
 ### For Production Use, Consult:
 
 1. **CLI Commands** ⭐ **PRIMARY RESOURCE**
-   - `physiomotion4d-convert-image-to-usd` - Complete heart-gated CT workflow
-   - `physiomotion4d-create-statistical-model` - Create PCA statistical shape model from sample meshes
-   - `physiomotion4d-fit-statistical-model-to-patient` - Model-to-patient registration
+   - `physiotwin4d-convert-image-to-usd` - Complete heart-gated CT workflow
+   - `physiotwin4d-create-statistical-model` - Create PCA statistical shape model from sample meshes
+   - `physiotwin4d-fit-statistical-model-to-patient` - Model-to-patient registration
    - Run with `--help` for all options and parameter specifications
    - Tested on diverse datasets
 
-2. **CLI Implementation in `src/physiomotion4d/cli/`**
+2. **CLI Implementation in `src/physiotwin4d/cli/`**
    - Production-ready workflow code
    - Proper class usage patterns and parameter specifications
    - Complete error handling and validation
@@ -310,7 +310,7 @@ Each subdirectory represents a different experimental domain:
 - Paths and parameters are often hardcoded for specific datasets
 - Performance may not be optimized
 
-**INSTEAD:** Use the CLI commands or the production implementations in `src/physiomotion4d/cli/` and extend them for your needs.
+**INSTEAD:** Use the CLI commands or the production implementations in `src/physiotwin4d/cli/` and extend them for your needs.
 
 ## Development History
 
@@ -336,10 +336,10 @@ The typical evolution path was:
 
 When exploring new digital twin applications, you can follow a similar path:
 - Start by understanding relevant experiments here as conceptual references
-- Examine CLI implementations in `src/physiomotion4d/cli/` for proper library usage
-- Use CLI commands (`physiomotion4d-convert-image-to-usd`, `physiomotion4d-create-statistical-model`, `physiomotion4d-fit-statistical-model-to-patient`) as starting points
+- Examine CLI implementations in `src/physiotwin4d/cli/` for proper library usage
+- Use CLI commands (`physiotwin4d-convert-image-to-usd`, `physiotwin4d-create-statistical-model`, `physiotwin4d-fit-statistical-model-to-patient`) as starting points
 - Extend and adapt production code with your domain-specific requirements
 - Contribute back improvements and new capabilities to the community
 
-**Remember:** The CLI commands and their implementations in `src/physiomotion4d/cli/` are your
-source of truth for how to properly use PhysioMotion4D classes, workflows, and capabilities in production environments.
+**Remember:** The CLI commands and their implementations in `src/physiotwin4d/cli/` are your
+source of truth for how to properly use PhysioTwin4D classes, workflows, and capabilities in production environments.

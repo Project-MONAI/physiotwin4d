@@ -1,6 +1,6 @@
-# PhysioMotion4D Documentation
+# PhysioTwin4D Documentation
 
-This directory contains the source files for PhysioMotion4D's documentation, which is built using [Sphinx](https://www.sphinx-doc.org/) and hosted on [ReadTheDocs](https://readthedocs.org/).
+This directory contains the source files for PhysioTwin4D's documentation, which is built using [Sphinx](https://www.sphinx-doc.org/) and hosted on [ReadTheDocs](https://readthedocs.org/).
 
 ## Recently Updated!
 

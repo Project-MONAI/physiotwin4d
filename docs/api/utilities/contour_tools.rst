@@ -2,14 +2,14 @@
 Contour Tools
 ====================================
 
-.. currentmodule:: physiomotion4d
+.. currentmodule:: physiotwin4d
 
 Contour extraction and processing utilities.
 
 Module Reference
 ================
 
-.. automodule:: physiomotion4d.contour_tools
+.. automodule:: physiotwin4d.contour_tools
    :members:
    :undoc-members:
 

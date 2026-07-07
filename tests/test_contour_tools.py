@@ -14,7 +14,7 @@ import numpy as np
 import pytest
 import pyvista as pv
 
-from physiomotion4d.contour_tools import ContourTools
+from physiotwin4d.contour_tools import ContourTools
 
 
 @pytest.mark.slow

@@ -3,8 +3,8 @@
 from data_dirlab_4d_ct import DataDirLab4DCT
 from pxr import Usd
 
-from physiomotion4d.segment_chest_total_segmentator import SegmentChestTotalSegmentator
-from physiomotion4d.usd_anatomy_tools import USDAnatomyTools
+from physiotwin4d.segment_chest_total_segmentator import SegmentChestTotalSegmentator
+from physiotwin4d.usd_anatomy_tools import USDAnatomyTools
 
 # Defensive: today this script only instantiates SegmentChestTotalSegmentator
 # to read its anatomy labels for USDAnatomyTools, but if anyone adds a

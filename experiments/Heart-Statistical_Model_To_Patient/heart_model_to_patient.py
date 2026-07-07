@@ -12,13 +12,13 @@ import itk
 import numpy as np
 import pyvista as pv
 
-# Import from PhysioMotion4D package
-from physiomotion4d import (
+# Import from PhysioTwin4D package
+from physiotwin4d import (
     ContourTools,
     SegmentChestTotalSegmentator,
     WorkflowFitStatisticalModelToPatient,
 )
-from physiomotion4d.test_tools import TestTools
+from physiotwin4d.test_tools import TestTools
 
 # nnUNetv2 (used by TotalSegmentator) spawns a multiprocessing.Pool. On Windows
 # the spawn start method re-imports this script in each child; without the

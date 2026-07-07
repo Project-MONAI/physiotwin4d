@@ -17,12 +17,12 @@ recursive-include scripts *.md
 recursive-include src *.py
 
 # Include network weights and models
-recursive-include src/physiomotion4d/network_weights *
+recursive-include src/physiotwin4d/network_weights *
 
 # Include data files
-recursive-include src/physiomotion4d *.json
-recursive-include src/physiomotion4d *.yaml
-recursive-include src/physiomotion4d *.yml
+recursive-include src/physiotwin4d *.json
+recursive-include src/physiotwin4d *.yaml
+recursive-include src/physiotwin4d *.yml
 
 # Exclude unnecessary files
 global-exclude __pycache__

@@ -27,14 +27,14 @@ Bring Your Own Data
 -------------------
 This is a bring-your-own-data tutorial. Unlike Tutorials 1-6, it does not use the
 repository ``data/`` directory or a downloadable sample; the path constants below
-point at a local ``D:/PhysioMotion4D/`` layout. Edit them to match your own data.
+point at a local ``D:/PhysioTwin4D/`` layout. Edit them to match your own data.
 
 Data Required
 -------------
-  * ``D:/PhysioMotion4D/duke_data/gated_nii/pm00??/``       - gated NIfTI CT per patient
-  * ``D:/PhysioMotion4D/duke_data/simple_ascardio/pm00??/`` - matching labelmaps
-  * ``D:/PhysioMotion4D/kcl-heart-pca/pca-vol-kcl/``        - PCA model (pca_mean.vtu, pca_model.json)
-  * ``D:/PhysioMotion4D/duke_data/icon_registration/``      - ICON registration weights
+  * ``D:/PhysioTwin4D/duke_data/gated_nii/pm00??/``       - gated NIfTI CT per patient
+  * ``D:/PhysioTwin4D/duke_data/simple_ascardio/pm00??/`` - matching labelmaps
+  * ``D:/PhysioTwin4D/kcl-heart-pca/pca-vol-kcl/``        - PCA model (pca_mean.vtu, pca_model.json)
+  * ``D:/PhysioTwin4D/duke_data/icon_registration/``      - ICON registration weights
 
 Outputs (per patient, under ``OUTPUT_DIR/pm00??/``)
 ---------------------------------------------------
@@ -58,14 +58,14 @@ from typing import Any
 import itk
 import pyvista as pv
 
-from physiomotion4d import (
+from physiotwin4d import (
     ContourTools,
     RegisterImagesICON,
     TransformTools,
     WorkflowFitStatisticalModelToPatient,
     WorkflowReconstructHighres4DCT,
 )
-from physiomotion4d.test_tools import TestTools
+from physiotwin4d.test_tools import TestTools
 
 # nnUNetv2 (used by TotalSegmentator inside several workflows) spawns a
 # multiprocessing.Pool. On Windows the spawn start method re-imports this
@@ -75,19 +75,16 @@ from physiomotion4d.test_tools import TestTools
 if __name__ == "__main__":
     # %%
     # Path configuration (bring-your-own-data: edit for your local layout)
-    DATA_DIR = Path("D:/PhysioMotion4D/duke_data/gated_nii")
-    LABELMAP_DIR = Path("D:/PhysioMotion4D/duke_data/simple_ascardio")
-    SSM_MEAN_MESH_FILE = Path(
-        "D:/PhysioMotion4D/kcl-heart-pca/pca-vol-kcl/pca_mean.vtu"
-    )
-    SSM_MODEL_FILE = Path("D:/PhysioMotion4D/kcl-heart-pca/pca-vol-kcl/pca_model.json")
+    DATA_DIR = Path("D:/PhysioTwin4D/duke_data/gated_nii")
+    LABELMAP_DIR = Path("D:/PhysioTwin4D/duke_data/simple_ascardio")
+    SSM_MEAN_MESH_FILE = Path("D:/PhysioTwin4D/kcl-heart-pca/pca-vol-kcl/pca_mean.vtu")
+    SSM_MODEL_FILE = Path("D:/PhysioTwin4D/kcl-heart-pca/pca-vol-kcl/pca_model.json")
     ICON_WEIGHTS_PATH = Path(
-        "D:/PhysioMotion4D/duke_data/icon_registration/"
-        "icon_ct_cardiac_gated_weights.trch"
+        "D:/PhysioTwin4D/duke_data/icon_registration/icon_ct_cardiac_gated_weights.trch"
     )
     # All outputs (fitted meshes, transforms, warped labelmaps) are written here;
     # this is also the directory the Tutorial 9 trainers read from.
-    OUTPUT_DIR = Path("D:/PhysioMotion4D/duke_data/fitted_kcl_meshes")
+    OUTPUT_DIR = Path("D:/PhysioTwin4D/duke_data/fitted_kcl_meshes")
     # Simpleware's heart interior chamber labels, excluded from the distance map.
     LABELMAP_INTERIOR_OBJECT_IDS = [1, 2, 3, 4]
     # Recompute the expensive fit/registration steps (True) or reload cached

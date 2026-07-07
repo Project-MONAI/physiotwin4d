@@ -50,7 +50,7 @@ If you use this dataset, please cite:
 
 ## Using This Dataset
 
-This dataset is used in the PhysioMotion4D experiments for creating statistical shape models and patient-specific heart registrations.
+This dataset is used in the PhysioTwin4D experiments for creating statistical shape models and patient-specific heart registrations.
 
 ### Heart-Create_Statistical_Model Experiment
 

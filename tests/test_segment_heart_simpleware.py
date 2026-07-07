@@ -17,7 +17,7 @@ import itk
 import numpy as np
 import pytest
 
-from physiomotion4d.segment_heart_simpleware import SegmentHeartSimpleware
+from physiotwin4d.segment_heart_simpleware import SegmentHeartSimpleware
 
 
 def _simpleware_available(segmenter: SegmentHeartSimpleware) -> bool:

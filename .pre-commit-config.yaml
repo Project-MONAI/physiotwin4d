@@ -1,4 +1,4 @@
-# Pre-commit configuration for PhysioMotion4D
+# Pre-commit configuration for PhysioTwin4D
 # Simplified to use Ruff for all linting and formatting
 
 repos:
@@ -46,5 +46,5 @@ repos:
         language: system
         pass_filenames: false
         always_run: false
-        files: ^(src/physiomotion4d/|tests/)
+        files: ^(src/physiotwin4d/|tests/)
         stages: [pre-push]

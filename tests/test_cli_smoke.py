@@ -11,15 +11,15 @@ import pytest
 
 
 CLI_MODULES = [
-    "physiomotion4d.cli.convert_image_to_vtk",
-    "physiomotion4d.cli.convert_image_4d_to_3d",
-    "physiomotion4d.cli.convert_image_to_usd",
-    "physiomotion4d.cli.convert_vtk_to_usd",
-    "physiomotion4d.cli.create_statistical_model",
-    "physiomotion4d.cli.download_data",
-    "physiomotion4d.cli.fit_statistical_model_to_patient",
-    "physiomotion4d.cli.reconstruct_highres_4d_ct",
-    "physiomotion4d.cli.visualize_pca_modes",
+    "physiotwin4d.cli.convert_image_to_vtk",
+    "physiotwin4d.cli.convert_image_4d_to_3d",
+    "physiotwin4d.cli.convert_image_to_usd",
+    "physiotwin4d.cli.convert_vtk_to_usd",
+    "physiotwin4d.cli.create_statistical_model",
+    "physiotwin4d.cli.download_data",
+    "physiotwin4d.cli.fit_statistical_model_to_patient",
+    "physiotwin4d.cli.reconstruct_highres_4d_ct",
+    "physiotwin4d.cli.visualize_pca_modes",
 ]
 
 
@@ -46,7 +46,7 @@ def test_convert_image_to_usd_help_includes_fps(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     """Image-to-USD CLI exposes playback FPS for animated USD output."""
-    module = importlib.import_module("physiomotion4d.cli.convert_image_to_usd")
+    module = importlib.import_module("physiotwin4d.cli.convert_image_to_usd")
     monkeypatch.setattr(sys, "argv", ["convert_image_to_usd", "--help"])
 
     with pytest.raises(SystemExit) as exc_info:
@@ -62,9 +62,9 @@ def test_convert_image_to_usd_cli_passes_fps(
     tmp_path: Path,
 ) -> None:
     """Image-to-USD CLI forwards --fps as times_per_second."""
-    import physiomotion4d
+    import physiotwin4d
 
-    module = importlib.import_module("physiomotion4d.cli.convert_image_to_usd")
+    module = importlib.import_module("physiotwin4d.cli.convert_image_to_usd")
     input_file = tmp_path / "input.mha"
     input_file.write_text("placeholder")
     captured_kwargs: dict[str, Any] = {}
@@ -90,7 +90,7 @@ def test_convert_image_to_usd_cli_passes_fps(
         FakeConvertImage4DTo3D,
     )
     monkeypatch.setattr(
-        physiomotion4d,
+        physiotwin4d,
         "WorkflowConvertImageToUSD",
         FakeWorkflowConvertImageToUSD,
     )

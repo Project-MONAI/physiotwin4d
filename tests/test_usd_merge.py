@@ -11,7 +11,7 @@ from typing import Any
 import pytest
 from pxr import Usd, UsdGeom, UsdShade
 
-from physiomotion4d import USDTools
+from physiotwin4d import USDTools
 
 
 def analyze_usd_file(filepath: str) -> dict[str, Any]:

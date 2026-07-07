@@ -12,7 +12,7 @@ Current Segmentation Contract
 
    import itk
 
-   from physiomotion4d import SegmentChestTotalSegmentator
+   from physiotwin4d import SegmentChestTotalSegmentator
 
    image = itk.imread("chest_ct.nrrd")
    segmenter = SegmentChestTotalSegmentator()
@@ -24,15 +24,15 @@ Current Segmentation Contract
 
 Segmentation outputs are dictionaries of ITK images. Access masks by key,
 not by positional unpacking. The exact key set depends on the segmenter's
-:class:`physiomotion4d.AnatomyTaxonomy` — see :doc:`../api/segmentation/base`
+:class:`physiotwin4d.AnatomyTaxonomy` — see :doc:`../api/segmentation/base`
 for the per-segmenter key sets and the general contract.
 
 Implemented Segmenters
 ======================
 
-* :class:`physiomotion4d.SegmentChestTotalSegmentator`
-* :class:`physiomotion4d.SegmentHeartSimpleware`
-* :class:`physiomotion4d.SegmentAnatomyBase`
+* :class:`physiotwin4d.SegmentChestTotalSegmentator`
+* :class:`physiotwin4d.SegmentHeartSimpleware`
+* :class:`physiotwin4d.SegmentAnatomyBase`
 
 Adding a New Segmenter
 ======================
@@ -46,7 +46,7 @@ produces by populating ``self.taxonomy``. The base class owns the
 
    import logging
 
-   from physiomotion4d import SegmentAnatomyBase
+   from physiotwin4d import SegmentAnatomyBase
 
 
    class SegmentMySite(SegmentAnatomyBase):
@@ -85,7 +85,7 @@ USD renderer doesn't fall back to the generic ``"other"`` material:
 
 .. code-block:: python
 
-   from physiomotion4d.usd_anatomy_tools import DEFAULT_RENDER_PARAMS
+   from physiotwin4d.usd_anatomy_tools import DEFAULT_RENDER_PARAMS
 
    DEFAULT_RENDER_PARAMS["brain"] = {
        "name": "Brain",

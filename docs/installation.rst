@@ -2,7 +2,7 @@
 Installation
 ============
 
-This guide covers the installation of PhysioMotion4D and its dependencies.
+This guide covers the installation of PhysioTwin4D and its dependencies.
 
 Prerequisites
 =============
@@ -19,7 +19,7 @@ System Requirements
 Software Dependencies
 ---------------------
 
-PhysioMotion4D relies on several key packages:
+PhysioTwin4D relies on several key packages:
 
 * **Medical Imaging**: ITK, MONAI, nibabel, PyVista
 * **AI/ML**: PyTorch, CuPy (CUDA 13), transformers, MONAI
@@ -33,13 +33,13 @@ Installation Methods
 Method 1: Install from PyPI (Recommended)
 ------------------------------------------
 
-The simplest way to install PhysioMotion4D is from PyPI.
+The simplest way to install PhysioTwin4D is from PyPI.
 
 CPU-only PyPI install (evaluation / no GPU):
 
 .. code-block:: bash
 
-   pip install physiomotion4d
+   pip install physiotwin4d
 
 This works immediately. CuPy is absent, so a ``UserWarning`` is emitted at
 import time (visible by default in all standard Python runs):
@@ -49,13 +49,13 @@ import time (visible by default in all standard Python runs):
    CuPy is not installed — GPU acceleration is unavailable and processing will be
    slow. Re-install with uv to get CuPy and CUDA-enabled PyTorch in one step
    (pip alone will not select the correct CUDA wheel):
-     uv pip install 'physiomotion4d[cuda13]'  # CUDA 13
+     uv pip install 'physiotwin4d[cuda13]'  # CUDA 13
 
 CUDA 13 install (recommended for production):
 
 .. code-block:: bash
 
-   uv pip install "physiomotion4d[cuda13]"
+   uv pip install "physiotwin4d[cuda13]"
 
 The ``[cuda13]`` extra installs CuPy. In uv-managed source environments,
 PyTorch, torchvision, and torchaudio resolve from the CUDA 13.0 PyTorch wheel
@@ -70,8 +70,8 @@ For development or to get the latest features:
 
 .. code-block:: bash
 
-   git clone https://github.com/Project-MONAI/physiomotion4d.git
-   cd physiomotion4d
+   git clone https://github.com/Project-MONAI/physiotwin4d.git
+   cd physiotwin4d
 
 **Step 2: Create virtual environment**
 
@@ -97,7 +97,7 @@ For development or to get the latest features:
 
    pip install uv
 
-**Step 4: Install PhysioMotion4D**
+**Step 4: Install PhysioTwin4D**
 
 Default uv-managed source install:
 
@@ -122,7 +122,7 @@ To install development dependencies (testing, linting, formatting):
 
 .. code-block:: bash
 
-   pip install physiomotion4d[dev]
+   pip install physiotwin4d[dev]
 
 This includes:
 
@@ -132,7 +132,7 @@ This includes:
 * **pre-commit** (git hooks for automatic checks)
 
 .. note::
-   As of 2026, PhysioMotion4D uses Ruff as the primary linter and formatter,
+   As of 2026, PhysioTwin4D uses Ruff as the primary linter and formatter,
    replacing the previous black, isort, flake8, and pylint tools for improved
    speed and simplicity.
 
@@ -143,7 +143,7 @@ To build documentation locally:
 
 .. code-block:: bash
 
-   pip install physiomotion4d[docs]
+   pip install physiotwin4d[docs]
 
 Testing Dependencies
 --------------------
@@ -152,38 +152,38 @@ To run tests:
 
 .. code-block:: bash
 
-   pip install physiomotion4d[test]
+   pip install physiotwin4d[test]
 
 Verify Installation
 ===================
 
-After installation, verify that PhysioMotion4D is correctly installed:
+After installation, verify that PhysioTwin4D is correctly installed:
 
 .. code-block:: python
 
-   import physiomotion4d
-   from physiomotion4d import WorkflowConvertImageToUSD
+   import physiotwin4d
+   from physiotwin4d import WorkflowConvertImageToUSD
    
-   print(f"PhysioMotion4D version: {physiomotion4d.__version__}")
+   print(f"PhysioTwin4D version: {physiotwin4d.__version__}")
    print(WorkflowConvertImageToUSD.__name__)
 
 Expected output:
 
 .. code-block:: text
 
-   PhysioMotion4D version: {{ pm4d_project_version }}
+   PhysioTwin4D version: {{ pt4d_project_version }}
    WorkflowConvertImageToUSD
 
 Command-Line Tools
 ==================
 
-PhysioMotion4D provides command-line interfaces that should be available after installation:
+PhysioTwin4D provides command-line interfaces that should be available after installation:
 
 .. code-block:: bash
 
    # Check CLI is available
-   physiomotion4d --help
-   physiomotion4d-convert-image-to-usd --help
+   physiotwin4d --help
+   physiotwin4d-convert-image-to-usd --help
 
 GPU Setup
 =========
@@ -196,7 +196,7 @@ extra:
 
 * **CUDA 13** — installed when you use the ``[cuda13]`` extra (recommended)
 
-A plain ``pip install physiomotion4d`` installs a CPU-only build. It runs
+A plain ``pip install physiotwin4d`` installs a CPU-only build. It runs
 without error but emits a ``UserWarning`` at import time and will be
 significantly slower than a GPU-enabled install.
 
@@ -230,7 +230,7 @@ Common Issues
 
 **Issue: CUDA out of memory**
 
-Solution: Reduce batch sizes or process smaller images. Most PhysioMotion4D functions work with limited GPU memory.
+Solution: Reduce batch sizes or process smaller images. Most PhysioTwin4D functions work with limited GPU memory.
 
 **Issue: Import errors for ITK or VTK**
 
@@ -263,7 +263,7 @@ Getting Help
 If you encounter issues:
 
 1. Check the :doc:`troubleshooting` guide
-2. Search `GitHub Issues <https://github.com/Project-MONAI/physiomotion4d/issues>`_
+2. Search `GitHub Issues <https://github.com/Project-MONAI/physiotwin4d/issues>`_
 3. Open a new issue with:
 
    * Python version
@@ -274,7 +274,7 @@ If you encounter issues:
 Next Steps
 ==========
 
-* Continue to :doc:`quickstart` for your first PhysioMotion4D workflow
+* Continue to :doc:`quickstart` for your first PhysioTwin4D workflow
 * Explore :doc:`examples` for common use cases
 * Read :doc:`cli_scripts/overview` for detailed command-line workflows
 

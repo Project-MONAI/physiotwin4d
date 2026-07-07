@@ -12,10 +12,10 @@ from __future__ import annotations
 
 import pytest
 
-from physiomotion4d.register_images_chain import RegisterImagesChain
-from physiomotion4d.register_images_greedy import RegisterImagesGreedy
-from physiomotion4d.register_images_greedy_icon import RegisterImagesGreedyICON
-from physiomotion4d.register_images_icon import RegisterImagesICON
+from physiotwin4d.register_images_chain import RegisterImagesChain
+from physiotwin4d.register_images_greedy import RegisterImagesGreedy
+from physiotwin4d.register_images_greedy_icon import RegisterImagesGreedyICON
+from physiotwin4d.register_images_icon import RegisterImagesICON
 
 
 def test_greedy_icon_is_a_two_stage_chain() -> None:

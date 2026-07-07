@@ -1,8 +1,8 @@
 ---
-description: Inspect PhysioMotion4D source files, summarize the current design, and produce a numbered implementation plan with open questions. Does not write code unless explicitly asked.
+description: Inspect PhysioTwin4D source files, summarize the current design, and produce a numbered implementation plan with open questions. Does not write code unless explicitly asked.
 ---
 
-Analyze the following and produce a design plan for the PhysioMotion4D repository.
+Analyze the following and produce a design plan for the PhysioTwin4D repository.
 
 Task: $ARGUMENTS
 

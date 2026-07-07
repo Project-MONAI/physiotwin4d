@@ -16,8 +16,8 @@ import itk
 import numpy as np
 import pytest
 
-from physiomotion4d.register_images_ants import RegisterImagesANTS
-from physiomotion4d.transform_tools import TransformTools
+from physiotwin4d.register_images_ants import RegisterImagesANTS
+from physiotwin4d.transform_tools import TransformTools
 
 
 def _foreground_ncc(
@@ -869,7 +869,7 @@ class TestRegisterImagesANTS:
 
         # Create a simple displacement field with double precision
         # Use ImageTools to create the correct type
-        from physiomotion4d.image_tools import ImageTools
+        from physiotwin4d.image_tools import ImageTools
 
         image_tools = ImageTools()
 

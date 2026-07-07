@@ -11,12 +11,12 @@ import numpy as np
 import pytest
 from pxr import Usd, UsdGeom
 
-from physiomotion4d.register_images_base import RegisterImagesBase
-from physiomotion4d.register_images_icon import RegisterImagesICON
-from physiomotion4d.segment_chest_total_segmentator_with_contrast import (
+from physiotwin4d.register_images_base import RegisterImagesBase
+from physiotwin4d.register_images_icon import RegisterImagesICON
+from physiotwin4d.segment_chest_total_segmentator_with_contrast import (
     SegmentChestTotalSegmentatorWithContrast,
 )
-from physiomotion4d.workflow_convert_image_to_usd import WorkflowConvertImageToUSD
+from physiotwin4d.workflow_convert_image_to_usd import WorkflowConvertImageToUSD
 
 
 def _small_image() -> itk.Image:

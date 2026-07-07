@@ -2,9 +2,9 @@
 Architecture Overview
 =====================
 
-PhysioMotion4D is an early-beta scientific Python package built from workflow
+PhysioTwin4D is an early-beta scientific Python package built from workflow
 classes plus reusable segmentation, registration, geometry, image, and USD
-components. Runtime classes inherit from :class:`PhysioMotion4DBase` for
+components. Runtime classes inherit from :class:`PhysioTwin4DBase` for
 logging and consistent configuration.
 
 Architecture Diagram

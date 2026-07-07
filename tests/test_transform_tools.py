@@ -15,8 +15,8 @@ import pytest
 import pyvista as pv
 import vtk
 
-from physiomotion4d.image_tools import ImageTools
-from physiomotion4d.transform_tools import TransformTools
+from physiotwin4d.image_tools import ImageTools
+from physiotwin4d.transform_tools import TransformTools
 
 
 def test_generate_grid_image_clamps_boundary_lines() -> None:

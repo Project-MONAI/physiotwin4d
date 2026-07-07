@@ -13,8 +13,8 @@ import itk
 import numpy as np
 import pytest
 
-from physiomotion4d.register_images_greedy import RegisterImagesGreedy
-from physiomotion4d.transform_tools import TransformTools
+from physiotwin4d.register_images_greedy import RegisterImagesGreedy
+from physiotwin4d.transform_tools import TransformTools
 
 
 @pytest.mark.slow

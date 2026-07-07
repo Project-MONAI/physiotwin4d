@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from physiomotion4d.convert_image_4d_to_3d import ConvertImage4DTo3D
+from physiotwin4d.convert_image_4d_to_3d import ConvertImage4DTo3D
 
 
 class TestConvertImage4DTo3D:

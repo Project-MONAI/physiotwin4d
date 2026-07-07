@@ -2,21 +2,21 @@
 References
 ===========
 
-Academic papers, datasets, and resources related to PhysioMotion4D.
+Academic papers, datasets, and resources related to PhysioTwin4D.
 
 Software Citations
 ==================
 
-If you use PhysioMotion4D in your research, please cite:
+If you use PhysioTwin4D in your research, please cite:
 
 .. code-block:: bibtex
 
-   @software{physiomotion4d,
+   @software{physiotwin4d,
      author = {Aylward, Stephen R.},
-     title = {PhysioMotion4D: Medical Imaging to Omniverse},
+     title = {PhysioTwin4D: Medical Imaging to Omniverse},
      year = {2025},
      publisher = {GitHub},
-     url = {https://github.com/Project-MONAI/physiomotion4d}
+     url = {https://github.com/Project-MONAI/physiotwin4d}
    }
 
 Related Publications

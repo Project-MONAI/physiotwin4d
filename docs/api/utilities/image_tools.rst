@@ -2,14 +2,14 @@
 Image Tools
 ====================================
 
-.. currentmodule:: physiomotion4d
+.. currentmodule:: physiotwin4d
 
 Image I/O, preprocessing, and manipulation utilities.
 
 Module Reference
 ================
 
-.. automodule:: physiomotion4d.image_tools
+.. automodule:: physiotwin4d.image_tools
    :members:
    :undoc-members:
 

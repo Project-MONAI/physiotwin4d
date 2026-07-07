@@ -99,7 +99,7 @@ def execute_script(script_path: Path, timeout: int = 3600) -> dict[str, Any]:
 
     # So scripts can use reduced parameters when run as tests
     env = os.environ.copy()
-    env["PHYSIOMOTION_RUNNING_AS_TEST"] = "1"
+    env["PHYSIOTWIN_RUNNING_AS_TEST"] = "1"
 
     try:
         result = subprocess.run(

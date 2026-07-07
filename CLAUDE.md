@@ -62,7 +62,7 @@ py -m pytest tests/ -v --run-all
 py -m pytest tests/ -v --run-gpu --run-slow
 
 # With coverage
-py -m pytest tests/ --cov=src/physiomotion4d --cov-report=html
+py -m pytest tests/ --cov=src/physiotwin4d --cov-report=html
 
 # Create missing baselines
 py -m pytest tests/ --create-baselines
@@ -72,7 +72,7 @@ py -m pytest tests/ --create-baselines
 
 ## Architecture
 
-All classes inherit from `PhysioMotion4DBase` (`physiomotion4d_base.py`), which provides
+All classes inherit from `PhysioTwin4DBase` (`physiotwin4d_base.py`), which provides
 a shared logger. Use `self.log_info()`, `self.log_debug()` — never `print()`.
 
 Consult `docs/API_MAP.md` for the full index of classes, methods, and signatures.
@@ -93,7 +93,7 @@ Regenerate it after any public API change: `py utils/generate_api_map.py`
 
 - Baselines in `tests/baselines/` via Git LFS — run `git lfs pull` after cloning
 - `tests/conftest.py`: session-scoped fixtures chaining download → convert → segment → register
-- `src/physiomotion4d/test_tools.py`: baseline comparison utilities (`TestTools`, etc.)
+- `src/physiotwin4d/test_tools.py`: baseline comparison utilities (`TestTools`, etc.)
 - Markers (all opt-in via `--run-<bucket>`): `slow`, `requires_gpu`,
   `requires_simpleware`, `experiment`, `tutorial`. Data-dependent tests no
   longer use a marker — they pull data through fixtures and run by default.

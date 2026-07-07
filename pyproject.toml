@@ -3,7 +3,7 @@ requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "physiomotion4d"
+name = "physiotwin4d"
 version = "2026.07.0"
 description = "Medical imaging package for generating anatomic models in Omniverse with physiological motion from 4D medical images"
 authors = [
@@ -112,7 +112,7 @@ cuda13 = [
 ]
 # PhysicsNeMo pulls in a large dependency stack (CUDA-only toolchain, narrower
 # Python support). It is only needed for Tutorial 9 (mesh stage MLP). Install
-# with ``pip install physiomotion4d[physicsnemo]`` when you need it. Note:
+# with ``pip install physiotwin4d[physicsnemo]`` when you need it. Note:
 # nvidia-physicsnemo itself requires Python >= 3.11.
 physicsnemo = [
     "nvidia-physicsnemo>=2.0.0",
@@ -157,25 +157,25 @@ test = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/Project-MONAI/physiomotion4d"
-Documentation = "https://project-monai.github.io/physiomotion4d/"
-Repository = "https://github.com/Project-MONAI/physiomotion4d.git"
-"Bug Tracker" = "https://github.com/Project-MONAI/physiomotion4d/issues"
+Homepage = "https://github.com/Project-MONAI/physiotwin4d"
+Documentation = "https://project-monai.github.io/physiotwin4d/"
+Repository = "https://github.com/Project-MONAI/physiotwin4d.git"
+"Bug Tracker" = "https://github.com/Project-MONAI/physiotwin4d/issues"
 "Author LinkedIn" = "https://www.linkedin.com/in/stephenaylward"
 "Author Google Scholar" = "https://scholar.google.com/citations?user=u1UdL4oAAAAJ&hl"
 
 [project.scripts]
 # CLI commands installed via pip
 # Entry points reference the main() functions in the cli submodule
-physiomotion4d-convert-image-to-vtk = "physiomotion4d.cli.convert_image_to_vtk:main"
-physiomotion4d-convert-image-4d-to-3d = "physiomotion4d.cli.convert_image_4d_to_3d:main"
-physiomotion4d-convert-image-to-usd = "physiomotion4d.cli.convert_image_to_usd:main"
-physiomotion4d-convert-vtk-to-usd = "physiomotion4d.cli.convert_vtk_to_usd:main"
-physiomotion4d-create-statistical-model = "physiomotion4d.cli.create_statistical_model:main"
-physiomotion4d-download-data = "physiomotion4d.cli.download_data:main"
-physiomotion4d-fit-statistical-model-to-patient = "physiomotion4d.cli.fit_statistical_model_to_patient:main"
-physiomotion4d-reconstruct-highres-4d-ct = "physiomotion4d.cli.reconstruct_highres_4d_ct:main"
-physiomotion4d-visualize-pca-modes = "physiomotion4d.cli.visualize_pca_modes:main"
+physiotwin4d-convert-image-to-vtk = "physiotwin4d.cli.convert_image_to_vtk:main"
+physiotwin4d-convert-image-4d-to-3d = "physiotwin4d.cli.convert_image_4d_to_3d:main"
+physiotwin4d-convert-image-to-usd = "physiotwin4d.cli.convert_image_to_usd:main"
+physiotwin4d-convert-vtk-to-usd = "physiotwin4d.cli.convert_vtk_to_usd:main"
+physiotwin4d-create-statistical-model = "physiotwin4d.cli.create_statistical_model:main"
+physiotwin4d-download-data = "physiotwin4d.cli.download_data:main"
+physiotwin4d-fit-statistical-model-to-patient = "physiotwin4d.cli.fit_statistical_model_to_patient:main"
+physiotwin4d-reconstruct-highres-4d-ct = "physiotwin4d.cli.reconstruct_highres_4d_ct:main"
+physiotwin4d-visualize-pca-modes = "physiotwin4d.cli.visualize_pca_modes:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -194,7 +194,7 @@ push = false
     'current_version = "{version}"',
     'version = "{version}"',
 ]
-"src/physiomotion4d/__init__.py" = [
+"src/physiotwin4d/__init__.py" = [
     '__version__ = "{version}"',
 ]
 
@@ -265,11 +265,11 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = [
-    "physiomotion4d.cli.create_statistical_model",
-    "physiomotion4d.cli.fit_statistical_model_to_patient",
-    "physiomotion4d.cli.visualize_pca_modes",
-    "physiomotion4d.vtk_to_usd.mesh_utils",
-    "physiomotion4d.vtk_to_usd.vtk_reader",
+    "physiotwin4d.cli.create_statistical_model",
+    "physiotwin4d.cli.fit_statistical_model_to_patient",
+    "physiotwin4d.cli.visualize_pca_modes",
+    "physiotwin4d.vtk_to_usd.mesh_utils",
+    "physiotwin4d.vtk_to_usd.vtk_reader",
     "tutorial_08_cardiac_fit_model",
     "tutorial_09a_cardiac_train_physicsnemo_mgn",
     "tutorial_09b_cardiac_train_physicsnemo_mlp",
@@ -281,7 +281,7 @@ disable_error_code = ["import-not-found", "import-untyped"]
 [[tool.mypy.overrides]]
 # torch/icon_registration/unigradicon are lazy-loaded at runtime; string
 # forward-reference annotations like "torch.Size" are intentional.
-module = ["physiomotion4d.register_images_icon"]
+module = ["physiotwin4d.register_images_icon"]
 ignore_errors = true
 
 [tool.pyright]
@@ -294,7 +294,7 @@ minversion = "7.0"
 addopts = [
     "--strict-markers",
     "--strict-config",
-    "--cov=physiomotion4d",
+    "--cov=physiotwin4d",
     "--cov-report=term-missing",
     "--cov-report=html",
     "--cov-report=xml"
@@ -326,7 +326,7 @@ markers = [
 timeout = 1200
 
 [tool.coverage.run]
-source = ["src/physiomotion4d"]
+source = ["src/physiotwin4d"]
 omit = [
     "*/tests/*",
     "*/test_*",
@@ -413,10 +413,10 @@ ignore = [
 "tests/*.py" = ["S101", "PLR2004", "ARG001", "ARG002"]
 "experiments/**/*.py" = ["T201", "S101"]
 # torch/icon_registration are lazy-loaded at runtime; forward-reference strings are intentional
-"src/physiomotion4d/register_images_icon.py" = ["F821"]
+"src/physiotwin4d/register_images_icon.py" = ["F821"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["physiomotion4d"]
+known-first-party = ["physiotwin4d"]
 force-single-line = false
 lines-after-imports = 2
 

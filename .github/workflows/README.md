@@ -213,7 +213,7 @@ pip install -e ".[test]"
 pytest tests/ -m "unit and not requires_gpu"
 
 # Run with coverage
-pytest tests/ -m "unit and not requires_gpu" --cov=physiomotion4d
+pytest tests/ -m "unit and not requires_gpu" --cov=physiotwin4d
 ```
 
 ### GPU Tests

@@ -3,7 +3,7 @@
 Bring Your Own Data - DICOM, Images & VTK to USD
 ================================================
 
-PhysioMotion4D lets you convert your own medical imaging data into OpenUSD for
+PhysioTwin4D lets you convert your own medical imaging data into OpenUSD for
 interactive visualization in NVIDIA Omniverse. Image inputs may be a directory
 of 3D or 4D DICOM data, a single 3D or 4D file in a common medical image format
 such as MHA, NRRD, or NIfTI, or a list of 3D image files representing a time
@@ -11,7 +11,7 @@ series. VTK inputs may be one mesh file or a mesh sequence.
 
 .. note::
 
-   PhysioMotion4D is a research tool and has **not** been validated for
+   PhysioTwin4D is a research tool and has **not** been validated for
    clinical use. Outputs must not be used for diagnostic or therapeutic
    decisions without independent validation.
 
@@ -24,18 +24,18 @@ or the CPU-only variant:
 .. code-block:: bash
 
    # Recommended - CUDA-enabled
-   pip install physiomotion4d[cuda13]
+   pip install physiotwin4d[cuda13]
 
    # CPU-only
-   pip install physiomotion4d
+   pip install physiotwin4d
 
 Verify that all three relevant CLI entry-points are available after installation:
 
 .. code-block:: bash
 
-   physiomotion4d-download-data --help
-   physiomotion4d-convert-image-to-usd --help
-   physiomotion4d-convert-vtk-to-usd --help
+   physiotwin4d-download-data --help
+   physiotwin4d-convert-image-to-usd --help
+   physiotwin4d-convert-vtk-to-usd --help
 
 See :doc:`/installation` for prerequisites, CUDA version requirements, and
 source-based installation.
@@ -47,14 +47,14 @@ Use the installed download CLI to fetch the public Slicer-Heart 4D CT sample:
 
 .. code-block:: bash
 
-   physiomotion4d-download-data
+   physiotwin4d-download-data
 
 This stores ``TruncalValve_4DCT.seq.nrrd`` under
 ``data/Slicer-Heart-CT``. To choose a different location:
 
 .. code-block:: bash
 
-   physiomotion4d-download-data Slicer-Heart-CT \
+   physiotwin4d-download-data Slicer-Heart-CT \
        --directory path/to/Slicer-Heart-CT
 
 DICOM and Medical Images to USD
@@ -74,12 +74,12 @@ scene.
 
 .. code-block:: bash
 
-   physiomotion4d-convert-image-to-usd \
+   physiotwin4d-convert-image-to-usd \
        patient_dicom_dir \
        --output-dir ./results \
        --project-name patient_heart
 
-   physiomotion4d-convert-image-to-usd \
+   physiotwin4d-convert-image-to-usd \
        patient_ct.mha \
        --output-dir ./results \
        --project-name patient_heart
@@ -88,11 +88,11 @@ scene.
 
 .. code-block:: python
 
-   import physiomotion4d as pm4d
+   import physiotwin4d as pt4d
 
-   workflow = pm4d.WorkflowConvertImageToUSD(
+   workflow = pt4d.WorkflowConvertImageToUSD(
        input_filenames=["patient_dicom_dir"],
-       segmentation_method=pm4d.SegmentChestTotalSegmentator(),
+       segmentation_method=pt4d.SegmentChestTotalSegmentator(),
        output_directory="./results",
        project_name="patient_heart",
    )
@@ -115,17 +115,17 @@ selects its default reference frame internally.
 
 .. code-block:: bash
 
-   physiomotion4d-convert-image-to-usd \
+   physiotwin4d-convert-image-to-usd \
        gated_ct_dicom_dir \
        --output-dir ./results \
        --project-name heart_animated
 
-   physiomotion4d-convert-image-to-usd \
+   physiotwin4d-convert-image-to-usd \
        gated_ct_4d.nrrd \
        --output-dir ./results \
        --project-name heart_animated
 
-   physiomotion4d-convert-image-to-usd \
+   physiotwin4d-convert-image-to-usd \
        phase_000.mha phase_001.mha phase_002.mha \
        --output-dir ./results \
        --fps 30 \
@@ -135,11 +135,11 @@ selects its default reference frame internally.
 
 .. code-block:: python
 
-   import physiomotion4d as pm4d
+   import physiotwin4d as pt4d
 
-   workflow = pm4d.WorkflowConvertImageToUSD(
+   workflow = pt4d.WorkflowConvertImageToUSD(
        input_filenames=["phase_000.mha", "phase_001.mha", "phase_002.mha"],
-       segmentation_method=pm4d.SegmentChestTotalSegmentator(),
+       segmentation_method=pt4d.SegmentChestTotalSegmentator(),
        output_directory="./results",
        project_name="heart_animated",
        times_per_second=30.0,
@@ -163,13 +163,13 @@ Pass a single ``.vtp`` file. Use ``--appearance`` to control material style and
 .. code-block:: bash
 
    # Default - split by connected component, anatomy material
-   physiomotion4d-convert-vtk-to-usd heart.vtp \
+   physiotwin4d-convert-vtk-to-usd heart.vtp \
        --output heart.usd \
        --appearance anatomy \
        --anatomy-type heart
 
    # Solid color, no splitting
-   physiomotion4d-convert-vtk-to-usd mesh.vtp \
+   physiotwin4d-convert-vtk-to-usd mesh.vtp \
        --output mesh_red.usd \
        --appearance solid \
        --color 0.8 0.1 0.1 \
@@ -179,9 +179,9 @@ Pass a single ``.vtp`` file. Use ``--appearance`` to control material style and
 
 .. code-block:: python
 
-   import physiomotion4d as pm4d
+   import physiotwin4d as pt4d
 
-   workflow = pm4d.WorkflowConvertVTKToUSD(
+   workflow = pt4d.WorkflowConvertVTKToUSD(
        vtk_files=["heart.vtp"],
        output_usd="heart.usd",
        appearance="anatomy",
@@ -203,12 +203,12 @@ rate. For scalar colormaps, combine ``--primvar``, ``--cmap``, and
 .. code-block:: bash
 
    # Animated mesh sequence
-   physiomotion4d-convert-vtk-to-usd heart.t0.vtp heart.t1.vtp heart.t2.vtp \
+   physiotwin4d-convert-vtk-to-usd heart.t0.vtp heart.t1.vtp heart.t2.vtp \
        --output heart_animation.usd \
        --fps 30
 
    # Animated with scalar colormap (e.g. wall stress)
-   physiomotion4d-convert-vtk-to-usd stress.t0.vtk stress.t1.vtk stress.t2.vtk \
+   physiotwin4d-convert-vtk-to-usd stress.t0.vtk stress.t1.vtk stress.t2.vtk \
        --output stress_animation.usd \
        --fps 30 \
        --appearance colormap \
@@ -220,9 +220,9 @@ rate. For scalar colormaps, combine ``--primvar``, ``--cmap``, and
 
 .. code-block:: python
 
-   import physiomotion4d as pm4d
+   import physiotwin4d as pt4d
 
-   workflow = pm4d.WorkflowConvertVTKToUSD(
+   workflow = pt4d.WorkflowConvertVTKToUSD(
        vtk_files=["stress.t0.vtk", "stress.t1.vtk", "stress.t2.vtk"],
        output_usd="stress_animation.usd",
        times_per_second=30,
@@ -236,17 +236,17 @@ rate. For scalar colormaps, combine ``--primvar``, ``--cmap``, and
 **Lower-level in-memory conversion with ConvertVTKToUSD:**
 
 For programmatic pipelines where meshes are already in memory, use the
-lower-level :class:`physiomotion4d.ConvertVTKToUSD` class directly:
+lower-level :class:`physiotwin4d.ConvertVTKToUSD` class directly:
 
 .. code-block:: python
 
    import pyvista as pv
-   import physiomotion4d as pm4d
+   import physiotwin4d as pt4d
 
    # Load or construct meshes in memory
    meshes = [pv.read(f"frame_{i:04d}.vtp") for i in range(10)]
 
-   converter = pm4d.ConvertVTKToUSD(
+   converter = pt4d.ConvertVTKToUSD(
        data_basename="HeartAnimation",
        input_polydata=meshes,
        times_per_second=30,
@@ -260,9 +260,9 @@ Viewing Results
 
 .. code-block:: python
 
-   import physiomotion4d as pm4d
+   import physiotwin4d as pt4d
 
-   mesh = pm4d.USDTools().load_usd_as_vtk("output.usd")
+   mesh = pt4d.USDTools().load_usd_as_vtk("output.usd")
    print(mesh.n_points, mesh.n_cells)
 
 PyVista reads the VTK input files used above, but local validation with
@@ -291,7 +291,7 @@ See Also
 4D Isaac for Healthcare Assets
 ------------------------------
 
-PhysioMotion4D has been used to generate a number of 4D anatomic models for
+PhysioTwin4D has been used to generate a number of 4D anatomic models for
 Isaac for Healthcare. These datasets are intended to support visualization and
 workflow development with time-varying anatomy in OpenUSD.
 

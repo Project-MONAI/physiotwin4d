@@ -6,8 +6,8 @@ import itk
 import numpy as np
 import pyvista as pv
 
-from physiomotion4d.contour_tools import ContourTools
-from physiomotion4d.test_tools import TestTools
+from physiotwin4d.contour_tools import ContourTools
+from physiotwin4d.test_tools import TestTools
 
 _HERE = Path(__file__).parent
 

@@ -2,7 +2,7 @@
 USD Generation Modules
 ====================================
 
-.. currentmodule:: physiomotion4d
+.. currentmodule:: physiotwin4d
 
 Convert medical imaging data to Universal Scene Description (USD) format for NVIDIA Omniverse.
 
@@ -43,7 +43,7 @@ Convert VTK to USD
 
 .. code-block:: python
 
-   from physiomotion4d import ConvertVTKToUSD
+   from physiotwin4d import ConvertVTKToUSD
    
    converter = ConvertVTKToUSD.from_files(
        data_basename="Heart",
@@ -57,7 +57,7 @@ Create Anatomical Scene
 
 .. code-block:: python
 
-   from physiomotion4d import usd_anatomy_tools
+   from physiotwin4d import usd_anatomy_tools
    
    stage = usd_anatomy_tools.create_anatomical_stage()
    usd_anatomy_tools.add_heart_model(stage, "heart.vtk")

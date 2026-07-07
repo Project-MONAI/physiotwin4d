@@ -2,14 +2,14 @@
 Examples
 ========
 
-This page provides quick examples for common PhysioMotion4D use cases. For detailed workflow guides,
+This page provides quick examples for common PhysioTwin4D use cases. For detailed workflow guides,
 see the :doc:`cli_scripts/overview` section.
 
 .. note::
 
-   **For Production Workflows:** The CLI commands (``physiomotion4d-convert-image-to-usd``,
-   ``physiomotion4d-create-statistical-model``, ``physiomotion4d-fit-statistical-model-to-patient``)
-   and their implementations in ``src/physiomotion4d/cli/``
+   **For Production Workflows:** The CLI commands (``physiotwin4d-convert-image-to-usd``,
+   ``physiotwin4d-create-statistical-model``, ``physiotwin4d-fit-statistical-model-to-patient``)
+   and their implementations in ``src/physiotwin4d/cli/``
    are the definitive source for proper library usage, class instantiation, and best practices.
 
    The ``experiments/`` directory contains research prototypes that informed development but should
@@ -27,7 +27,7 @@ Complete end-to-end cardiac CT processing:
 
 .. code-block:: python
 
-   from physiomotion4d import RegisterImagesICON, WorkflowConvertImageToUSD
+   from physiotwin4d import RegisterImagesICON, WorkflowConvertImageToUSD
 
    # Initialize workflow
    workflow = WorkflowConvertImageToUSD(
@@ -53,7 +53,7 @@ phase images:
 
    import itk
 
-   from physiomotion4d import RegisterImagesGreedyICON, WorkflowReconstructHighres4DCT
+   from physiotwin4d import RegisterImagesGreedyICON, WorkflowReconstructHighres4DCT
 
    # DirLab-4DCT data is manual-only. Place phase images under ./data/DirLab.
    phase_dir = Path("./data/DirLab/case1")
@@ -82,7 +82,7 @@ Quick segmentation with TotalSegmentator:
 
 .. code-block:: python
 
-   from physiomotion4d import SegmentChestTotalSegmentatorWithContrast
+   from physiotwin4d import SegmentChestTotalSegmentatorWithContrast
    import itk
 
    # Load image
@@ -114,7 +114,7 @@ Fast GPU-accelerated registration:
 
 .. code-block:: python
 
-   from physiomotion4d.register_images_icon import RegisterImagesICON
+   from physiotwin4d.register_images_icon import RegisterImagesICON
    import itk
 
    # Initialize
@@ -147,7 +147,7 @@ Register all cardiac phases to reference:
 
 .. code-block:: python
 
-   from physiomotion4d.register_images_icon import RegisterImagesICON
+   from physiotwin4d.register_images_icon import RegisterImagesICON
    import itk
    import glob
 
@@ -176,7 +176,7 @@ Advanced registration with multiple stages:
 
 .. code-block:: python
 
-   from physiomotion4d import RegisterImagesANTS
+   from physiotwin4d import RegisterImagesANTS
    import itk
 
    registerer = RegisterImagesANTS()
@@ -201,7 +201,7 @@ Convert VTK mesh sequence to animated USD:
 
 .. code-block:: python
 
-   from physiomotion4d import ConvertVTKToUSD
+   from physiotwin4d import ConvertVTKToUSD
    import glob
 
    # Get VTK files
@@ -224,7 +224,7 @@ Combine separate anatomical structures:
 
 .. code-block:: python
 
-   from physiomotion4d import USDTools
+   from physiotwin4d import USDTools
 
    tools = USDTools()
 
@@ -245,7 +245,7 @@ Add anatomical materials and colors:
 
 .. code-block:: python
 
-   from physiomotion4d import USDAnatomyTools
+   from physiotwin4d import USDAnatomyTools
    from pxr import Usd
 
    stage = Usd.Stage.Open("thorax_model.usd")
@@ -269,7 +269,7 @@ Warp images using deformation fields:
 
 .. code-block:: python
 
-   from physiomotion4d import TransformTools
+   from physiotwin4d import TransformTools
    import itk
 
    tools = TransformTools()
@@ -292,7 +292,7 @@ Propagate segmentation contours across time:
 
 .. code-block:: python
 
-   from physiomotion4d import TransformTools
+   from physiotwin4d import TransformTools
    import itk
    import pyvista as pv
 
@@ -314,7 +314,7 @@ Convert segmentation masks to meshes:
 
 .. code-block:: python
 
-   from physiomotion4d import ContourTools
+   from physiotwin4d import ContourTools
    import itk
 
    tools = ContourTools()
@@ -390,7 +390,7 @@ Batch process multiple datasets:
 
 .. code-block:: python
 
-   from physiomotion4d import RegisterImagesICON, WorkflowConvertImageToUSD
+   from physiotwin4d import RegisterImagesICON, WorkflowConvertImageToUSD
    import glob
    import os
 
@@ -426,7 +426,7 @@ Segment multiple images in parallel:
 
 .. code-block:: python
 
-   from physiomotion4d import SegmentChestTotalSegmentatorWithContrast
+   from physiotwin4d import SegmentChestTotalSegmentatorWithContrast
    import itk
    import glob
    from concurrent.futures import ProcessPoolExecutor
@@ -458,7 +458,7 @@ Download Slicer-Heart Dataset
 
 .. code-block:: python
 
-   from physiomotion4d import DataDownloadTools
+   from physiotwin4d import DataDownloadTools
 
    data_file = DataDownloadTools.DownloadSlicerHeartCTData("data/Slicer-Heart-CT")
    assert DataDownloadTools.VerifySlicerHeartCTData("data/Slicer-Heart-CT")
@@ -473,7 +473,7 @@ Run the supported end-to-end workflow API:
 
 .. code-block:: python
 
-   from physiomotion4d import RegisterImagesICON, WorkflowConvertImageToUSD
+   from physiotwin4d import RegisterImagesICON, WorkflowConvertImageToUSD
 
    workflow = WorkflowConvertImageToUSD(
        input_filenames=["cardiac_4d.nrrd"],
@@ -493,7 +493,7 @@ Mix and match different components:
 
 .. code-block:: python
 
-   from physiomotion4d import (
+   from physiotwin4d import (
        SegmentChestTotalSegmentatorWithContrast,
        RegisterImagesICON,
        TransformTools,

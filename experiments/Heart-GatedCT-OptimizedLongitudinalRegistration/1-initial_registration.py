@@ -15,17 +15,17 @@ from typing import Optional
 import itk
 import numpy as np
 
-from physiomotion4d.labelmap_tools import LabelmapTools
-from physiomotion4d.landmark_tools import LandmarkTools
-from physiomotion4d.register_images_ants import RegisterImagesANTS
-from physiomotion4d.register_images_greedy import RegisterImagesGreedy
-from physiomotion4d.register_images_icon import RegisterImagesICON
-from physiomotion4d.transform_tools import TransformTools
+from physiotwin4d.labelmap_tools import LabelmapTools
+from physiotwin4d.landmark_tools import LandmarkTools
+from physiotwin4d.register_images_ants import RegisterImagesANTS
+from physiotwin4d.register_images_greedy import RegisterImagesGreedy
+from physiotwin4d.register_images_icon import RegisterImagesICON
+from physiotwin4d.transform_tools import TransformTools
 
 # %%
-ref_data_dir = Path("d:/PhysioMotion4D/duke_data/ref_images")
-src_data_dir_base = Path("d:/PhysioMotion4D/duke_data/gated_nii")
-segmentation_dir_base = Path("d:/PhysioMotion4D/duke_data/simple_ascardio")
+ref_data_dir = Path("d:/PhysioTwin4D/duke_data/ref_images")
+src_data_dir_base = Path("d:/PhysioTwin4D/duke_data/gated_nii")
+segmentation_dir_base = Path("d:/PhysioTwin4D/duke_data/simple_ascardio")
 
 use_mask_list = [False, False]
 use_labelmap_list = [False, True]

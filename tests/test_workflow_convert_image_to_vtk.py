@@ -6,9 +6,9 @@ from typing import Any
 
 import pytest
 
-from physiomotion4d.segment_chest_total_segmentator import SegmentChestTotalSegmentator
-from physiomotion4d.segment_heart_simpleware import SegmentHeartSimpleware
-from physiomotion4d.workflow_convert_image_to_vtk import WorkflowConvertImageToVTK
+from physiotwin4d.segment_chest_total_segmentator import SegmentChestTotalSegmentator
+from physiotwin4d.segment_heart_simpleware import SegmentHeartSimpleware
+from physiotwin4d.workflow_convert_image_to_vtk import WorkflowConvertImageToVTK
 
 
 def test_default_segmentation_method_is_chest_total_segmentator() -> None:

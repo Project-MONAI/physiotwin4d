@@ -2,8 +2,8 @@
 ICON Image Registration
 ================================
 
-.. module:: physiomotion4d.register_images_icon
-.. currentmodule:: physiomotion4d
+.. module:: physiotwin4d.register_images_icon
+.. currentmodule:: physiotwin4d
 
 ``RegisterImagesICON`` performs deformable image registration using the
 uniGradICON registration backend.
@@ -23,7 +23,7 @@ Basic Registration
 
    import itk
 
-   from physiomotion4d import RegisterImagesICON
+   from physiotwin4d import RegisterImagesICON
 
    fixed = itk.imread("reference_frame.mha")
    moving = itk.imread("moving_frame.mha")

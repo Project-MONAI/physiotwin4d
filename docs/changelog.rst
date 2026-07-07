@@ -2,10 +2,17 @@
 Release Notes
 =============
 
+2026.07.0 Beta
+==============
+
+PhysioTwin4D 2026.07.0 renames the project. The Python package, console
+scripts, GitHub repository, and PyPI project all move to the new name;
+there is no functional change.
+
 2026.05.07 Beta
 ===============
 
-PhysioMotion4D 2026.05.07 is a beta release focused on public packaging,
+PhysioTwin4D 2026.05.07 is a beta release focused on public packaging,
 documentation, tutorial workflows, and release automation.
 
 Highlights

@@ -2,15 +2,15 @@
 FAQ
 ===
 
-Frequently Asked Questions about PhysioMotion4D.
+Frequently Asked Questions about PhysioTwin4D.
 
 General Questions
 =================
 
-What is PhysioMotion4D?
+What is PhysioTwin4D?
 -----------------------
 
-PhysioMotion4D is a medical imaging package that converts 4D CT scans into dynamic 
+PhysioTwin4D is a medical imaging package that converts 4D CT scans into dynamic 
 3D models for visualization in NVIDIA Omniverse.
 
 What data formats are supported?
@@ -34,7 +34,7 @@ Installation Questions
 Do I need a GPU?
 ----------------
 
-No. A plain ``pip install physiomotion4d`` works without a GPU. At import time
+No. A plain ``pip install physiotwin4d`` works without a GPU. At import time
 a ``UserWarning`` is emitted (visible by default in all standard Python runs):
 
 .. code-block:: text
@@ -42,7 +42,7 @@ a ``UserWarning`` is emitted (visible by default in all standard Python runs):
    CuPy is not installed — GPU acceleration is unavailable and processing will be
    slow. Re-install with uv to get CuPy and CUDA-enabled PyTorch in one step
    (pip alone will not select the correct CUDA wheel):
-     uv pip install 'physiomotion4d[cuda13]'  # CUDA 13
+     uv pip install 'physiotwin4d[cuda13]'  # CUDA 13
 
 CPU-only mode is suitable for evaluation and small datasets. For production
 workloads an NVIDIA GPU is strongly recommended.
@@ -54,7 +54,7 @@ CUDA 13 is supported. Install the CUDA 13 extra for GPU acceleration:
 
 .. code-block:: bash
 
-   uv pip install "physiomotion4d[cuda13]"
+   uv pip install "physiotwin4d[cuda13]"
 
 The extra installs CuPy. In uv-managed source environments, PyTorch,
 torchvision, and torchaudio are sourced from
@@ -105,5 +105,5 @@ More Questions?
 
 * Check the :doc:`cli_scripts/heart_gated_ct`
 * Browse :doc:`examples`
-* Open an issue on `GitHub <https://github.com/Project-MONAI/physiomotion4d/issues>`_
+* Open an issue on `GitHub <https://github.com/Project-MONAI/physiotwin4d/issues>`_
 

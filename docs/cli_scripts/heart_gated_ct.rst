@@ -7,7 +7,7 @@ Process cardiac gated CT images into dynamic, animated heart models for visualiz
 Overview
 ========
 
-The ``physiomotion4d-convert-image-to-usd`` script processes 4D cardiac CT scans through a complete pipeline that includes:
+The ``physiotwin4d-convert-image-to-usd`` script processes 4D cardiac CT scans through a complete pipeline that includes:
 
 * AI-based anatomical segmentation
 * Deformable image registration across cardiac phases
@@ -56,21 +56,21 @@ Single 4D File
 
 .. code-block:: bash
 
-   physiomotion4d-convert-image-to-usd cardiac_4d.nrrd --contrast
+   physiotwin4d-convert-image-to-usd cardiac_4d.nrrd --contrast
 
 Multiple 3D Files
 -----------------
 
 .. code-block:: bash
 
-   physiomotion4d-convert-image-to-usd phase_*.nrrd --contrast --project-name patient_001
+   physiotwin4d-convert-image-to-usd phase_*.nrrd --contrast --project-name patient_001
 
 With Output Directory
 ---------------------
 
 .. code-block:: bash
 
-   physiomotion4d-convert-image-to-usd cardiac.nrrd \
+   physiotwin4d-convert-image-to-usd cardiac.nrrd \
        --contrast \
        --output-dir ./results/patient_001 \
        --project-name patient_001
@@ -186,7 +186,7 @@ Contrast-Enhanced Cardiac CTA
 
 .. code-block:: bash
 
-   physiomotion4d-convert-image-to-usd cardiac_cta.nrrd \
+   physiotwin4d-convert-image-to-usd cardiac_cta.nrrd \
        --contrast \
        --output-dir ./output/patient_123 \
        --project-name PatientXYZ_CTA
@@ -196,7 +196,7 @@ Non-Contrast Study with Custom Reference
 
 .. code-block:: bash
 
-   physiomotion4d-convert-image-to-usd phase_*.nrrd \
+   physiotwin4d-convert-image-to-usd phase_*.nrrd \
        --reference-image phase_05.mha \
        --output-dir ./results \
        --project-name noncontrast_cardiac
@@ -209,7 +209,7 @@ Research Dataset Processing
    # Batch process multiple cases
    for case_dir in /data/cardiac_studies/case_*/; do
        case_name=$(basename "$case_dir")
-       physiomotion4d-convert-image-to-usd ${case_dir}/*.nrrd \
+       physiotwin4d-convert-image-to-usd ${case_dir}/*.nrrd \
            --contrast \
            --output-dir ./results/${case_name} \
            --project-name ${case_name}
@@ -220,7 +220,7 @@ With Greedy Registration
 
 .. code-block:: bash
 
-   physiomotion4d-convert-image-to-usd cardiac.nrrd \
+   physiotwin4d-convert-image-to-usd cardiac.nrrd \
        --contrast \
        --registration-method Greedy \
        --registration-iterations 50
@@ -340,4 +340,4 @@ Next Steps
 
 * See :doc:`best_practices` for optimization strategies
 * Review :doc:`../troubleshooting` for common issues
-* For Python API access, see :class:`physiomotion4d.WorkflowConvertImageToUSD` in :doc:`../developer/workflows`
+* For Python API access, see :class:`physiotwin4d.WorkflowConvertImageToUSD` in :doc:`../developer/workflows`

@@ -14,25 +14,25 @@ Current Workflow Mapping
 
    * - CLI command
      - Workflow class
-   * - ``physiomotion4d-convert-image-to-usd``
-     - :class:`physiomotion4d.WorkflowConvertImageToUSD`
-   * - ``physiomotion4d-convert-image-to-vtk``
-     - :class:`physiomotion4d.WorkflowConvertImageToVTK`
-   * - ``physiomotion4d-convert-vtk-to-usd``
-     - :class:`physiomotion4d.WorkflowConvertVTKToUSD`
-   * - ``physiomotion4d-create-statistical-model``
-     - :class:`physiomotion4d.WorkflowCreateStatisticalModel`
-   * - ``physiomotion4d-fit-statistical-model-to-patient``
-     - :class:`physiomotion4d.WorkflowFitStatisticalModelToPatient`
-   * - ``physiomotion4d-reconstruct-highres-4d-ct``
-     - :class:`physiomotion4d.WorkflowReconstructHighres4DCT`
+   * - ``physiotwin4d-convert-image-to-usd``
+     - :class:`physiotwin4d.WorkflowConvertImageToUSD`
+   * - ``physiotwin4d-convert-image-to-vtk``
+     - :class:`physiotwin4d.WorkflowConvertImageToVTK`
+   * - ``physiotwin4d-convert-vtk-to-usd``
+     - :class:`physiotwin4d.WorkflowConvertVTKToUSD`
+   * - ``physiotwin4d-create-statistical-model``
+     - :class:`physiotwin4d.WorkflowCreateStatisticalModel`
+   * - ``physiotwin4d-fit-statistical-model-to-patient``
+     - :class:`physiotwin4d.WorkflowFitStatisticalModelToPatient`
+   * - ``physiotwin4d-reconstruct-highres-4d-ct``
+     - :class:`physiotwin4d.WorkflowReconstructHighres4DCT`
 
 Workflow Example
 ================
 
 .. code-block:: python
 
-   from physiomotion4d import RegisterImagesICON, WorkflowConvertImageToUSD
+   from physiotwin4d import RegisterImagesICON, WorkflowConvertImageToUSD
 
    workflow = WorkflowConvertImageToUSD(
        input_filenames=["cardiac_4d.nrrd"],
@@ -46,7 +46,7 @@ Workflow Example
 Adding a Workflow
 =================
 
-1. Inherit from :class:`physiomotion4d.PhysioMotion4DBase`.
+1. Inherit from :class:`physiotwin4d.PhysioTwin4DBase`.
 2. Keep the constructor explicit and typed.
 3. Use ``self.log_info()`` and ``self.log_debug()`` for runtime status.
 4. Keep file I/O behavior predictable and documented.

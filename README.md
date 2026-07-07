@@ -1,14 +1,14 @@
-# PhysioMotion4D
+# PhysioTwin4D
 
 **Generate anatomic models in Omniverse with physiological motion derived from 4D medical images.**
 
-PhysioMotion4D is a comprehensive medical imaging package that converts 4D CT scans (particularly heart and lung gated CT data) into dynamic 3D models for visualization in NVIDIA Omniverse. The package provides state-of-the-art deep learning-based image processing, segmentation, registration, and USD file generation capabilities.
+PhysioTwin4D is a comprehensive medical imaging package that converts 4D CT scans (particularly heart and lung gated CT data) into dynamic 3D models for visualization in NVIDIA Omniverse. The package provides state-of-the-art deep learning-based image processing, segmentation, registration, and USD file generation capabilities.
 
 ## Documentation
 
 Start with the hosted documentation:
 
-**https://project-monai.github.io/physiomotion4d/**
+**https://project-monai.github.io/physiotwin4d/**
 
 The documentation is the primary entry point for users and contributors. It
 includes:
@@ -24,7 +24,7 @@ includes:
 - **Contributing, Testing, and Troubleshooting**: project practices, validation
   commands, and common setup issues.
 
-> **Not validated for clinical use.** PhysioMotion4D is a 2026.05.07 beta
+> **Not validated for clinical use.** PhysioTwin4D is a 2026.07.0 beta
 > research and visualization toolkit. It is not a medical device and must not
 > be used for diagnosis, treatment planning, or clinical decision-making.
 
@@ -59,10 +59,10 @@ includes:
 
 ```bash
 # CPU-only PyPI install — works out of the box; a runtime warning points to the GPU extra
-pip install physiomotion4d
+pip install physiotwin4d
 
 # CUDA 13 install (recommended for production)
-uv pip install "physiomotion4d[cuda13]"
+uv pip install "physiotwin4d[cuda13]"
 ```
 
 The `[cuda13]` extra installs CuPy. In uv-managed source environments, PyTorch,
@@ -74,18 +74,18 @@ a large CUDA-only toolchain and narrows supported Python versions. Install it
 explicitly when needed:
 
 ```bash
-pip install "physiomotion4d[physicsnemo]"
+pip install "physiotwin4d[physicsnemo]"
 ```
 
-PhysicsNeMo itself requires Python >= 3.11. PhysioMotion4D otherwise supports
+PhysicsNeMo itself requires Python >= 3.11. PhysioTwin4D otherwise supports
 Python >= 3.10.
 
 ### Installation from Source
 
 1. **Clone the repository** (Git LFS is required for tests; install it first from [git-lfs.github.com](https://git-lfs.github.com)):
    ```bash
-   git clone https://github.com/Project-MONAI/physiomotion4d.git
-   cd physiomotion4d
+   git clone https://github.com/Project-MONAI/physiotwin4d.git
+   cd physiotwin4d
    git lfs install   # if not already done
    git lfs pull     # fetch .hdf and .mha baselines in tests/baselines/
    ```
@@ -101,7 +101,7 @@ Python >= 3.10.
    pip install uv
    ```
 
-4. **Install PhysioMotion4D**:
+4. **Install PhysioTwin4D**:
    ```bash
    # CUDA 13 PyTorch is the default for uv-managed source environments
    uv pip install -e "."
@@ -113,10 +113,10 @@ Python >= 3.10.
 ### Verify Installation
 
 ```python
-import physiomotion4d
-from physiomotion4d import WorkflowConvertImageToUSD
+import physiotwin4d
+from physiotwin4d import WorkflowConvertImageToUSD
 
-print(f"PhysioMotion4D version: {physiomotion4d.__version__}")
+print(f"PhysioTwin4D version: {physiotwin4d.__version__}")
 print(WorkflowConvertImageToUSD.__name__)
 ```
 
@@ -142,7 +142,7 @@ print(WorkflowConvertImageToUSD.__name__)
     - `RegisterModelsDistanceMaps`: Mask-based deformable model registration
   - `RegisterImagesBase`: Base class for custom registration methods
 - **Base Classes**: Foundation classes providing common functionality
-  - `PhysioMotion4DBase`: Base class providing standardized logging and debug settings
+  - `PhysioTwin4DBase`: Base class providing standardized logging and debug settings
 - **Utility Classes**: Tools for data manipulation and conversion
   - `TransformTools`: Comprehensive transform manipulation utilities
   - `USDTools`: USD file manipulation for Omniverse integration
@@ -179,7 +179,7 @@ variants). They are the recommended starting point for new users.
 | 4 | `tutorials/tutorial_04_fit_statistical_model_to_patient.py` | Fit statistical model to patient | KCL-Heart-Model plus Tutorial 3 output |
 | 5 | `tutorials/tutorial_05_vtk_to_usd.py` | VTK surfaces to animated USD | output of tutorial 2 |
 | 6 | `tutorials/tutorial_06_reconstruct_highres_4d_ct.py` | Reconstruct high-res 4D CT | DirLab-4DCT (manual) |
-| 8 | `tutorials/tutorial_08_cardiac_fit_model.py` | Fit the cardiac PCA model and propagate it through gated phases | Bring your own (`D:/PhysioMotion4D/`) |
+| 8 | `tutorials/tutorial_08_cardiac_fit_model.py` | Fit the cardiac PCA model and propagate it through gated phases | Bring your own (`D:/PhysioTwin4D/`) |
 | 9a | `tutorials/tutorial_09a_cardiac_train_physicsnemo_mgn.py` | Train a PhysicsNeMo MeshGraphNet cardiac stage model (requires `[physicsnemo]` + `torch-geometric`; Python >= 3.11) | Tutorial 8 output |
 | 9b | `tutorials/tutorial_09b_cardiac_train_physicsnemo_mlp.py` | Train a PhysicsNeMo MLP cardiac stage model (requires `[physicsnemo]` extra; Python >= 3.11) | Tutorial 8 output |
 | 10a | `tutorials/tutorial_10a_cardiac_eval_physicsnemo_mgn.py` | Predict / score cardiac surfaces from a MeshGraphNet checkpoint | Tutorial 9a checkpoint |
@@ -187,7 +187,7 @@ variants). They are the recommended starting point for new users.
 
 Each tutorial is a `# %%` percent-cell Python script. Paths are defined near
 the top of the script; edit those constants for custom data/output locations,
-or use the installed `physiomotion4d-*` CLI commands when you want path
+or use the installed `physiotwin4d-*` CLI commands when you want path
 arguments.
 
 ```bash
@@ -207,9 +207,9 @@ This quickstart uses the public Slicer-Heart 4D CT sample. Data downloading and
 a CUDA-capable GPU are required for practical runtime.
 
 ```bash
-python -c "from physiomotion4d import DataDownloadTools; DataDownloadTools.DownloadSlicerHeartCTData('data/test')"
+python -c "from physiotwin4d import DataDownloadTools; DataDownloadTools.DownloadSlicerHeartCTData('data/test')"
 
-physiomotion4d-convert-image-to-usd data/test/TruncalValve_4DCT.seq.nrrd \
+physiotwin4d-convert-image-to-usd data/test/TruncalValve_4DCT.seq.nrrd \
     --registration-method ANTS \
     --output-dir output/quickstart \
     --project-name slicer_heart_quickstart
@@ -219,7 +219,7 @@ physiomotion4d-convert-image-to-usd data/test/TruncalValve_4DCT.seq.nrrd \
 
 ### Command-Line Interface
 
-After installation, PhysioMotion4D provides command-line tools that are automatically added to your PATH:
+After installation, PhysioTwin4D provides command-line tools that are automatically added to your PATH:
 
 #### Heart-Gated CT to USD
 
@@ -227,20 +227,20 @@ Process 4D cardiac CT images into dynamic USD models:
 
 ```bash
 # Process a single 4D cardiac CT file
-physiomotion4d-convert-image-to-usd cardiac_4d.nrrd --contrast --output-dir ./results
+physiotwin4d-convert-image-to-usd cardiac_4d.nrrd --contrast --output-dir ./results
 
 # Process multiple time frames
-physiomotion4d-convert-image-to-usd frame_*.nrrd --contrast --project-name patient_001
+physiotwin4d-convert-image-to-usd frame_*.nrrd --contrast --project-name patient_001
 
 # With custom settings
-physiomotion4d-convert-image-to-usd cardiac.nrrd \
+physiotwin4d-convert-image-to-usd cardiac.nrrd \
     --contrast \
     --reference-image ref.mha \
     --registration-iterations 50 \
     --output-dir ./output
 ```
 
-For Python API usage and advanced customization, see the examples below or refer to the CLI implementation in `src/physiomotion4d/cli/`.
+For Python API usage and advanced customization, see the examples below or refer to the CLI implementation in `src/physiotwin4d/cli/`.
 
 #### Create Statistical Model
 
@@ -248,13 +248,13 @@ Build a PCA statistical shape model from sample meshes aligned to a reference:
 
 ```bash
 # From a directory of sample meshes
-physiomotion4d-create-statistical-model \
+physiotwin4d-create-statistical-model \
     --sample-meshes-dir ./input_meshes \
     --reference-mesh average_mesh.vtk \
     --output-dir ./pca_output
 
 # With custom PCA components
-physiomotion4d-create-statistical-model \
+physiotwin4d-create-statistical-model \
     --sample-meshes-dir ./meshes \
     --reference-mesh average_mesh.vtk \
     --output-dir ./pca_output \
@@ -269,7 +269,7 @@ Register a generic heart model to patient-specific data:
 
 ```bash
 # Basic registration
-physiomotion4d-fit-statistical-model-to-patient \
+physiotwin4d-fit-statistical-model-to-patient \
     --template-model heart_model.vtu \
     --template-labelmap heart_labelmap.nii.gz \
     --patient-models lv.vtp rv.vtp myo.vtp \
@@ -277,7 +277,7 @@ physiomotion4d-fit-statistical-model-to-patient \
     --output-dir ./results
 
 # With PCA shape fitting
-physiomotion4d-fit-statistical-model-to-patient \
+physiotwin4d-fit-statistical-model-to-patient \
     --template-model heart_model.vtu \
     --template-labelmap heart_labelmap.nii.gz \
     --patient-models lv.vtp rv.vtp myo.vtp \
@@ -287,12 +287,12 @@ physiomotion4d-fit-statistical-model-to-patient \
     --output-dir ./results
 ```
 
-For implementation details and advanced usage, see the CLI modules in `src/physiomotion4d/cli/`.
+For implementation details and advanced usage, see the CLI modules in `src/physiotwin4d/cli/`.
 
 ### Python API - Basic Heart-Gated CT Processing
 
 ```python
-from physiomotion4d import RegisterImagesICON, WorkflowConvertImageToUSD
+from physiotwin4d import RegisterImagesICON, WorkflowConvertImageToUSD
 
 # Initialize processor
 processor = WorkflowConvertImageToUSD(
@@ -309,7 +309,7 @@ final_usd = processor.process()
 ### Python API - Model to Patient Registration
 
 ```python
-from physiomotion4d import WorkflowFitStatisticalModelToPatient
+from physiotwin4d import WorkflowFitStatisticalModelToPatient
 import pyvista as pv
 import itk
 
@@ -333,7 +333,7 @@ registered_mesh = result["registered_template_model_surface"]
 ### Custom Segmentation
 
 ```python
-from physiomotion4d import SegmentChestTotalSegmentatorWithContrast
+from physiotwin4d import SegmentChestTotalSegmentatorWithContrast
 import itk
 
 # Use SegmentChestTotalSegmentator instead for non-contrast studies
@@ -357,7 +357,7 @@ if "lung" in masks:
 ### Image Registration
 
 ```python
-from physiomotion4d import RegisterImagesICON, RegisterImagesANTS, RegisterTimeSeriesImages
+from physiotwin4d import RegisterImagesICON, RegisterImagesANTS, RegisterTimeSeriesImages
 import itk
 
 # Option 1: Icon deep learning registration (GPU-accelerated)
@@ -390,12 +390,12 @@ forward_transform = results["forward_transform"]  # Moving to fixed
 
 ### VTK to USD Conversion
 
-PhysioMotion4D provides two APIs for converting VTK data to USD for NVIDIA Omniverse visualization. Repository workflows, experiments, and CLIs use `ConvertVTKToUSD`; `vtk_to_usd` is a public advanced layer for users who need low-level file conversion primitives.
+PhysioTwin4D provides two APIs for converting VTK data to USD for NVIDIA Omniverse visualization. Repository workflows, experiments, and CLIs use `ConvertVTKToUSD`; `vtk_to_usd` is a public advanced layer for users who need low-level file conversion primitives.
 
 #### Option 1: High-Level ConvertVTKToUSD (for PyVista/VTK objects)
 
 ```python
-from physiomotion4d import ConvertVTKToUSD, SegmentChestTotalSegmentator
+from physiotwin4d import ConvertVTKToUSD, SegmentChestTotalSegmentator
 import pyvista as pv
 
 # Load VTK data
@@ -427,7 +427,7 @@ stage = converter.convert('cardiac_motion.usd')
 #### Option 2: Advanced File-Based vtk_to_usd Facade
 
 ```python
-from physiomotion4d.vtk_to_usd import (
+from physiotwin4d.vtk_to_usd import (
     ConversionSettings,
     MaterialData,
     convert_vtk_file,
@@ -467,26 +467,26 @@ Features:
 
 ### Logging and Debug Control
 
-PhysioMotion4D provides standardized logging through the `PhysioMotion4DBase` class, which is inherited by workflow and registration classes.
+PhysioTwin4D provides standardized logging through the `PhysioTwin4DBase` class, which is inherited by workflow and registration classes.
 
 ```python
 import logging
-from physiomotion4d import WorkflowFitStatisticalModelToPatient, PhysioMotion4DBase
+from physiotwin4d import WorkflowFitStatisticalModelToPatient, PhysioTwin4DBase
 
 # Control logging level globally for all classes
-PhysioMotion4DBase.set_log_level(logging.DEBUG)
+PhysioTwin4DBase.set_log_level(logging.DEBUG)
 
 # Or filter to show logs from specific classes only
-PhysioMotion4DBase.set_log_classes(["WorkflowFitStatisticalModelToPatient", "RegisterModelsPCA"])
+PhysioTwin4DBase.set_log_classes(["WorkflowFitStatisticalModelToPatient", "RegisterModelsPCA"])
 
 # Show all classes again
-PhysioMotion4DBase.set_log_all_classes()
+PhysioTwin4DBase.set_log_all_classes()
 
 # Query which classes are currently filtered
-filtered = PhysioMotion4DBase.get_log_classes()
+filtered = PhysioTwin4DBase.get_log_classes()
 ```
 
-Classes that inherit from `PhysioMotion4DBase` provide:
+Classes that inherit from `PhysioTwin4DBase` provide:
 - Standard log levels: DEBUG, INFO, WARNING, ERROR, CRITICAL
 - Progress reporting for long-running operations
 - Class-based log filtering
@@ -605,7 +605,7 @@ The Slicer-Heart sample can be downloaded directly from its public GitHub
 release:
 
 ```python
-from physiomotion4d import DataDownloadTools
+from physiotwin4d import DataDownloadTools
 
 data_file = DataDownloadTools.DownloadSlicerHeartCTData("data/Slicer-Heart-CT")
 assert DataDownloadTools.VerifySlicerHeartCTData("data/Slicer-Heart-CT")
@@ -615,7 +615,7 @@ assert DataDownloadTools.VerifySlicerHeartCTData("data/Slicer-Heart-CT")
 
 ### Code Quality Tools
 
-PhysioMotion4D uses modern, fast tooling for code quality:
+PhysioTwin4D uses modern, fast tooling for code quality:
 
 - **Ruff**: Fast linting and formatting (replaces black, isort, flake8, pylint)
 - **mypy**: Type checking
@@ -646,7 +646,7 @@ See `docs/contributing.rst` for complete IDE setup instructions.
 
 ### Testing
 
-PhysioMotion4D includes comprehensive tests covering the complete pipeline from data download to USD generation.
+PhysioTwin4D includes comprehensive tests covering the complete pipeline from data download to USD generation.
 
 ```bash
 # Fast tests (recommended for development).
@@ -679,7 +679,7 @@ pytest tests/test_image_tools.py -v                         # Image processing u
 pytest tests/test_transform_tools.py -v --run-slow          # Transform operations
 
 # Run with coverage report
-pytest tests/ --cov=src/physiomotion4d --cov-report=html
+pytest tests/ --cov=src/physiotwin4d --cov-report=html
 ```
 
 **Test Categories:**
@@ -836,7 +836,7 @@ without writing any code.
 ## Additional Documentation
 
 The canonical documentation is published at
-https://project-monai.github.io/physiomotion4d/.
+https://project-monai.github.io/physiotwin4d/.
 
 Use it for tutorials, getting started, CLI usage, API reference, developer
 guides, contributing, testing, and troubleshooting. The `experiments/`
@@ -875,4 +875,4 @@ This project is licensed under the Apache 2.0 License - see the LICENSE file for
 
 ---
 
-**Get started with the tutorial scripts under `tutorials/` to see PhysioMotion4D in action.**
+**Get started with the tutorial scripts under `tutorials/` to see PhysioTwin4D in action.**

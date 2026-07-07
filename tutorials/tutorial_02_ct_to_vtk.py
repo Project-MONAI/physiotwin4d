@@ -23,12 +23,12 @@ from pathlib import Path
 import itk
 import pyvista as pv
 
-from physiomotion4d.contour_tools import ContourTools
-from physiomotion4d.segment_chest_total_segmentator_with_contrast import (
+from physiotwin4d.contour_tools import ContourTools
+from physiotwin4d.segment_chest_total_segmentator_with_contrast import (
     SegmentChestTotalSegmentatorWithContrast,
 )
-from physiomotion4d.test_tools import TestTools
-from physiomotion4d.workflow_convert_image_to_vtk import WorkflowConvertImageToVTK
+from physiotwin4d.test_tools import TestTools
+from physiotwin4d.workflow_convert_image_to_vtk import WorkflowConvertImageToVTK
 
 # nnUNetv2 (used by TotalSegmentator inside several workflows) spawns a
 # multiprocessing.Pool. On Windows the spawn start method re-imports this

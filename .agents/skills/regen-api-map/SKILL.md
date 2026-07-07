@@ -1,8 +1,8 @@
 ---
-description: Regenerate docs/API_MAP.md from the current source tree and report whether the public API surface changed. Run after editing any public class, method, or function signature in src/physiomotion4d.
+description: Regenerate docs/API_MAP.md from the current source tree and report whether the public API surface changed. Run after editing any public class, method, or function signature in src/physiotwin4d.
 ---
 
-Regenerate the PhysioMotion4D API map and report what changed.
+Regenerate the PhysioTwin4D API map and report what changed.
 
 $ARGUMENTS
 

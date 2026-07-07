@@ -2,14 +2,14 @@
 Architecture
 ============
 
-PhysioMotion4D is organized around explicit workflow classes and smaller
+PhysioTwin4D is organized around explicit workflow classes and smaller
 registration, segmentation, geometry, and USD utilities. Runtime workflow
-classes inherit from :class:`PhysioMotion4DBase` for logging and common runtime
+classes inherit from :class:`PhysioTwin4DBase` for logging and common runtime
 configuration.
 
 .. warning::
 
-   PhysioMotion4D {{ pm4d_project_version }} beta is not validated for clinical
+   PhysioTwin4D {{ pt4d_project_version }} beta is not validated for clinical
    use. It is a research and visualization toolkit, not a medical device.
 
 Data Flow
@@ -64,7 +64,7 @@ Primary Workflows
 
 ``WorkflowConvertVTKToUSD``
    Converts VTK files to animated USD scenes through the supported workflow
-   wrapper. The lower-level :mod:`physiomotion4d.vtk_to_usd` package exposes
+   wrapper. The lower-level :mod:`physiotwin4d.vtk_to_usd` package exposes
    advanced file conversion primitives.
 
 Component Boundaries
@@ -88,10 +88,10 @@ CLI Boundary
 The installed CLI commands in ``pyproject.toml`` are thin wrappers around the
 workflow classes. They are the preferred examples for executable API usage:
 
-* ``physiomotion4d-convert-image-to-usd``
-* ``physiomotion4d-convert-image-to-vtk``
-* ``physiomotion4d-create-statistical-model``
-* ``physiomotion4d-fit-statistical-model-to-patient``
-* ``physiomotion4d-convert-vtk-to-usd``
-* ``physiomotion4d-reconstruct-highres-4d-ct``
-* ``physiomotion4d-visualize-pca-modes``
+* ``physiotwin4d-convert-image-to-usd``
+* ``physiotwin4d-convert-image-to-vtk``
+* ``physiotwin4d-create-statistical-model``
+* ``physiotwin4d-fit-statistical-model-to-patient``
+* ``physiotwin4d-convert-vtk-to-usd``
+* ``physiotwin4d-reconstruct-highres-4d-ct``
+* ``physiotwin4d-visualize-pca-modes``

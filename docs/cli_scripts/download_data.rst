@@ -2,8 +2,8 @@
 Download Example Data
 =====================
 
-The ``physiomotion4d-download-data`` command downloads example datasets used by
-PhysioMotion4D tutorials and demos.
+The ``physiotwin4d-download-data`` command downloads example datasets used by
+PhysioTwin4D tutorials and demos.
 
 Supported Datasets
 ==================
@@ -16,7 +16,7 @@ Supported Datasets
      - Description
    * - ``Slicer-Heart-CT``
      - Public 4D cardiac CT sample from SlicerHeart. This is currently the
-       only dataset downloaded automatically by PhysioMotion4D.
+       only dataset downloaded automatically by PhysioTwin4D.
 
 Basic Usage
 ===========
@@ -25,13 +25,13 @@ Download the default dataset into the default location:
 
 .. code-block:: bash
 
-   physiomotion4d-download-data
+   physiotwin4d-download-data
 
 This is equivalent to:
 
 .. code-block:: bash
 
-   physiomotion4d-download-data Slicer-Heart-CT \
+   physiotwin4d-download-data Slicer-Heart-CT \
        --directory data/Slicer-Heart-CT
 
 Options
@@ -39,7 +39,7 @@ Options
 
 .. code-block:: bash
 
-   physiomotion4d-download-data [Slicer-Heart-CT] [--directory DIRECTORY]
+   physiotwin4d-download-data [Slicer-Heart-CT] [--directory DIRECTORY]
 
 ``data_name``
    Dataset to download. The only accepted value is ``Slicer-Heart-CT``.
@@ -58,7 +58,7 @@ For ``Slicer-Heart-CT``, the command downloads or reuses:
    data/Slicer-Heart-CT/TruncalValve_4DCT.seq.nrrd
 
 The command uses
-:meth:`physiomotion4d.data_download_tools.DataDownloadTools.DownloadSlicerHeartCTData`,
+:meth:`physiotwin4d.data_download_tools.DataDownloadTools.DownloadSlicerHeartCTData`,
 so repeated runs reuse the existing non-empty file.
 
 See Also

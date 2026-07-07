@@ -20,7 +20,7 @@ import numpy as np
 import pytest
 import yaml
 
-from physiomotion4d.workflow_fine_tune_icon_registration import (
+from physiotwin4d.workflow_fine_tune_icon_registration import (
     WorkflowFineTuneICONRegistration,
 )
 

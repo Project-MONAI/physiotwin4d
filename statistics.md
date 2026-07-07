@@ -1,4 +1,4 @@
-# PhysioMotion4D - Software Development Statistics
+# PhysioTwin4D - Software Development Statistics
 
 **Report Generated:** May 13, 2026
 **Project Version:** 2026.05.07
@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-PhysioMotion4D is a medical imaging package for generating anatomic models in
+PhysioTwin4D is a medical imaging package for generating anatomic models in
 NVIDIA Omniverse with physiological motion derived from 4D medical images.
 This report summarizes development effort, code quality, and project maturity.
 
@@ -77,7 +77,7 @@ percent-cell markers so the same file can be executed end-to-end with
 
 ### Domain Complexity
 
-PhysioMotion4D operates across several technically demanding domains:
+PhysioTwin4D operates across several technically demanding domains:
 
 | Domain                   | Complexity Level | Key Technologies                       |
 | ------------------------ | ---------------- | -------------------------------------- |
@@ -91,7 +91,7 @@ PhysioMotion4D operates across several technically demanding domains:
 ### Architectural Sophistication
 
 - Class hierarchy depth: 3-4 levels (well-structured inheritance from
-  `PhysioMotion4DBase`)
+  `PhysioTwin4DBase`)
 - Module coupling: medium (clear separation between segmentation,
   registration, USD conversion, and workflow layers)
 - Public API surface documented in `docs/API_MAP.md`
@@ -161,7 +161,7 @@ PhysioMotion4D operates across several technically demanding domains:
 ### Documentation Highlights
 
 - Quickstart, tutorials, examples, and architecture under `docs/`
-- Per-subpackage READMEs (e.g. `src/physiomotion4d/vtk_to_usd/CLAUDE.md`)
+- Per-subpackage READMEs (e.g. `src/physiotwin4d/vtk_to_usd/CLAUDE.md`)
 - Contribution and testing guides
 - FAQ and troubleshooting sections in test docs
 
@@ -169,7 +169,7 @@ PhysioMotion4D operates across several technically demanding domains:
 
 ## Summary
 
-PhysioMotion4D is a beta-quality medical imaging toolkit that bridges 4D CT
+PhysioTwin4D is a beta-quality medical imaging toolkit that bridges 4D CT
 data, AI segmentation and registration, VTK geometry, and OpenUSD output for
 NVIDIA Omniverse. It is built on top of established medical imaging and 3D
 graphics libraries with a small, focused public API and a percent-cell-script

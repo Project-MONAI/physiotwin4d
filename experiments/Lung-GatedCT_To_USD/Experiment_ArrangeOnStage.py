@@ -4,7 +4,7 @@ import os
 
 from data_dirlab_4d_ct import DataDirLab4DCT
 
-from physiomotion4d.usd_tools import USDTools
+from physiotwin4d.usd_tools import USDTools
 
 # %%
 os.makedirs("Results_ArrangeOnStage", exist_ok=True)

@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pyvista as pv
 
-from physiomotion4d.test_tools import TestTools
+from physiotwin4d.test_tools import TestTools
 
 _HERE = Path(__file__).parent
 

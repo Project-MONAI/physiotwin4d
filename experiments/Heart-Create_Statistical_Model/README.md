@@ -146,7 +146,7 @@ After completing this experiment, you will have generated files in `kcl-heart-mo
 The outputs from this experiment are used in the `Heart-Statistical_Model_To_Patient` experiment:
 
 ```python
-from physiomotion4d import WorkflowFitStatisticalModelToPatient
+from physiotwin4d import WorkflowFitStatisticalModelToPatient
 
 # Use PCA model from this experiment
 workflow = WorkflowFitStatisticalModelToPatient(
@@ -163,11 +163,11 @@ registered_mesh = workflow.run_workflow()
 ## Requirements
 
 ### Software
-- Python 3.11+ with PhysioMotion4D installed
+- Python 3.11+ with PhysioTwin4D installed
 - VS Code or Cursor with the Python extension for cell-by-cell execution
   (optional; scripts also run end-to-end as plain Python)
-- ITK, VTK, PyVista (included with PhysioMotion4D)
-- picsl-greedy and ICON (included with PhysioMotion4D)
+- ITK, VTK, PyVista (included with PhysioTwin4D)
+- picsl-greedy and ICON (included with PhysioTwin4D)
 - scikit-learn for PCA computation
 
 ### Data
@@ -200,8 +200,8 @@ For ICON registration:
 
 - **KCL Dataset**: [https://zenodo.org/records/4590294](https://zenodo.org/records/4590294)
 - **Greedy Documentation**: [https://greedy.readthedocs.io/](https://greedy.readthedocs.io/)
-- **PhysioMotion4D Documentation**: See main repository README and API documentation
-- **Issues**: Report bugs or request features on the PhysioMotion4D GitHub repository
+- **PhysioTwin4D Documentation**: See main repository README and API documentation
+- **Issues**: Report bugs or request features on the PhysioTwin4D GitHub repository
 
 ## Troubleshooting
 
@@ -227,7 +227,7 @@ For ICON registration:
 - If ICON deformable quality is poor, increase `icon_iterations` in the `register()` call
 
 ### Import Errors
-- Ensure all PhysioMotion4D dependencies are installed
+- Ensure all PhysioTwin4D dependencies are installed
 - Check Greedy is available: `python -c "from picsl_greedy import Greedy3D; print('ok')"`
 - Reinstall environment if needed: `pip install -e .` in repository root
 

@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from physiomotion4d.data_download_tools import DataDownloadTools
+from physiotwin4d.data_download_tools import DataDownloadTools
 
 
 class TestDataDownloadTools:

@@ -2,11 +2,11 @@
 TotalSegmentator
 ================
 
-.. module:: physiomotion4d.segment_chest_total_segmentator
-.. currentmodule:: physiomotion4d
+.. module:: physiotwin4d.segment_chest_total_segmentator
+.. currentmodule:: physiotwin4d
 
 ``SegmentChestTotalSegmentator`` groups a TotalSegmentator labelmap into the
-anatomy masks used by PhysioMotion4D workflows.
+anatomy masks used by PhysioTwin4D workflows.
 
 Class Reference
 ===============
@@ -23,7 +23,7 @@ Basic Usage
 
    import itk
 
-   from physiomotion4d import SegmentChestTotalSegmentator
+   from physiotwin4d import SegmentChestTotalSegmentator
 
    image = itk.imread("chest_ct.nrrd")
    segmenter = SegmentChestTotalSegmentator()
@@ -69,7 +69,7 @@ returned dictionary and exposes a ``contrast_threshold`` attribute
 
 .. code-block:: python
 
-   from physiomotion4d import SegmentChestTotalSegmentatorWithContrast
+   from physiotwin4d import SegmentChestTotalSegmentatorWithContrast
 
    segmenter = SegmentChestTotalSegmentatorWithContrast()
    segmenter.contrast_threshold = 600  # optional override
@@ -82,7 +82,7 @@ Operational Notes
 
 TotalSegmentator model inference may download model assets and can be slow on a
 CPU-only environment. For repeatable workflows, prefer the tutorial scripts or
-the ``physiomotion4d-convert-image-to-vtk`` CLI.
+the ``physiotwin4d-convert-image-to-vtk`` CLI.
 
 See Also
 ========

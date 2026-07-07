@@ -9,7 +9,7 @@ import numpy as np
 import pytest
 import pyvista as pv
 
-from physiomotion4d.register_models_pca import RegisterModelsPCA
+from physiotwin4d.register_models_pca import RegisterModelsPCA
 
 
 def _make_registrar() -> RegisterModelsPCA:

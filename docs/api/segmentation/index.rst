@@ -2,14 +2,14 @@
 Segmentation Modules
 ====================================
 
-.. currentmodule:: physiomotion4d
+.. currentmodule:: physiotwin4d
 
 AI-powered anatomical structure identification from medical images using state-of-the-art deep learning models.
 
 Overview
 ========
 
-PhysioMotion4D supports multiple segmentation approaches:
+PhysioTwin4D supports multiple segmentation approaches:
 
 * **TotalSegmentator**: Whole-body CT segmentation (100+ structures)
 * **Simpleware**: Cardiac-focused segmentation (requires Simpleware Medical)
@@ -43,7 +43,7 @@ Basic Segmentation
 
 .. code-block:: python
 
-   from physiomotion4d import SegmentChestTotalSegmentator
+   from physiotwin4d import SegmentChestTotalSegmentator
 
    segmenter = SegmentChestTotalSegmentator()
    result = segmenter.segment(ct_image)

@@ -2,15 +2,15 @@
 Workflow Classes
 ================
 
-.. module:: physiomotion4d.workflow_convert_image_to_usd
-.. module:: physiomotion4d.workflow_convert_image_to_vtk
-.. module:: physiomotion4d.workflow_convert_vtk_to_usd
-.. module:: physiomotion4d.workflow_create_statistical_model
-.. module:: physiomotion4d.workflow_fit_statistical_model_to_patient
-.. module:: physiomotion4d.workflow_reconstruct_highres_4d_ct
-.. currentmodule:: physiomotion4d
+.. module:: physiotwin4d.workflow_convert_image_to_usd
+.. module:: physiotwin4d.workflow_convert_image_to_vtk
+.. module:: physiotwin4d.workflow_convert_vtk_to_usd
+.. module:: physiotwin4d.workflow_create_statistical_model
+.. module:: physiotwin4d.workflow_fit_statistical_model_to_patient
+.. module:: physiotwin4d.workflow_reconstruct_highres_4d_ct
+.. currentmodule:: physiotwin4d
 
-Workflow classes are the highest-level Python API in PhysioMotion4D. They
+Workflow classes are the highest-level Python API in PhysioTwin4D. They
 combine segmentation, registration, contour generation, and USD conversion into
 repeatable pipelines. The installed CLI commands are thin wrappers around these
 classes.
@@ -48,7 +48,7 @@ Convert Image to USD
 
 .. code-block:: python
 
-   from physiomotion4d import (
+   from physiotwin4d import (
        RegisterImagesICON,
        SegmentChestTotalSegmentatorWithContrast,
        WorkflowConvertImageToUSD,
@@ -76,7 +76,7 @@ Image to VTK
 
    import itk
 
-   from physiomotion4d import (
+   from physiotwin4d import (
        ContourTools,
        SegmentChestTotalSegmentatorWithContrast,
        WorkflowConvertImageToVTK,
@@ -107,7 +107,7 @@ VTK to USD
 
 .. code-block:: python
 
-   from physiomotion4d import WorkflowConvertVTKToUSD
+   from physiotwin4d import WorkflowConvertVTKToUSD
 
    workflow = WorkflowConvertVTKToUSD(
        vtk_files=["heart_000.vtp", "heart_001.vtp"],
@@ -136,7 +136,7 @@ Statistical Shape Modeling
    import itk
    import pyvista as pv
 
-   from physiomotion4d import WorkflowFitStatisticalModelToPatient
+   from physiotwin4d import WorkflowFitStatisticalModelToPatient
 
    workflow = WorkflowFitStatisticalModelToPatient(
        template_model=pv.read("template_heart.vtu"),
@@ -158,7 +158,7 @@ High-Resolution 4D CT Reconstruction
 
    import itk
 
-   from physiomotion4d import RegisterImagesGreedyICON, WorkflowReconstructHighres4DCT
+   from physiotwin4d import RegisterImagesGreedyICON, WorkflowReconstructHighres4DCT
 
    time_series_images = [itk.imread(f"phase_{idx:02d}.mha") for idx in range(10)]
    workflow = WorkflowReconstructHighres4DCT(

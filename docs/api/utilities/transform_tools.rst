@@ -2,14 +2,14 @@
 Transform Tools
 ====================================
 
-.. currentmodule:: physiomotion4d
+.. currentmodule:: physiotwin4d
 
 Coordinate transformation and image warping utilities.
 
 Module Reference
 ================
 
-.. automodule:: physiomotion4d.transform_tools
+.. automodule:: physiotwin4d.transform_tools
    :members:
    :undoc-members:
 

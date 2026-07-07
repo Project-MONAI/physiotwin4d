@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Shared pytest fixtures for PhysioMotion4D tests.
+Shared pytest fixtures for PhysioTwin4D tests.
 
 This file defines fixtures that are available to all test modules
 in the tests directory via pytest's automatic fixture discovery.
@@ -14,18 +14,18 @@ from typing import Any, Optional
 import itk
 import pytest
 
-from physiomotion4d.contour_tools import ContourTools
-from physiomotion4d.convert_image_4d_to_3d import ConvertImage4DTo3D
-from physiomotion4d.data_download_tools import DataDownloadTools
-from physiomotion4d.register_images_ants import RegisterImagesANTS
-from physiomotion4d.register_images_greedy import RegisterImagesGreedy
-from physiomotion4d.register_images_icon import RegisterImagesICON
-from physiomotion4d.segment_chest_total_segmentator import SegmentChestTotalSegmentator
-from physiomotion4d.segment_chest_total_segmentator_with_contrast import (
+from physiotwin4d.contour_tools import ContourTools
+from physiotwin4d.convert_image_4d_to_3d import ConvertImage4DTo3D
+from physiotwin4d.data_download_tools import DataDownloadTools
+from physiotwin4d.register_images_ants import RegisterImagesANTS
+from physiotwin4d.register_images_greedy import RegisterImagesGreedy
+from physiotwin4d.register_images_icon import RegisterImagesICON
+from physiotwin4d.segment_chest_total_segmentator import SegmentChestTotalSegmentator
+from physiotwin4d.segment_chest_total_segmentator_with_contrast import (
     SegmentChestTotalSegmentatorWithContrast,
 )
-from physiomotion4d.segment_heart_simpleware import SegmentHeartSimpleware
-from physiomotion4d.transform_tools import TransformTools
+from physiotwin4d.segment_heart_simpleware import SegmentHeartSimpleware
+from physiotwin4d.transform_tools import TransformTools
 
 # ============================================================================
 # Pytest Configuration - Command Line Options
@@ -116,7 +116,7 @@ def pytest_configure(config: pytest.Config) -> None:
     global _pytest_config
     _pytest_config = config
 
-    from physiomotion4d import test_tools as _test_tools
+    from physiotwin4d import test_tools as _test_tools
 
     _test_tools.set_create_baseline_if_missing(
         config.getoption("--create-baselines", default=False)

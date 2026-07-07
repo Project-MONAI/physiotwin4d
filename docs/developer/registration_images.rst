@@ -2,7 +2,7 @@
 Image Registration Developer Guide
 ==================================
 
-PhysioMotion4D image registration classes register a moving ITK image to a
+PhysioTwin4D image registration classes register a moving ITK image to a
 fixed ITK image.
 
 Basic Pattern
@@ -12,7 +12,7 @@ Basic Pattern
 
    import itk
 
-   from physiomotion4d import RegisterImagesANTS
+   from physiotwin4d import RegisterImagesANTS
 
    fixed = itk.imread("fixed.mha")
    moving = itk.imread("moving.mha")
@@ -38,7 +38,7 @@ Time Series
 
    import itk
 
-   from physiomotion4d import RegisterImagesGreedy, RegisterTimeSeriesImages
+   from physiotwin4d import RegisterImagesGreedy, RegisterTimeSeriesImages
 
    images = [itk.imread(f"phase_{idx:02d}.mha") for idx in range(10)]
 
@@ -64,13 +64,13 @@ registration followed by ICON refinement:
 
 .. code-block:: python
 
-   from physiomotion4d import RegisterImagesChain, RegisterImagesGreedy, RegisterImagesICON
+   from physiotwin4d import RegisterImagesChain, RegisterImagesGreedy, RegisterImagesICON
 
    # Arbitrary N-stage chain
    registrar = RegisterImagesChain([RegisterImagesGreedy(), RegisterImagesICON()])
 
    # Or, for the common Greedy-then-ICON case:
-   from physiomotion4d import RegisterImagesGreedyICON
+   from physiotwin4d import RegisterImagesGreedyICON
 
    registrar = RegisterImagesGreedyICON()
    registrar.greedy.set_number_of_iterations([30, 15, 7, 3])

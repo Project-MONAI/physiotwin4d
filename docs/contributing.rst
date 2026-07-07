@@ -2,7 +2,7 @@
 Contributing
 ============
 
-Thank you for your interest in contributing to PhysioMotion4D! This guide will help you get started.
+Thank you for your interest in contributing to PhysioTwin4D! This guide will help you get started.
 
 Ways to Contribute
 ===================
@@ -21,8 +21,8 @@ Getting Started
 
    .. code-block:: bash
 
-      git clone https://github.com/YOUR_USERNAME/PhysioMotion4D.git
-      cd PhysioMotion4D
+      git clone https://github.com/YOUR_USERNAME/PhysioTwin4D.git
+      cd PhysioTwin4D
 
 3. **Create a virtual environment**:
 
@@ -136,7 +136,7 @@ After cloning the repository:
 Code Style
 ==========
 
-PhysioMotion4D follows strict code quality standards using modern, fast tooling.
+PhysioTwin4D follows strict code quality standards using modern, fast tooling.
 
 Formatting and Linting with Ruff
 ---------------------------------
@@ -240,7 +240,7 @@ Add tests in the ``tests/`` directory:
 
    # tests/test_my_feature.py
    import pytest
-   from physiomotion4d import MyNewFeature
+   from physiotwin4d import MyNewFeature
 
    def test_my_feature():
        feature = MyNewFeature()
@@ -259,7 +259,7 @@ Run Tests
    pytest tests/test_my_feature.py -v
 
    # Run with coverage
-   pytest tests/ --cov=src/physiomotion4d --cov-report=html
+   pytest tests/ --cov=src/physiotwin4d --cov-report=html
 
    # Default invocation auto-skips slow/GPU/Simpleware/experiment/tutorial
    pytest tests/
@@ -306,7 +306,7 @@ Contributing Scripts vs Experiments
 
 When contributing new workflows or examples:
 
-**Production Code (src/physiomotion4d/cli/):**
+**Production Code (src/physiotwin4d/cli/):**
 
 * **DO contribute here** for production-ready CLI implementations
 * Must include proper error handling and validation
@@ -320,7 +320,7 @@ When contributing new workflows or examples:
 * Can have hardcoded paths and minimal error handling
 * Should document what was learned and how it informed production code
 * Helps others understand adaptation possibilities for new domains
-* Should reference corresponding production implementation in CLI commands or ``src/physiomotion4d/cli/``
+* Should reference corresponding production implementation in CLI commands or ``src/physiotwin4d/cli/``
 
 Docstring Format
 ----------------
@@ -382,7 +382,7 @@ Bug Reports
 When reporting bugs, include:
 
 * **Python version**
-* **PhysioMotion4D version**
+* **PhysioTwin4D version**
 * **Operating system**
 * **GPU/CUDA version** (if applicable)
 * **Minimal code** to reproduce
@@ -405,13 +405,13 @@ Release Process
 Versioning
 ----------
 
-PhysioMotion4D uses calendar versioning: ``YYYY.0M.PATCH``
+PhysioTwin4D uses calendar versioning: ``YYYY.0M.PATCH``
 
 * **YYYY**: Year
 * **0M**: Zero-padded month
 * **PATCH**: Patch number within month
 
-Example: ``{{ pm4d_project_version }}``
+Example: ``{{ pt4d_project_version }}``
 
 Making a Release
 ----------------
@@ -458,11 +458,11 @@ Apache 2.0 License.
 Acknowledgments
 ===============
 
-Thank you to all contributors who help make PhysioMotion4D better!
+Thank you to all contributors who help make PhysioTwin4D better!
 
 See Also
 ========
 
 * :doc:`architecture` - System architecture
 * :doc:`testing` - Testing guide
-* `GitHub Repository <https://github.com/Project-MONAI/physiomotion4d>`_
+* `GitHub Repository <https://github.com/Project-MONAI/physiotwin4d>`_

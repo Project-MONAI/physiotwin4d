@@ -2,7 +2,7 @@
 visualize_pca_modes (CLI)
 =========================
 
-.. automodule:: physiomotion4d.cli.visualize_pca_modes
+.. automodule:: physiotwin4d.cli.visualize_pca_modes
    :members:
    :undoc-members:
    :show-inheritance:

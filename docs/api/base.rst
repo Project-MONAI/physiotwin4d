@@ -2,16 +2,16 @@
 Base Class
 ====================================
 
-.. module:: physiomotion4d.physiomotion4d_base
-.. currentmodule:: physiomotion4d
+.. module:: physiotwin4d.physiotwin4d_base
+.. currentmodule:: physiotwin4d
 
-``PhysioMotion4DBase`` provides the shared logging behavior used by workflow,
+``PhysioTwin4DBase`` provides the shared logging behavior used by workflow,
 segmentation, registration, transform, contour, and USD helper classes.
 
 Class Reference
 ===============
 
-.. autoclass:: PhysioMotion4DBase
+.. autoclass:: PhysioTwin4DBase
    :members:
    :undoc-members:
    :show-inheritance:
@@ -27,9 +27,9 @@ global log filtering by class name.
 
    import logging
 
-   from physiomotion4d import PhysioMotion4DBase
+   from physiotwin4d import PhysioTwin4DBase
 
-   class MyProcessor(PhysioMotion4DBase):
+   class MyProcessor(PhysioTwin4DBase):
        def __init__(self) -> None:
            super().__init__(class_name="MyProcessor", log_level=logging.INFO)
 
@@ -41,13 +41,13 @@ global log filtering by class name.
    processor = MyProcessor()
    processor.process()
 
-   PhysioMotion4DBase.set_log_classes(["MyProcessor"])
-   PhysioMotion4DBase.set_log_all_classes()
+   PhysioTwin4DBase.set_log_classes(["MyProcessor"])
+   PhysioTwin4DBase.set_log_all_classes()
 
 Extension Notes
 ===============
 
-New runtime classes should inherit from ``PhysioMotion4DBase`` and pass a
+New runtime classes should inherit from ``PhysioTwin4DBase`` and pass a
 ``class_name`` plus ``log_level`` to ``super().__init__``. Standalone scripts,
 data containers, and small pure utility functions do not need to inherit from
 the base class.

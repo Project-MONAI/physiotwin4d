@@ -2,7 +2,7 @@
 Troubleshooting
 ===============
 
-Common issues and solutions for PhysioMotion4D.
+Common issues and solutions for PhysioTwin4D.
 
 Installation Issues
 ===================
@@ -31,7 +31,7 @@ version than the one present on the system.
 
 .. code-block:: bash
 
-   uv pip install "physiomotion4d[cuda13]"
+   uv pip install "physiotwin4d[cuda13]"
 
 The extra installs CuPy. In uv-managed source environments, PyTorch resolves
 from the CUDA 13.0 wheel index.
@@ -43,7 +43,7 @@ Verify the active CUDA version before reinstalling:
    nvidia-smi   # shows driver and CUDA version
 
 .. note::
-   If you have no NVIDIA GPU, a plain ``pip install physiomotion4d`` installs a
+   If you have no NVIDIA GPU, a plain ``pip install physiotwin4d`` installs a
    CPU-only build. CuPy is absent and a ``UserWarning`` is emitted at import time.
    CPU execution of all operations is supported but will be significantly slower
    than a GPU-enabled install.
@@ -57,7 +57,7 @@ Import Errors
 
 .. code-block:: bash
 
-   pip install --upgrade physiomotion4d
+   pip install --upgrade physiotwin4d
 
 Processing Issues
 =================
@@ -75,7 +75,7 @@ Poor Segmentation Quality
 
    .. code-block:: python
 
-      from physiomotion4d import (
+      from physiotwin4d import (
           SegmentChestTotalSegmentatorWithContrast,
           WorkflowConvertImageToUSD,
       )
@@ -100,7 +100,7 @@ Registration Not Converging
 
    .. code-block:: bash
 
-      physiomotion4d-convert-image-to-usd cardiac_4d.nrrd --registration-method Greedy
+      physiotwin4d-convert-image-to-usd cardiac_4d.nrrd --registration-method Greedy
 
 3. Check image orientation and spacing
 
@@ -148,7 +148,7 @@ Slow Processing
 
 **Solutions**:
 
-1. Install ``physiomotion4d[cuda13]`` with uv for CUDA acceleration.
+1. Install ``physiotwin4d[cuda13]`` with uv for CUDA acceleration.
 2. Reduce ``--registration-iterations`` during exploratory runs.
 3. Run tutorial workflows with reduced frame counts where supported.
 
@@ -158,7 +158,7 @@ Getting Help
 If you still have issues:
 
 1. Check :doc:`faq`
-2. Search `GitHub Issues <https://github.com/Project-MONAI/physiomotion4d/issues>`_
+2. Search `GitHub Issues <https://github.com/Project-MONAI/physiotwin4d/issues>`_
 3. Open a new issue with:
 
    * Python version

@@ -13,7 +13,7 @@ import itk
 import numpy as np
 import pytest
 
-from physiomotion4d import (
+from physiotwin4d import (
     RegisterImagesGreedy,
     RegisterImagesGreedyICON,
     RegisterImagesICON,

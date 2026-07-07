@@ -1,6 +1,6 @@
-# PhysioMotion4D Data Directory
+# PhysioTwin4D Data Directory
 
-This directory contains sample datasets used for experiments, testing, and development of the PhysioMotion4D library. Each subdirectory contains a specific medical imaging dataset.
+This directory contains sample datasets used for experiments, testing, and development of the PhysioTwin4D library. Each subdirectory contains a specific medical imaging dataset.
 
 ## Directory Structure
 
@@ -48,7 +48,7 @@ Data provided by Jolley Lab at CHOP (Children's Hospital of Philadelphia):
 
 **Automatic download** (recommended):
 ```python
-from physiomotion4d import DataDownloadTools
+from physiotwin4d import DataDownloadTools
 
 DataDownloadTools.DownloadSlicerHeartCTData("data/Slicer-Heart-CT")
 assert DataDownloadTools.VerifySlicerHeartCTData("data/Slicer-Heart-CT")
@@ -68,11 +68,11 @@ wget https://github.com/Slicer-Heart-CT/Slicer-Heart-CT/releases/download/Testin
 
 ### Verification Helpers
 
-PhysioMotion4D exposes a small public utility for checking optional dataset
+PhysioTwin4D exposes a small public utility for checking optional dataset
 layouts:
 
 ```python
-from physiomotion4d import DataDownloadTools
+from physiotwin4d import DataDownloadTools
 
 DataDownloadTools.VerifySlicerHeartCTData("data/Slicer-Heart-CT")
 DataDownloadTools.VerifyDirLab4DCTData("data/DirLab-4DCT")

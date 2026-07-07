@@ -5,7 +5,7 @@ import os
 import itk
 import pyvista as pv
 
-from physiomotion4d.transform_tools import TransformTools
+from physiotwin4d.transform_tools import TransformTools
 
 # %%
 os.makedirs("results_CombineModels", exist_ok=True)

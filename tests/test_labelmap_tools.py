@@ -13,7 +13,7 @@ import itk
 import numpy as np
 import pytest
 
-from physiomotion4d.labelmap_tools import LabelmapTools
+from physiotwin4d.labelmap_tools import LabelmapTools
 
 
 class TestLabelmapTools:

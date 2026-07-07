@@ -24,8 +24,8 @@ from typing import Any, cast
 import numpy as np
 import pyvista as pv
 
-from physiomotion4d.test_tools import TestTools
-from physiomotion4d.workflow_create_statistical_model import (
+from physiotwin4d.test_tools import TestTools
+from physiotwin4d.workflow_create_statistical_model import (
     WorkflowCreateStatisticalModel,
 )
 

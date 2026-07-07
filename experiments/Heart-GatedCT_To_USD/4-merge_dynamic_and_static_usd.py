@@ -2,7 +2,7 @@
 # %%
 import os
 
-from physiomotion4d.usd_tools import USDTools
+from physiotwin4d.usd_tools import USDTools
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 
