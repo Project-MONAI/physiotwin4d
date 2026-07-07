@@ -20,7 +20,9 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v6
-      
+      with:
+        lfs: true
+
     - name: Free up disk space
       run: |
         echo "Disk space before cleanup:"

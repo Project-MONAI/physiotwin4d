@@ -1,6 +1,6 @@
 """
 PhysioTwin4D - Methods, workflows, tutorials, and CLI for creating
-    personalized physiological digital twins.
+personalized physiological digital twins.
 
 Starting from a 3D medical image of a subject, this package extracts anatomic
 models and then uses AI surrogates to estimate the subject's physiological

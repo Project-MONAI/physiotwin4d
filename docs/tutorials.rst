@@ -338,10 +338,10 @@ Inner API usage
       )
       usd_file = workflow.run()
 
-   The lower-level :mod:`physiotwin4d.vtk_to_usd` package exposes advanced
-   file conversion primitives (``convert_vtk_file``, ``ConversionSettings``,
-   ``MaterialData``) for callers who need more control than the workflow
-   wrapper offers.
+   For callers who need more control than the workflow wrapper offers (e.g.
+   converting in-memory PyVista/VTK objects instead of files, or applying a
+   colormap), use :class:`physiotwin4d.ConvertVTKToUSD` directly — it is the
+   supported public entry point for VTK-to-USD conversion.
 
 Run
    .. code-block:: bash
