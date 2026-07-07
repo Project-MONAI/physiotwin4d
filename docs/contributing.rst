@@ -429,9 +429,6 @@ Maintainers only:
    # Upload to PyPI
    python -m twine upload dist/*
 
-See ``docs/PYPI_RELEASE_GUIDE.md`` for detailed maintainer release
-instructions.
-
 Community Guidelines
 ====================
 

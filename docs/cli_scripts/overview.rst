@@ -2,7 +2,7 @@
 CLI & Scripts Overview
 ====================================
 
-This section provides comprehensive guides for using PhysioTwin4D's command-line tools to process medical imaging data. These tools are designed for medical imaging experts and physiological simulation researchers who need efficient, reproducible pipelines for converting 4D medical images into dynamic anatomical models for NVIDIA Omniverse.
+This section provides comprehensive guides for using PhysioTwin4D's command-line tools to process medical imaging data. These tools are designed for medical imaging experts and physiological simulation researchers who need efficient, reproducible pipelines for extracting anatomic models from 3D medical images and building the personalized physiological digital twins derived from them.
 
 How to Use These Resources
 ==========================

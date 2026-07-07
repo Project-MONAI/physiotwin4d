@@ -64,7 +64,7 @@ docs/
 ├── index.rst                    # Main entry point
 ├── installation.rst             # Installation guide
 ├── quickstart.rst               # Quick start guide
-├── examples.rst                 # Code examples
+├── tutorials.rst                # Tutorials (the canonical usage examples)
 │
 ├── api/                         # API Reference (NEW STRUCTURE!)
 │   ├── index.rst               # Main API hub

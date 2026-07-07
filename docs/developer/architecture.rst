@@ -2,9 +2,10 @@
 Architecture Overview
 =====================
 
-PhysioTwin4D is an early-beta scientific Python package built from workflow
-classes plus reusable segmentation, registration, geometry, image, and USD
-components. Runtime classes inherit from :class:`PhysioTwin4DBase` for
+PhysioTwin4D is an early-beta scientific Python package for creating
+personalized physiological digital twins, built from workflow classes plus
+reusable segmentation, registration, geometry, image, and USD components.
+Runtime classes inherit from :class:`PhysioTwin4DBase` for
 logging and consistent configuration.
 
 Architecture Diagram

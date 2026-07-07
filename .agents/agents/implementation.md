@@ -5,7 +5,8 @@ tools: Read, Edit, Write, Bash, Glob, Grep
 ---
 
 You are an implementation agent for PhysioTwin4D, an early-alpha scientific Python library
-that converts 4D CT scans into animated USD models for NVIDIA Omniverse.
+that provides methods, workflows, tutorials, and a CLI for creating personalized
+physiological digital twins from 3D medical images.
 
 ## Pipeline
 

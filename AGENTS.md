@@ -2,10 +2,14 @@
 
 Role-based guidance for AI agents working in this repository.
 
-PhysioTwin4D converts 4D CT scans into animated USD models for NVIDIA
-Omniverse. It is an **early-alpha** scientific Python library. Clarity beats
-premature optimization. Breaking changes are acceptable. Backward compatibility
-is not a goal.
+PhysioTwin4D is a collection of methods, workflows, tutorials, and CLI tools
+for creating personalized physiological digital twins: starting from a 3D
+medical image of a subject, extracting anatomic models, and then using AI
+surrogates to estimate the subject's physiological processes (initially
+cardiac and respiratory motion, expanding to electrophysiology, blood flow,
+and organ perfusion). It is an **early-alpha** scientific Python library.
+Clarity beats premature optimization. Breaking changes are acceptable.
+Backward compatibility is not a goal.
 
 ## Role
 
@@ -42,8 +46,8 @@ Non-Python tools used by contributor workflows:
 
 ## Common Commands
 
-Prefer the repository-local virtual environment at `.\venv`. Activate it before
-issuing Python commands so `python`, console scripts, and `uv pip` all use that
+Prefer the repository-local virtual environment at `.\venv` or `..\venv`. Activate it
+before issuing Python commands so `python`, console scripts, and `uv pip` all use that
 environment. If activation is not possible, invoke
 `.\venv\Scripts\python.exe -m ...` directly. Use `uv run ...` only when the
 local `venv` is unavailable and you need uv to create or sync an environment.
@@ -98,13 +102,10 @@ Version bumping: `bumpver update --patch`, `--minor`, or `--major`.
 ## Codex Sandbox
 
 - If a Python command fails with
-  `No Python at '"C:\Users\saylward\AppData\Local\Programs\Python\Python311\python.exe'`,
-  do not assume Python 3.11 is missing. The Codex sandbox can break the
-  launcher or venv path.
-- Use the temporary validation environment instead:
-  `C:\Users\saylward\AppData\Local\Temp\pt4d-uv-env\Scripts\python.exe`.
-  It has been verified as Python 3.11.9 with `ruff` available.
-- Run that temporary venv outside the sandbox when needed. Treat this as an
+  `No Python at ...`
+  do not assume Python is missing. The sandbox can break the launcher or venv path.
+- Use the local virtual environment instead: `.\venv`, `..\venv`, `.\.venv`, `..\.venv`
+- Run that venv outside the sandbox when needed. Treat this as an
   environment/sandbox workaround, not a dependency or installation problem.
 
 ## Universal Rules
@@ -128,12 +129,10 @@ Version bumping: `bumpver update --patch`, `--minor`, or `--major`.
   below 88 characters.
 - Full type hints are required under strict mypy. Use `Optional[X]`, not
   `X | None`.
-- Run `python -m pytest tests/ -v` from the active `.\venv` to verify changes.
+- Run `python -m pytest tests/ -v` from the active virtual venv to verify changes.
   Slow, GPU, Simpleware,
   experiment, and tutorial tests are auto-skipped unless their opt-in flag is
   passed.
-- The `requires_data` marker no longer exists. Tests that need external data
-  download it automatically via the session fixtures.
 - Consult `docs/API_MAP.md` to locate classes, methods, and signatures before
   searching manually.
 - Do not commit changes or make pull requests unless specifically told to do so.
@@ -150,8 +149,9 @@ Version bumping: `bumpver update --patch`, `--minor`, or `--major`.
 - Convert surfaces to USD right-handed Y-up only at USD export by
   `vtk_to_usd.lps_points_to_usd`:
   USD `+X=Left`, `+Y=Superior`, `+Z=Anterior`.
-- Masks are ITK images with integer labels. Keep anatomy group IDs consistent
+- Labelmaps are ITK images with integer labels. Keep anatomy group IDs consistent
   across segmenters.
+- Masks are binary ITK images.
 - Transforms are ITK composite transforms stored in compressed `.hdf` files.
 
 ## Implementation Role

@@ -2,9 +2,6 @@
 
 Project guidance for Claude Code in this repository.
 
-Codex and other AI agents should use `AGENTS.md` as the primary shared
-instructions file. Claude-specific behavior and slash-command usage remain here.
-
 ## Role:
 We are developing open-source code for scientific AI libraries. Leverage GPU-accelerated methods when appropriate.
 
@@ -46,21 +43,6 @@ py -m pytest tests/ -v
 py -m pytest tests/test_contour_tools.py -v
 py -m pytest tests/test_contour_tools.py::test_extract_surface -v
 
-# Opt-in buckets (each flag enables one marker family)
-py -m pytest tests/ -v --run-slow         # tests marked 'slow'
-py -m pytest tests/ -v --run-gpu          # tests marked 'requires_gpu'
-py -m pytest tests/ -v --run-simpleware   # tests marked 'requires_simpleware'
-py -m pytest tests/ -v --run-physicsnemo  # tests marked 'requires_physicsnemo'
-py -m pytest tests/ -v --run-experiments  # tests marked 'experiment'
-py -m pytest tests/ -v --run-tutorials    # tests marked 'tutorial'
-
-# Enable every bucket at once (equivalent to passing all --run-* flags).
-# Self-hosted CI GPU runner uses this after installing [test,cuda13,physicsnemo].
-py -m pytest tests/ -v --run-all
-
-# Typical local GPU profile.
-py -m pytest tests/ -v --run-gpu --run-slow
-
 # With coverage
 py -m pytest tests/ --cov=src/physiotwin4d --cov-report=html
 
@@ -86,8 +68,9 @@ Regenerate it after any public API change: `py utils/generate_api_map.py`
 - Surfaces: `pv.PolyData` in LPS (inherited from the source `itk.Image` via
   `itk.vtk_image_from_image`); converted to USD right-handed Y-up only at USD
   export by `vtk_to_usd.lps_points_to_usd` (USD +X=Left, +Y=Superior, +Z=Anterior)
-- Masks: ITK images with integer labels; consistent anatomy group IDs across all segmenters
-- Transforms: ITK composite transforms stored in `.hdf` files with compression
+- Labelmaps: ITK images with integer labels defined by anatomy segmenter used.
+- Masks: ITK binary images
+- Transforms: ITK transforms stored in `.hdf` files with compression
 
 ## Testing
 

@@ -1,12 +1,15 @@
 """
-PhysioTwin4D - Medical imaging package for generating anatomic models with
-    physiological motion.
+PhysioTwin4D - Methods, workflows, tutorials, and CLI for creating
+    personalized physiological digital twins.
 
-This package converts 4D CT scans (particularly heart and lung gated CT data) into
-    dynamic 3D models
-for visualization in NVIDIA Omniverse. It provides comprehensive tools for image
-    processing,
-segmentation, registration, and USD file generation.
+Starting from a 3D medical image of a subject, this package extracts anatomic
+models and then uses AI surrogates to estimate the subject's physiological
+processes, initially cardiac and respiratory motion and expanding to
+electrophysiology, blood flow, and organ perfusion. It provides methods for
+forming those AI surrogates and for fine-tuning the segmentation and
+registration AI methods that power them, with statistical shape models used
+to capture subject-specific characteristics and establish correspondence
+across subjects.
 
 Main Components:
     - WorkflowConvertImageToUSD: 4D CT image to USD workflow
