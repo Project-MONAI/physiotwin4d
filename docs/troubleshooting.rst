@@ -75,7 +75,10 @@ Poor Segmentation Quality
 
    .. code-block:: python
 
-      from physiomotion4d import SegmentChestTotalSegmentatorWithContrast
+      from physiomotion4d import (
+          SegmentChestTotalSegmentatorWithContrast,
+          WorkflowConvertImageToUSD,
+      )
 
       workflow = WorkflowConvertImageToUSD(
           ...,

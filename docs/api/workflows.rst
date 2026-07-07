@@ -57,7 +57,7 @@ Convert Image to USD
    workflow = WorkflowConvertImageToUSD(
        input_filenames=["cardiac_4d.nrrd"],
        output_directory="./results",
-       project_name="patient_001",
+       usd_project_name="patient_001",
        segmentation_method=SegmentChestTotalSegmentatorWithContrast(),
        registration_method=RegisterImagesICON(),
    )
@@ -77,6 +77,7 @@ Image to VTK
    import itk
 
    from physiomotion4d import (
+       ContourTools,
        SegmentChestTotalSegmentatorWithContrast,
        WorkflowConvertImageToVTK,
    )
@@ -85,12 +86,12 @@ Image to VTK
    workflow = WorkflowConvertImageToVTK(
        segmentation_method=SegmentChestTotalSegmentatorWithContrast()
    )
-   result = workflow.run_workflow(
+   result = workflow.process(
        input_image=image,
        anatomy_groups=["heart", "major_vessels"],
    )
 
-   WorkflowConvertImageToVTK.save_combined_surface(
+   ContourTools.save_combined_surface(
        result["surfaces"],
        "./output",
        prefix="patient01",

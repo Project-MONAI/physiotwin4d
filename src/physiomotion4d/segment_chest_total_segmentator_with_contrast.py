@@ -37,7 +37,7 @@ class SegmentChestTotalSegmentatorWithContrast(SegmentChestTotalSegmentator):
         >>> contrast_mask = result['contrast']
     """
 
-    def __init__(self, log_level: int | str = logging.INFO):
+    def __init__(self, log_level: int | str = logging.INFO) -> None:
         """Initialize the contrast-enhanced TotalSegmentator-based segmentation.
 
         Args:
@@ -52,32 +52,32 @@ class SegmentChestTotalSegmentatorWithContrast(SegmentChestTotalSegmentator):
         self.taxonomy.add_organ("contrast", 135, "contrast")
 
     def postprocess_after_labelmap(
-        self, input_image: itk.image, labelmap_image: itk.image
-    ) -> itk.image:
+        self, input_image: itk.Image, labelmap_image: itk.Image
+    ) -> itk.Image:
         """Run contrast-enhanced blood detection on the labelmap.
 
         Overrides :meth:`SegmentAnatomyBase.postprocess_after_labelmap`.
 
         Args:
-            input_image (itk.image): The original, unpreprocessed input image
-            labelmap_image (itk.image): The postprocessed segmentation labelmap
+            input_image (itk.Image): The original, unpreprocessed input image
+            labelmap_image (itk.Image): The postprocessed segmentation labelmap
 
         Returns:
-            itk.image: The labelmap, with contrast-enhanced regions labeled
+            itk.Image: The labelmap, with contrast-enhanced regions labeled
         """
         return self.segment_contrast_agent(input_image, labelmap_image)
 
     def segment_connected_component(
         self,
-        preprocessed_image: itk.image,
-        labelmap_image: itk.image,
+        preprocessed_image: itk.Image,
+        labelmap_image: itk.Image,
         lower_threshold: int,
         upper_threshold: int,
         labelmap_ids: Optional[list[int]] = None,
         mask_id: int = 0,
         use_mid_slice: bool = True,
         hole_fill: int = 2,
-    ) -> itk.image:
+    ) -> itk.Image:
         """
         Segment connected components based on intensity thresholding.
 
@@ -87,8 +87,8 @@ class SegmentChestTotalSegmentatorWithContrast(SegmentChestTotalSegmentator):
         tissue types.
 
         Args:
-            preprocessed_image (itk.image): The preprocessed input image
-            labelmap_image (itk.image): Existing labelmap to constrain search
+            preprocessed_image (itk.Image): The preprocessed input image
+            labelmap_image (itk.Image): Existing labelmap to constrain search
             lower_threshold (int): Lower intensity threshold
             upper_threshold (int): Upper intensity threshold
             labelmap_ids (Optional[list[int]]): List of label IDs to search within.
@@ -99,7 +99,7 @@ class SegmentChestTotalSegmentatorWithContrast(SegmentChestTotalSegmentator):
             hole_fill (int): Number of pixels to dilate/erode for hole filling
 
         Returns:
-            itk.image: Updated labelmap with new component labeled as mask_id
+            itk.Image: Updated labelmap with new component labeled as mask_id
 
         Example:
             >>> # Segment contrast-enhanced blood
@@ -178,8 +178,8 @@ class SegmentChestTotalSegmentatorWithContrast(SegmentChestTotalSegmentator):
         return results_image
 
     def segment_contrast_agent(
-        self, preprocessed_image: itk.image, labelmap_image: itk.image
-    ) -> itk.image:
+        self, preprocessed_image: itk.Image, labelmap_image: itk.Image
+    ) -> itk.Image:
         """
         Include contrast-enhanced blood in the labelmap.
 
@@ -188,11 +188,11 @@ class SegmentChestTotalSegmentatorWithContrast(SegmentChestTotalSegmentator):
         focused on the middle slice where the heart is typically located.
 
         Args:
-            preprocessed_image (itk.image): The preprocessed CT image
-            labelmap_image (itk.image): Existing segmentation labelmap
+            preprocessed_image (itk.Image): The preprocessed CT image
+            labelmap_image (itk.Image): Existing segmentation labelmap
 
         Returns:
-            itk.image: Updated labelmap with contrast-enhanced regions labeled
+            itk.Image: Updated labelmap with contrast-enhanced regions labeled
 
         Note:
             Assumes the mid-z slice of the data contains the heart.

@@ -190,7 +190,7 @@ class WorkflowFitStatisticalModelToPatient(PhysioMotion4DBase):
                 segmentation_method=segmentation_method,
                 log_level=log_level,
             )
-            patient_models_data = convert_image_to_vtk.run_workflow(
+            patient_models_data = convert_image_to_vtk.process(
                 input_image=patient_image,
                 anatomy_groups=["heart"],
             )

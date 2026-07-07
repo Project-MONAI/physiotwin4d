@@ -100,8 +100,8 @@ def test_fit_workflow_routes_default_to_image_to_vtk_with_trimmed_branches(
         def __init__(self, **kwargs: Any) -> None:
             captured["init_kwargs"] = kwargs
 
-        def run_workflow(self, **kwargs: Any) -> dict[str, Any]:
-            captured["run_kwargs"] = kwargs
+        def process(self, **kwargs: Any) -> dict[str, Any]:
+            captured["process_kwargs"] = kwargs
             return {"meshes": {"heart": heart_mesh}}
 
     monkeypatch.setattr(
@@ -119,7 +119,7 @@ def test_fit_workflow_routes_default_to_image_to_vtk_with_trimmed_branches(
         captured["init_kwargs"]["segmentation_method"],
         SegmentHeartSimplewareTrimmedBranches,
     )
-    assert captured["run_kwargs"]["anatomy_groups"] == ["heart"]
+    assert captured["process_kwargs"]["anatomy_groups"] == ["heart"]
     assert workflow.patient_models == [heart_mesh]
 
 

@@ -78,6 +78,7 @@ dependencies = [
     "pyvista[all]>=0.47.0",
     "usd-core>=23.11",
     "trimesh>=4.0.0",
+    "netgen-mesher>=6.2.2606",
 
     # Utilities
     "ipykernel>=6.0.0",
@@ -228,6 +229,8 @@ module = [
     "itk.*",
     "matplotlib",
     "matplotlib.*",
+    "netgen",
+    "netgen.*",
     "nibabel",
     "nibabel.*",
     "nrrd",

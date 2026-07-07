@@ -2,7 +2,8 @@
 """Command-line interface for the image-to-VTK segmentation workflow.
 
 Segments a 3D image using a chosen backend and writes per-anatomy-group VTP
-surfaces and VTU voxel meshes annotated with anatomy labels and colors.
+surfaces and VTU tetrahedral volume meshes annotated with anatomy labels and
+colors.
 """
 
 import argparse
@@ -37,12 +38,12 @@ Anatomy groups
 Output files — combined mode (default)
 ---------------------------------------
   {prefix}_surfaces.vtp   all surfaces merged into one file
-  {prefix}_meshes.vtu     all voxel meshes merged into one file
+  {prefix}_meshes.vtu     all tetrahedral volume meshes merged into one file
 
 Output files — split mode (--split-files)
 ------------------------------------------
   {prefix}_{group}.vtp    one surface per anatomy group
-  {prefix}_{group}.vtu    one voxel mesh per anatomy group
+  {prefix}_{group}.vtu    one tetrahedral volume mesh per anatomy group
 
 Examples
 --------
@@ -108,6 +109,26 @@ Examples
             "Choices: " + " ".join(ANATOMY_GROUPS)
         ),
     )
+    parser.add_argument(
+        "--surface-target-reduction",
+        type=float,
+        default=0.0,
+        help=(
+            "Fraction in [0, 1) of surface triangles to remove via "
+            "decimate_pro (default: 0.0, no decimation)."
+        ),
+    )
+    parser.add_argument(
+        "--mesh-target-reduction",
+        type=float,
+        default=0.0,
+        help=(
+            "Fraction in [0, 1) of triangles to remove from the surface "
+            "(via decimate_pro) before it is meshed into a tetrahedral "
+            "volume mesh by netgen; a coarser input surface yields a "
+            "coarser volume mesh (default: 0.0, no decimation)."
+        ),
+    )
 
     # ── Output ────────────────────────────────────────────────────────────
     parser.add_argument(
@@ -156,16 +177,18 @@ Examples
     print("=" * 70)
 
     try:
-        from .. import WorkflowConvertImageToVTK
+        from .. import ContourTools, WorkflowConvertImageToVTK
 
         workflow = WorkflowConvertImageToVTK(
             segmentation_method=build_segmentation_method(
                 args.segmentation_method, contrast=args.contrast
             ),
         )
-        result = workflow.run_workflow(
+        result = workflow.process(
             input_image=input_image,
             anatomy_groups=args.anatomy_groups,
+            surface_target_reduction=args.surface_target_reduction,
+            mesh_target_reduction=args.mesh_target_reduction,
         )
     except (ValueError, RuntimeError, OSError) as exc:
         print(f"Error during workflow: {exc}")
@@ -189,13 +212,13 @@ Examples
         if args.split_files:
             # One file per anatomy group
             if surfaces:
-                saved_surfaces = WorkflowConvertImageToVTK.save_surfaces(
+                saved_surfaces = ContourTools.save_surfaces(
                     surfaces, args.output_dir, prefix=prefix
                 )
                 for group, path in saved_surfaces.items():
                     print(f"  Surface  [{group:15s}] -> {path}")
             if meshes:
-                saved_meshes = WorkflowConvertImageToVTK.save_meshes(
+                saved_meshes = ContourTools.save_meshes(
                     meshes, args.output_dir, prefix=prefix
                 )
                 for group, path in saved_meshes.items():
@@ -203,12 +226,12 @@ Examples
         else:
             # Combined single-file output
             if surfaces:
-                surface_file = WorkflowConvertImageToVTK.save_combined_surface(
+                surface_file = ContourTools.save_combined_surface(
                     surfaces, args.output_dir, prefix=prefix
                 )
                 print(f"  Combined surface -> {surface_file}")
             if meshes:
-                mesh_file = WorkflowConvertImageToVTK.save_combined_mesh(
+                mesh_file = ContourTools.save_combined_mesh(
                     meshes, args.output_dir, prefix=prefix
                 )
                 print(f"  Combined mesh    -> {mesh_file}")
