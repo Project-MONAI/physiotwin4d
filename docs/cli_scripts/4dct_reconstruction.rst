@@ -15,7 +15,8 @@ Input Requirements
 * Optional fixed and moving masks for registration focus.
 
 DirLab-4DCT data cannot be downloaded automatically by PhysioTwin4D. Prepare
-it manually before using the DirLab tutorial or examples.
+it manually before using the DirLab tutorial or examples — see
+``data/DirLab-4DCT/README.md`` for the download and layout instructions.
 
 Basic Usage
 ===========

@@ -91,11 +91,17 @@ For ``CHOP-Valve4D``, the command downloads, extracts, and reuses:
 The command uses
 :meth:`physiotwin4d.data_download_tools.DataDownloadTools.DownloadCHOPValve4DData`,
 which fetches each subdirectory's zip archive from the PhysioTwin4D GitHub
-release and skips any subdirectory that already contains files.
+release and skips a subdirectory once it has its expected extracted files
+(the CT volume or Simpleware segmentation for ``CT/``, ``.vtk`` meshes for
+``Alterra/`` and ``TPV25/``) — a subdirectory left behind by an interrupted
+extraction is re-downloaded rather than treated as complete.
 
 See Also
 ========
 
+* :doc:`../tutorials` — Tutorials 1-4 use ``Slicer-Heart-CT`` and
+  ``KCL-Heart-Model``; ``DirLab-4DCT`` (Tutorial 6) is manual-only, see
+  ``data/DirLab-4DCT/README.md``.
 * :doc:`byod_tutorials`
 * :doc:`heart_gated_ct`
 * :doc:`overview`

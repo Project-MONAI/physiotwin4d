@@ -75,6 +75,28 @@ Tutorials
      </a>
    </section>
 
+Get the Data First
+===================
+
+Before running any tutorial below, fetch its sample dataset with the
+``physiotwin4d-download-data`` CLI:
+
+.. code-block:: bash
+
+   physiotwin4d-download-data Slicer-Heart-CT --directory data/Slicer-Heart-CT
+   physiotwin4d-download-data KCL-Heart-Model --directory data/KCL-Heart-Model
+
+This covers the data used by Tutorials 1-5. Run
+``physiotwin4d-download-data --help`` for all options, and see
+:doc:`cli_scripts/download_data` for dataset sizes, source URLs, and
+directory layouts.
+
+``DirLab-4DCT`` (used by Tutorial 6) is **not** auto-downloaded — DIR-Lab
+distributes it manually and may require registration; see
+``data/DirLab-4DCT/README.md`` for instructions. Tutorials 8-10 are
+bring-your-own-data (see the note before Tutorial 8) and do not use a
+downloadable sample.
+
 Recommended Run Order
 =====================
 
@@ -84,11 +106,11 @@ directories by default. Edit those constants for tutorial exploration, or use
 the installed ``physiotwin4d-*`` CLI commands when you need command-line path
 arguments.
 
-1. Run Tutorials 1 and 2 after preparing Slicer-Heart-CT data.
+1. Run Tutorials 1 and 2 after downloading Slicer-Heart-CT data (above).
 2. Run Tutorial 5 after Tutorial 2 because it consumes Tutorial 2 output.
-3. Run Tutorial 3 after downloading KCL-Heart-Model.
+3. Run Tutorial 3 after downloading KCL-Heart-Model (above).
 4. Run Tutorial 4 after Tutorial 3 because it can consume the PCA model output.
-5. Run Tutorial 6 after downloading DirLab-4DCT.
+5. Run Tutorial 6 after downloading DirLab-4DCT (manual — see above).
 6. Run Tutorial 8 after preparing your own cardiac gated CT, labelmaps, KCL
    volume PCA model, and ICON weights (bring-your-own-data; see the note below).
 7. Run Tutorial 9a and/or 9b after Tutorial 8 because they train from its
@@ -106,7 +128,7 @@ Workflow
    ``WorkflowConvertImageToUSD``
 
 Dataset
-   Slicer-Heart-CT, prepared before running the tutorial.
+   Slicer-Heart-CT, downloaded via ``physiotwin4d-download-data`` (see above).
 
 Preview
    .. figure:: assets/example.gif
@@ -162,7 +184,7 @@ Workflow
    ``WorkflowConvertImageToVTK``
 
 Dataset
-   Slicer-Heart-CT, prepared before running the tutorial.
+   Slicer-Heart-CT, downloaded via ``physiotwin4d-download-data`` (see above).
 
 Preview
    .. figure:: assets/example.gif
@@ -361,7 +383,7 @@ Workflow
    ``WorkflowReconstructHighres4DCT``
 
 Dataset
-   DirLab-4DCT, downloaded manually.
+   DirLab-4DCT, downloaded manually — see ``data/DirLab-4DCT/README.md``.
 
 Preview
    .. figure:: assets/example.gif
