@@ -25,7 +25,19 @@ the workflow classes directly. Run as a regular file
 See :doc:`tutorials` for the NVIDIA-styled tutorial card index, dataset
 requirements, script paths, and workflow details.
 
-After preparing the Slicer-Heart-CT data, run the first two tutorials:
+Fetch the sample datasets with the download CLI before running a tutorial:
+
+.. code-block:: bash
+
+   physiotwin4d-download-data Slicer-Heart-CT --directory data/Slicer-Heart-CT
+   physiotwin4d-download-data KCL-Heart-Model --directory data/KCL-Heart-Model
+
+See :doc:`cli_scripts/download_data` for all supported datasets, sizes, and
+source URLs. ``DirLab-4DCT`` (Tutorial 6) is manual-only; see
+``data/DirLab-4DCT/README.md``.
+
+After downloading the Slicer-Heart-CT data (above), run the first two
+tutorials:
 
 .. code-block:: bash
 
@@ -40,11 +52,11 @@ recommended run order.
 
 Recommended run order:
 
-1. Tutorials 1 and 2 first, after preparing Slicer-Heart-CT data.
+1. Tutorials 1 and 2 first, after downloading Slicer-Heart-CT data.
 2. Tutorial 5 after Tutorial 2 (consumes Tutorial 2 output).
 3. Tutorial 3 after downloading KCL-Heart-Model.
 4. Tutorial 4 after Tutorial 3 because it can consume Tutorial 3 output.
-5. Tutorial 6 after downloading DirLab-4DCT.
+5. Tutorial 6 after downloading DirLab-4DCT (manual).
 6. Tutorial 8 after preparing your own cardiac gated CT, labelmaps, KCL volume
    PCA model, and ICON weights (bring-your-own-data).
 7. Tutorial 9a and/or 9b after Tutorial 8 because they train from its fitted
@@ -73,9 +85,9 @@ CUDA-capable GPU are required for practical runtime.
 
 .. code-block:: bash
 
-   python -c "from physiotwin4d import DataDownloadTools; DataDownloadTools.DownloadSlicerHeartCTData('data/test')"
+   physiotwin4d-download-data Slicer-Heart-CT --directory data/Slicer-Heart-CT
 
-   physiotwin4d-convert-image-to-usd data/test/TruncalValve_4DCT.seq.nrrd \
+   physiotwin4d-convert-image-to-usd data/Slicer-Heart-CT/TruncalValve_4DCT.seq.nrrd \
        --registration-method ICON \
        --output-dir output/quickstart \
        --project-name slicer_heart_quickstart
@@ -237,18 +249,30 @@ Convert VTK time series to USD:
 Sample Data
 ===========
 
-Download Sample Cardiac CT Data
---------------------------------
+Download Sample Datasets
+-------------------------
+
+``Slicer-Heart-CT``, ``KCL-Heart-Model``, and ``CHOP-Valve4D`` are all
+auto-downloadable, via the CLI:
+
+.. code-block:: bash
+
+   physiotwin4d-download-data Slicer-Heart-CT --directory data/Slicer-Heart-CT
+
+or from Python:
 
 .. code-block:: python
 
    from physiotwin4d import DataDownloadTools
 
-   data_file = DataDownloadTools.DownloadSlicerHeartCTData("sample_data")
-   assert DataDownloadTools.VerifySlicerHeartCTData("sample_data")
+   data_file = DataDownloadTools.DownloadSlicerHeartCTData("data/Slicer-Heart-CT")
+   assert DataDownloadTools.VerifySlicerHeartCTData("data/Slicer-Heart-CT")
 
-DirLab-4DCT data is manual-only; see ``data/README.md`` before running the
-high-resolution 4D CT reconstruction tutorial. Tutorials 8-10 are
+See :doc:`cli_scripts/download_data` for sizes, source URLs, and directory
+layouts for every dataset.
+
+DirLab-4DCT data is manual-only; see ``data/DirLab-4DCT/README.md`` before
+running the high-resolution 4D CT reconstruction tutorial. Tutorials 8-10 are
 bring-your-own-data cardiac tutorials; see :doc:`tutorials` for their dataset
 layout. Tutorials 9a/9b/10a/10b additionally require the optional
 ``physicsnemo`` extra (``pip install "physiotwin4d[physicsnemo]"``);

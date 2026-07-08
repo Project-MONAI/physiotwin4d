@@ -6,6 +6,9 @@ This test replicates the functionality from cells 0-2 of the notebook
 Heart-GatedCT_To_USD/0-download_and_convert_4d_to_3d.ipynb.
 """
 
+import io
+import tarfile
+import zipfile
 from pathlib import Path
 
 import pytest
@@ -39,14 +42,41 @@ class TestDataDownloadTools:
         assert DataDownloadTools.VerifyKCLHeartModelData(tmp_path)
 
     def test_verify_dirlab_4dct_data(self, tmp_path: Path) -> None:
-        """Verify DirLab data by supported Case1 phase image layouts."""
+        """Verify DirLab data requires both the header and its backing data."""
         case1_dir = tmp_path / "Case1"
         case1_dir.mkdir()
 
         assert not DataDownloadTools.VerifyDirLab4DCTData(tmp_path)
 
-        (case1_dir / "case1_T00.mhd").write_text("ObjectType = Image\n")
+        # A header alone (as committed to the repo) must not verify --
+        # the raw pixel data it points to has not been downloaded yet.
+        (case1_dir / "case1_T00.mhd").write_text(
+            "ObjectType = Image\nElementDataFile = case1_T00.img\n"
+        )
+        assert not DataDownloadTools.VerifyDirLab4DCTData(tmp_path)
 
+        # Once the backing pixel data the header points to exists, it verifies.
+        (case1_dir / "case1_T00.img").write_bytes(b"raw")
+        assert DataDownloadTools.VerifyDirLab4DCTData(tmp_path)
+
+    def test_verify_dirlab_4dct_pack_layout_requires_backing_data(
+        self, tmp_path: Path
+    ) -> None:
+        """A committed Case1Pack_T*.mhd header alone must not verify as downloaded.
+
+        Regression test: these headers are committed to the repo to
+        document the expected layout, so glob-matching the header filename
+        alone would always report the dataset as present.
+        """
+        mhd_file = tmp_path / "Case1Pack_T00.mhd"
+        mhd_file.write_text(
+            "ObjectType = Image\nElementDataFile = Case1Pack/Images/case1_T00_s.img\n"
+        )
+        assert not DataDownloadTools.VerifyDirLab4DCTData(tmp_path)
+
+        backing_file = tmp_path / "Case1Pack" / "Images" / "case1_T00_s.img"
+        backing_file.parent.mkdir(parents=True)
+        backing_file.write_bytes(b"raw")
         assert DataDownloadTools.VerifyDirLab4DCTData(tmp_path)
 
     def test_verify_chop_valve_4d_data(self, tmp_path: Path) -> None:
@@ -109,6 +139,159 @@ class TestDownloadHeartData:
 
         print(f"\nData file downloaded successfully: {data_file}")
         print(f"  File size: {file_size / 1_000_000:.2f} MB")
+
+    def test_download_kcl_heart_model_data(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Each per-model and average archive is downloaded and unpacked."""
+        archives_dir = tmp_path / "archives"
+        archives_dir.mkdir()
+
+        def make_archive(member_name: str, content: bytes) -> Path:
+            archive_path = archives_dir / f"{member_name}.tar.gz"
+            with tarfile.open(archive_path, "w:gz") as tar:
+                info = tarfile.TarInfo(name=member_name)
+                info.size = len(content)
+                tar.addfile(info, io.BytesIO(content))
+            return archive_path
+
+        urls_to_archives = {}
+        for index in range(1, DataDownloadTools.KCL_HEART_MODEL_MESH_COUNT + 1):
+            url = DataDownloadTools.KCL_HEART_MODEL_INDIVIDUAL_URL_TEMPLATE.format(
+                index=index
+            )
+            urls_to_archives[url] = make_archive(
+                f"{index:02d}.vtk", f"# vtk {index}\n".encode()
+            )
+        urls_to_archives[DataDownloadTools.KCL_HEART_MODEL_AVERAGE_URL] = make_archive(
+            "average.vtk", b"# vtk average\n"
+        )
+
+        def fake_urlopen(url: str, timeout: float) -> object:
+            return open(urls_to_archives[url], "rb")
+
+        monkeypatch.setattr(
+            "physiotwin4d.data_download_tools.urllib.request.urlopen", fake_urlopen
+        )
+
+        output_dir = tmp_path / "KCL-Heart-Model"
+        result_dir = DataDownloadTools.DownloadKCLHeartModelData(output_dir)
+
+        assert result_dir == output_dir
+        assert (output_dir / "average_mesh.vtk").read_text() == "# vtk average\n"
+        for index in range(1, DataDownloadTools.KCL_HEART_MODEL_MESH_COUNT + 1):
+            mesh_file = output_dir / "input_meshes" / f"{index:02d}.vtk"
+            assert mesh_file.read_text() == f"# vtk {index}\n"
+        assert DataDownloadTools.VerifyKCLHeartModelData(output_dir)
+
+    def test_download_chop_valve4d_data(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Each subdirectory's zip archive is downloaded and extracted."""
+        archives_dir = tmp_path / "archives"
+        archives_dir.mkdir()
+
+        def make_archive(subdir_name: str, member_name: str, content: bytes) -> Path:
+            archive_path = archives_dir / f"{subdir_name}.zip"
+            with zipfile.ZipFile(archive_path, "w") as zf:
+                zf.writestr(member_name, content)
+            return archive_path
+
+        urls_to_archives = {}
+        for subdir_name, asset_name in DataDownloadTools.CHOP_VALVE4D_ASSETS.items():
+            url = DataDownloadTools.CHOP_VALVE4D_RELEASE_URL + asset_name
+            urls_to_archives[url] = make_archive(
+                subdir_name, f"{subdir_name}.txt", f"# {subdir_name}\n".encode()
+            )
+
+        def fake_urlopen(url: str, timeout: float) -> object:
+            return open(urls_to_archives[url], "rb")
+
+        monkeypatch.setattr(
+            "physiotwin4d.data_download_tools.urllib.request.urlopen", fake_urlopen
+        )
+
+        output_dir = tmp_path / "CHOP-Valve4D"
+        result_dir = DataDownloadTools.DownloadCHOPValve4DData(output_dir)
+
+        assert result_dir == output_dir
+        for subdir_name in DataDownloadTools.CHOP_VALVE4D_ASSETS:
+            extracted_file = output_dir / subdir_name / f"{subdir_name}.txt"
+            assert extracted_file.read_text() == f"# {subdir_name}\n"
+
+    @staticmethod
+    def _write_chop_valve4d_expected_marker(target_dir: Path, subdir_name: str) -> None:
+        """Create the marker file/dir _CHOPValve4DSubdirIsPopulated looks for."""
+        target_dir.mkdir(parents=True, exist_ok=True)
+        if subdir_name == "CT":
+            (target_dir / "RVOT28-Dias.mha").write_bytes(b"mha")
+        else:
+            (target_dir / "frame_0000.vtk").write_text("# vtk\n")
+
+    def test_download_chop_valve4d_data_skips_populated_subdirs(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Subdirectories with their expected marker files are not re-downloaded."""
+        output_dir = tmp_path / "CHOP-Valve4D"
+        for subdir_name in DataDownloadTools.CHOP_VALVE4D_ASSETS:
+            self._write_chop_valve4d_expected_marker(
+                output_dir / subdir_name, subdir_name
+            )
+
+        def fake_urlopen(url: str, timeout: float) -> object:
+            raise AssertionError(f"Should not download populated subdir: {url}")
+
+        monkeypatch.setattr(
+            "physiotwin4d.data_download_tools.urllib.request.urlopen", fake_urlopen
+        )
+
+        result_dir = DataDownloadTools.DownloadCHOPValve4DData(output_dir)
+
+        assert result_dir == output_dir
+
+    def test_download_chop_valve4d_data_redownloads_partial_extraction(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A subdir left behind by an interrupted extraction is re-downloaded.
+
+        Regression test: an earlier version skipped any subdirectory that
+        merely had *some* file in it, so an interrupted extraction that only
+        wrote a partial/temp file would be treated as complete forever.
+        """
+        output_dir = tmp_path / "CHOP-Valve4D"
+        partial_dir = output_dir / "Alterra"
+        partial_dir.mkdir(parents=True)
+        (partial_dir / "partial_download.tmp").write_text("incomplete\n")
+
+        archives_dir = tmp_path / "archives"
+        archives_dir.mkdir()
+
+        def make_archive(subdir_name: str, member_name: str, content: bytes) -> Path:
+            archive_path = archives_dir / f"{subdir_name}.zip"
+            with zipfile.ZipFile(archive_path, "w") as zf:
+                zf.writestr(member_name, content)
+            return archive_path
+
+        urls_to_archives = {}
+        for subdir_name, asset_name in DataDownloadTools.CHOP_VALVE4D_ASSETS.items():
+            url = DataDownloadTools.CHOP_VALVE4D_RELEASE_URL + asset_name
+            member_name = "RVOT28-Dias.mha" if subdir_name == "CT" else "frame_0000.vtk"
+            urls_to_archives[url] = make_archive(
+                subdir_name, member_name, f"# {subdir_name}\n".encode()
+            )
+
+        def fake_urlopen(url: str, timeout: float) -> object:
+            return open(urls_to_archives[url], "rb")
+
+        monkeypatch.setattr(
+            "physiotwin4d.data_download_tools.urllib.request.urlopen", fake_urlopen
+        )
+
+        DataDownloadTools.DownloadCHOPValve4DData(output_dir)
+
+        # The stray leftover file did not prevent Alterra from re-downloading.
+        assert (partial_dir / "frame_0000.vtk").read_text() == "# Alterra\n"
+        assert (partial_dir / "partial_download.tmp").exists()
 
 
 if __name__ == "__main__":

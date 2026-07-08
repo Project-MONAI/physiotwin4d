@@ -1,0 +1,11 @@
+ObjectType = Image
+NDims = 3
+DimSize = 256 256 106
+HeaderSize = -1
+BinaryData = True
+BinaryDataByteOrderMSB = False
+Orientation = 1 0 0 0 1 0 0 0 -1
+ElementSpacing = 1.1 1.1 2.5
+ElementType = MET_SHORT
+ElementNumberOfChannels = 1
+ElementDataFile = Case5Pack/Images/case5_T00-ssm.img

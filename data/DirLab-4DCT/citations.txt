@@ -1,7 +1,0 @@
-https://med.emory.edu/departments/radiation-oncology/research-laboratories/deformable-image-registration/downloads-and-reference-data/4dct.html
-
-Case numbers 4DCT1-4DCT5
-Castillo R, Castillo E, Guerra R, Johnson VE, McPhail T, Garg AK, Guerrero T. 2009. A framework for evaluation of deformable image registration spatial accuracy using large landmark point sets. Phys Med Biol 54 1849-1870.
-
-Case numbers 4DCT6-4DCT10
-Castillo E, Castillo R, Martinez J, Shenoy M, Guerrero T. 2009. Four-dimensional deformable image registration using trajectory modeling. Phys Med Biol 55 305-327.

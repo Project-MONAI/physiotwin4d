@@ -1,0 +1,11 @@
+ObjectType = Image
+NDims = 3
+DimSize = 512 512 136
+HeaderSize = -1
+BinaryData = True
+BinaryDataByteOrderMSB = False
+Orientation = 1 0 0 0 1 0 0 0 -1
+ElementSpacing = 0.97 0.97 2.5
+ElementType = MET_SHORT
+ElementNumberOfChannels = 1
+ElementDataFile = Case7Pack/Images/case7_T80.img
