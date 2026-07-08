@@ -1,0 +1,11 @@
+ObjectType = Image
+NDims = 3
+DimSize = 256 256 94
+HeaderSize = -1
+BinaryData = True
+BinaryDataByteOrderMSB = False
+Orientation = 1 0 0 0 1 0 0 0 -1
+ElementSpacing = 0.97 0.97 2.5
+ElementType = MET_SHORT
+ElementNumberOfChannels = 1
+ElementDataFile = Case1Pack/Images/case1_T50_s.img

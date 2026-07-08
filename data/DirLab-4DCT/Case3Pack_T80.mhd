@@ -1,0 +1,11 @@
+ObjectType = Image
+NDims = 3
+DimSize = 256 256 104
+HeaderSize = -1
+BinaryData = True
+BinaryDataByteOrderMSB = False
+Orientation = 1 0 0 0 1 0 0 0 -1
+ElementSpacing = 1.15 1.15 2.5
+ElementType = MET_SHORT
+ElementNumberOfChannels = 1
+ElementDataFile = Case3Pack/Images/case3_T80-ssm.img

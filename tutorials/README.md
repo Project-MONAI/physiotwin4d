@@ -15,7 +15,7 @@ dataset licensing, and expected directory layout.
 |---|--------|-------------|---------|
 | 1 | [tutorial_01_heart_gated_ct_to_usd.py](tutorial_01_heart_gated_ct_to_usd.py) | `WorkflowConvertImageToUSD` | Slicer-Heart-CT (prepare first) |
 | 2 | [tutorial_02_ct_to_vtk.py](tutorial_02_ct_to_vtk.py) | `WorkflowConvertImageToVTK` | Slicer-Heart-CT (prepare first) |
-| 3 | [tutorial_03_create_statistical_model.py](tutorial_03_create_statistical_model.py) | `WorkflowCreateStatisticalModel` | KCL-Heart-Model (manual) |
+| 3 | [tutorial_03_create_statistical_model.py](tutorial_03_create_statistical_model.py) | `WorkflowCreateStatisticalModel` | KCL-Heart-Model |
 | 4 | [tutorial_04_fit_statistical_model_to_patient.py](tutorial_04_fit_statistical_model_to_patient.py) | `WorkflowFitStatisticalModelToPatient` | KCL-Heart-Model plus Tutorial 3 output |
 | 5 | [tutorial_05_vtk_to_usd.py](tutorial_05_vtk_to_usd.py) | `WorkflowConvertVTKToUSD` | Output of tutorial 2 |
 | 6 | [tutorial_06_reconstruct_highres_4d_ct.py](tutorial_06_reconstruct_highres_4d_ct.py) | `WorkflowReconstructHighres4DCT` | DirLab-4DCT (manual) |

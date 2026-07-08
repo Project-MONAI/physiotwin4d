@@ -17,13 +17,17 @@ This experiment uses the **King's College London (KCL) four-chamber heart model 
 
 The experiment requires the **KCL-Heart-Model** dataset located in `data/KCL-Heart-Model/`.
 
-### Manual Download Required
+### Download
 
-The KCL dataset is NOT automatically downloaded. You must manually download it from:
+Download it automatically with:
 
-**[Virtual cohort of adult healthy four-chamber heart meshes from CT images](https://zenodo.org/records/4590294)**
+```bash
+physiotwin4d-download-data KCL-Heart-Model --directory data/KCL-Heart-Model
+```
 
-See `data/KCL-Heart-Model/README.md` for complete download and setup instructions.
+The data comes from
+**[Virtual cohort of adult healthy four-chamber heart meshes from CT images](https://zenodo.org/records/4590294)**.
+See `data/KCL-Heart-Model/README.md` for complete details.
 
 ### Required Files
 

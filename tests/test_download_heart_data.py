@@ -6,6 +6,9 @@ This test replicates the functionality from cells 0-2 of the notebook
 Heart-GatedCT_To_USD/0-download_and_convert_4d_to_3d.ipynb.
 """
 
+import io
+import tarfile
+import zipfile
 from pathlib import Path
 
 import pytest
@@ -109,6 +112,110 @@ class TestDownloadHeartData:
 
         print(f"\nData file downloaded successfully: {data_file}")
         print(f"  File size: {file_size / 1_000_000:.2f} MB")
+
+    def test_download_kcl_heart_model_data(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Each per-model and average archive is downloaded and unpacked."""
+        archives_dir = tmp_path / "archives"
+        archives_dir.mkdir()
+
+        def make_archive(member_name: str, content: bytes) -> Path:
+            archive_path = archives_dir / f"{member_name}.tar.gz"
+            with tarfile.open(archive_path, "w:gz") as tar:
+                info = tarfile.TarInfo(name=member_name)
+                info.size = len(content)
+                tar.addfile(info, io.BytesIO(content))
+            return archive_path
+
+        urls_to_archives = {}
+        for index in range(1, DataDownloadTools.KCL_HEART_MODEL_MESH_COUNT + 1):
+            url = DataDownloadTools.KCL_HEART_MODEL_INDIVIDUAL_URL_TEMPLATE.format(
+                index=index
+            )
+            urls_to_archives[url] = make_archive(
+                f"{index:02d}.vtk", f"# vtk {index}\n".encode()
+            )
+        urls_to_archives[DataDownloadTools.KCL_HEART_MODEL_AVERAGE_URL] = make_archive(
+            "average.vtk", b"# vtk average\n"
+        )
+
+        def fake_urlopen(url: str, timeout: float) -> object:
+            return open(urls_to_archives[url], "rb")
+
+        monkeypatch.setattr(
+            "physiotwin4d.data_download_tools.urllib.request.urlopen", fake_urlopen
+        )
+
+        output_dir = tmp_path / "KCL-Heart-Model"
+        result_dir = DataDownloadTools.DownloadKCLHeartModelData(output_dir)
+
+        assert result_dir == output_dir
+        assert (output_dir / "average_mesh.vtk").read_text() == "# vtk average\n"
+        for index in range(1, DataDownloadTools.KCL_HEART_MODEL_MESH_COUNT + 1):
+            mesh_file = output_dir / "input_meshes" / f"{index:02d}.vtk"
+            assert mesh_file.read_text() == f"# vtk {index}\n"
+        assert DataDownloadTools.VerifyKCLHeartModelData(output_dir)
+
+    def test_download_chop_valve4d_data(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Each subdirectory's zip archive is downloaded and extracted."""
+        archives_dir = tmp_path / "archives"
+        archives_dir.mkdir()
+
+        def make_archive(subdir_name: str, member_name: str, content: bytes) -> Path:
+            archive_path = archives_dir / f"{subdir_name}.zip"
+            with zipfile.ZipFile(archive_path, "w") as zf:
+                zf.writestr(member_name, content)
+            return archive_path
+
+        urls_to_archives = {}
+        for subdir_name, asset_name in DataDownloadTools.CHOP_VALVE4D_ASSETS.items():
+            url = DataDownloadTools.CHOP_VALVE4D_RELEASE_URL + asset_name
+            urls_to_archives[url] = make_archive(
+                subdir_name, f"{subdir_name}.txt", f"# {subdir_name}\n".encode()
+            )
+
+        def fake_urlopen(url: str, timeout: float) -> object:
+            return open(urls_to_archives[url], "rb")
+
+        monkeypatch.setattr(
+            "physiotwin4d.data_download_tools.urllib.request.urlopen", fake_urlopen
+        )
+
+        output_dir = tmp_path / "CHOP-Valve4D"
+        result_dir = DataDownloadTools.DownloadCHOPValve4DData(output_dir)
+
+        assert result_dir == output_dir
+        for subdir_name in DataDownloadTools.CHOP_VALVE4D_ASSETS:
+            extracted_file = output_dir / subdir_name / f"{subdir_name}.txt"
+            assert extracted_file.read_text() == f"# {subdir_name}\n"
+
+    def test_download_chop_valve4d_data_skips_populated_subdirs(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Subdirectories that already have files are not re-downloaded."""
+        output_dir = tmp_path / "CHOP-Valve4D"
+        for subdir_name in DataDownloadTools.CHOP_VALVE4D_ASSETS:
+            existing_file = output_dir / subdir_name / "already_here.txt"
+            existing_file.parent.mkdir(parents=True)
+            existing_file.write_text("cached\n")
+
+        def fake_urlopen(url: str, timeout: float) -> object:
+            raise AssertionError(f"Should not download populated subdir: {url}")
+
+        monkeypatch.setattr(
+            "physiotwin4d.data_download_tools.urllib.request.urlopen", fake_urlopen
+        )
+
+        result_dir = DataDownloadTools.DownloadCHOPValve4DData(output_dir)
+
+        assert result_dir == output_dir
+        for subdir_name in DataDownloadTools.CHOP_VALVE4D_ASSETS:
+            assert (output_dir / subdir_name / "already_here.txt").read_text() == (
+                "cached\n"
+            )
 
 
 if __name__ == "__main__":

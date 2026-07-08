@@ -48,3 +48,43 @@ def test_download_data_cli_uses_requested_directory(
 
     assert result == 0
     assert calls == [tmp_path]
+
+
+def test_download_data_cli_routes_kcl_heart_model(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """KCL-Heart-Model routes to its own downloader and default directory."""
+    calls: list[Path] = []
+
+    def fake_download(dirname: Union[str, Path]) -> Path:
+        calls.append(Path(dirname))
+        return Path(dirname)
+
+    monkeypatch.setattr(DataDownloadTools, "DownloadKCLHeartModelData", fake_download)
+
+    result = download_data.main(["KCL-Heart-Model"])
+
+    assert result == 0
+    assert calls == [Path("data/KCL-Heart-Model")]
+    assert "Downloaded KCL-Heart-Model" in capsys.readouterr().out
+
+
+def test_download_data_cli_routes_chop_valve4d(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """CHOP-Valve4D routes to its own downloader and default directory."""
+    calls: list[Path] = []
+
+    def fake_download(dirname: Union[str, Path]) -> Path:
+        calls.append(Path(dirname))
+        return Path(dirname)
+
+    monkeypatch.setattr(DataDownloadTools, "DownloadCHOPValve4DData", fake_download)
+
+    result = download_data.main(["CHOP-Valve4D"])
+
+    assert result == 0
+    assert calls == [Path("data/CHOP-Valve4D")]
+    assert "Downloaded CHOP-Valve4D" in capsys.readouterr().out

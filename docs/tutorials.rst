@@ -214,7 +214,7 @@ Workflow
    ``WorkflowCreateStatisticalModel``
 
 Dataset
-   KCL-Heart-Model, downloaded manually.
+   KCL-Heart-Model, downloaded via ``physiotwin4d-download-data``.
 
 Preview
    .. figure:: assets/example.gif
@@ -260,7 +260,7 @@ Workflow
    ``WorkflowFitStatisticalModelToPatient``
 
 Dataset
-   KCL-Heart-Model, downloaded manually.
+   KCL-Heart-Model, downloaded via ``physiotwin4d-download-data``.
 
 Preview
    .. figure:: assets/example.gif
