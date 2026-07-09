@@ -60,7 +60,7 @@ Classes Used
 Data Required
 -------------
 See data/README.md for download instructions and dataset licensing.
-Dataset: Slicer-Heart-CT - https://github.com/Slicer-Heart-CT/Slicer-Heart-CT
+Dataset: Slicer-Heart-CT - https://github.com/SlicerHeart/SlicerHeart
 This script expects the data to already exist at
 ``data/Slicer-Heart-CT/TruncalValve_4DCT.seq.nrrd``. Run the repository data
 download notebook or download the file manually before running this tutorial.

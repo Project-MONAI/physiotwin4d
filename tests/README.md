@@ -254,7 +254,7 @@ When creating new tests:
 ## Test Data
 
 ### Slicer-Heart-CT Dataset
-- **Source**: [Slicer-Heart-CT GitHub](https://github.com/Slicer-Heart-CT/Slicer-Heart-CT)
+- **Source**: [SlicerHeart GitHub](https://github.com/SlicerHeart/SlicerHeart)
 - **File**: `TruncalValve_4DCT.seq.nrrd` (~1.2 GB)
 - **Content**: 21-phase pediatric cardiac CT
 - **Usage**: Tests use first 2 time points for speed

@@ -54,7 +54,7 @@ See individual dataset sections below for download instructions and preprocessin
 Data provided by Jolley Lab at CHOP (Children's Hospital of Philadelphia):
 
 - [https://www.linkedin.com/company/jolleylab](https://www.linkedin.com/company/jolleylab)
-- [https://github.com/Slicer-Heart-CT/Slicer-Heart-CT](https://github.com/Slicer-Heart-CT/Slicer-Heart-CT)
+- [https://github.com/SlicerHeart/SlicerHeart](https://github.com/SlicerHeart/SlicerHeart)
 
 ### Downloading the Data
 
@@ -71,7 +71,7 @@ assert DataDownloadTools.VerifySlicerHeartCTData("data/Slicer-Heart-CT")
 
 ```bash
 # Direct download link:
-wget https://github.com/Slicer-Heart-CT/Slicer-Heart-CT/releases/download/TestingData/TruncalValve_4DCT.seq.nrrd -P data/Slicer-Heart-CT/
+wget https://github.com/SlicerHeart/SlicerHeart/releases/download/TestingData/TruncalValve_4DCT.seq.nrrd -P data/Slicer-Heart-CT/
 ```
 
 ### Usage
@@ -335,7 +335,7 @@ details and citation.
 ### Slicer-Heart-CT
 
 - Jolley Lab: [https://www.linkedin.com/company/jolleylab](https://www.linkedin.com/company/jolleylab)
-- GitHub: [https://github.com/Slicer-Heart-CT/Slicer-Heart-CT](https://github.com/Slicer-Heart-CT/Slicer-Heart-CT)
+- GitHub: [https://github.com/SlicerHeart/SlicerHeart](https://github.com/SlicerHeart/SlicerHeart)
 
 ### DirLab-4DCT
 
