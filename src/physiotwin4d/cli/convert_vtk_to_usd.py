@@ -10,6 +10,9 @@ or colormap from a primvar (with auto or specified intensity range).
 import argparse
 import os
 import sys
+from pathlib import Path
+
+import pyvista as pv
 
 from ..usd_anatomy_tools import DEFAULT_RENDER_PARAMS
 
@@ -49,7 +52,8 @@ Examples:
     parser.add_argument(
         "vtk_files",
         nargs="+",
-        help="One or more VTK files (.vtk, .vtp, .vtu). Multiple files form a time series.",
+        help="One or more VTK files (.vtk, .vtp, .vtu). Multiple files form an "
+        "ordered time series unless --static-merge is set.",
     )
     parser.add_argument(
         "-o",
@@ -76,15 +80,16 @@ Examples:
         help="Do not split; output a single mesh (clears --by-connectivity and --by-cell-type)",
     )
     parser.add_argument(
-        "--mesh-name",
-        default="Mesh",
-        help="Base mesh name (default: Mesh)",
+        "--static-merge",
+        action="store_true",
+        help="Treat multiple input files as separate static objects in one scene "
+        "(no time samples) instead of an ordered time series.",
     )
     parser.add_argument(
         "--fps",
         type=float,
         default=60.0,
-        dest="times_per_second",
+        dest="frames_per_second",
         help="Frames per second for time series (default: 60)",
     )
     parser.add_argument(
@@ -192,17 +197,22 @@ Examples:
             print(f"Error: Input file not found: {p}")
             return 1
 
+    output_path = Path(args.output_usd)
+
     try:
         from .. import WorkflowConvertVTKToUSD
 
+        input_meshes = [pv.read(str(p)) for p in args.vtk_files]
+
         workflow = WorkflowConvertVTKToUSD(
-            vtk_files=args.vtk_files,
-            output_usd=args.output_usd,
+            input_meshes=input_meshes,
+            usd_project_name=output_path.stem,
+            output_directory=output_path.parent,
             separate_by_connectivity=separate_by_connectivity,
             separate_by_cell_type=separate_by_cell_type,
-            mesh_name=args.mesh_name,
-            times_per_second=args.times_per_second,
+            frames_per_second=args.frames_per_second,
             extract_surface=args.extract_surface,
+            static_merge=args.static_merge,
             appearance=args.appearance,
             solid_color=solid_color,
             anatomy_type=args.anatomy_type,
@@ -215,7 +225,7 @@ Examples:
         return 1
 
     try:
-        out_path = workflow.run()
+        out_path = workflow.process()
         print("\nConversion completed successfully.")
         print(f"Output: {out_path}")
         return 0

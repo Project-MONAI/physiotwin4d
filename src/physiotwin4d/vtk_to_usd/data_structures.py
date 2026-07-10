@@ -161,7 +161,7 @@ class ConversionSettings:
     default_color: tuple[float, float, float] = (0.8, 0.8, 0.8)
 
     # Time settings
-    times_per_second: float = 24.0
+    frames_per_second: float = 24.0
     use_time_samples: bool = True
 
     # Array prefixes

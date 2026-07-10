@@ -41,7 +41,7 @@ Time Series
        data_basename='Heart',
        vtk_files=['heart_t0.vtp', 'heart_t1.vtp', 'heart_t2.vtp'],
        time_codes=[0.0, 1.0, 2.0],
-       times_per_second=24.0,
+       frames_per_second=24.0,
    ).convert('animated_heart.usd')
 
 In-Memory Meshes

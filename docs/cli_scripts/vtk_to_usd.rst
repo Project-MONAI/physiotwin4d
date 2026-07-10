@@ -3,8 +3,9 @@ VTK to USD Conversion
 =====================
 
 The ``physiotwin4d-convert-vtk-to-usd`` command converts VTK, VTP, or VTU
-mesh files to USD for Omniverse visualization. Multiple input files are treated
-as a time series.
+mesh files to USD for Omniverse visualization. Multiple input files are
+treated as an ordered time series by default; pass ``--static-merge`` to
+instead merge unrelated static meshes into one scene with no time samples.
 
 Basic Usage
 ===========
@@ -70,8 +71,10 @@ one mesh, or ``--by-cell-type`` to split by cell type.
 Python API
 ==========
 
-Use :class:`physiotwin4d.WorkflowConvertVTKToUSD` for the workflow API and
-:class:`physiotwin4d.ConvertVTKToUSD` for direct in-memory conversion.
+Use :class:`physiotwin4d.WorkflowConvertVTKToUSD` for the workflow API
+(splitting and appearance built in) and :class:`physiotwin4d.ConvertVTKToUSD`
+for lower-level control (e.g. anatomical label splitting via ``mask_ids``).
+Both take in-memory PyVista/VTK meshes.
 
 Related Pages
 =============

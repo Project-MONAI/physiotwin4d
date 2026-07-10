@@ -346,24 +346,26 @@ Preview
       Output (placeholder — a real capture lands in a follow-up PR)
 
 Inner API usage
-   The supported workflow wrapper converts one or more VTK files into an
-   animated, materially-painted USD stage:
+   The supported workflow wrapper converts one or more in-memory PyVista/VTK
+   meshes into an animated, materially-painted USD stage:
 
    .. code-block:: python
 
+      mesh = pv.read(str(vtk_file))
       workflow = WorkflowConvertVTKToUSD(
-          vtk_files=[vtk_file],
-          output_usd=output_usd,
+          input_meshes=[mesh],
+          usd_project_name="surfaces",
+          output_directory=output_dir,
           appearance="anatomy",
           anatomy_type="heart",
           separate_by_connectivity=True,
       )
-      usd_file = workflow.run()
+      usd_file = workflow.process()
 
    For callers who need more control than the workflow wrapper offers (e.g.
-   converting in-memory PyVista/VTK objects instead of files, or applying a
-   colormap), use :class:`physiotwin4d.ConvertVTKToUSD` directly — it is the
-   supported public entry point for VTK-to-USD conversion.
+   applying a colormap or per-label anatomical splitting), use
+   :class:`physiotwin4d.ConvertVTKToUSD` directly — it is the supported
+   public entry point for VTK-to-USD conversion.
 
 Run
    .. code-block:: bash

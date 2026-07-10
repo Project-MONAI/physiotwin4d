@@ -20,6 +20,8 @@ import logging
 from pathlib import Path
 from typing import Optional
 
+import pyvista as pv
+
 from physiotwin4d.test_tools import TestTools
 from physiotwin4d.workflow_convert_vtk_to_usd import WorkflowConvertVTKToUSD
 
@@ -69,10 +71,11 @@ if __name__ == "__main__":
 
     # %%
     # Workflow initialization
-    output_usd = output_dir / "surfaces.usd"
+    mesh = pv.read(str(vtk_file))
     workflow = WorkflowConvertVTKToUSD(
-        vtk_files=[vtk_file],
-        output_usd=output_usd,
+        input_meshes=[mesh],
+        usd_project_name="surfaces",
+        output_directory=output_dir,
         appearance="anatomy",
         anatomy_type="heart",
         separate_by_connectivity=True,
@@ -81,7 +84,7 @@ if __name__ == "__main__":
 
     # %%
     # Workflow execution
-    usd_file = workflow.run()
+    usd_file = workflow.process()
 
     # %%
     # Result saving
