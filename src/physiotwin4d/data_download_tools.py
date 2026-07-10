@@ -9,6 +9,7 @@ experiments, and tests.
 
 from __future__ import annotations
 
+import logging
 import shutil
 import tarfile
 import tempfile
@@ -18,6 +19,7 @@ from pathlib import Path
 from typing import Union
 
 _DOWNLOAD_TIMEOUT_SECONDS = 60.0
+_logger = logging.getLogger(__name__)
 
 
 class DataDownloadTools:
@@ -72,6 +74,7 @@ class DataDownloadTools:
                     f"Downloaded file is empty: {DataDownloadTools.SLICER_HEART_CT_URL}"
                 )
             tmp_file.replace(data_file)
+            _logger.info("Downloaded %s", DataDownloadTools.SLICER_HEART_CT_FILENAME)
         except BaseException:
             tmp_handle.close()
             if tmp_file.exists():
@@ -122,6 +125,12 @@ class DataDownloadTools:
             DataDownloadTools._DownloadAndExtractTarMember(
                 url, member_name=f"{index:02d}.vtk", target_file=target_file
             )
+            _logger.info(
+                "Downloaded %02d.vtk (%d/%d)",
+                index,
+                index,
+                DataDownloadTools.KCL_HEART_MODEL_MESH_COUNT,
+            )
 
         average_file = data_dir / "average_mesh.vtk"
         if not (average_file.exists() and average_file.stat().st_size > 0):
@@ -130,6 +139,7 @@ class DataDownloadTools:
                 member_name="average.vtk",
                 target_file=average_file,
             )
+            _logger.info("Downloaded average_mesh.vtk")
 
         return data_dir
 
@@ -207,6 +217,7 @@ class DataDownloadTools:
                 continue
             url = DataDownloadTools.CHOP_VALVE4D_RELEASE_URL + asset_name
             DataDownloadTools._DownloadAndExtractZip(url, target_dir)
+            _logger.info("Downloaded %s (%s)", subdir_name, asset_name)
         return data_dir
 
     @staticmethod

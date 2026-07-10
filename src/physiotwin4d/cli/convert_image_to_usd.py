@@ -102,7 +102,7 @@ Examples:
         "--fps",
         type=float,
         default=24.0,
-        dest="times_per_second",
+        dest="frames_per_second",
         help="Frames per second for animated USD time series (default: 24)",
     )
 
@@ -159,7 +159,7 @@ Examples:
             output_directory=args.output_dir,
             segmentation_method=segmentation_method,
             registration_method=registration_method,
-            times_per_second=args.times_per_second,
+            frames_per_second=args.frames_per_second,
         )
     except Exception as e:
         print(f"Error initializing workflow: {e}")

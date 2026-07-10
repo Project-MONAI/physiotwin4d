@@ -61,7 +61,7 @@ def test_convert_image_to_usd_cli_passes_fps(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    """Image-to-USD CLI forwards --fps as times_per_second."""
+    """Image-to-USD CLI forwards --fps as frames_per_second."""
     import physiotwin4d
 
     module = importlib.import_module("physiotwin4d.cli.convert_image_to_usd")
@@ -110,4 +110,4 @@ def test_convert_image_to_usd_cli_passes_fps(
     assert module.main() == 0
     assert captured_kwargs["time_series_images"] == [fake_image]
     assert captured_kwargs["reference_image"] is fake_image
-    assert captured_kwargs["times_per_second"] == 30.0
+    assert captured_kwargs["frames_per_second"] == 30.0

@@ -84,9 +84,10 @@ Primary Workflows
    reference.
 
 ``WorkflowConvertVTKToUSD``
-   Converts VTK files to animated USD scenes through the supported workflow
-   wrapper. The lower-level :mod:`physiotwin4d.vtk_to_usd` package exposes
-   advanced file conversion primitives.
+   Converts in-memory PyVista/VTK meshes to static or animated USD scenes
+   through the supported workflow wrapper. The lower-level
+   :mod:`physiotwin4d.vtk_to_usd` package exposes advanced file conversion
+   primitives.
 
 AI Surrogate Workflows (PhysicsNeMo)
 =====================================

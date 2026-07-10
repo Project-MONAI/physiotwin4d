@@ -353,7 +353,7 @@ class TestIntegration:
             data_basename="CardiacModel",
             vtk_files=[kcl_average_surface],
             solid_color=(0.85, 0.2, 0.2),
-            times_per_second=24.0,
+            frames_per_second=24.0,
         ).convert(str(output_usd))
 
         mesh_prim = stage.GetPrimAtPath("/World/CardiacModel/Mesh")

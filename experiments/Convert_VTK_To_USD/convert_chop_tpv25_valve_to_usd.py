@@ -63,7 +63,7 @@ colormap_range_max = 200
 
 # Conversion parameters
 separate_by = "connectivity"  # Essential for tpv25 vtk file
-times_per_second = 60.0
+frames_per_second = 60.0
 solid_color = (0.5, 0.5, 0.5)
 
 # %%
@@ -150,7 +150,7 @@ stage = (
         vtk_files=tpv25_files,
         extract_surface=True,
         separate_by=separate_by,
-        times_per_second=times_per_second,
+        frames_per_second=frames_per_second,
         solid_color=solid_color,
         time_codes=tpv25_times,
     )

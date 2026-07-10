@@ -41,6 +41,20 @@ from .vtk_to_usd import (
     validate_time_series_topology,
 )
 
+_USD_EXTENSIONS = {".usd", ".usda", ".usdc"}
+
+
+def _split_usd_extension(name: str) -> tuple[str, str]:
+    """Split a trailing USD extension off ``name``.
+
+    Returns ``(name_without_extension, extension)``. ``extension`` is ``".usd"``
+    when ``name`` has no recognized USD extension (``.usd``, ``.usda``, ``.usdc``).
+    """
+    suffix = Path(name).suffix
+    if suffix.lower() in _USD_EXTENSIONS:
+        return name[: -len(suffix)], suffix
+    return name, ".usd"
+
 
 class ConvertVTKToUSD(PhysioTwin4DBase):
     """
@@ -79,9 +93,11 @@ class ConvertVTKToUSD(PhysioTwin4DBase):
         mask_ids: Optional[dict[int, str]] = None,
         compute_normals: bool = False,
         convert_to_surface: bool = True,
-        times_per_second: float = 24.0,
+        frames_per_second: float = 24.0,
         separate_by: Literal["none", "connectivity", "cell_type"] = "none",
         solid_color: tuple[float, float, float] = (0.8, 0.8, 0.8),
+        static_merge: bool = False,
+        time_codes: Optional[list[float]] = None,
         segmenter: Optional[SegmentAnatomyBase] = None,
         log_level: int | str = logging.INFO,
     ) -> None:
@@ -89,18 +105,26 @@ class ConvertVTKToUSD(PhysioTwin4DBase):
         Initialize converter.
 
         Args:
-            data_basename: Base name for USD data (used in prim paths)
-            input_polydata: Sequence of PyVista/VTK meshes (one per time step)
+            data_basename: Base name for USD data (used in prim paths). A
+                trailing USD extension (.usd, .usda, .usdc) is stripped.
+            input_polydata: Sequence of PyVista/VTK meshes (one per time step, or
+                one per static object when static_merge is True)
             mask_ids: Optional mapping of label IDs to anatomical region names.
                      If provided, meshes will be split by labeled regions.
             compute_normals: Whether to compute vertex normals
             convert_to_surface: If True, extract surface from volumetric meshes
-            times_per_second: Time codes per second (default 24.0).
+            frames_per_second: Time codes per second (default 24.0).
                             For medical imaging time series where each frame = 1 second, use 1.0.
             separate_by: How to split the mesh into sub-prims.
                         'none' keeps the mesh as-is, 'connectivity' splits by connected
                         component, 'cell_type' splits by face vertex count.
             solid_color: Default RGB diffuse color in [0, 1] used when no colormap is set.
+            static_merge: If True, treat each mesh in input_polydata as a separate
+                          object in a single static scene (no time samples) instead
+                          of a time series.
+            time_codes: Explicit time codes aligned to input_polydata, used when
+                        static_merge is False. If None, uses sequential integers
+                        [0, 1, 2, ...].
             segmenter: Optional SegmentAnatomyBase instance used to classify each
                        mask_ids label into an anatomy group (heart / lung / bone /
                        major_vessels / contrast / soft_tissue / other) so labeled
@@ -108,10 +132,14 @@ class ConvertVTKToUSD(PhysioTwin4DBase):
                        and materials under ``/World/Looks/{type}/{label}_material``.
                        When None, labels are grouped under a single ``Anatomy`` Xform.
             log_level: Logging level
+
+        Raises:
+            ValueError: If time_codes is not None and its length does not match
+                input_polydata, or its values are not non-decreasing.
         """
         super().__init__(class_name=self.__class__.__name__, log_level=log_level)
 
-        self.data_basename = data_basename
+        self.data_basename, _ = _split_usd_extension(data_basename)
         self.input_polydata = list(input_polydata)
         self.mask_ids = mask_ids
         self.compute_normals = compute_normals
@@ -125,9 +153,21 @@ class ConvertVTKToUSD(PhysioTwin4DBase):
         self.colormap: str = "plasma"
         self.intensity_range: Optional[tuple[float, float]] = None
 
-        # Set by from_files() for file-based construction
-        self._is_static_merge: bool = False
-        self._time_codes: Optional[list[float]] = None
+        if not static_merge and time_codes is not None:
+            if len(time_codes) != len(self.input_polydata):
+                raise ValueError(
+                    f"time_codes length ({len(time_codes)}) must match "
+                    f"input_polydata length ({len(self.input_polydata)})"
+                )
+            if len(time_codes) > 1 and any(
+                time_codes[i] > time_codes[i + 1] for i in range(len(time_codes) - 1)
+            ):
+                raise ValueError(
+                    "time_codes must be in non-decreasing order; "
+                    "got values that decrease between consecutive frames"
+                )
+        self._is_static_merge: bool = static_merge
+        self._time_codes: Optional[list[float]] = time_codes
         # Pre-converted MeshData for each time step; populated by from_files() so
         # _convert_unified() can reuse the topology-validation work instead of
         # calling _vtk_to_mesh_data() a second time.
@@ -141,7 +181,7 @@ class ConvertVTKToUSD(PhysioTwin4DBase):
             preserve_cell_arrays=True,
             meters_per_unit=1.0,
             up_axis="Y",
-            times_per_second=times_per_second,
+            frames_per_second=frames_per_second,
         )
 
         self.logger.info(
@@ -158,7 +198,7 @@ class ConvertVTKToUSD(PhysioTwin4DBase):
         *,
         extract_surface: bool = True,
         separate_by: Literal["none", "connectivity", "cell_type"] = "none",
-        times_per_second: float = 24.0,
+        frames_per_second: float = 24.0,
         solid_color: tuple[float, float, float] = (0.8, 0.8, 0.8),
         time_codes: Optional[list[float]] = None,
         static_merge: bool = False,
@@ -173,11 +213,12 @@ class ConvertVTKToUSD(PhysioTwin4DBase):
         For a static scene with multiple disconnected meshes, set static_merge=True.
 
         Args:
-            data_basename: Base name for USD prim paths.
+            data_basename: Base name for USD prim paths. A trailing USD
+                extension (.usd, .usda, .usdc) is stripped.
             vtk_files: Paths to VTK files; one file = one time step (or one static mesh).
             extract_surface: If True, extract surface from UnstructuredGrid (.vtu) meshes.
             separate_by: How to split each mesh into sub-prims.
-            times_per_second: FPS for time-varying animation.
+            frames_per_second: FPS for time-varying animation.
             solid_color: Default RGB diffuse color in [0, 1].
             time_codes: Explicit time codes aligned to vtk_files. If None, uses
                         sequential integers [0, 1, 2, ...].
@@ -194,20 +235,6 @@ class ConvertVTKToUSD(PhysioTwin4DBase):
         file_list = [Path(f) for f in vtk_files]
         if not file_list:
             raise ValueError("vtk_files must not be empty")
-
-        if time_codes is not None and len(time_codes) != len(file_list):
-            raise ValueError(
-                f"time_codes length ({len(time_codes)}) must match "
-                f"vtk_files length ({len(file_list)})"
-            )
-        if time_codes is not None and len(time_codes) > 1:
-            if any(
-                time_codes[i] > time_codes[i + 1] for i in range(len(time_codes) - 1)
-            ):
-                raise ValueError(
-                    "time_codes must be in non-decreasing order; "
-                    "got values that decrease between consecutive frames"
-                )
 
         meshes: list[pv.DataSet | vtk.vtkDataSet] = []
         for path in file_list:
@@ -228,13 +255,13 @@ class ConvertVTKToUSD(PhysioTwin4DBase):
             mask_ids=mask_ids,
             separate_by=separate_by,
             convert_to_surface=extract_surface,
-            times_per_second=times_per_second,
+            frames_per_second=frames_per_second,
             solid_color=solid_color,
+            static_merge=static_merge,
+            time_codes=resolved_time_codes,
             segmenter=segmenter,
             log_level=log_level,
         )
-        instance._is_static_merge = static_merge
-        instance._time_codes = resolved_time_codes
 
         # Validate topology consistency for multi-frame time series and cache the
         # converted MeshData so _convert_unified() can reuse it without a second
@@ -596,7 +623,7 @@ class ConvertVTKToUSD(PhysioTwin4DBase):
             ]
             stage.SetStartTimeCode(time_codes[0])
             stage.SetEndTimeCode(time_codes[-1])
-            stage.SetTimeCodesPerSecond(self.settings.times_per_second)
+            stage.SetTimeCodesPerSecond(self.settings.frames_per_second)
 
         # Initialize managers
         material_mgr = MaterialManager(stage)

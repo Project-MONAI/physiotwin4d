@@ -11,24 +11,14 @@ from physiotwin4d.cli import download_data
 from physiotwin4d.data_download_tools import DataDownloadTools
 
 
-def test_download_data_cli_uses_default_dataset_and_directory(
-    monkeypatch: pytest.MonkeyPatch,
+def test_download_data_cli_with_no_args_prints_help(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    """Default CLI arguments route Slicer-Heart-CT to data/Slicer-Heart-CT."""
-    calls: list[Path] = []
-
-    def fake_download(dirname: Union[str, Path]) -> Path:
-        calls.append(Path(dirname))
-        return Path(dirname) / DataDownloadTools.SLICER_HEART_CT_FILENAME
-
-    monkeypatch.setattr(DataDownloadTools, "DownloadSlicerHeartCTData", fake_download)
-
+    """No positional argument prints usage/help instead of downloading anything."""
     result = download_data.main([])
 
-    assert result == 0
-    assert calls == [Path("data/Slicer-Heart-CT")]
-    assert "Downloaded Slicer-Heart-CT" in capsys.readouterr().out
+    assert result == 1
+    assert "usage:" in capsys.readouterr().out
 
 
 def test_download_data_cli_uses_requested_directory(

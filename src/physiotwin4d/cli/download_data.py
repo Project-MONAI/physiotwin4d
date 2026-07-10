@@ -22,7 +22,6 @@ def main(argv: Optional[list[str]] = None) -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=f"""
 Examples:
-  %(prog)s
   %(prog)s {SLICER_HEART_CT} --directory data/Slicer-Heart-CT
   %(prog)s {KCL_HEART_MODEL} --directory data/KCL-Heart-Model
   %(prog)s {CHOP_VALVE4D} --directory data/CHOP-Valve4D
@@ -32,8 +31,8 @@ Examples:
         "data_name",
         nargs="?",
         choices=[SLICER_HEART_CT, KCL_HEART_MODEL, CHOP_VALVE4D],
-        default=SLICER_HEART_CT,
-        help=f"Dataset to download (default: {SLICER_HEART_CT})",
+        default=None,
+        help="Dataset to download",
     )
     parser.add_argument(
         "--directory",
@@ -42,6 +41,10 @@ Examples:
     )
 
     args = parser.parse_args(argv)
+    if args.data_name is None:
+        parser.print_help()
+        return 1
+
     directory = args.directory or f"data/{args.data_name}"
     output_dir = Path(directory)
 

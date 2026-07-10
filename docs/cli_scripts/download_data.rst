@@ -28,18 +28,14 @@ Supported Datasets
 Basic Usage
 ===========
 
-Download the default dataset into the default location:
+Download a dataset into its default location:
 
 .. code-block:: bash
 
-   physiotwin4d-download-data
+   physiotwin4d-download-data Slicer-Heart-CT
 
-This is equivalent to:
-
-.. code-block:: bash
-
-   physiotwin4d-download-data Slicer-Heart-CT \
-       --directory data/Slicer-Heart-CT
+Running the command with no arguments prints usage/help instead of
+downloading anything.
 
 Options
 =======
@@ -50,7 +46,7 @@ Options
 
 ``data_name``
    Dataset to download. One of ``Slicer-Heart-CT``, ``KCL-Heart-Model``, or
-   ``CHOP-Valve4D``.
+   ``CHOP-Valve4D``. Required — omitting it prints help and exits.
 
 ``--directory``
    Directory where the dataset is stored. Defaults to ``data/<data_name>``.

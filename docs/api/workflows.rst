@@ -107,16 +107,19 @@ VTK to USD
 
 .. code-block:: python
 
+   import pyvista as pv
    from physiotwin4d import WorkflowConvertVTKToUSD
 
+   input_meshes = [pv.read("heart_000.vtp"), pv.read("heart_001.vtp")]
    workflow = WorkflowConvertVTKToUSD(
-       vtk_files=["heart_000.vtp", "heart_001.vtp"],
-       output_usd="heart.usd",
+       input_meshes=input_meshes,
+       usd_project_name="heart",
+       output_directory="./output",
        appearance="anatomy",
        anatomy_type="heart",
    )
 
-   output_path = workflow.run()
+   output_path = workflow.process()
 
 Statistical Shape Modeling
 ==========================

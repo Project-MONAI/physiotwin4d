@@ -142,7 +142,7 @@ selects its default reference frame internally.
        segmentation_method=pt4d.SegmentChestTotalSegmentator(),
        output_directory="./results",
        project_name="heart_animated",
-       times_per_second=30.0,
+       frames_per_second=30.0,
    )
    workflow.process()
 
@@ -179,24 +179,27 @@ Pass a single ``.vtp`` file. Use ``--appearance`` to control material style and
 
 .. code-block:: python
 
+   import pyvista as pv
    import physiotwin4d as pt4d
 
    workflow = pt4d.WorkflowConvertVTKToUSD(
-       vtk_files=["heart.vtp"],
-       output_usd="heart.usd",
+       input_meshes=[pv.read("heart.vtp")],
+       usd_project_name="heart",
+       output_directory=".",
        appearance="anatomy",
        anatomy_type="heart",
    )
-   workflow.run()
+   workflow.process()
 
 4D - Mesh Time Series
 ~~~~~~~~~~~~~~~~~~~~~
 
-Pass per-frame VTK files. The default workflow treats multiple files as a time
-series when their names match ``.t<index>.vtk``, ``.t<index>.vtp``, or
-``.t<index>.vtu``. The VTK-to-USD CLI supports ``--fps`` to control playback
-rate. For scalar colormaps, combine ``--primvar``, ``--cmap``, and
-``--intensity-range``.
+Pass per-frame VTK files in time order; the workflow treats them as an
+ordered time series by list order (no filename pattern required). Pass
+``--static-merge`` instead when the files are unrelated static meshes to
+merge into one scene rather than animation frames. The VTK-to-USD CLI
+supports ``--fps`` to control playback rate. For scalar colormaps, combine
+``--primvar``, ``--cmap``, and ``--intensity-range``.
 
 **CLI:**
 
@@ -220,18 +223,21 @@ rate. For scalar colormaps, combine ``--primvar``, ``--cmap``, and
 
 .. code-block:: python
 
+   import pyvista as pv
    import physiotwin4d as pt4d
 
+   input_meshes = [pv.read(f) for f in ("stress.t0.vtk", "stress.t1.vtk", "stress.t2.vtk")]
    workflow = pt4d.WorkflowConvertVTKToUSD(
-       vtk_files=["stress.t0.vtk", "stress.t1.vtk", "stress.t2.vtk"],
-       output_usd="stress_animation.usd",
-       times_per_second=30,
+       input_meshes=input_meshes,
+       usd_project_name="stress_animation",
+       output_directory=".",
+       frames_per_second=30,
        appearance="colormap",
        colormap_primvar="vtk_point_stress_c0",
        colormap_name="viridis",
        colormap_intensity_range=(0, 500),
    )
-   workflow.run()
+   workflow.process()
 
 **Lower-level in-memory conversion with ConvertVTKToUSD:**
 
@@ -249,7 +255,7 @@ lower-level :class:`physiotwin4d.ConvertVTKToUSD` class directly:
    converter = pt4d.ConvertVTKToUSD(
        data_basename="HeartAnimation",
        input_polydata=meshes,
-       times_per_second=30,
+       frames_per_second=30,
    )
    converter.convert("output.usd")
 

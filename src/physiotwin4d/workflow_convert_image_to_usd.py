@@ -54,7 +54,7 @@ class WorkflowConvertImageToUSD(PhysioTwin4DBase):
         registration_method: Optional[RegisterImagesBase] = None,
         dynamic_labelmap_ids: Optional[list[int]] = None,
         mask_dilation_radius: int = 10,
-        times_per_second: float = 24.0,
+        frames_per_second: float = 24.0,
         log_level: int | str = logging.INFO,
         save_assets: bool = True,
     ) -> None:
@@ -80,7 +80,7 @@ class WorkflowConvertImageToUSD(PhysioTwin4DBase):
                 dynamic/static split; everything registers as "all").
             mask_dilation_radius (int): Dilation radius, in voxels, applied to
                 the dynamic/static registration masks. Defaults to 10.
-            times_per_second: Frames per second for animated USD time series.
+            frames_per_second: Frames per second for animated USD time series.
                 Defaults to 24.0, matching the underlying VTK-to-USD converter.
             log_level: Logging level (default: logging.INFO)
             save_assets: Write registered images, transforms, and labelmaps
@@ -98,7 +98,7 @@ class WorkflowConvertImageToUSD(PhysioTwin4DBase):
         self.usd_project_name = usd_project_name
         self.dynamic_labelmap_ids = dynamic_labelmap_ids if dynamic_labelmap_ids else []
         self.output_directory = output_directory
-        self.times_per_second = times_per_second
+        self.frames_per_second = frames_per_second
         self.save_assets = save_assets
 
         self.registration_results: list[
@@ -433,7 +433,7 @@ class WorkflowConvertImageToUSD(PhysioTwin4DBase):
                 self.transformed_contours[anatomy_type],
                 self.segmenter.taxonomy.all_labels(),
                 segmenter=self.segmenter,
-                times_per_second=self.times_per_second,
+                frames_per_second=self.frames_per_second,
                 log_level=self.log_level,
             )
             usd_file = os.path.join(

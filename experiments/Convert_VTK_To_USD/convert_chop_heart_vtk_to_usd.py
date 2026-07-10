@@ -2,6 +2,7 @@
 # %%
 from pathlib import Path
 
+import pyvista as pv
 
 from physiotwin4d.workflow_convert_vtk_to_usd import WorkflowConvertVTKToUSD
 
@@ -25,33 +26,30 @@ output_dir = _HERE / "results" / "heart"
 
 output_dir.mkdir(parents=True, exist_ok=True)
 
-all_files = []
+all_meshes = []
 for vtkname, usdname in zip(vtknames, usdnames):
-    out_usd = Path.absolute(output_dir / f"RVOT28-Dias-{usdname}.usd")
-    if out_usd.exists():
-        out_usd.unlink()
+    mesh = pv.read(str(input_dir / f"{vtkname}.vtk"))
+    all_meshes.append(mesh)
 
-    in_name = input_dir / f"{vtkname}.vtk"
-    all_files.append(in_name)
-
-    converter = WorkflowConvertVTKToUSD(
-        vtk_files=[in_name],
-        output_usd=out_usd,
+    workflow = WorkflowConvertVTKToUSD(
+        input_meshes=[mesh],
+        usd_project_name=f"RVOT28-Dias-{usdname}",
+        output_directory=output_dir,
         separate_by_connectivity=False,
         separate_by_cell_type=False,
-        mesh_name=f"RVOT28Dias_{usdname}",
         appearance="anatomy",
         anatomy_type="heart",
     )
-    converter.run()
+    workflow.process()
 
-converter = WorkflowConvertVTKToUSD(
-    vtk_files=all_files,
-    output_usd=Path.absolute(output_dir / Path("RVOT28-Dias-WholeHeart.usd")),
+workflow = WorkflowConvertVTKToUSD(
+    input_meshes=all_meshes,
+    usd_project_name="RVOT28-Dias-WholeHeart",
+    output_directory=output_dir,
     separate_by_connectivity=False,
     separate_by_cell_type=False,
-    mesh_name="RVOT28Dias_WholeHeart",
+    static_merge=True,
     appearance="anatomy",
     anatomy_type="heart",
 )
-converter.run()
+workflow.process()

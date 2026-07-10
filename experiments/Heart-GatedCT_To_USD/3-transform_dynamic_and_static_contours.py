@@ -63,7 +63,7 @@ if __name__ == "__main__":
         polydata = [pv.read(f) for f in files]
 
         # For cardiac gated CT data with 21 time points (0-20), each frame = 1 second
-        # so we use times_per_second=1.0 instead of the default 24.0.
+        # so we use frames_per_second=1.0 instead of the default 24.0.
         # Forwarding `seg` groups labels by anatomy type under
         # /World/{project_name}/{type}/{label_name}.
         converter = ConvertVTKToUSD(
@@ -72,7 +72,7 @@ if __name__ == "__main__":
             all_mask_ids,
             segmenter=seg,
             compute_normals=compute_normals,
-            times_per_second=1.0,
+            frames_per_second=1.0,
         )
         stage = converter.convert(
             os.path.join(output_dir, f"{project_name}.{base_name}.usd"),
