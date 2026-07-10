@@ -115,11 +115,12 @@ class WorkflowConvertVTKToUSD(PhysioTwin4DBase):
             raise ValueError("input_meshes must not be empty")
 
         n_frames = len(self.input_meshes)
-        time_codes = (
-            None
-            if self.static_merge
-            else self.time_codes or [float(i) for i in range(n_frames)]
-        )
+        if self.static_merge:
+            time_codes = None
+        elif self.time_codes is None:
+            time_codes = [float(i) for i in range(n_frames)]
+        else:
+            time_codes = self.time_codes
 
         self.output_directory.mkdir(parents=True, exist_ok=True)
         output_usd = self.output_directory / f"{self.usd_project_name}.usd"

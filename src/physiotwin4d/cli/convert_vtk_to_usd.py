@@ -198,6 +198,9 @@ Examples:
             return 1
 
     output_path = Path(args.output_usd)
+    if output_path.suffix.lower() != ".usd":
+        print(f"Error: Output file must have a .usd extension, got: {output_path}")
+        return 1
 
     try:
         from .. import WorkflowConvertVTKToUSD
@@ -220,7 +223,7 @@ Examples:
             colormap_name=args.colormap_name,
             colormap_intensity_range=intensity_range,
         )
-    except ValueError as e:
+    except (ValueError, OSError, TypeError) as e:
         print(f"Error: {e}")
         return 1
 

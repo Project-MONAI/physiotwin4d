@@ -138,13 +138,13 @@ class ConvertVTKToUSD(PhysioTwin4DBase):
         self.colormap: str = "plasma"
         self.intensity_range: Optional[tuple[float, float]] = None
 
-        if time_codes is not None and len(time_codes) != len(self.input_polydata):
-            raise ValueError(
-                f"time_codes length ({len(time_codes)}) must match "
-                f"input_polydata length ({len(self.input_polydata)})"
-            )
-        if time_codes is not None and len(time_codes) > 1:
-            if any(
+        if not static_merge and time_codes is not None:
+            if len(time_codes) != len(self.input_polydata):
+                raise ValueError(
+                    f"time_codes length ({len(time_codes)}) must match "
+                    f"input_polydata length ({len(self.input_polydata)})"
+                )
+            if len(time_codes) > 1 and any(
                 time_codes[i] > time_codes[i + 1] for i in range(len(time_codes) - 1)
             ):
                 raise ValueError(
