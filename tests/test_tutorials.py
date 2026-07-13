@@ -136,7 +136,7 @@ class TestTutorial03CreateStatisticalModel:
 
     def test_run(self, test_directories: dict[str, Path]) -> None:
         kcl_dir = test_directories["data"] / "KCL-Heart-Model"
-        if not (kcl_dir / "pca_mean.vtu").exists():
+        if not (kcl_dir / "average_mesh.vtk").exists():
             pytest.skip(
                 "KCL-Heart-Model not downloaded. See data/README.md for instructions."
             )
@@ -163,7 +163,7 @@ class TestTutorial04FitStatisticalModelToPatient:
 
     def test_run(self, test_directories: dict[str, Path]) -> None:
         kcl_dir = test_directories["data"] / "KCL-Heart-Model"
-        if not (kcl_dir / "pca_mean.vtu").exists():
+        if not (kcl_dir / "average_mesh.vtk").exists():
             pytest.skip(
                 "KCL-Heart-Model not downloaded. See data/README.md for instructions."
             )

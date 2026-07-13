@@ -49,9 +49,9 @@ def test_extract_label_surface_isolates_single_label() -> None:
 
     workflow = WorkflowConvertImageToVTK()
 
-    surface_1 = workflow._extract_label_surface(labelmap, 1)
-    surface_2 = workflow._extract_label_surface(labelmap, 2)
-    surface_absent = workflow._extract_label_surface(labelmap, 99)
+    surface_1 = workflow._extract_label_surface(labelmap, arr, 1)
+    surface_2 = workflow._extract_label_surface(labelmap, arr, 2)
+    surface_absent = workflow._extract_label_surface(labelmap, arr, 99)
 
     assert surface_1 is not None and surface_1.n_points > 0
     assert surface_2 is not None and surface_2.n_points > 0

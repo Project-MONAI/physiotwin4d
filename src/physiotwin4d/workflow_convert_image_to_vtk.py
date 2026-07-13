@@ -188,20 +188,28 @@ class WorkflowConvertImageToVTK(PhysioTwin4DBase):
         return self._contour_tools.extract_contours(mask_image)
 
     def _extract_label_surface(
-        self, labelmap_image: Any, label_id: int
+        self, labelmap_image: Any, labelmap_arr: np.ndarray, label_id: int
     ) -> Optional[pv.PolyData]:
         """Extract a smoothed triangulated surface for one individual label.
 
-        Isolates *label_id* out of the detailed multi-value *labelmap_image*
-        into its own binary mask before delegating to
-        :meth:`ContourTools.extract_contours`.
+        Isolates *label_id* out of *labelmap_arr* into its own binary mask
+        before delegating to :meth:`ContourTools.extract_contours`.
+
+        Args:
+            labelmap_image: Source image, used only for ``CopyInformation``
+                (origin/spacing/direction) on the isolated label mask.
+            labelmap_arr: ``labelmap_image``'s voxel array. Callers extracting
+                multiple labels from the same labelmap (as :meth:`process`
+                does) should compute this once — e.g. via
+                ``itk.GetArrayViewFromImage`` — and pass the same array to
+                every call, rather than re-deriving it per label.
+            label_id: Integer label id to isolate.
 
         Returns:
             Smoothed :class:`pyvista.PolyData`, or ``None`` if *label_id* has
-            no voxels in this labelmap.
+            no voxels in *labelmap_arr*.
         """
-        arr = itk.GetArrayFromImage(labelmap_image)
-        label_mask_arr = (arr == label_id).astype(np.uint8)
+        label_mask_arr = (labelmap_arr == label_id).astype(np.uint8)
         if int(label_mask_arr.sum()) == 0:
             return None
         label_mask = itk.GetImageFromArray(label_mask_arr)
@@ -270,6 +278,11 @@ class WorkflowConvertImageToVTK(PhysioTwin4DBase):
         self.log_section("Running segmentation")
         seg_result: dict[str, Any] = self._segmenter.segment(input_image)
 
+        # A zero-copy view, computed once and shared across every label
+        # surface extracted below so a multi-group/multi-label run doesn't
+        # repeatedly re-copy the (often large) labelmap volume.
+        labelmap_arr = itk.GetArrayViewFromImage(seg_result["labelmap"])
+
         # Extract VTK objects per anatomy group
         self.log_section("Extracting VTK objects")
         surfaces: dict[str, pv.PolyData] = {}
@@ -311,7 +324,7 @@ class WorkflowConvertImageToVTK(PhysioTwin4DBase):
                 self.log_info("  Extracting label surfaces for: %s", group)
                 for label_id, label_name in zip(label_ids, label_names, strict=True):
                     label_surface = self._extract_label_surface(
-                        seg_result["labelmap"], label_id
+                        seg_result["labelmap"], labelmap_arr, label_id
                     )
                     if label_surface is None:
                         continue
