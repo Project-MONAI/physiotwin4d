@@ -67,7 +67,7 @@ itk.imwrite(
 )
 
 # %%
-results = registrar.run_workflow()
+results = registrar.process()
 
 # %%
 registered_model = results["registered_template_model"]

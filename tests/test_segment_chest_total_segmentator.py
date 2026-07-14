@@ -138,18 +138,18 @@ class TestSegmentChestTotalSegmentator:
         assert len(results) == 2, "Expected 2 segmentation results"
         print(f"\nSuccessfully segmented {len(results)} time points")
 
-    def test_anatomy_group_masks(
+    def test_anatomy_group_labelmaps(
         self,
         segmenter_total_segmentator: SegmentChestTotalSegmentator,
         test_images: list[Any],
     ) -> None:
-        """Test that anatomy group masks are created correctly."""
+        """Test that anatomy group labelmaps are created correctly."""
         input_image = test_images[0]
 
         # Run segmentation
         result = segmenter_total_segmentator.segment(input_image)
 
-        # Check each anatomy group mask
+        # Check each anatomy group labelmap
         anatomy_groups = [
             "lung",
             "heart",
@@ -158,26 +158,34 @@ class TestSegmentChestTotalSegmentator:
             "soft_tissue",
             "other",
         ]
+        taxonomy = segmenter_total_segmentator.taxonomy
 
         for group in anatomy_groups:
-            mask = result[group]
-            assert mask is not None, f"{group} mask is None"
+            group_labelmap = result[group]
+            assert group_labelmap is not None, f"{group} labelmap is None"
 
-            # Check that mask is binary
-            mask_arr = itk.array_from_image(mask)
-            unique_values = np.unique(mask_arr)
-            assert len(unique_values) <= 2, f"{group} mask should be binary"
-            assert 0 in unique_values, f"{group} mask should contain background"
+            group_labelmap_arr = itk.array_from_image(group_labelmap)
+            unique_values = set(np.unique(group_labelmap_arr).tolist())
+            assert 0 in unique_values, f"{group} labelmap should contain background"
 
-            # Check that mask has same size as input
-            assert itk.size(mask) == itk.size(input_image), (
-                f"{group} mask size mismatch"
+            # "other" collects whatever ids no group claimed, so it has no
+            # fixed id set to check against.
+            if group != "other":
+                allowed_values = {0} | set(taxonomy.labels_in_group(group).keys())
+                assert unique_values <= allowed_values, (
+                    f"{group} labelmap contains unexpected label ids: "
+                    f"{unique_values - allowed_values}"
+                )
+
+            # Check that labelmap has same size as input
+            assert itk.size(group_labelmap) == itk.size(input_image), (
+                f"{group} labelmap size mismatch"
             )
 
-        print("\nAll anatomy group masks created correctly")
+        print("\nAll anatomy group labelmaps created correctly")
         for group in anatomy_groups:
-            mask_arr = itk.array_from_image(result[group])
-            num_voxels = np.sum(mask_arr > 0)
+            group_labelmap_arr = itk.array_from_image(result[group])
+            num_voxels = np.sum(group_labelmap_arr > 0)
             print(f"  {group}: {num_voxels} voxels")
 
     def test_contrast_detection(

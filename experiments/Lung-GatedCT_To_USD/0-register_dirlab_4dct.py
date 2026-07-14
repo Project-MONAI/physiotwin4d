@@ -98,11 +98,12 @@ if __name__ == "__main__":
     os.makedirs(output_dir, exist_ok=True)
 
     for case_name in case_names:
+        # .mha files are DirLab-4DCT data already converted to HU by
+        # data/DirLab-4DCT/fix_downloaded_data.py.
         fixed_image_filename = (
-            f"{input_dir}/{case_name}_T{fixed_image_num * 10:02d}.mhd"
+            f"{input_dir}/{case_name}_T{fixed_image_num * 10:02d}.mha"
         )
         fixed_image = itk.imread(fixed_image_filename)
-        fixed_image = DataDirLab4DCT().fix_image(fixed_image)
 
         print("Segmenting fixed image...")
         fixed_result = seg_image.segment(fixed_image)
@@ -151,9 +152,8 @@ if __name__ == "__main__":
         for image_num in images:
             if image_num != fixed_image_num:
                 moving_image = itk.imread(
-                    os.path.join(input_dir, f"{case_name}_T{image_num * 10:02d}.mhd")
+                    os.path.join(input_dir, f"{case_name}_T{image_num * 10:02d}.mha")
                 )
-                moving_image = DataDirLab4DCT().fix_image(moving_image)
 
                 print("***")
                 print(

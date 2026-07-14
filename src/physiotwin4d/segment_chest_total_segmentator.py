@@ -14,6 +14,7 @@ import itk
 import nibabel as nib
 import numpy as np
 
+from .image_tools import ImageTools
 from .segment_anatomy_base import SegmentAnatomyBase
 
 
@@ -49,7 +50,7 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
         >>> segmenter = SegmentChestTotalSegmentator()
         >>> result = segmenter.segment(ct_image)
         >>> labelmap = result['labelmap']
-        >>> heart_mask = result['heart']
+        >>> heart_labelmap = result['heart']
     """
 
     def __init__(self, log_level: int | str = logging.INFO):
@@ -65,7 +66,7 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
         """
         super().__init__(log_level=log_level)
 
-        self.target_spacing = 1.5
+        self.target_spacing = 0.0
 
         # TotalSegmentator class indices, grouped by anatomy.
         for group_name, organs in (
@@ -74,13 +75,19 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
                 {
                     51: "heart",
                     61: "atrial_appendage_left",
-                    140: "heart_envelop",
+                    140: "highres_myocardium",
+                    141: "highres_atrium_left",
+                    142: "highres_ventricle_left",
+                    143: "highres_atrium_right",
+                    144: "highres_ventricle_right",
+                    146: "highres_pulmonary_artery",
                 },
             ),
             (
                 "major_vessels",
                 {
                     52: "aorta",
+                    145: "highres_aorta",
                     53: "pulmonary_vein",
                     54: "brachiocephalic_trunk",
                     55: "right_subclavian_artery",
@@ -202,7 +209,10 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
                     90: "brain",
                     15: "esophagus",
                     16: "trachea",
-                    133: "soft_tissue",
+                    133: "body",
+                    134: "body_trunc",
+                    135: "body_extremities",
+                    136: "body_skin",
                 },
             ),
         ):
@@ -211,6 +221,16 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
 
         self._add_extra_taxonomy_groups()
         self._finalize_other_group()
+
+        self.has_highres_heart_license = False
+
+    def set_has_highres_heart_license(self, has_highres_heart_license: bool) -> None:
+        """Set whether the highres heart license is available.
+
+        Args:
+            has_highres_heart_license (bool): Whether the highres heart license is available
+        """
+        self.has_highres_heart_license = has_highres_heart_license
 
     def _add_extra_taxonomy_groups(self) -> None:
         """Hook for subclasses to add taxonomy groups before finalization.
@@ -246,7 +266,7 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
                 soft tissue labels from the 'body' task
 
         Note:
-            Requires GPU acceleration (device="gpu:0") for reasonable performance.
+            Requires GPU acceleration (device="gpu") for reasonable performance.
             The method automatically handles coordinate system conversions between
             ITK and nibabel formats.
 
@@ -270,60 +290,106 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
             # nr_thr_resamp defaults to 1; TotalSegmentator's post-prediction
             # resampling back to native resolution is CPU-bound and benefits
             # from parallelizing across the available cores.
-            resamp_threads = min(8, os.cpu_count() or 1) if self.fast_mode else 1
-            output_nib_image1 = totalsegmentator(
+            resamp_threads = min(8, os.cpu_count() or 1)
+            output_nib_image_total = totalsegmentator(
                 nib_image,
                 task="total",
                 device="gpu",
                 fast=self.fast_mode,
                 nr_thr_resamp=resamp_threads,
             )
-            labelmap_arr1 = output_nib_image1.get_fdata().astype(np.uint8)
+            labelmap_arr_total = output_nib_image_total.get_fdata().astype(np.uint8)
 
-            if self.fast_mode:
-                final_arr = labelmap_arr1
-            else:
-                output_nib_image2 = totalsegmentator(
-                    nib_image, task="body", device="gpu"
+            final_arr = labelmap_arr_total
+
+            if not self.fast_mode:
+                if self.has_highres_heart_license:
+                    self.log_info("Running heart chambers task")
+                    output_nib_image_heart = totalsegmentator(
+                        nib_image,
+                        task="heartchambers_highres",
+                        device="gpu",
+                        nr_thr_resamp=resamp_threads,
+                    )
+                    labelmap_arr_heart = output_nib_image_heart.get_fdata().astype(
+                        np.uint8
+                    )
+                    # labelmap_arr_heart contains: 1=myocardium, 2=atrium_left, 3=ventricle_left,
+                    #     4=atrium_right, 5=ventricle_right, 6=aorta, 7=pulmonary_artery
+                    final_arr = np.where(labelmap_arr_heart == 1, 140, final_arr)
+                    final_arr = np.where(labelmap_arr_heart == 2, 141, final_arr)
+                    final_arr = np.where(labelmap_arr_heart == 3, 142, final_arr)
+                    final_arr = np.where(labelmap_arr_heart == 4, 143, final_arr)
+                    final_arr = np.where(labelmap_arr_heart == 5, 144, final_arr)
+                    final_arr = np.where(labelmap_arr_heart == 7, 146, final_arr)
+                    # final_arr = np.where(labelmap_arr_heart == 6, 145, final_arr)
+                    #  Aorta is not included in heart model.
+                    #  Should include only a portion of the aorta in the heart model.
+
+                self.log_info("Running lung vessels task")
+                output_nib_image_lung = totalsegmentator(
+                    nib_image,
+                    task="lung_vessels",
+                    device="gpu",
+                    nr_thr_resamp=resamp_threads,
                 )
-                labelmap_arr2 = output_nib_image2.get_fdata().astype(np.uint8)
+                labelmap_arr_lung = output_nib_image_lung.get_fdata().astype(np.uint8)
+                # labelmap_arr_lung contains: 1=arteries, 2=veins, 3=airways,
+                #     4=airways_wall
+                final_arr = np.where(labelmap_arr_lung == 1, 120, final_arr)
+                final_arr = np.where(labelmap_arr_lung == 2, 121, final_arr)
+                final_arr = np.where(labelmap_arr_lung == 3, 122, final_arr)
+                # final_arr = np.where(labelmap_arr_lung == 4, 123, final_arr)
+                # Airway wall segmentation is too zealous.  Fills right atrium
 
-                output_nib_image3 = totalsegmentator(
-                    nib_image, task="lung_vessels", device="gpu"
+                self.log_info("Running body task")
+                output_nib_image_body = totalsegmentator(
+                    nib_image, task="body", device="gpu", nr_thr_resamp=resamp_threads
                 )
-                labelmap_arr3 = output_nib_image3.get_fdata().astype(np.uint8)
+                labelmap_arr_body = output_nib_image_body.get_fdata().astype(np.uint8)
+                # labelmap_arr_body contains: 1=body, 2=body_trunc, 3=body_extremities,
+                #     4=skin
+                # Only overwrite the background with body labels
+                mask = final_arr > 0
+                labelmap_arr_body[mask] = 0
+                final_arr = np.where(labelmap_arr_body == 1, 133, final_arr)
+                final_arr = np.where(labelmap_arr_body == 2, 134, final_arr)
+                final_arr = np.where(labelmap_arr_body == 3, 135, final_arr)
+                final_arr = np.where(labelmap_arr_body == 4, 136, final_arr)
 
-                mask1 = labelmap_arr1 == 0
-                mask2 = labelmap_arr2 > 0
-                mask = mask1 & mask2
-                soft_tissue_id = next(
-                    label_id
-                    for label_id, name in self.taxonomy.labels_in_group(
-                        "soft_tissue"
-                    ).items()
-                    if name == "soft_tissue"
-                )
-                final_arr = np.where(mask, soft_tissue_id, labelmap_arr1)
-
-                # labelmap_arr3 contains: 1=arteries, 2=veins, 3=airways,
-                # 4=airways_wall
-                final_arr = np.where(
-                    labelmap_arr3 == 1, 120, final_arr
-                )  # lung arteries
-                final_arr = np.where(labelmap_arr3 == 2, 121, final_arr)  # lung veins
-                final_arr = np.where(labelmap_arr3 == 3, 122, final_arr)  # lung airways
-                final_arr = np.where(
-                    labelmap_arr3 == 4, 123, final_arr
-                )  # lung airways wall
             # To create an ITK image, we save the result and read it back with
             # ITK. This correctly handles the coordinate system and data
             # layout conversions.
             out_tmp_file = os.path.join(tmp_dir, "out.nii.gz")
             # Use the affine from one of the outputs to preserve spatial info
-            result_nib = nib.Nifti1Image(final_arr, output_nib_image1.affine)
+            result_nib = nib.Nifti1Image(final_arr, output_nib_image_total.affine)
             nib.save(result_nib, out_tmp_file)
             labelmap_image = itk.imread(out_tmp_file)
             labelmap_arr = itk.array_from_image(labelmap_image).astype(np.uint8)
+
+            # Add heart around interior regions.
+            if self.has_highres_heart_license:
+                interior_mask = np.isin(labelmap_arr, [141, 142, 143, 144])
+                # Binarize to foreground value 1 so the dilate/erode calls
+                # below (which use foreground=1) operate on the mask.
+                interior_arr = interior_mask.astype(np.uint8)
+                interior_image = itk.GetImageFromArray(interior_arr)
+                interior_image.CopyInformation(preprocessed_image)
+                imMath = ImageTools()
+                spacing = interior_image.GetSpacing()
+                exterior_image = imMath.binary_dilate_image(
+                    interior_image, round(7 / spacing[0]), 1, 0
+                )
+                exterior_image = imMath.binary_erode_image(
+                    exterior_image, round(4 / spacing[0]), 1, 0
+                )
+                exterior_arr = itk.GetArrayFromImage(exterior_image)
+                mask_id = 51  # Heart mask id
+                exterior_arr = exterior_arr * mask_id
+                labelmap_arr = np.where(labelmap_arr == 0, exterior_arr, labelmap_arr)
+                replace_arr = np.where(labelmap_arr == 133, exterior_arr, 0)
+                labelmap_arr = np.where(replace_arr > 0, exterior_arr, labelmap_arr)
+
             labelmap_image = itk.image_from_array(labelmap_arr)
             labelmap_image.CopyInformation(preprocessed_image)
 

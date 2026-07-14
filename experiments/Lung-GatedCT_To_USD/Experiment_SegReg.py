@@ -3,8 +3,6 @@ import os
 
 import itk
 
-from data_dirlab_4d_ct import DataDirLab4DCT
-
 from physiotwin4d import RegisterImagesICON
 from physiotwin4d import SegmentChestTotalSegmentator
 
@@ -18,12 +16,10 @@ if __name__ == "__main__":
     _RESULTS_DIR = os.path.join(_HERE, "results_SegReg")
 
     # %%
-    fixed_image = DataDirLab4DCT().fix_image(
-        itk.imread(os.path.join(_DATA_DIR, "Case1Pack_T30.mhd"))
-    )
-    moving_image = DataDirLab4DCT().fix_image(
-        itk.imread(os.path.join(_DATA_DIR, "Case1Pack_T00.mhd"))
-    )
+    # .mha files are DirLab-4DCT data already converted to HU by
+    # data/DirLab-4DCT/fix_downloaded_data.py.
+    fixed_image = itk.imread(os.path.join(_DATA_DIR, "Case1Pack_T30.mha"))
+    moving_image = itk.imread(os.path.join(_DATA_DIR, "Case1Pack_T00.mha"))
 
     # %%
     # Register images

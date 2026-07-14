@@ -42,7 +42,7 @@ Most users should access model registration through the workflow:
        patient_image=itk.imread("patient_ct.nii.gz"),
    )
 
-   result = workflow.run_workflow()
+   result = workflow.process()
 
 See Also
 ========

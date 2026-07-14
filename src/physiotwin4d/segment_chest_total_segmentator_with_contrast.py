@@ -23,7 +23,7 @@ class SegmentChestTotalSegmentatorWithContrast(SegmentChestTotalSegmentator):
     Extends :class:`SegmentChestTotalSegmentator` with an additional
     connected-component pass that identifies contrast-enhanced blood vessels
     and cardiac chambers, labeling them under a ``"contrast"`` taxonomy
-    group (label id 135). Use this class instead of
+    group (label id 155). Use this class instead of
     :class:`SegmentChestTotalSegmentator` for contrast-enhanced studies.
 
     Attributes:
@@ -34,7 +34,7 @@ class SegmentChestTotalSegmentatorWithContrast(SegmentChestTotalSegmentator):
         >>> segmenter = SegmentChestTotalSegmentatorWithContrast()
         >>> result = segmenter.segment(ct_image)
         >>> labelmap = result['labelmap']
-        >>> contrast_mask = result['contrast']
+        >>> contrast_labelmap = result['contrast']
     """
 
     def __init__(self, log_level: int | str = logging.INFO) -> None:
@@ -48,8 +48,8 @@ class SegmentChestTotalSegmentatorWithContrast(SegmentChestTotalSegmentator):
         self.contrast_threshold: int = 500
 
     def _add_extra_taxonomy_groups(self) -> None:
-        """Register the ``"contrast"`` taxonomy group (label id 135)."""
-        self.taxonomy.add_organ("contrast", 135, "contrast")
+        """Register the ``"contrast"`` taxonomy group (label id 155)."""
+        self.taxonomy.add_organ("contrast", 155, "contrast")
 
     def postprocess_after_labelmap(
         self, input_image: itk.Image, labelmap_image: itk.Image
@@ -104,7 +104,7 @@ class SegmentChestTotalSegmentatorWithContrast(SegmentChestTotalSegmentator):
         Example:
             >>> # Segment contrast-enhanced blood
             >>> updated_labels = segmenter.segment_connected_component(
-            ...     preprocessed_image, labels, 700, 4000, mask_id=135
+            ...     preprocessed_image, labels, 700, 4000, mask_id=155
             ... )
         """
         thresh_image = itk.binary_threshold_image_filter(

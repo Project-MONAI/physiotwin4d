@@ -72,8 +72,9 @@ produces by populating ``self.taxonomy``. The base class owns the
            ...
 
 The base class then provides the shared pre/post-processing, contrast-agent
-fusion, and ``create_anatomy_group_masks()`` that walks the taxonomy and
-emits one mask per registered group plus ``"other"``.
+fusion, and ``create_anatomy_group_labelmaps()`` that walks the taxonomy and
+emits one labelmap (preserving the original label ids) per registered group
+plus ``"other"``.
 
 Custom Anatomy Looks
 ====================

@@ -74,7 +74,7 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
         patient_model_surface (pv.PolyData): Primary patient model surface (first in
             list)
         combined_patient_model (pv.PolyData): Merged patient models before surface
-            extraction; used when pca_uses_surface=False.
+            extraction; used when use_surface=False.
         patient_image (itk.Image): Reference image providing coordinate frame
         patient_labelmap (itk.Image): Multi-label labelmap for patient model
         patient_mask (itk.Image): Binary mask for patient registration region
@@ -115,11 +115,11 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
         ...     patient_models=[lv_model, mc_model, rv_model],
         ... )
         >>> registrar.set_mask_dilation_mm(20)
-        >>> # To enable PCA registration, call before run_workflow():
+        >>> # To enable PCA registration, call before process():
         >>> # registrar.set_use_pca_registration(True, pca_model=pca_model_dict, pca_number_of_modes=10)
         >>> # To enable labelmap-to-image refinement:
         >>> # registrar.set_use_labelmap_to_image_registration(True, template_labelmap, organ_mesh_ids, organ_extra_ids, background_ids)
-        >>> result = registrar.run_workflow()
+        >>> result = registrar.process()
     """
 
     def __init__(
@@ -264,7 +264,7 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
         self.pca_template_model: Optional[pv.DataSet] = None
         self.pca_template_model_surface: Optional[pv.PolyData] = None
         self.pca_template_labelmap: Optional[itk.Image] = None
-        self.pca_uses_surface: bool = False
+        self.use_surface: bool = False
 
         # Stage 2: Labelmap-to-labelmap registration results
         self.use_l2l_registration = True
@@ -301,7 +301,7 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
         use_pca_registration: bool,
         pca_model: Optional[dict[str, Any]] = None,
         pca_number_of_modes: int = 0,
-        pca_uses_surface: bool = True,
+        use_surface: bool = False,
     ) -> None:
         """Set whether to use PCA-based registration and provide the PCA model.
 
@@ -314,7 +314,7 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
                 "eigenvalues" and "components".
             pca_number_of_modes: Required when use is True. Number of PCA modes to use.
                 Default 0 means use all modes.
-            pca_uses_surface: Whether to use the surface of the patient model for PCA registration.
+            use_surface: Whether to use the surface of the patient model for PCA registration.
         Raises:
             ValueError: If use is True and pca_model is None.
         """
@@ -328,7 +328,7 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
         else:
             self.pca_model = None
             self.pca_number_of_modes = 0
-        self.pca_uses_surface = pca_uses_surface
+        self.use_surface = use_surface
         self.use_pca_registration = use_pca_registration
 
     def set_use_labelmap_to_labelmap_registration(
@@ -515,7 +515,7 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
             }
 
         pca_template_model: Optional[pv.DataSet]
-        if self.pca_uses_surface:
+        if self.use_surface:
             pca_template_model = self.icp_template_model_surface
             fixed_model = self.patient_model_surface
             fixed_distance_map = None
@@ -549,7 +549,7 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
         result = self.pca_registrar.register()
         self.pca_coefficients = result["pca_coefficients"]
         registered_model = cast(pv.DataSet, result["registered_model"])
-        if self.pca_uses_surface:
+        if self.use_surface:
             self.pca_template_model_surface = cast(pv.PolyData, registered_model)
         else:
             self.pca_template_model_surface = registered_model.extract_surface(
@@ -579,7 +579,7 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
             itk.imwrite(tfm_y_img, "pca_forward_point_transform_y.nii.gz")
             itk.imwrite(tfm_z_img, "pca_forward_point_transform_z.nii.gz")
 
-        if self.pca_uses_surface:
+        if self.use_surface:
             assert self.icp_template_model is not None, "ICP template model must be set"
             self.pca_template_model = self._transform_model_dataset(
                 self.icp_template_model,
@@ -710,7 +710,7 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
             raise ValueError(
                 "Labelmap-to-image registration requires template labelmap and label IDs. "
                 "Call set_use_labelmap_to_image_registration(True, template_labelmap, "
-                "organ_mesh_ids, organ_extra_ids, background_ids) before run_workflow()."
+                "organ_mesh_ids, organ_extra_ids, background_ids) before process()."
             )
         propagated_labelmap = (
             self.l2l_template_labelmap
@@ -886,7 +886,7 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
         transformed_model.points = new_points
         return transformed_model
 
-    def run_workflow(
+    def process(
         self,
         use_ICON_registration_refinement: bool = False,
     ) -> dict:

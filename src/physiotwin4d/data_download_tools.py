@@ -16,7 +16,10 @@ import tempfile
 import urllib.request
 import zipfile
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
+
+import itk
+import numpy as np
 
 from .convert_image_4d_to_3d import ConvertImage4DTo3D
 
@@ -354,6 +357,54 @@ class DataDownloadTools:
             for mhd_file in data_dir.glob("Case1Pack_T*.mhd")
         )
         return has_case_dir_layout or has_pack_layout
+
+    DIRLAB_4DCT_HU_OFFSET = 1024
+    DIRLAB_4DCT_HU_CLIP_RANGE = (-1024, 1024)
+
+    @staticmethod
+    def FixDirLab4DCTData(  # noqa: N802
+        dirname: Union[str, Path],
+        output_dirname: Optional[Union[str, Path]] = None,
+    ) -> list[Path]:
+        """Convert DirLab-4DCT raw intensities to clipped Hounsfield units.
+
+        DirLab-4DCT's raw ``.img``/``.mhd`` volumes store intensities offset
+        by +1024 from Hounsfield units. This finds every ``.mhd`` header
+        under ``dirname`` (recursively) whose raw data has been downloaded,
+        subtracts 1024, clips the result to ``DIRLAB_4DCT_HU_CLIP_RANGE``,
+        and writes the corrected volume with the same base filename but a
+        ``.mha`` extension, compressed.
+
+        Args:
+            dirname: Directory to search recursively for ``.mhd`` headers.
+            output_dirname: Directory to write the ``.mha`` files into.
+                Defaults to writing each result next to its source ``.mhd``
+                header.
+
+        Returns:
+            Paths to the written ``.mha`` files.
+        """
+        output_dir = Path(output_dirname) if output_dirname is not None else None
+        if output_dir is not None:
+            output_dir.mkdir(parents=True, exist_ok=True)
+
+        output_files = []
+        for mhd_file in sorted(Path(dirname).rglob("*.mhd")):
+            if not DataDownloadTools._MetaImageHeaderHasBackingData(mhd_file):
+                continue
+            image = itk.imread(str(mhd_file))
+            image_arr = (
+                itk.array_from_image(image) - DataDownloadTools.DIRLAB_4DCT_HU_OFFSET
+            )
+            image_arr = np.clip(image_arr, *DataDownloadTools.DIRLAB_4DCT_HU_CLIP_RANGE)
+            fixed_image = itk.image_from_array(image_arr)
+            fixed_image.CopyInformation(image)
+            target_dir = output_dir if output_dir is not None else mhd_file.parent
+            output_file = target_dir / mhd_file.with_suffix(".mha").name
+            itk.imwrite(fixed_image, str(output_file), compression=True)
+            output_files.append(output_file)
+            _logger.info("Fixed %s -> %s", mhd_file.name, output_file.name)
+        return output_files
 
     @staticmethod
     def VerifyKCLHeartModelData(dirname: Union[str, Path]) -> bool:  # noqa: N802

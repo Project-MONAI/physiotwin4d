@@ -312,7 +312,7 @@ Examples:
         print("\nStarting reconstruction pipeline...")
         print("=" * 70)
         workflow.set_upsample_to_fixed_resolution(True)
-        result = workflow.run_workflow()
+        result = workflow.process()
 
         # Save results
         print("\n" + "=" * 70)

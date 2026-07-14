@@ -31,8 +31,8 @@ class ContourTools(PhysioTwin4DBase):
         """
         super().__init__(class_name=self.__class__.__name__, log_level=log_level)
 
+    @staticmethod
     def extract_contours(
-        self,
         labelmap_image: itk.image,
     ) -> pv.PolyData:
         """
@@ -71,8 +71,8 @@ class ContourTools(PhysioTwin4DBase):
 
         return contours
 
+    @staticmethod
     def transform_contours(
-        self,
         contours: pv.PolyData,
         tfm: itk.Transform,
         with_deformation_magnitude: bool = False,
@@ -135,8 +135,8 @@ class ContourTools(PhysioTwin4DBase):
 
         return merged_mesh, pv_meshes
 
+    @staticmethod
     def create_reference_image(
-        self,
         mesh: pv.DataSet,
         spatial_resolution: float = 0.5,
         buffer_factor: float = 0.25,
@@ -164,8 +164,8 @@ class ContourTools(PhysioTwin4DBase):
         reference_image.Allocate()
         return reference_image
 
+    @staticmethod
     def create_mask_from_mesh(
-        self,
         mesh: pv.DataSet | pv.UnstructuredGrid,
         reference_image: itk.Image,
     ) -> itk.Image:
@@ -360,8 +360,8 @@ class ContourTools(PhysioTwin4DBase):
 
         return distance_image
 
+    @staticmethod
     def create_deformation_field(
-        self,
         points: np.ndarray,
         point_displacements: np.ndarray,
         reference_image: itk.Image,

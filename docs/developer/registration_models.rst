@@ -22,7 +22,7 @@ Recommended Entry Point
        patient_image=itk.imread("patient_ct.nii.gz"),
    )
 
-   result = workflow.run_workflow()
+   result = workflow.process()
 
 Lower-Level Classes
 ===================

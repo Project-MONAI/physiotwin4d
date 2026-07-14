@@ -515,17 +515,16 @@ def test_labelmaps(
             itk.imwrite(result["labelmap"], str(labelmap_file), compression=True)
 
         labelmap = itk.imread(str(labelmap_file))
-        masks = segmenter_total_segmentator.create_anatomy_group_masks(labelmap)
+        labelmaps = segmenter_total_segmentator.create_anatomy_group_labelmaps(labelmap)
         results.append(
             {
                 "labelmap": labelmap,
-                "lung": masks["lung"],
-                "heart": masks["heart"],
-                "major_vessels": masks["major_vessels"],
-                "bone": masks["bone"],
-                "soft_tissue": masks["soft_tissue"],
-                "other": masks["other"],
-                "contrast": masks["contrast"],
+                "lung": labelmaps["lung"],
+                "heart": labelmaps["heart"],
+                "major_vessels": labelmaps["major_vessels"],
+                "bone": labelmaps["bone"],
+                "soft_tissue": labelmaps["soft_tissue"],
+                "other": labelmaps["other"],
             }
         )
 

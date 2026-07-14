@@ -81,7 +81,7 @@ if __name__ == "__main__":
         )
     else:
         labelmap_image = itk.imread(os.path.join(output_dir, f"{outname}.all_mask.mha"))
-        result = seg.create_anatomy_group_masks(labelmap_image)
+        result = seg.create_anatomy_group_labelmaps(labelmap_image)
 
     lung_mask = result["lung"]
     heart_mask = result["heart"]
