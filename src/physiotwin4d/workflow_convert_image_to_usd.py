@@ -225,7 +225,9 @@ class WorkflowConvertImageToUSD(PhysioTwin4DBase):
         # Set up registrar with reference image
         self.registrar.set_fixed_image(self.reference_image)
 
-        self.reference_segmentation_results = self.segmenter.segment(self.reference_image)
+        self.reference_segmentation_results = self.segmenter.segment(
+            self.reference_image
+        )
         labelmap = self.reference_segmentation_results["labelmap"]
         if self.save_assets:
             itk.imwrite(

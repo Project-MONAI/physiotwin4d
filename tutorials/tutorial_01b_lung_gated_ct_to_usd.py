@@ -1,37 +1,38 @@
 """
-Tutorial 1: Heart-Gated CT to Animated USD
+Tutorial 1b: Lung-Gated 4D CT to Animated USD
 
 Purpose
 -------
-Convert a 4D cardiac CT scan (multiple gated time frames) into an animated USD
-model suitable for visualization in NVIDIA Omniverse. The workflow segments the
-heart and surrounding anatomy from a reference frame, registers all other frames
-to that reference using deep learning or classical registration, and assembles
-the resulting time-varying surface meshes into a single USD file with anatomical
-materials applied.
+Convert a respiratory-gated 4D lung CT scan (multiple breathing phases) into an
+animated USD model suitable for visualization in NVIDIA Omniverse. The workflow
+segments the lungs and surrounding chest anatomy from a reference phase,
+registers all other respiratory phases to that reference using deep-learning
+registration, and assembles the resulting time-varying surface meshes into a
+single USD file with anatomical materials applied.
 
 Inputs
 ------
-- A 4D NRRD sequence file (``*.seq.nrrd``) **or** a list of 3D CT volumes
-  (``*.mha`` / ``*.nrrd``) representing successive cardiac phases.
-  Expected location: ``data/Slicer-Heart-CT/TruncalValve_4DCT.seq.nrrd``
-- Optional: a reference frame image to fix the cardiac phase used as the
-  segmentation source.
+- A set of 3D CT volumes (``*.mha``) representing successive respiratory
+  phases of one DirLab-4DCT case.
+  Expected location: ``data/DirLab-4DCT/Case1Pack_T??.mha`` (already converted
+  to Hounsfield units by ``data/DirLab-4DCT/fix_downloaded_data.py``).
+- The mid-inspiration phase (index ~0.7 through the series) is used as the
+  reference frame for segmentation and registration.
 
 Outputs
 -------
-- ``output_dir/cardiac_model.dynamic_painted.usd`` - animated USD with
-  anatomy materials
+- An animated USD file with anatomy materials, written under ``output_dir``
+  and named after the workflow's ``usd_project_name``.
 - Screenshots (PNG) for documentation and regression testing:
-  - ``reference_frame_axial.png`` - axial slice of the reference CT frame
-  - ``segmentation_overlay.png`` - segmentation mask overlaid on reference
-  - ``contours_3d.png`` - 3-D isometric view of the current-run contours
+  - ``slice_<n>_registered_test.png`` - axial slice of the registered
+    reference phase
+  - ``slice_<n>_labelmap_test.png`` - segmentation mask overlaid on that slice
+  - a rendered view of the exported USD model
 
 Strengths
 ---------
 - Single call (``WorkflowConvertImageToUSD.process()``) runs the full pipeline.
 - Supports both GPU-accelerated ICON registration and CPU-capable Greedy registration.
-- Automatically detects contrast enhancement and adjusts segmentation thresholds.
 - Output is Omniverse-ready with anatomical materials (USDAnatomyTools).
 
 Weaknesses / Limitations
@@ -46,11 +47,11 @@ Weaknesses / Limitations
 Classes Used
 ------------
 - WorkflowConvertImageToUSD (workflow_convert_image_to_usd.py):
-    Orchestrates the full pipeline: 4D NRRD -> segmentation -> registration ->
+    Orchestrates the full pipeline: CT phases -> segmentation -> registration ->
     contour extraction -> USD export.
 - SegmentChestTotalSegmentator (segment_chest_total_segmentator.py):
     Deep-learning segmentation of 117 anatomical structures (used internally).
-- RegisterImagesICON / RegisterImagesANTS (register_images_icon.py / _ants.py):
+- RegisterImagesICON (register_images_icon.py):
     Frame-to-frame image registration (used internally).
 - ContourTools (contour_tools.py):
     Extracts and transforms surface meshes from segmentation masks (used internally).
@@ -60,10 +61,10 @@ Classes Used
 Data Required
 -------------
 See data/README.md for download instructions and dataset licensing.
-Dataset: Slicer-Heart-CT - https://github.com/SlicerHeart/SlicerHeart
-This script expects the data to already exist at
-``data/Slicer-Heart-CT/TruncalValve_4DCT.seq.nrrd``. Run the repository data
-download notebook or download the file manually before running this tutorial.
+Dataset: DirLab-4DCT - see ``data/DirLab-4DCT/README.md``.
+This script expects the HU-corrected ``Case1Pack_T??.mha`` phase volumes to
+already exist under ``data/DirLab-4DCT/``. Download the DirLab-4DCT case and run
+``data/DirLab-4DCT/fix_downloaded_data.py`` before running this tutorial.
 """
 
 # %%
@@ -142,7 +143,7 @@ if __name__ == "__main__":
         time_series_images=time_series_images,
         reference_image=reference_image,
         output_directory=str(output_dir),
-        usd_project_name="cardiac_model",
+        usd_project_name="lung_model",
         registration_method=registration_method,
         log_level=log_level,
         save_assets=True,
@@ -203,7 +204,7 @@ if __name__ == "__main__":
         screenshots.append(
             tt.save_screenshot_openusd(
                 usd_file,
-                "cardiac_model_test.png",
+                "lung_model_test.png",
             )
         )
 
