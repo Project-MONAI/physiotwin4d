@@ -147,7 +147,7 @@ Statistical Shape Modeling
        patient_image=itk.imread("patient_ct.nii.gz"),
    )
 
-   result = workflow.run_workflow()
+   result = workflow.process()
 
 High-Resolution 4D CT Reconstruction
 ====================================
@@ -172,7 +172,7 @@ High-Resolution 4D CT Reconstruction
    )
 
    workflow.set_upsample_to_fixed_resolution(True)
-   result = workflow.run_workflow()
+   result = workflow.process()
 
 See Also
 ========

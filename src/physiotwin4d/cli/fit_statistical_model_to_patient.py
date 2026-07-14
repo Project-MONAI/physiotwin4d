@@ -262,7 +262,7 @@ Examples:
         # Execute registration workflow
         print("\nStarting registration pipeline...")
         print("=" * 70)
-        result = workflow.run_workflow(
+        result = workflow.process(
             use_ICON_registration_refinement=args.use_ICON_refinement,
         )
 

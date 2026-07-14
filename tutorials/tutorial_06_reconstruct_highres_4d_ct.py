@@ -83,7 +83,7 @@ if __name__ == "__main__":
     workflow = WorkflowReconstructHighres4DCT(
         time_series_images=time_series,
         fixed_image=fixed_image,
-        reference_frame=0,
+        reference_frame=6,
         registration_method=registration_method,
         log_level=log_level,
     )
@@ -91,10 +91,12 @@ if __name__ == "__main__":
 
     # %%
     # Workflow execution
-    result = workflow.run_workflow()
+    result = workflow.process()
 
     # %%
     # Result saving
+    forward_transform = result["forward_transforms"]
+    inverse_transform = result["inverse_transforms"]
     reconstructed_images: list[itk.Image] = result["reconstructed_images"]
     reconstructed_files: list[Path] = []
     for frame_index, image in enumerate(reconstructed_images):
@@ -102,6 +104,12 @@ if __name__ == "__main__":
         itk.imwrite(image, str(out_path), compression=True)
         reconstructed_files.append(out_path)
 
+        out_path = output_dir / f"reconstructed_frame_{frame_index:03d}_fwd.hdf"
+        itk.transformwrite(forward_transform[frame_index], str(out_path))
+        
+        out_path = output_dir / f"reconstructed_frame_{frame_index:03d}_inv.hdf"
+        itk.transformwrite(inverse_transform[frame_index], str(out_path))
+        
     tt = TestTools(
         class_name="tutorial_06_reconstruct_highres_4d_ct",
         results_dir=output_dir,

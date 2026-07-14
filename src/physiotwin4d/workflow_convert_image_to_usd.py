@@ -54,7 +54,7 @@ class WorkflowConvertImageToUSD(PhysioTwin4DBase):
         registration_method: Optional[RegisterImagesBase] = None,
         dynamic_labelmap_ids: Optional[list[int]] = None,
         mask_dilation_radius: int = 10,
-        frames_per_second: float = 24.0,
+        frames_per_second: float = 1.0,
         log_level: int | str = logging.INFO,
         save_assets: bool = True,
     ) -> None:
@@ -137,7 +137,7 @@ class WorkflowConvertImageToUSD(PhysioTwin4DBase):
         # Data storage for processing pipeline
         self._num_time_points = len(time_series_images)
 
-        self.reference_segmentation: Optional[dict[str, itk.Image]] = None
+        self.reference_segmentation_results: Optional[dict[str, itk.Image]] = None
         self.reference_contours: dict[str, pv.PolyData] = {}
 
         self.transformed_contours: dict[str, list[pv.PolyData]] = {
@@ -225,8 +225,8 @@ class WorkflowConvertImageToUSD(PhysioTwin4DBase):
         # Set up registrar with reference image
         self.registrar.set_fixed_image(self.reference_image)
 
-        self.reference_segmentation = self.segmenter.segment(self.reference_image)
-        labelmap = self.reference_segmentation["labelmap"]
+        self.reference_segmentation_results = self.segmenter.segment(self.reference_image)
+        labelmap = self.reference_segmentation_results["labelmap"]
         if self.save_assets:
             itk.imwrite(
                 labelmap,
@@ -266,8 +266,8 @@ class WorkflowConvertImageToUSD(PhysioTwin4DBase):
 
             moving_image = self.time_series_images[i]
 
-            moving_segmentation = self.segmenter.segment(moving_image)
-            moving_labelmap = moving_segmentation["labelmap"]
+            moving_segmentation_results = self.segmenter.segment(moving_image)
+            moving_labelmap = moving_segmentation_results["labelmap"]
             if self.save_assets:
                 itk.imwrite(
                     moving_labelmap,
@@ -345,10 +345,10 @@ class WorkflowConvertImageToUSD(PhysioTwin4DBase):
         """Generate contour meshes from reference segmentation."""
         self.log_info("Generating reference contours...")
 
-        assert self.reference_segmentation is not None, (
-            "reference segmentation must be set"
+        assert self.reference_segmentation_results is not None, (
+            "reference segmentation results must be set"
         )
-        labelmap = self.reference_segmentation["labelmap"]
+        labelmap = self.reference_segmentation_results["labelmap"]
 
         # Generate all anatomy contours
         all_contours = self.contour_tools.extract_contours(labelmap)

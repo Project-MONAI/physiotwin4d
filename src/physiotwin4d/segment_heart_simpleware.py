@@ -52,7 +52,7 @@ class SegmentHeartSimpleware(SegmentAnatomyBase):
         >>> segmenter = SegmentHeartSimpleware()
         >>> result = segmenter.segment(ct_image)
         >>> labelmap = result['labelmap']
-        >>> heart_mask = result['heart']
+        >>> heart_labelmap = result['heart']
 
     See :class:`SegmentHeartSimplewareTrimmedBranches` for a variant that
     additionally clips pulmonary/great-vessel branches to the cardiac region.

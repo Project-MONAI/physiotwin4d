@@ -348,51 +348,55 @@ class SegmentAnatomyBase(PhysioTwin4DBase):
         """
         return labelmap_image
 
-    def create_anatomy_group_masks(
+    def create_anatomy_group_labelmaps(
         self, labelmap_image: itk.image
     ) -> dict[str, itk.image]:
         """
-        Create binary masks for different anatomical groups from the labelmap.
+        Create labelmaps for different anatomical groups from the labelmap.
 
-        Generates separate binary masks for major anatomical systems by
+        Generates separate labelmaps for major anatomical systems by
         grouping related anatomical structures from the detailed labelmap.
-        This is useful for motion analysis and visualization.
+        Each group's labelmap retains the original label ids for voxels
+        belonging to that group and is zero elsewhere. This is useful for
+        motion analysis and visualization.
 
         Args:
             labelmap_image (itk.image): The detailed segmentation labelmap
 
         Returns:
-            dict[str, itk.image]: Dictionary of binary masks keyed by group
+            dict[str, itk.image]: Dictionary of labelmaps keyed by group
                 name. Exactly one entry per group registered in
                 :attr:`taxonomy` (plus ``"other"``). The returned key set
                 is segmenter-specific — callers that need a particular
-                group should check membership (``"lung" in masks``) rather
-                than assume a fixed schema.
+                group should check membership (``"lung" in labelmaps``)
+                rather than assume a fixed schema.
 
         Example:
-            >>> masks = segmenter.create_anatomy_group_masks(labelmap)
-            >>> if "lung" in masks:
-            ...     lung_mask = masks["lung"]
+            >>> labelmaps = segmenter.create_anatomy_group_labelmaps(labelmap)
+            >>> if "lung" in labelmaps:
+            ...     lung_labelmap = labelmaps["lung"]
         """
         labelmap_arr = itk.GetArrayFromImage(labelmap_image)
-        other_mask_arr = np.where(labelmap_arr > 0, 1, 0)
+        other_labelmap_arr = np.where(labelmap_arr > 0, labelmap_arr, 0)
 
-        masks: dict[str, itk.image] = {}
+        labelmaps: dict[str, itk.image] = {}
         for group_name in self.taxonomy.group_names():
             if group_name == AnatomyTaxonomy.OTHER_GROUP:
                 continue
             group_ids = list(self.taxonomy.labels_in_group(group_name).keys())
-            group_mask_arr = np.isin(labelmap_arr, group_ids).astype(np.uint8)
-            other_mask_arr = np.where(group_mask_arr > 0, 0, other_mask_arr)
-            group_mask = itk.GetImageFromArray(group_mask_arr)
-            group_mask.CopyInformation(labelmap_image)
-            masks[group_name] = group_mask
+            group_labelmap_arr = np.where(
+                np.isin(labelmap_arr, group_ids), labelmap_arr, 0
+            )
+            other_labelmap_arr = np.where(group_labelmap_arr > 0, 0, other_labelmap_arr)
+            group_labelmap = itk.GetImageFromArray(group_labelmap_arr)
+            group_labelmap.CopyInformation(labelmap_image)
+            labelmaps[group_name] = group_labelmap
 
-        other_mask = itk.GetImageFromArray(other_mask_arr.astype(np.uint8))
-        other_mask.CopyInformation(labelmap_image)
-        masks[AnatomyTaxonomy.OTHER_GROUP] = other_mask
+        other_labelmap = itk.GetImageFromArray(other_labelmap_arr)
+        other_labelmap.CopyInformation(labelmap_image)
+        labelmaps[AnatomyTaxonomy.OTHER_GROUP] = other_labelmap
 
-        return masks
+        return labelmaps
 
     def segmentation_method(self, preprocessed_image: itk.image) -> itk.image:
         """
@@ -425,7 +429,7 @@ class SegmentAnatomyBase(PhysioTwin4DBase):
 
         This is the main segmentation method that coordinates preprocessing,
         segmentation, subclass-specific labelmap refinement, and anatomical
-        group mask creation.
+        group labelmap creation.
 
         Args:
             input_image (itk.image): The input 3D image to segment
@@ -433,12 +437,13 @@ class SegmentAnatomyBase(PhysioTwin4DBase):
         Returns:
             dict[str, itk.image]: Dictionary containing:
                 - "labelmap": Detailed segmentation labelmap
-                - one binary mask image per anatomy group, keyed by group name
+                - one labelmap image per anatomy group, keyed by group name,
+                  preserving the original label ids for that group
 
         Example:
             >>> result = segmenter.segment(image)
             >>> labelmap = result['labelmap']
-            >>> heart_mask = result['heart']
+            >>> heart_labelmap = result['heart']
         """
         preprocessed_image = self.preprocess_input(input_image)
 
@@ -448,11 +453,11 @@ class SegmentAnatomyBase(PhysioTwin4DBase):
 
         labelmap_image = self.postprocess_after_labelmap(input_image, labelmap_image)
 
-        masks = self.create_anatomy_group_masks(labelmap_image)
+        labelmaps = self.create_anatomy_group_labelmaps(labelmap_image)
 
         labelmap_image = itk.GetImageFromArray(
             itk.GetArrayFromImage(labelmap_image).astype(np.uint8)
         )
         labelmap_image.CopyInformation(input_image)
 
-        return {"labelmap": labelmap_image, **masks}
+        return {"labelmap": labelmap_image, **labelmaps}

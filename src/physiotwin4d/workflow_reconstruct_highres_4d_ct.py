@@ -346,7 +346,7 @@ class WorkflowReconstructHighres4DCT(PhysioTwin4DBase):
 
         return {"reconstructed_images": self.reconstructed_images}
 
-    def run_workflow(self) -> dict:
+    def process(self) -> dict:
         """Execute the complete high-resolution 4D CT reconstruction workflow.
 
         Runs the full pipeline:

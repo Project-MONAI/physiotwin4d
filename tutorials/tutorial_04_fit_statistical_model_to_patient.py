@@ -22,12 +22,21 @@ import logging
 from pathlib import Path
 from typing import Any, Optional, cast
 
+import itk
+import numpy as np
 import pyvista as pv
 
-from physiotwin4d.test_tools import TestTools
-from physiotwin4d.workflow_fit_statistical_model_to_patient import (
+from physiotwin4d import (
+    ContourTools,
+    SegmentChestTotalSegmentator,
+    #SegmentHeartSimplewareTrimmedBranches,
+    #SegmentChestTotalSegmentatorWithContrast,
+    TestTools,
     WorkflowFitStatisticalModelToPatient,
 )
+
+# %%
+# Data directory specification
 
 # nnUNetv2 (used by TotalSegmentator inside several workflows) spawns a
 # multiprocessing.Pool. On Windows the spawn start method re-imports this
@@ -35,93 +44,118 @@ from physiotwin4d.workflow_fit_statistical_model_to_patient import (
 # top-level work, that re-import fires the segmenter again and Python's
 # spawn-cascade detector raises RuntimeError.
 if __name__ == "__main__":
-    # %%
-    # Data directory specification
     REPO_ROOT = Path(__file__).resolve().parent.parent
     TUTORIALS_DIR = Path(__file__).resolve().parent
-    DATA_DIR = REPO_ROOT / "data"
-    FULL_DATA_DIR = DATA_DIR / "KCL-Heart-Model"
-    TEST_DATA_DIR = DATA_DIR / "test" / "KCL-Heart-Model"
+    DATA_DIR = REPO_ROOT / "data" / "DirLab-4DCT"
     OUTPUT_DIR = TUTORIALS_DIR / "output" / "tutorial_04"
     BASELINES_DIR = REPO_ROOT / "tests" / "baselines"
     PCA_JSON = TUTORIALS_DIR / "output" / "tutorial_03" / "pca_model.json"
+    PCA_MEAN_FILE = TUTORIALS_DIR / "output" / "tutorial_03" / "pca_mean_surface.vtp"
+    PATIENT_IMAGE_FILE = DATA_DIR / "Case1Pack_T70.mhd"
+    SEGMENTATION_METHOD = SegmentChestTotalSegmentator()
+    SEGMENTATION_METHOD.set_has_highres_heart_license(True)
+    # SEGMENTATION_METHOD = SegmentHeartSimplewareTrimmedBranches() # Use when available
+    #     and images are contrast-enhanced.
+    # SEGMENTATION_METHOD = SegmentChestTotalSegmentatorWithContrast() # Use when contrast-enhanced
+    #     images and Simpleware is not available.
     LOG_LEVEL = logging.INFO
 
-    # %%
-    # Data reading
-    test_mode = TestTools.running_as_test()
+    TEST_MODE = TestTools.running_as_test()
 
-    data_dir = TEST_DATA_DIR if test_mode else FULL_DATA_DIR
+    data_dir = DATA_DIR
     output_dir = OUTPUT_DIR
     pca_json = PCA_JSON
+    pca_mean_file = PCA_MEAN_FILE
+    patient_image_file = PATIENT_IMAGE_FILE
+    segmentation_method = SEGMENTATION_METHOD
     log_level = LOG_LEVEL
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    template_file = data_dir / "pca_mean.vtu"
-    if not template_file.exists():
+    if not pca_mean_file.exists():
         raise FileNotFoundError(
-            f"KCL-Heart-Model template not found: {template_file}\n"
+            f"DirLab-4DCT template not found: {pca_mean_file}\n"
             "See data/README.md for download instructions."
         )
-
-    template_data = cast(pv.DataSet, pv.read(str(template_file)))
-    if isinstance(template_data, pv.PolyData):
-        template_model = template_data
-    else:
-        template_model = template_data.extract_surface(algorithm="dataset_surface")
-
-    sample_files = sorted((data_dir / "sample_meshes").glob("*.vtu"))
-    if not sample_files:
-        sample_files = sorted(data_dir.glob("*.vtu"))
-    sample_files = [path for path in sample_files if path.name != "pca_mean.vtu"]
-    sample_files = sample_files[:3]
-    if not sample_files:
-        raise FileNotFoundError(
-            f"No patient-like sample meshes found under {data_dir}.\n"
-            "See data/README.md for download instructions."
-        )
-
-    patient_models: list[pv.DataSet] = []
-    for sample_file in sample_files:
-        sample_data = cast(pv.DataSet, pv.read(str(sample_file)))
-        if isinstance(sample_data, pv.PolyData):
-            patient_models.append(sample_data)
-        else:
-            patient_models.append(
-                sample_data.extract_surface(algorithm="dataset_surface")
-            )
+    pca_mean = cast(pv.DataSet, pv.read(str(pca_mean_file)))
 
     pca_model: Optional[dict[str, Any]] = None
     if pca_json.exists():
         with pca_json.open(encoding="utf-8") as f:
             pca_model = json.load(f)
 
+    if not patient_image_file.exists():
+        raise FileNotFoundError(
+            f"DirLab-4DCT template not found: {patient_image_file}\n"
+            "See data/README.md for download instructions."
+        )
+    patient_image = itk.imread(str(patient_image_file))
+    
+    # DirLab data is not in Hounsfield units, so we need to convert it to HU.
+    patient_image_arr = itk.GetArrayFromImage(patient_image)
+    patient_image_arr = patient_image_arr - 1024
+    patient_image_arr = np.clip(patient_image_arr, -1024, 2048)
+    patient_image_new = itk.GetImageFromArray(patient_image_arr)
+    patient_image_new.CopyInformation(patient_image)
+    patient_image = patient_image_new
+    itk.imwrite(patient_image, output_dir / "patient_image.nii.gz")
+
+    segmentation_result = segmentation_method.segment(
+        patient_image_new,
+    )
+    patient_labelmap = segmentation_result["labelmap"]
+    itk.imwrite(patient_labelmap, output_dir / "patient_labelmap.nii.gz")
+
+    heart_labelmap = segmentation_result["heart"]
+    itk.imwrite(heart_labelmap, output_dir / "heart_labelmap.nii.gz")
+
+    contour_tools = ContourTools()
+    heart_surface = contour_tools.extract_contours(
+        labelmap_image=heart_labelmap,
+    )
+    heart_surface.save(output_dir / "heart_surface.vtp")
+
     # %%
     # Workflow initialization
     workflow = WorkflowFitStatisticalModelToPatient(
-        template_model=template_model,
-        patient_models=patient_models,
+        template_model=pca_mean,
+        patient_models=[heart_surface],
+        patient_image=patient_image,
+        patient_labelmap=heart_labelmap,
         log_level=log_level,
+        labelmap_interior_object_ids=[141, 142, 143, 144],
     )
-    if pca_model is not None:
-        workflow.set_use_pca_registration(True, pca_model=pca_model)
+    workflow.set_use_pca_registration(
+        use_pca_registration=True,
+        pca_model=pca_model,
+        use_surface=False,
+    )
 
     # %%
     # Workflow execution
-    result = workflow.run_workflow()
+    workflow_results = workflow.process()
 
     # %%
     # Result saving
-    registered_surface: pv.PolyData = result["registered_template_model_surface"]
-    registered_file = output_dir / "registered_template.vtp"
-    registered_surface.save(str(registered_file))
+    registered_coefficients = workflow.pca_coefficients
+    registered_coefficients_path = output_dir / "registered_coefficients.json"
+    with registered_coefficients_path.open(mode="w", encoding="utf-8") as f:
+        json.dump(registered_coefficients.tolist(), f)
 
-    patient_combined = (
-        pv.merge(patient_models) if len(patient_models) > 1 else patient_models[0]
-    )
-    patient_surface = cast(pv.PolyData, patient_combined)
+    template_mesh = workflow.pca_template_model
+    template_mesh.save(str(output_dir / "template_mesh.vtp"))
 
+    template_surface = workflow.pca_template_model_surface
+    template_surface.save(str(output_dir / "template_surface.vtp"))
+
+    registered_mesh = workflow_results["registered_template_model"]
+    registered_mesh.save(str(output_dir / "template_mesh_registered.vtp"))
+
+    registered_surface = workflow_results["registered_template_model_surface"]
+    registered_surface.save(str(output_dir / "template_surface_registered.vtp"))
+
+
+    # %%
     try:
         pv.start_xvfb()
     except Exception:
@@ -131,8 +165,8 @@ if __name__ == "__main__":
 
     before_path = output_dir / "model_before_registration.png"
     plotter = pv.Plotter(off_screen=True, window_size=[800, 600])
-    plotter.add_mesh(template_model, color="dodgerblue", opacity=0.6)
-    plotter.add_mesh(patient_surface, color="tomato", opacity=0.6)
+    plotter.add_mesh(pca_mean, color="dodgerblue", opacity=0.6)
+    plotter.add_mesh(heart_surface, color="tomato", opacity=0.6)
     plotter.camera_position = "iso"
     plotter.screenshot(str(before_path))
     plotter.close()
@@ -141,7 +175,7 @@ if __name__ == "__main__":
     after_path = output_dir / "model_after_registration.png"
     plotter = pv.Plotter(off_screen=True, window_size=[800, 600])
     plotter.add_mesh(registered_surface, color="limegreen", opacity=0.7)
-    plotter.add_mesh(patient_surface, color="tomato", opacity=0.4)
+    plotter.add_mesh(heart_surface, color="tomato", opacity=0.4)
     plotter.camera_position = "iso"
     plotter.screenshot(str(after_path))
     plotter.close()
@@ -155,7 +189,7 @@ if __name__ == "__main__":
     )
 
     tutorial_results = {
-        "registered_model": registered_surface,
-        "registered_file": registered_file,
+        "registered_mesh": registered_mesh,
+        "registered_surface": registered_surface,
         "screenshots": screenshots,
     }

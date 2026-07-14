@@ -161,7 +161,7 @@ workflow = WorkflowFitStatisticalModelToPatient(
     pca_number_of_modes=10
 )
 
-registered_mesh = workflow.run_workflow()
+registered_mesh = workflow.process()
 ```
 
 ## Requirements

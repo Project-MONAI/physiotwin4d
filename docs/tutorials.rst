@@ -315,7 +315,7 @@ Inner API usage
       )
       if pca_model is not None:
           workflow.set_use_pca_registration(True, pca_model=pca_model)
-      result = workflow.run_workflow()
+      result = workflow.process()
       registered_surface = result["registered_template_model_surface"]
 
 Run
@@ -425,7 +425,7 @@ Inner API usage
           registration_method=registration_method,
       )
       workflow.set_modality("ct")
-      result = workflow.run_workflow()
+      result = workflow.process()
       reconstructed_images = result["reconstructed_images"]
 
 Run
@@ -490,9 +490,9 @@ Inner API usage
           labelmap_interior_object_ids=LABELMAP_INTERIOR_OBJECT_IDS,
       )
       ssm_fit_workflow.set_use_pca_registration(
-          use_pca_registration=True, pca_model=ssm_model, pca_uses_surface=False,
+          use_pca_registration=True, pca_model=ssm_model, use_surface=False,
       )
-      ssm_fit_workflow_result = ssm_fit_workflow.run_workflow()
+      ssm_fit_workflow_result = ssm_fit_workflow.process()
       ssm_pca_coefficients = ssm_fit_workflow.pca_coefficients
 
       icon_registration_method = RegisterImagesICON()
@@ -502,7 +502,7 @@ Inner API usage
           fixed_image=ref_image,
           registration_method=icon_registration_method,
       )
-      reg_result = reg_workflow.run_workflow()
+      reg_result = reg_workflow.process()
       reconstructed_images = reg_result["reconstructed_images"]
 
 Run

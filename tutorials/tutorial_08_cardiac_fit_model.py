@@ -153,14 +153,14 @@ if __name__ == "__main__":
             ssm_fit_workflow.set_use_pca_registration(
                 use_pca_registration=True,
                 pca_model=ssm_model,
-                pca_uses_surface=False,
+                use_surface=False,
             )
 
-            ssm_fit_workflow_result = ssm_fit_workflow.run_workflow()
+            ssm_fit_workflow_result = ssm_fit_workflow.process()
 
             ssm_pca_coefficients = ssm_fit_workflow.pca_coefficients
             assert ssm_pca_coefficients is not None, (
-                "pca_coefficients must be set after run_workflow() with "
+                "pca_coefficients must be set after process() with "
                 "use_pca_registration=True"
             )
             with ssm_pca_coefficients_path.open(mode="w", encoding="utf-8") as f:
@@ -214,7 +214,7 @@ if __name__ == "__main__":
                 registration_method=icon_registration_method,
             )
             reg_workflow.set_modality("ct")
-            reg_result = reg_workflow.run_workflow()
+            reg_result = reg_workflow.process()
 
             reconstructed_images = reg_result["reconstructed_images"]
         else:
