@@ -146,6 +146,7 @@ if __name__ == "__main__":
         usd_project_name="lung_model",
         registration_method=registration_method,
         log_level=log_level,
+        frames_per_second=4,
         save_assets=True,
     )
 
