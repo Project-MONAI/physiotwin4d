@@ -312,7 +312,11 @@ class WorkflowTrainPhysicsNeMo(PhysioTwin4DBase):
         self, subjects: dict[str, dict], resume_ckpt: Optional[dict]
     ) -> dict:
         """Compute (or inherit) coordinate, PCA and displacement statistics."""
-        if resume_ckpt is not None:
+        # Inherit the exact stats when the checkpoint carries them (final models
+        # and, since this change, periodic epoch checkpoints). Bare/legacy epoch
+        # checkpoints hold only weights: recompute from the data, which is
+        # identical for an unchanged subject set (the normal resume case).
+        if resume_ckpt is not None and "coordinate_mean" in resume_ckpt:
             return {
                 "coordinate_mean": np.array(resume_ckpt["coordinate_mean"], np.float32),
                 "coordinate_scale": np.array(
@@ -322,6 +326,11 @@ class WorkflowTrainPhysicsNeMo(PhysioTwin4DBase):
                 "pca_scale": np.array(resume_ckpt["pca_scale"], np.float32),
                 "displacement_scale": float(resume_ckpt["displacement_scale"]),
             }
+        if resume_ckpt is not None:
+            self.log_warning(
+                "Resume checkpoint has no normalization stats (bare weights-only "
+                "checkpoint); recomputing them from the current data."
+            )
 
         coord = self._mean_shape_coords
         coordinate_mean = coord.mean(axis=0)
@@ -504,7 +513,7 @@ class WorkflowTrainPhysicsNeMo(PhysioTwin4DBase):
                     output_dir
                     / f"{self._model_tag}_stage_model_epoch_{epoch + 1:05d}.pt"
                 )
-                torch.save(pnt.uncompiled_state_dict(model), ckpt_path)
+                torch.save(self._build_checkpoint(model, stats), ckpt_path)
                 self.log_info(
                     "  intermittent test epoch %05d/%d  train RMSE=%.4f mm  "
                     "val RMSE=%.4f mm  checkpoint=%s",
@@ -553,6 +562,29 @@ class WorkflowTrainPhysicsNeMo(PhysioTwin4DBase):
         model.train()
         return float(np.sqrt(total_sq / max(n_points, 1)))
 
+    def _build_checkpoint(
+        self, model: "torch.nn.Module", stats: dict
+    ) -> dict[str, Any]:
+        """Assemble a self-describing checkpoint (weights + normalization stats).
+
+        Both the periodic epoch checkpoints and the final model share this
+        payload so training can resume from — and inference can load — any saved
+        checkpoint, not just the final one.
+        """
+        checkpoint: dict[str, Any] = {
+            "model_state_dict": pnt.uncompiled_state_dict(model),
+            "architecture": self._architecture_name,
+            "in_features": 3 + int(stats["pca_mean"].shape[0]) + 1,
+            "n_pca": int(stats["pca_mean"].shape[0]),
+            "coordinate_mean": stats["coordinate_mean"].tolist(),
+            "coordinate_scale": stats["coordinate_scale"].tolist(),
+            "pca_mean": stats["pca_mean"].tolist(),
+            "pca_scale": stats["pca_scale"].tolist(),
+            "displacement_scale": stats["displacement_scale"],
+        }
+        checkpoint.update(self._checkpoint_extra())
+        return checkpoint
+
     def _save_model(
         self,
         model: "torch.nn.Module",
@@ -574,21 +606,10 @@ class WorkflowTrainPhysicsNeMo(PhysioTwin4DBase):
         train_ids = sorted(s for s, d in subjects.items() if d["split"] == "train")
         val_ids = sorted(s for s, d in subjects.items() if d["split"] == "val")
 
-        checkpoint: dict[str, Any] = {
-            "model_state_dict": pnt.uncompiled_state_dict(model),
-            "architecture": self._architecture_name,
-            "in_features": in_features,
-            "n_pca": int(stats["pca_mean"].shape[0]),
-            "coordinate_mean": stats["coordinate_mean"].tolist(),
-            "coordinate_scale": stats["coordinate_scale"].tolist(),
-            "pca_mean": stats["pca_mean"].tolist(),
-            "pca_scale": stats["pca_scale"].tolist(),
-            "displacement_scale": stats["displacement_scale"],
-            "train_subject_ids": train_ids,
-            "val_subject_ids": val_ids,
-            "resumed_from": str(self.resume_from) if self.resume_from else None,
-        }
-        checkpoint.update(self._checkpoint_extra())
+        checkpoint = self._build_checkpoint(model, stats)
+        checkpoint["train_subject_ids"] = train_ids
+        checkpoint["val_subject_ids"] = val_ids
+        checkpoint["resumed_from"] = str(self.resume_from) if self.resume_from else None
         torch.save(checkpoint, checkpoint_file)
 
         n_pca = int(stats["pca_mean"].shape[0])

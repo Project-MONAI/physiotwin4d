@@ -90,6 +90,8 @@ if __name__ == "__main__":
     OUTPUT_DIR = TUTORIALS_DIR / "output" / "tutorial_09_byod_mgn"
     MANIFESTS_DIR = OUTPUT_DIR / "manifests_mgn"
 
+    RESUME_FROM = str(OUTPUT_DIR / "mgn_stage_model_epoch_00100.pt")
+
     EPOCHS = 1500
     BATCH_SIZE_GRAPHS = 4  # mini-batch measured in (subject, phase) graphs
     LEARNING_RATE = 1.0e-3
@@ -142,6 +144,7 @@ if __name__ == "__main__":
         val_manifests=val_manifests,
         pca_mean_mesh=PCA_MEAN_VTU,
         output_directory=OUTPUT_DIR,
+        resume_from=RESUME_FROM,
         log_level=LOG_LEVEL,
     )
     trainer.set_epochs(EPOCHS)
@@ -153,14 +156,9 @@ if __name__ == "__main__":
     train_result = trainer.process()
 
     # Evaluate held-out test subjects against their ground-truth phases.
-    infer = WorkflowInferPhysicsNeMoMGN(
-        model_directory=OUTPUT_DIR, log_level=LOG_LEVEL
-    )
+    infer = WorkflowInferPhysicsNeMoMGN(model_directory=OUTPUT_DIR, log_level=LOG_LEVEL)
     eval_outputs: dict[str, Any] = {}
     for sid in TEST_SUBJECTS:
         eval_outputs[sid] = infer.predict(
             manifests[sid], output_directory=OUTPUT_DIR / "eval_mgn" / sid
         )
-
-    return {"training": train_result, "evaluation": eval_outputs}
-

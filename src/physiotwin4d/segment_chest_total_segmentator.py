@@ -374,10 +374,7 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
 
                 self.log_info("Running body task")
                 output_nib_image_body = totalsegmentator(
-                    nib_image,
-                    task="body",
-                    device="gpu:0",
-                    nr_thr_resamp=resamp_threads
+                    nib_image, task="body", device="gpu:0", nr_thr_resamp=resamp_threads
                 )
                 labelmap_arr_body = output_nib_image_body.get_fdata().astype(np.uint8)
                 # labelmap_arr_body contains: 1=body, 2=body_trunc, 3=body_extremities,

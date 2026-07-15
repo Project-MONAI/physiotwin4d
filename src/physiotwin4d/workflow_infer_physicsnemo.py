@@ -146,9 +146,10 @@ class WorkflowInferPhysicsNeMo(PhysioTwin4DBase):
         )
         if not epoch_file.exists():
             raise FileNotFoundError(f"Epoch checkpoint not found: {epoch_file}")
-        return cast(
-            dict, torch.load(str(epoch_file), map_location="cpu", weights_only=True)
-        )
+        ckpt = torch.load(str(epoch_file), map_location="cpu", weights_only=True)
+        # Self-describing checkpoints wrap the weights under "model_state_dict";
+        # bare/legacy epoch checkpoints are the state dict itself.
+        return cast(dict, ckpt.get("model_state_dict", ckpt))
 
     def _predict_displacements(
         self, pca_coeffs: np.ndarray, stage: float
