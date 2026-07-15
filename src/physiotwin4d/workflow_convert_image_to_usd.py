@@ -276,7 +276,9 @@ class WorkflowConvertImageToUSD(PhysioTwin4DBase):
                 if self.save_assets:
                     itk.imwrite(
                         moving_labelmap,
-                        os.path.join(self.output_directory, f"slice_{i:03d}_labelmap.mha"),
+                        os.path.join(
+                            self.output_directory, f"slice_{i:03d}_labelmap.mha"
+                        ),
                         compression=True,
                     )
 

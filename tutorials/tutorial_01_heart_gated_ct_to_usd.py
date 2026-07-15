@@ -117,9 +117,7 @@ log_level = logging.INFO
 registration_method = RegisterImagesICON(log_level=log_level)
 registration_method.set_number_of_iterations(number_of_registration_iterations)
 
-segmentation_method = SegmentChestTotalSegmentatorWithContrast(
-    log_level=log_level
-)
+segmentation_method = SegmentChestTotalSegmentatorWithContrast(log_level=log_level)
 segmentation_method.set_has_academic_license(True)
 
 

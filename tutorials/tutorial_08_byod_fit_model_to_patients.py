@@ -219,6 +219,7 @@ for patient_dir in patient_dirs:
         reg_workflow = WorkflowReconstructHighres4DCT(
             time_series_images=time_series,
             fixed_image=ref_image,
+            register_reference=True,
             registration_method=icon_registration_method,
         )
         reg_workflow.set_modality("ct")
