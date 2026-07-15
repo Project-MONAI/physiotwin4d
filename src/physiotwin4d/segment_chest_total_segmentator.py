@@ -248,10 +248,12 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
         """
         Run TotalSegmentator on the preprocessed image and return result.
 
-        This implementation runs both the 'total' and 'body' tasks from
-        TotalSegmentator to ensure comprehensive segmentation. The 'total' task
-        segments major organs and structures, while the 'body' task provides
-        body outline segmentation to fill gaps.
+        This implementation always runs the 'total' task (major organs and
+        structures). Outside fast mode it also runs the 'lung_vessels' overlay
+        and the 'body' task; when ``has_academic_license`` is set it additionally
+        runs the 'heartchambers_highres' and 'tissue_4_types' tasks. The 'body'
+        task contributes only its skin outline (the skin label) into remaining
+        background regions; it does not fill gaps with soft tissue.
 
         The method uses temporary files for coordinate system conversion between
         ITK (LPS) and nibabel (RAS) formats, which is required for proper
@@ -263,8 +265,8 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
 
         Returns:
             itk.image: The segmentation labelmap with TotalSegmentator labels.
-                Background regions from the 'total' task are filled with
-                soft tissue labels from the 'body' task
+                The 'body' task's skin label is written into the remaining
+                background regions as the skin outline.
 
         Note:
             Requires GPU acceleration (device="gpu") for reasonable performance.
