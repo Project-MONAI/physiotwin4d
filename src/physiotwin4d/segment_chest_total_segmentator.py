@@ -209,11 +209,11 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
                     90: "brain",
                     15: "esophagus",
                     16: "trachea",
-                    133: "body_skin",# 4 in body task
-                    134: "tissue_subcutaneous_fat", # tissue_4_types
+                    133: "body_skin",  # 4 in body task
+                    134: "tissue_subcutaneous_fat",  # tissue_4_types
                     135: "tissue_torso_fat",
                     136: "tissue_skeletal_muscle",
-                    137: "tissue_intermuscular_fat"
+                    137: "tissue_intermuscular_fat",
                 },
             ),
         ):
@@ -336,17 +336,25 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
                         device="gpu",
                         nr_thr_resamp=resamp_threads,
                     )
-                    labelmap_arr_tissue_4_types = output_nib_image_tissue_4_types.get_fdata().astype(
-                        np.uint8
+                    labelmap_arr_tissue_4_types = (
+                        output_nib_image_tissue_4_types.get_fdata().astype(np.uint8)
                     )
                     # 134: "subcutaneous_fat", # tissue_4_types
                     # 135: "torso_fat",
                     # 136: "skeletal_muscle",
                     # 137: "intermuscular_fat"
-                    final_arr = np.where(labelmap_arr_tissue_4_types == 1, 134, final_arr)
-                    final_arr = np.where(labelmap_arr_tissue_4_types == 2, 135, final_arr)
-                    final_arr = np.where(labelmap_arr_tissue_4_types == 3, 136, final_arr)
-                    final_arr = np.where(labelmap_arr_tissue_4_types == 4, 137, final_arr)
+                    final_arr = np.where(
+                        labelmap_arr_tissue_4_types == 1, 134, final_arr
+                    )
+                    final_arr = np.where(
+                        labelmap_arr_tissue_4_types == 2, 135, final_arr
+                    )
+                    final_arr = np.where(
+                        labelmap_arr_tissue_4_types == 3, 136, final_arr
+                    )
+                    final_arr = np.where(
+                        labelmap_arr_tissue_4_types == 4, 137, final_arr
+                    )
 
                 self.log_info("Running lung vessels task")
                 output_nib_image_lung = totalsegmentator(
@@ -374,7 +382,9 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
                 # Only overwrite the background with body labels
                 mask = final_arr > 0
                 labelmap_arr_body[mask] = 0
-                final_arr = np.where(labelmap_arr_body == 4, 133, final_arr) # body_skin
+                final_arr = np.where(
+                    labelmap_arr_body == 4, 133, final_arr
+                )  # body_skin
 
             # To create an ITK image, we save the result and read it back with
             # ITK. This correctly handles the coordinate system and data
