@@ -19,8 +19,8 @@ Tutorials
    </section>
 
    <section class="pt4d-card-grid" aria-label="Tutorial cards">
-     <a class="pt4d-card" href="#tutorial-1-heart-gated-ct-to-animated-usd">
-       <span class="pt4d-card__number">01</span>
+     <a class="pt4d-card" href="#tutorial-1a-heart-gated-ct-to-animated-usd">
+       <span class="pt4d-card__number">1a</span>
        <h2>Heart-Gated CT to Animated USD</h2>
        <p>Convert cardiac 4D CT frames into registered contours and an animated OpenUSD model.</p>
        <span class="pt4d-card__meta">Slicer-Heart-CT</span>
@@ -31,23 +31,23 @@ Tutorials
        <p>Segment one CT phase and export patient anatomy as VTK PolyData surfaces.</p>
        <span class="pt4d-card__meta">Slicer-Heart-CT</span>
      </a>
-     <a class="pt4d-card" href="#tutorial-3-create-a-pca-shape-model">
+     <a class="pt4d-card" href="#tutorial-3-vtk-surface-series-to-animated-usd">
        <span class="pt4d-card__number">03</span>
+       <h2>VTK Surface Series to Animated USD</h2>
+       <p>Convert VTK meshes into a time-sampled USD scene for Omniverse playback.</p>
+       <span class="pt4d-card__meta">Tutorial 2 output</span>
+     </a>
+     <a class="pt4d-card" href="#tutorial-4a-create-a-pca-shape-model">
+       <span class="pt4d-card__number">4a</span>
        <h2>Create a PCA Shape Model</h2>
        <p>Build a statistical shape model from aligned cardiac meshes.</p>
        <span class="pt4d-card__meta">KCL-Heart-Model</span>
      </a>
-     <a class="pt4d-card" href="#tutorial-4-fit-statistical-model-to-patient">
-       <span class="pt4d-card__number">04</span>
+     <a class="pt4d-card" href="#tutorial-5a-fit-statistical-model-to-patient">
+       <span class="pt4d-card__number">5a</span>
        <h2>Fit Statistical Model to Patient</h2>
        <p>Fit a PCA heart model to patient-specific anatomy for model-based reconstruction.</p>
-       <span class="pt4d-card__meta">Tutorial 3 output</span>
-     </a>
-     <a class="pt4d-card" href="#tutorial-5-vtk-surface-series-to-animated-usd">
-       <span class="pt4d-card__number">05</span>
-       <h2>VTK Surface Series to Animated USD</h2>
-       <p>Convert VTK meshes into a time-sampled USD scene for Omniverse playback.</p>
-       <span class="pt4d-card__meta">Tutorial 2 output</span>
+       <span class="pt4d-card__meta">Tutorial 4a output</span>
      </a>
      <a class="pt4d-card" href="#tutorial-6-reconstruct-high-resolution-4d-ct">
        <span class="pt4d-card__number">06</span>
@@ -55,23 +55,23 @@ Tutorials
        <p>Register respiratory CT phases and reconstruct a higher-resolution 4D volume series.</p>
        <span class="pt4d-card__meta">DirLab-4DCT</span>
      </a>
-     <a class="pt4d-card" href="#tutorial-8-fit-the-cardiac-ssm-and-propagate-through-gated-phases">
-       <span class="pt4d-card__number">08</span>
+     <a class="pt4d-card" href="#tutorial-8cd-fit-the-cardiac-ssm-and-propagate-through-gated-phases">
+       <span class="pt4d-card__number">8cd</span>
        <h2>Fit the Cardiac SSM and Propagate Through Gated Phases</h2>
        <p>Fit a PCA heart model to the reference phase and propagate it to every gated phase with ICON registration.</p>
        <span class="pt4d-card__meta">Bring your own cardiac data</span>
      </a>
-     <a class="pt4d-card" href="#tutorial-9a-9b-train-a-physicsnemo-cardiac-stage-model">
-       <span class="pt4d-card__number">09</span>
+     <a class="pt4d-card" href="#tutorial-9c-9d-train-a-physicsnemo-cardiac-stage-model">
+       <span class="pt4d-card__number">9cd</span>
        <h2>Train a PhysicsNeMo Cardiac Stage Model</h2>
-       <p>Train a PhysicsNeMo MeshGraphNet (9a) or MLP (9b) to predict cardiac meshes at requested stages.</p>
-       <span class="pt4d-card__meta">Tutorial 8 output</span>
+       <p>Train a PhysicsNeMo MeshGraphNet (9c) or MLP (9d) to predict cardiac meshes at requested stages.</p>
+       <span class="pt4d-card__meta">Tutorial 8cd output</span>
      </a>
-     <a class="pt4d-card" href="#tutorial-10a-10b-predict-and-evaluate-cardiac-surfaces">
-       <span class="pt4d-card__number">10</span>
+     <a class="pt4d-card" href="#tutorial-10c-10d-predict-and-evaluate-cardiac-surfaces">
+       <span class="pt4d-card__number">10cd</span>
        <h2>Predict and Evaluate Cardiac Surfaces</h2>
-       <p>Load a Tutorial 9 checkpoint and predict cardiac surfaces at gated phases or caller-specified stages.</p>
-       <span class="pt4d-card__meta">Tutorial 9a / 9b output</span>
+       <p>Load a Tutorial 9c/9d checkpoint and predict cardiac surfaces at gated phases or caller-specified stages.</p>
+       <span class="pt4d-card__meta">Tutorial 9c / 9d output</span>
      </a>
    </section>
 
@@ -86,15 +86,15 @@ Before running any tutorial below, fetch its sample dataset with the
    physiotwin4d-download-data Slicer-Heart-CT --directory data/Slicer-Heart-CT
    physiotwin4d-download-data KCL-Heart-Model --directory data/KCL-Heart-Model
 
-This covers the data used by Tutorials 1-5. Run
+This covers the data used by Tutorials 1a-5a. Run
 ``physiotwin4d-download-data --help`` for all options, and see
 :doc:`cli_scripts/download_data` for dataset sizes, source URLs, and
 directory layouts.
 
 ``DirLab-4DCT`` (used by Tutorial 6) is **not** auto-downloaded — DIR-Lab
 distributes it manually and may require registration; see
-``data/DirLab-4DCT/README.md`` for instructions. Tutorials 8-10 are
-bring-your-own-data (see the note before Tutorial 8) and do not use a
+``data/DirLab-4DCT/README.md`` for instructions. Tutorials 8cd-10cd are
+bring-your-own-data (see the note before Tutorial 8cd) and do not use a
 downloadable sample.
 
 Recommended Run Order
@@ -106,23 +106,23 @@ directories by default. Edit those constants for tutorial exploration, or use
 the installed ``physiotwin4d-*`` CLI commands when you need command-line path
 arguments.
 
-1. Run Tutorials 1 and 2 after downloading Slicer-Heart-CT data (above).
-2. Run Tutorial 5 after Tutorial 2 because it consumes Tutorial 2 output.
-3. Run Tutorial 3 after downloading KCL-Heart-Model (above).
-4. Run Tutorial 4 after Tutorial 3 because it can consume the PCA model output.
+1. Run Tutorials 1a and 2 after downloading Slicer-Heart-CT data (above).
+2. Run Tutorial 3 after Tutorial 2 because it consumes Tutorial 2 output.
+3. Run Tutorial 4a after downloading KCL-Heart-Model (above).
+4. Run Tutorial 5a after Tutorial 4a because it can consume the PCA model output.
 5. Run Tutorial 6 after downloading DirLab-4DCT (manual — see above).
-6. Run Tutorial 8 after preparing your own cardiac gated CT, labelmaps, KCL
+6. Run Tutorial 8cd after preparing your own cardiac gated CT, labelmaps, KCL
    volume PCA model, and ICON weights (bring-your-own-data; see the note below).
-7. Run Tutorial 9a and/or 9b after Tutorial 8 because they train from its
+7. Run Tutorial 9c and/or 9d after Tutorial 8cd because they train from its
    fitted meshes.
-8. Run Tutorial 10a and/or 10b after Tutorial 9a / 9b because they evaluate
+8. Run Tutorial 10c and/or 10d after Tutorial 9c / 9d because they evaluate
    the trained checkpoints.
 
-Tutorial 1: Heart-Gated CT to Animated USD
-==========================================
+Tutorial 1a: Heart-Gated CT to Animated USD
+===========================================
 
 Script
-   ``tutorials/tutorial_01_heart_gated_ct_to_usd.py``
+   ``tutorials/tutorial_01a_heart_gated_ct_to_usd.py``
 
 Workflow
    ``WorkflowConvertImageToUSD``
@@ -168,7 +168,7 @@ Inner API usage
 Run
    .. code-block:: bash
 
-      python tutorials/tutorial_01_heart_gated_ct_to_usd.py
+      python tutorials/tutorial_01a_heart_gated_ct_to_usd.py
 
 Outputs
    Registered phase images, transformed contours, preview screenshots, and an
@@ -232,11 +232,11 @@ Run
 Outputs
    Segmentation artifacts, VTK PolyData surfaces, and preview screenshots.
 
-Tutorial 3: Create a PCA Shape Model
-====================================
+Tutorial 4a: Create a PCA Shape Model
+=====================================
 
 Script
-   ``tutorials/tutorial_03_create_statistical_model.py``
+   ``tutorials/tutorial_04a_heart_create_statistical_model.py``
 
 Workflow
    ``WorkflowCreateStatisticalModel``
@@ -273,16 +273,16 @@ Inner API usage
 Run
    .. code-block:: bash
 
-      python tutorials/tutorial_03_create_statistical_model.py
+      python tutorials/tutorial_04a_heart_create_statistical_model.py
 
 Outputs
    PCA model files, mean shape, and component diagnostics.
 
-Tutorial 4: Fit Statistical Model to Patient
-============================================
+Tutorial 5a: Fit Statistical Model to Patient
+=============================================
 
 Script
-   ``tutorials/tutorial_04_fit_statistical_model_to_patient.py``
+   ``tutorials/tutorial_05a_heart_fit_statistical_model_to_patient.py``
 
 Workflow
    ``WorkflowFitStatisticalModelToPatient``
@@ -321,16 +321,16 @@ Inner API usage
 Run
    .. code-block:: bash
 
-      python tutorials/tutorial_04_fit_statistical_model_to_patient.py
+      python tutorials/tutorial_05a_heart_fit_statistical_model_to_patient.py
 
 Outputs
    Patient-fitted statistical model surfaces and registration diagnostics.
 
-Tutorial 5: VTK Surface Series to Animated USD
+Tutorial 3: VTK Surface Series to Animated USD
 ==============================================
 
 Script
-   ``tutorials/tutorial_05_vtk_to_usd.py``
+   ``tutorials/tutorial_03_vtk_to_usd.py``
 
 Workflow
    ``WorkflowConvertVTKToUSD``
@@ -378,7 +378,7 @@ Inner API usage
 Run
    .. code-block:: bash
 
-      python tutorials/tutorial_05_vtk_to_usd.py
+      python tutorials/tutorial_03_vtk_to_usd.py
 
 Outputs
    Time-sampled USD scene and conversion logs for Omniverse inspection.
@@ -439,19 +439,18 @@ Outputs
 
 .. note::
 
-   Tutorials 8-10 form the cardiac mesh stage-prediction pipeline and are
-   **bring-your-own-data**: unlike Tutorials 1-6 they do not use the repository
-   ``data/`` directory or a downloadable sample. Their path constants point at a
-   local ``D:/PhysioTwin4D/`` cardiac layout (gated CT, labelmaps, the KCL
-   volume PCA model, and ICON weights); edit those constants to match your own
-   data. The former DirLab lung-lobe PCA tutorial (number 7) has been removed;
-   numbering continues at 8.
+   Tutorials 8cd-10cd form the cardiac mesh stage-prediction pipeline and are
+   **bring-your-own-data**: unlike the earlier data-driven tutorials they do not
+   use the repository ``data/`` directory or a downloadable sample. Their path
+   constants point at a local ``D:/PhysioTwin4D/`` cardiac layout (gated CT,
+   labelmaps, the KCL volume PCA model, and ICON weights); edit those constants
+   to match your own data.
 
-Tutorial 8: Fit the Cardiac SSM and Propagate Through Gated Phases
-==================================================================
+Tutorial 8cd: Fit the Cardiac SSM and Propagate Through Gated Phases
+===================================================================
 
 Script
-   ``tutorials/tutorial_08_cardiac_fit_model.py``
+   ``tutorials/tutorial_08cd_byod_fit_model_to_patients.py``
 
 Workflow
    ``WorkflowFitStatisticalModelToPatient`` (PCA registration) and
@@ -508,30 +507,32 @@ Inner API usage
 Run
    .. code-block:: bash
 
-      python tutorials/tutorial_08_cardiac_fit_model.py
+      python tutorials/tutorial_08cd_byod_fit_model_to_patients.py
 
 Outputs
    Per-patient fitted SSM mesh/surface, PCA coefficients, and the SSM warped to
    every gated phase, all written under ``OUTPUT_DIR``.
 
-Tutorial 9a / 9b: Train a PhysicsNeMo Cardiac Stage Model
+Tutorial 9c / 9d: Train a PhysicsNeMo Cardiac Stage Model
 =========================================================
 
 Script
-   ``tutorials/tutorial_09a_cardiac_train_physicsnemo_mgn.py`` (MeshGraphNet) and
-   ``tutorials/tutorial_09b_cardiac_train_physicsnemo_mlp.py`` (MLP)
+   ``tutorials/tutorial_09c_byod_train_physicsnemo_mgn.py`` (MeshGraphNet) and
+   ``tutorials/tutorial_09d_byod_train_physicsnemo_mlp.py`` (MLP)
 
 Inner API usage
-   Unlike Tutorials 1-8, these do not build a ``physiotwin4d`` workflow —
-   they import a PhysicsNeMo model class directly and train it on Tutorial 8's
-   fitted meshes: ``physicsnemo.models.meshgraphnet.MeshGraphNet`` (9a) or
-   ``physicsnemo.models.mlp.FullyConnected`` (9b). They are the intended
-   template for future cardiac, respiratory, and electrophysiology AI
-   surrogates, following the same fit -> propagate -> train -> predict
-   pattern as the rest of the workflow layer.
+   These are thin drivers over the reusable
+   ``WorkflowTrainPhysicsNeMoMGN`` (9c) and ``WorkflowTrainPhysicsNeMoMLP`` (9d)
+   workflows, which train ``physicsnemo.models.meshgraphnet.MeshGraphNet`` or
+   ``physicsnemo.models.mlp.FullyConnected`` on Tutorial 8cd's fitted meshes. The
+   tutorials discover subjects, write one JSON manifest per subject, split them
+   into train / validation / held-out test, and call ``process()``. They are the
+   intended template for future cardiac, respiratory, and electrophysiology AI
+   surrogates, following the same fit -> propagate -> train -> predict pattern as
+   the rest of the workflow layer.
 
 Dataset
-   Tutorial 8 fitted-mesh outputs.
+   Tutorial 8cd fitted-mesh outputs.
 
 Preview
    .. figure:: assets/example.gif
@@ -554,28 +555,29 @@ Extra install
 Run
    .. code-block:: bash
 
-      python tutorials/tutorial_09a_cardiac_train_physicsnemo_mgn.py
-      python tutorials/tutorial_09b_cardiac_train_physicsnemo_mlp.py
+      python tutorials/tutorial_09c_byod_train_physicsnemo_mgn.py
+      python tutorials/tutorial_09d_byod_train_physicsnemo_mlp.py
 
 Outputs
    Shared PhysicsNeMo checkpoints, training metadata, loss / RMSE histories, and
    held-out predictions written under each trainer's ``OUTPUT_DIR``.
 
-Tutorial 10a / 10b: Predict and Evaluate Cardiac Surfaces
+Tutorial 10c / 10d: Predict and Evaluate Cardiac Surfaces
 =========================================================
 
 Script
-   ``tutorials/tutorial_10a_cardiac_eval_physicsnemo_mgn.py`` (MeshGraphNet) and
-   ``tutorials/tutorial_10b_cardiac_eval_physicsnemo_mlp.py`` (MLP)
+   ``tutorials/tutorial_10c_byod_eval_physicsnemo_mgn.py`` (MeshGraphNet) and
+   ``tutorials/tutorial_10d_byod_eval_physicsnemo_mlp.py`` (MLP)
 
 Inner API usage
-   Loads a Tutorial 9 checkpoint and predicts cardiac surfaces for one
-   subject at each gated phase (with error statistics) or at
-   caller-specified stages — the AI surrogate standing in for
-   ``WorkflowReconstructHighres4DCT`` at inference time.
+   Thin drivers over ``WorkflowInferPhysicsNeMoMGN`` / ``WorkflowInferPhysicsNeMoMLP``
+   that load a Tutorial 9c/9d checkpoint and predict cardiac surfaces for one
+   subject at each gated phase (with error statistics) or at caller-specified
+   stages — the AI surrogate standing in for ``WorkflowReconstructHighres4DCT``
+   at inference time.
 
 Dataset
-   Tutorial 9a / 9b trained checkpoints plus the Tutorial 8 fitted meshes.
+   Tutorial 9c / 9d trained checkpoints plus the Tutorial 8cd fitted meshes.
 
 Preview
    .. figure:: assets/example.gif
@@ -593,14 +595,14 @@ Preview
 Run
    .. code-block:: bash
 
-      python tutorials/tutorial_10b_cardiac_eval_physicsnemo_mlp.py pm0002 --epoch 5000 --out results/pm0002
+      python tutorials/tutorial_10d_byod_eval_physicsnemo_mlp.py pm0002 --out results/pm0002
 
    Run with no arguments to use the ``run_tutorial`` entry point and its
-   ``DEFAULT_SUBJECT`` / ``DEFAULT_EPOCH`` constants.
+   ``DEFAULT_SUBJECT`` / ``DEFAULT_OUT_DIR`` constants.
 
 Outputs
-   Predicted ``.vtp`` surfaces per phase (with per-point error arrays when
-   ground truth exists) and a ``statistics.csv`` error summary.
+   Predicted ``.vtp`` surfaces per phase, a per-point ``RMSE_mm`` surface, and a
+   ``statistics_per_phase.csv`` error summary (when ground-truth phases exist).
 
 Dataset Notes
 =============

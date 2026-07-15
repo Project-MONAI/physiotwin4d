@@ -1,5 +1,5 @@
 """
-Tutorial 5: VTK Surface Series to USD
+Tutorial 3: VTK Surface Series to USD
 
 Purpose
 -------
@@ -30,7 +30,7 @@ from physiotwin4d.workflow_convert_vtk_to_usd import WorkflowConvertVTKToUSD
 # script in each child; without the __name__ == "__main__" guard around
 # top-level work, that re-import fires the segmenter again and Python's
 # spawn-cascade detector raises RuntimeError. Wrapping consistently across
-# tutorials also matches the style of tutorial_01.
+# tutorials also matches the style of tutorial_01a.
 if __name__ == "__main__":
     # %%
     # Data directory specification
@@ -39,7 +39,7 @@ if __name__ == "__main__":
     DATA_DIR = REPO_ROOT / "data"
     FULL_DATA_DIR = DATA_DIR
     TEST_DATA_DIR = DATA_DIR / "test"
-    OUTPUT_DIR = TUTORIALS_DIR / "output" / "tutorial_05"
+    OUTPUT_DIR = TUTORIALS_DIR / "output" / "tutorial_03"
     BASELINES_DIR = REPO_ROOT / "tests" / "baselines"
     TUTORIAL_02_SURFACE = (
         TUTORIALS_DIR / "output" / "tutorial_02" / "patient_surfaces.vtp"
@@ -89,7 +89,7 @@ if __name__ == "__main__":
     # %%
     # Result saving
     tt = TestTools(
-        class_name="tutorial_05_vtk_to_usd",
+        class_name="tutorial_03_vtk_to_usd",
         results_dir=output_dir,
         baselines_dir=BASELINES_DIR,
         log_level=log_level,

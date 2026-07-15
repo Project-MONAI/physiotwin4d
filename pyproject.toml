@@ -110,11 +110,14 @@ cuda13 = [
     "torchaudio",
 ]
 # PhysicsNeMo pulls in a large dependency stack (CUDA-only toolchain, narrower
-# Python support). It is only needed for Tutorial 9 (mesh stage MLP). Install
-# with ``pip install physiotwin4d[physicsnemo]`` when you need it. Note:
+# Python support). It is needed for the PhysicsNeMo train/infer workflows and
+# Tutorial 9 (mesh stage MLP / MeshGraphNet). ``torch-geometric`` supplies the
+# graph batching / connectivity utilities used by the MeshGraphNet (MGN) path.
+# Install with ``pip install physiotwin4d[physicsnemo]`` when you need it. Note:
 # nvidia-physicsnemo itself requires Python >= 3.11.
 physicsnemo = [
     "nvidia-physicsnemo>=2.0.0",
+    "torch-geometric>=2.5.0",
 ]
 dev = [
     "bumpver>=2023.0.0",
@@ -173,6 +176,8 @@ physiotwin4d-convert-vtk-to-usd = "physiotwin4d.cli.convert_vtk_to_usd:main"
 physiotwin4d-create-statistical-model = "physiotwin4d.cli.create_statistical_model:main"
 physiotwin4d-download-data = "physiotwin4d.cli.download_data:main"
 physiotwin4d-fit-statistical-model-to-patient = "physiotwin4d.cli.fit_statistical_model_to_patient:main"
+physiotwin4d-train-physicsnemo = "physiotwin4d.cli.train_physicsnemo:main"
+physiotwin4d-infer-physicsnemo = "physiotwin4d.cli.infer_physicsnemo:main"
 physiotwin4d-reconstruct-highres-4d-ct = "physiotwin4d.cli.reconstruct_highres_4d_ct:main"
 physiotwin4d-visualize-pca-modes = "physiotwin4d.cli.visualize_pca_modes:main"
 
@@ -249,6 +254,8 @@ module = [
     "sklearn.*",
     "torch",
     "torch.*",
+    "torch_geometric",
+    "torch_geometric.*",
     "totalsegmentator.*",
     "trimesh",
     "trimesh.*",
@@ -267,11 +274,11 @@ module = [
     "physiotwin4d.cli.visualize_pca_modes",
     "physiotwin4d.vtk_to_usd.mesh_utils",
     "physiotwin4d.vtk_to_usd.vtk_reader",
-    "tutorial_08_cardiac_fit_model",
-    "tutorial_09a_cardiac_train_physicsnemo_mgn",
-    "tutorial_09b_cardiac_train_physicsnemo_mlp",
-    "tutorial_10a_cardiac_eval_physicsnemo_mgn",
-    "tutorial_10b_cardiac_eval_physicsnemo_mlp",
+    "tutorial_08cd_byod_fit_model_to_patients",
+    "tutorial_09c_byod_train_physicsnemo_mgn",
+    "tutorial_09d_byod_train_physicsnemo_mlp",
+    "tutorial_10c_byod_eval_physicsnemo_mgn",
+    "tutorial_10d_byod_eval_physicsnemo_mlp",
 ]
 disable_error_code = ["import-not-found", "import-untyped"]
 

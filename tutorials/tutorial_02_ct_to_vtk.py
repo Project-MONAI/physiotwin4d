@@ -5,7 +5,7 @@ Purpose
 -------
 Segment one 3D CT frame into anatomical groups and save a combined VTK
 surface file. The output can be inspected directly in PyVista or used as
-input for Tutorial 5.
+input for Tutorial 3.
 
 Data Required
 -------------
@@ -35,7 +35,7 @@ from physiotwin4d.workflow_convert_image_to_vtk import WorkflowConvertImageToVTK
 # script in each child; without the __name__ == "__main__" guard around
 # top-level work, that re-import fires the segmenter again and Python's
 # spawn-cascade detector raises RuntimeError. Wrapping consistently across
-# tutorials also matches the style of tutorial_01.
+# tutorials also matches the style of tutorial_01a.
 if __name__ == "__main__":
     # %%
     # Data directory specification

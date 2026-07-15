@@ -1,10 +1,10 @@
 """
-Tutorial 3: Create a PCA Statistical Shape Model
+Tutorial 4a: Create a PCA Statistical Shape Model
 
 Purpose
 -------
 Build a PCA statistical shape model from a reference mesh and a small population
-of sample meshes. Tutorial 4 can reuse the saved ``pca_model.json``.
+of sample meshes. Tutorial 5a can reuse the saved ``pca_model.json``.
 
 Data Required
 -------------
@@ -34,7 +34,7 @@ from physiotwin4d.workflow_create_statistical_model import (
 # script in each child; without the __name__ == "__main__" guard around
 # top-level work, that re-import fires the segmenter again and Python's
 # spawn-cascade detector raises RuntimeError. Wrapping consistently across
-# tutorials also matches the style of tutorial_01.
+# tutorials also matches the style of tutorial_01a.
 if __name__ == "__main__":
     # %%
     # Data directory specification
@@ -43,7 +43,7 @@ if __name__ == "__main__":
     DATA_DIR = REPO_ROOT / "data"
     FULL_DATA_DIR = DATA_DIR / "KCL-Heart-Model"
     TEST_DATA_DIR = DATA_DIR / "test" / "KCL-Heart-Model"
-    OUTPUT_DIR = TUTORIALS_DIR / "output" / "tutorial_03"
+    OUTPUT_DIR = TUTORIALS_DIR / "output" / "tutorial_04a"
     BASELINES_DIR = REPO_ROOT / "tests" / "baselines"
     PCA_COMPONENTS = 10
     LOG_LEVEL = logging.INFO
@@ -112,7 +112,7 @@ if __name__ == "__main__":
     mean_surface.save(str(mean_surface_file))
 
     tt = TestTools(
-        class_name="tutorial_03_create_statistical_model",
+        class_name="tutorial_04a_heart_create_statistical_model",
         results_dir=output_dir,
         baselines_dir=BASELINES_DIR,
         log_level=log_level,

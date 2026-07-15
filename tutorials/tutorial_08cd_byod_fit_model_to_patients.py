@@ -1,13 +1,13 @@
 """
-Tutorial 8: Fit the Cardiac SSM and Propagate It Through Gated Phases
+Tutorial 8cd: Fit the Cardiac SSM and Propagate It Through Gated Phases
 
 Purpose
 -------
-First stage of the cardiac 4D deep-learning pipeline (Tutorials 8 -> 9 -> 10).
-For each patient it turns gated CT scans into the statistical-shape-model (SSM)
-surfaces and volume meshes that the Tutorial 9 trainers
-(``tutorial_09a_cardiac_train_physicsnemo_mgn.py`` /
-``tutorial_09b_cardiac_train_physicsnemo_mlp.py``) consume:
+First stage of the cardiac 4D deep-learning pipeline (Tutorials 08cd -> 09c/09d
+-> 10c/10d).  For each patient it turns gated CT scans into the
+statistical-shape-model (SSM) surfaces and volume meshes that the Tutorial 9c/9d
+trainers (``tutorial_09c_byod_train_physicsnemo_mgn.py`` /
+``tutorial_09d_byod_train_physicsnemo_mlp.py``) consume:
 
 1. Fit the KCL PCA heart model to the reference phase. A surface is extracted
    from the reference labelmap and the KCL PCA volume model is fitted with
@@ -25,7 +25,7 @@ surfaces and volume meshes that the Tutorial 9 trainers
 
 Bring Your Own Data
 -------------------
-This is a bring-your-own-data tutorial. Unlike Tutorials 1-6, it does not use the
+This is a bring-your-own-data tutorial. Unlike Tutorials 1-7, it does not use the
 repository ``data/`` directory or a downloadable sample; the path constants below
 point at a local ``D:/PhysioTwin4D/`` layout. Edit them to match your own data.
 
@@ -83,7 +83,7 @@ if __name__ == "__main__":
         "D:/PhysioTwin4D/duke_data/icon_registration/icon_ct_cardiac_gated_weights.trch"
     )
     # All outputs (fitted meshes, transforms, warped labelmaps) are written here;
-    # this is also the directory the Tutorial 9 trainers read from.
+    # this is also the directory the Tutorial 9c/9d trainers read from.
     OUTPUT_DIR = Path("D:/PhysioTwin4D/duke_data/fitted_kcl_meshes")
     # Simpleware's heart interior chamber labels, excluded from the distance map.
     LABELMAP_INTERIOR_OBJECT_IDS = [1, 2, 3, 4]
@@ -93,7 +93,7 @@ if __name__ == "__main__":
     LOG_LEVEL = logging.INFO
 
     logging.basicConfig(level=LOG_LEVEL)
-    logger = logging.getLogger("tutorial_08_cardiac_fit_model")
+    logger = logging.getLogger("tutorial_08cd_byod_fit_model_to_patients")
 
     # In test mode, limit the run to a single patient to keep it tractable.
     test_mode = TestTools.running_as_test()

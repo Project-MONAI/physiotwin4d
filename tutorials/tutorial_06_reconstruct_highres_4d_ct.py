@@ -34,7 +34,7 @@ from physiotwin4d.workflow_reconstruct_highres_4d_ct import (
 # script in each child; without the __name__ == "__main__" guard around
 # top-level work, that re-import fires the segmenter again and Python's
 # spawn-cascade detector raises RuntimeError. Wrapping consistently across
-# tutorials also matches the style of tutorial_01.
+# tutorials also matches the style of tutorial_01a.
 if __name__ == "__main__":
     # %%
     # Data directory specification
@@ -79,6 +79,7 @@ if __name__ == "__main__":
     # Workflow initialization
     registration_method = RegisterImagesGreedyICON(log_level=log_level)
     registration_method.greedy.set_number_of_iterations(number_of_iterations_Greedy)
+    registration_method.icon.set_mass_preservation(True)  # For non-contrast CT
     workflow = WorkflowReconstructHighres4DCT(
         time_series_images=time_series,
         fixed_image=fixed_image,

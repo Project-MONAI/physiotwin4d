@@ -1,10 +1,10 @@
 """
-Tutorial 4: Fit Statistical Shape Model to Patient Data
+Tutorial 5a: Fit Statistical Shape Model to Patient Data
 
 Purpose
 -------
 Fit a generic anatomical template mesh to one or more patient-like surface
-meshes. If Tutorial 3 has already written ``pca_model.json``, the workflow uses
+meshes. If Tutorial 4a has already written ``pca_model.json``, the workflow uses
 that model to constrain the fitted shape.
 
 Data Required
@@ -46,10 +46,10 @@ if __name__ == "__main__":
     REPO_ROOT = Path(__file__).resolve().parent.parent
     TUTORIALS_DIR = Path(__file__).resolve().parent
     DATA_DIR = REPO_ROOT / "data" / "DirLab-4DCT"
-    OUTPUT_DIR = TUTORIALS_DIR / "output" / "tutorial_04"
+    OUTPUT_DIR = TUTORIALS_DIR / "output" / "tutorial_05a"
     BASELINES_DIR = REPO_ROOT / "tests" / "baselines"
-    PCA_JSON = TUTORIALS_DIR / "output" / "tutorial_03" / "pca_model.json"
-    PCA_MEAN_FILE = TUTORIALS_DIR / "output" / "tutorial_03" / "pca_mean_surface.vtp"
+    PCA_JSON = TUTORIALS_DIR / "output" / "tutorial_04a" / "pca_model.json"
+    PCA_MEAN_FILE = TUTORIALS_DIR / "output" / "tutorial_04a" / "pca_mean_surface.vtp"
     # .mha files are DirLab-4DCT data already converted to HU by
     # data/DirLab-4DCT/fix_downloaded_data.py.
     PATIENT_IMAGE_FILE = DATA_DIR / "Case1Pack_T70.mha"
@@ -117,6 +117,7 @@ if __name__ == "__main__":
         patient_labelmap=heart_labelmap,
         log_level=log_level,
         labelmap_interior_object_ids=[141, 142, 143, 144],
+        # These are the internal chambers of the heart when using TotalSegmentator.
     )
     if pca_model is not None:
         workflow.set_use_pca_registration(
@@ -176,7 +177,7 @@ if __name__ == "__main__":
     screenshots.append(after_path)
 
     TestTools(
-        class_name="tutorial_04_fit_statistical_model_to_patient",
+        class_name="tutorial_05a_heart_fit_statistical_model_to_patient",
         results_dir=output_dir,
         baselines_dir=BASELINES_DIR,
         log_level=log_level,

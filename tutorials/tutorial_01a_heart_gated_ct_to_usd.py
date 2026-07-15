@@ -1,5 +1,5 @@
 """
-Tutorial 1: Heart-Gated CT to Animated USD
+Tutorial 1a: Heart-Gated CT to Animated USD
 
 Purpose
 -------
@@ -94,7 +94,7 @@ if __name__ == "__main__":
     DATA_DIR = REPO_ROOT / "data"
     FULL_DATA_DIR = DATA_DIR / "Slicer-Heart-CT"
     TEST_DATA_DIR = DATA_DIR / "test" / "slicer_heart_small"
-    OUTPUT_DIR = TUTORIALS_DIR / "output" / "tutorial_01"
+    OUTPUT_DIR = TUTORIALS_DIR / "output" / "tutorial_01a"
     LOG_LEVEL = logging.INFO
 
     # %%
@@ -158,7 +158,7 @@ if __name__ == "__main__":
     # %%
     # Result saving
     tt = TestTools(
-        class_name="tutorial_01_heart_gated_ct_to_usd",
+        class_name="tutorial_01a_heart_gated_ct_to_usd",
         results_dir=output_dir,
         log_level=log_level,
     )

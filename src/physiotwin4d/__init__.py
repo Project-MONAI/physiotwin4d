@@ -89,6 +89,16 @@ from .workflow_fine_tune_icon_registration import WorkflowFineTuneICONRegistrati
 from .workflow_fit_statistical_model_to_patient import (
     WorkflowFitStatisticalModelToPatient,
 )
+from .workflow_infer_physicsnemo import (
+    WorkflowInferPhysicsNeMo,
+    WorkflowInferPhysicsNeMoMGN,
+    WorkflowInferPhysicsNeMoMLP,
+)
+from .workflow_train_physicsnemo import (
+    WorkflowTrainPhysicsNeMo,
+    WorkflowTrainPhysicsNeMoMGN,
+    WorkflowTrainPhysicsNeMoMLP,
+)
 
 __all__ = [
     # Workflow classes
@@ -99,6 +109,12 @@ __all__ = [
     "WorkflowFineTuneICONRegistration",
     "WorkflowReconstructHighres4DCT",
     "WorkflowFitStatisticalModelToPatient",
+    "WorkflowTrainPhysicsNeMo",
+    "WorkflowTrainPhysicsNeMoMGN",
+    "WorkflowTrainPhysicsNeMoMLP",
+    "WorkflowInferPhysicsNeMo",
+    "WorkflowInferPhysicsNeMoMGN",
+    "WorkflowInferPhysicsNeMoMLP",
     # Segmentation classes
     "SegmentAnatomyBase",
     "SegmentChestTotalSegmentator",
