@@ -67,7 +67,6 @@ already exist under ``data/DirLab-4DCT/``. Download the DirLab-4DCT case and run
 ``data/DirLab-4DCT/fix_downloaded_data.py`` before running this tutorial.
 """
 
-# %%
 # Imports
 from __future__ import annotations
 
@@ -83,7 +82,6 @@ from physiotwin4d import (
     WorkflowConvertImageToUSD,
 )
 
-# %%
 # Only run if this script is not imported as a module
 
 # nnUNetv2 (used by TotalSegmentator inside WorkflowConvertImageToUSD)
@@ -91,131 +89,123 @@ from physiotwin4d import (
 # this script in each child; without the __name__ == "__main__" guard around
 # the top-level work, that re-import fires workflow.process() again and
 # Python's spawn-cascade detector raises RuntimeError.
-if __name__ != "__main__":
-    exit(0)
+if __name__ == "__main__":
+    # Data directory specification
+    repo_root = Path(__file__).resolve().parent.parent
+    tutorials_dir = Path(__file__).resolve().parent
 
-# %%
-# Data directory specification
-repo_root = Path(__file__).resolve().parent.parent
-tutorials_dir = Path(__file__).resolve().parent
+    class_name = "tutorial_01_lung_gated_ct_to_usd"
 
-class_name = "tutorial_01_lung_gated_ct_to_usd"
+    output_dir = tutorials_dir / "output" / "tutorial_01_lung"
 
-output_dir = tutorials_dir / "output" / "tutorial_01_lung"
+    # .mha files are DirLab-4DCT data already converted to HU by
+    # data/DirLab-4DCT/fix_downloaded_data.py.
+    test_mode = TestTools.running_as_test()
+    if test_mode:
+        data_dir = repo_root / "data" / "test" / "DirLab-4DCT"
+        number_of_registration_iterations = 1
+        frame_files = sorted(data_dir.glob("Case1Pack_T??.mha"))[0:2]
+    else:
+        data_dir = repo_root / "data" / "DirLab-4DCT"
+        number_of_registration_iterations = 10
+        frame_files = sorted(data_dir.glob("Case1Pack_T??.mha"))
 
-# .mha files are DirLab-4DCT data already converted to HU by
-# data/DirLab-4DCT/fix_downloaded_data.py.
-test_mode = TestTools.running_as_test()
-if test_mode:
-    data_dir = repo_root / "data" / "test" / "DirLab-4DCT"
-    number_of_registration_iterations = 1
-    frame_files = sorted(data_dir.glob("Case1Pack_T??.mha"))[0:2]
-else:
-    data_dir = repo_root / "data" / "DirLab-4DCT"
-    number_of_registration_iterations = 10
-    frame_files = sorted(data_dir.glob("Case1Pack_T??.mha"))
+    log_level = logging.INFO
 
-log_level = logging.INFO
+    registration_method = RegisterImagesICON(log_level=log_level)
+    registration_method.set_number_of_iterations(number_of_registration_iterations)
 
-registration_method = RegisterImagesICON(log_level=log_level)
-registration_method.set_number_of_iterations(number_of_registration_iterations)
+    segmentation_method = SegmentChestTotalSegmentator(log_level=log_level)
+    segmentation_method.set_has_academic_license(True)
 
-segmentation_method = SegmentChestTotalSegmentator(log_level=log_level)
-segmentation_method.set_has_academic_license(True)
+    # Directory setup and data reading
 
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-# %%
-# Directory setup and data reading
-
-output_dir.mkdir(parents=True, exist_ok=True)
-
-input_filenames = [str(path) for path in frame_files]
-if not input_filenames:
-    raise FileNotFoundError(
-        "DirLab-4DCT data not found. Checked:\n"
-        + f"  - {data_dir}"
-        + "\n"
-        + "See data/README.md for download instructions."
-    )
-
-time_series_images = [itk.imread(str(path)) for path in input_filenames]
-reference_image = time_series_images[int(0.7 * len(time_series_images))]
-
-print("Number of time-series images:", len(time_series_images))
-
-# %%
-# Workflow initialization
-
-workflow = WorkflowConvertImageToUSD(
-    time_series_images=time_series_images,
-    reference_image=reference_image,
-    output_directory=str(output_dir),
-    usd_project_name="lung_model",
-    registration_method=registration_method,
-    segmentation_method=segmentation_method,
-    log_level=log_level,
-    frames_per_second=4,
-    save_assets=True,
-)
-
-# %%
-# Workflow execution
-workflow_results = workflow.process()
-
-# if dynamic_labelmap_ids is not None, there are two USD files
-if len(workflow.dynamic_labelmap_ids) > 0:
-    usd_file = output_dir / workflow_results["dynamic"]
-else:
-    usd_file = output_dir / workflow_results["all"]
-
-# %%
-# Result saving
-tt = TestTools(
-    class_name=class_name,
-    results_dir=output_dir,
-    log_level=log_level,
-)
-
-screenshots: list[Path] = []
-
-test_image_num = int(0.7 * len(input_filenames))
-test_image_path = output_dir / f"slice_{test_image_num:03d}_registered.mha"
-if test_image_path.exists():
-    test_image = itk.imread(str(test_image_path))
-    screenshots.append(
-        tt.save_screenshot_image_slice(
-            test_image,
-            f"slice_{test_image_num:03d}_registered_test.png",
-            axis=0,
-            slice_fraction=0.5,
-            colormap="gray",
-            vmin=-200,
-            vmax=600,
+    input_filenames = [str(path) for path in frame_files]
+    if not input_filenames:
+        raise FileNotFoundError(
+            "DirLab-4DCT data not found. Checked:\n"
+            + f"  - {data_dir}"
+            + "\n"
+            + "See data/README.md for download instructions."
         )
+
+    time_series_images = [itk.imread(str(path)) for path in input_filenames]
+    reference_image = time_series_images[int(0.7 * len(time_series_images))]
+
+    print("Number of time-series images:", len(time_series_images))
+
+    # Workflow initialization
+
+    workflow = WorkflowConvertImageToUSD(
+        time_series_images=time_series_images,
+        reference_image=reference_image,
+        output_directory=str(output_dir),
+        usd_project_name="lung_model",
+        registration_method=registration_method,
+        segmentation_method=segmentation_method,
+        log_level=log_level,
+        frames_per_second=4,
+        save_assets=True,
     )
 
-    test_labelmap_path = output_dir / f"slice_{test_image_num:03d}_labelmap.mha"
-    if test_labelmap_path.exists():
-        test_labelmap = itk.imread(str(test_labelmap_path))
+    # Workflow execution
+    workflow_results = workflow.process()
+
+    # if dynamic_labelmap_ids is not None, there are two USD files
+    if len(workflow.dynamic_labelmap_ids) > 0:
+        usd_file = output_dir / workflow_results["dynamic"]
+    else:
+        usd_file = output_dir / workflow_results["all"]
+
+    # Result saving
+    tt = TestTools(
+        class_name=class_name,
+        results_dir=output_dir,
+        log_level=log_level,
+    )
+
+    screenshots: list[Path] = []
+
+    test_image_num = int(0.7 * len(input_filenames))
+    test_image_path = output_dir / f"slice_{test_image_num:03d}_registered.mha"
+    if test_image_path.exists():
+        test_image = itk.imread(str(test_image_path))
         screenshots.append(
             tt.save_screenshot_image_slice(
                 test_image,
-                f"slice_{test_image_num:03d}_labelmap_test.png",
+                f"slice_{test_image_num:03d}_registered_test.png",
                 axis=0,
                 slice_fraction=0.5,
                 colormap="gray",
                 vmin=-200,
                 vmax=600,
-                overlay_mask=test_labelmap,
             )
         )
 
-if usd_file.exists():
-    screenshots.append(
-        tt.save_screenshot_openusd(
-            usd_file,
-            "lung_model_test.png",
-        )
-    )
+        test_labelmap_path = output_dir / f"slice_{test_image_num:03d}_labelmap.mha"
+        if test_labelmap_path.exists():
+            test_labelmap = itk.imread(str(test_labelmap_path))
+            screenshots.append(
+                tt.save_screenshot_image_slice(
+                    test_image,
+                    f"slice_{test_image_num:03d}_labelmap_test.png",
+                    axis=0,
+                    slice_fraction=0.5,
+                    colormap="gray",
+                    vmin=-200,
+                    vmax=600,
+                    overlay_mask=test_labelmap,
+                )
+            )
 
-tutorial_results = {"usd_file": str(usd_file), "screenshots": screenshots}
+    if usd_file.exists():
+        screenshots.append(
+            tt.save_screenshot_openusd(
+                usd_file,
+                "lung_model_test.png",
+            )
+        )
+
+    tutorial_results = {"usd_file": str(usd_file), "screenshots": screenshots}

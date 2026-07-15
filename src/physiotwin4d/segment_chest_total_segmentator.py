@@ -269,7 +269,7 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
                 background regions as the skin outline.
 
         Note:
-            Requires GPU acceleration (device="gpu") for reasonable performance.
+            Requires GPU acceleration (device="gpu:0") for reasonable performance.
             The method automatically handles coordinate system conversions between
             ITK and nibabel formats.
 
@@ -293,11 +293,11 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
             # nr_thr_resamp defaults to 1; TotalSegmentator's post-prediction
             # resampling back to native resolution is CPU-bound and benefits
             # from parallelizing across the available cores.
-            resamp_threads = min(8, os.cpu_count() or 1)
+            resamp_threads = min(12, os.cpu_count() or 1)
             output_nib_image_total = totalsegmentator(
                 nib_image,
                 task="total",
-                device="gpu",
+                device="gpu:0",
                 fast=self.fast_mode,
                 nr_thr_resamp=resamp_threads,
             )
@@ -311,7 +311,7 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
                     output_nib_image_heart = totalsegmentator(
                         nib_image,
                         task="heartchambers_highres",
-                        device="gpu",
+                        device="gpu:0",
                         nr_thr_resamp=resamp_threads,
                     )
                     labelmap_arr_heart = output_nib_image_heart.get_fdata().astype(
@@ -333,7 +333,7 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
                     output_nib_image_tissue_4_types = totalsegmentator(
                         nib_image,
                         task="tissue_4_types",
-                        device="gpu",
+                        device="gpu:0",
                         nr_thr_resamp=resamp_threads,
                     )
                     labelmap_arr_tissue_4_types = (
@@ -360,7 +360,7 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
                 output_nib_image_lung = totalsegmentator(
                     nib_image,
                     task="lung_vessels",
-                    device="gpu",
+                    device="gpu:0",
                     nr_thr_resamp=resamp_threads,
                 )
                 labelmap_arr_lung = output_nib_image_lung.get_fdata().astype(np.uint8)
@@ -374,7 +374,10 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
 
                 self.log_info("Running body task")
                 output_nib_image_body = totalsegmentator(
-                    nib_image, task="body", device="gpu", nr_thr_resamp=resamp_threads
+                    nib_image,
+                    task="body",
+                    device="gpu:0",
+                    nr_thr_resamp=resamp_threads
                 )
                 labelmap_arr_body = output_nib_image_body.get_fdata().astype(np.uint8)
                 # labelmap_arr_body contains: 1=body, 2=body_trunc, 3=body_extremities,

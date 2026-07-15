@@ -36,7 +36,6 @@ PhysicsNeMo must be installed (requires Python >= 3.11)::
     pip install "physiotwin4d[physicsnemo]"
 """
 
-# %%
 from __future__ import annotations
 
 import json
@@ -86,7 +85,6 @@ def _write_subject_manifest(subject_dir: Path, manifests_dir: Path) -> Optional[
 
 
 if __name__ == "__main__":
-    # %%
     TUTORIALS_DIR = Path(__file__).resolve().parent
     FITTED_MESHES_DIR = Path("D:/PhysioTwin4D/duke_data/fitted_kcl_meshes")
     PCA_MEAN_VTU = Path("D:/PhysioTwin4D/kcl-heart-pca/pca-vol-kcl/pca_mean.vtu")
@@ -163,5 +161,4 @@ if __name__ == "__main__":
 
         return {"training": train_result, "evaluation": eval_outputs}
 
-    # %%
     tutorial_results = run_tutorial()

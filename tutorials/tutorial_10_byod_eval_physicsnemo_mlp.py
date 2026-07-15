@@ -128,6 +128,5 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         main()
     else:
-        # %%
         # Tutorial / test entry point (no CLI arguments)
         tutorial_results = run_tutorial()
