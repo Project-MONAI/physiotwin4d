@@ -169,7 +169,7 @@ if __name__ == "__main__":
     screenshots: list[Path] = []
 
     test_image_num = int(0.7 * len(input_filenames))
-    test_image_path = output_dir / f"slice_{test_image_num:03d}_registered.mha"
+    test_image_path = output_dir / f"slice_{test_image_num:03d}_all_registered.mha"
     if test_image_path.exists():
         test_image = itk.imread(str(test_image_path))
         screenshots.append(
@@ -183,22 +183,6 @@ if __name__ == "__main__":
                 vmax=600,
             )
         )
-
-        test_labelmap_path = output_dir / f"slice_{test_image_num:03d}_labelmap.mha"
-        if test_labelmap_path.exists():
-            test_labelmap = itk.imread(str(test_labelmap_path))
-            screenshots.append(
-                tt.save_screenshot_image_slice(
-                    test_image,
-                    f"slice_{test_image_num:03d}_labelmap_test.png",
-                    axis=0,
-                    slice_fraction=0.5,
-                    colormap="gray",
-                    vmin=-200,
-                    vmax=600,
-                    overlay_mask=test_labelmap,
-                )
-            )
 
     if usd_file.exists():
         screenshots.append(

@@ -447,7 +447,7 @@ Outputs
    to match your own data.
 
 Tutorial 8: Fit the Cardiac SSM and Propagate Through Gated Phases
-=================================================================
+==================================================================
 
 Script
    ``tutorials/tutorial_08_byod_fit_model_to_patients.py``

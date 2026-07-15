@@ -129,35 +129,46 @@ if __name__ == "__main__":
     mean_points = np.asarray(mean_surface.points)
     mode_count = min(2, pca_components, len(components), len(eigenvalues))
 
+    xvfb_started = False
     try:
         pv.start_xvfb()
+        xvfb_started = True
     except Exception:
         pass
 
-    for mode_idx in range(mode_count):
-        sigma = float(np.sqrt(eigenvalues[mode_idx]))
-        mode_offsets = np.asarray(components[mode_idx]).reshape(-1, 3)
+    try:
+        for mode_idx in range(mode_count):
+            sigma = float(np.sqrt(eigenvalues[mode_idx]))
+            mode_offsets = np.asarray(components[mode_idx]).reshape(-1, 3)
 
-        minus_mesh = mean_surface.copy()
-        minus_mesh.points = mean_points - 2.0 * sigma * mode_offsets
-        plus_mesh = mean_surface.copy()
-        plus_mesh.points = mean_points + 2.0 * sigma * mode_offsets
+            minus_mesh = mean_surface.copy()
+            minus_mesh.points = mean_points - 2.0 * sigma * mode_offsets
+            plus_mesh = mean_surface.copy()
+            plus_mesh.points = mean_points + 2.0 * sigma * mode_offsets
 
-        plotter = pv.Plotter(off_screen=True, window_size=[1200, 500], shape=(1, 3))
-        plotter.subplot(0, 0)
-        plotter.add_mesh(minus_mesh, color="royalblue", opacity=0.9)
-        plotter.camera_position = "iso"
-        plotter.subplot(0, 1)
-        plotter.add_mesh(mean_surface, color="steelblue", opacity=0.9)
-        plotter.camera_position = "iso"
-        plotter.subplot(0, 2)
-        plotter.add_mesh(plus_mesh, color="coral", opacity=0.9)
-        plotter.camera_position = "iso"
+            plotter = pv.Plotter(off_screen=True, window_size=[1200, 500], shape=(1, 3))
+            plotter.subplot(0, 0)
+            plotter.add_mesh(minus_mesh, color="royalblue", opacity=0.9)
+            plotter.camera_position = "iso"
+            plotter.subplot(0, 1)
+            plotter.add_mesh(mean_surface, color="steelblue", opacity=0.9)
+            plotter.camera_position = "iso"
+            plotter.subplot(0, 2)
+            plotter.add_mesh(plus_mesh, color="coral", opacity=0.9)
+            plotter.camera_position = "iso"
 
-        png_path = output_dir / f"pca_mode_{mode_idx + 1:02d}.png"
-        plotter.screenshot(str(png_path))
-        plotter.close()
-        screenshots.append(png_path)
+            png_path = output_dir / f"pca_mode_{mode_idx + 1:02d}.png"
+            plotter.screenshot(str(png_path))
+            plotter.close()
+            screenshots.append(png_path)
+    finally:
+        # Pair start_xvfb with cleanup, guarded like the startup above so
+        # environments without Xvfb (e.g. Windows, pyvista >= 0.48) are unaffected.
+        if xvfb_started:
+            try:
+                pv.stop_xvfb()
+            except Exception:
+                pass
 
     tutorial_results = {
         "pca_model": pca_model,

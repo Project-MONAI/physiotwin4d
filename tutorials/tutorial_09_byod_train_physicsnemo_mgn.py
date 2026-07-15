@@ -102,67 +102,65 @@ if __name__ == "__main__":
     VAL_SUBJECTS = []
     LOG_LEVEL = logging.INFO
 
-    def run_tutorial() -> dict[str, Any]:
-        """Discover subjects, train a MeshGraphNet, and evaluate the test split."""
-        logging.basicConfig(level=LOG_LEVEL)
+    """Discover subjects, train a MeshGraphNet, and evaluate the test split."""
+    logging.basicConfig(level=LOG_LEVEL)
 
-        # Build one manifest per valid subject and partition into splits.
-        manifests: dict[str, Path] = {}
-        for subject_dir in sorted(FITTED_MESHES_DIR.glob("pm????")):
-            manifest_path = _write_subject_manifest(subject_dir, MANIFESTS_DIR)
-            if manifest_path is not None:
-                manifests[subject_dir.name] = manifest_path
+    # Build one manifest per valid subject and partition into splits.
+    manifests: dict[str, Path] = {}
+    for subject_dir in sorted(FITTED_MESHES_DIR.glob("pm????")):
+        manifest_path = _write_subject_manifest(subject_dir, MANIFESTS_DIR)
+        if manifest_path is not None:
+            manifests[subject_dir.name] = manifest_path
 
-        if len(manifests) < 3:
-            raise RuntimeError(
-                f"Found only {len(manifests)} valid subject(s); need at least 3 "
-                "for a train / val / test split."
-            )
-
-        unknown = [s for s in TEST_SUBJECTS + VAL_SUBJECTS if s not in manifests]
-        if unknown:
-            raise ValueError(f"Split subjects not found: {unknown}")
-
-        test_manifests = [manifests[s] for s in TEST_SUBJECTS]
-        val_manifests = [manifests[s] for s in VAL_SUBJECTS]
-        train_manifests = [
-            p
-            for sid, p in manifests.items()
-            if sid not in TEST_SUBJECTS and sid not in VAL_SUBJECTS
-        ]
-        logging.info(
-            "Subject split - train: %d, val: %d, test: %d",
-            len(train_manifests),
-            len(val_manifests),
-            len(test_manifests),
+    if len(manifests) < 3:
+        raise RuntimeError(
+            f"Found only {len(manifests)} valid subject(s); need at least 3 "
+            "for a train / val / test split."
         )
 
-        # Train the MeshGraphNet.
-        trainer = WorkflowTrainPhysicsNeMoMGN(
-            train_manifests=train_manifests,
-            val_manifests=val_manifests,
-            pca_mean_mesh=PCA_MEAN_VTU,
-            output_directory=OUTPUT_DIR,
-            log_level=LOG_LEVEL,
+    unknown = [s for s in TEST_SUBJECTS + VAL_SUBJECTS if s not in manifests]
+    if unknown:
+        raise ValueError(f"Split subjects not found: {unknown}")
+
+    test_manifests = [manifests[s] for s in TEST_SUBJECTS]
+    val_manifests = [manifests[s] for s in VAL_SUBJECTS]
+    train_manifests = [
+        p
+        for sid, p in manifests.items()
+        if sid not in TEST_SUBJECTS and sid not in VAL_SUBJECTS
+    ]
+    logging.info(
+        "Subject split - train: %d, val: %d, test: %d",
+        len(train_manifests),
+        len(val_manifests),
+        len(test_manifests),
+    )
+
+    # Train the MeshGraphNet.
+    trainer = WorkflowTrainPhysicsNeMoMGN(
+        train_manifests=train_manifests,
+        val_manifests=val_manifests,
+        pca_mean_mesh=PCA_MEAN_VTU,
+        output_directory=OUTPUT_DIR,
+        log_level=LOG_LEVEL,
+    )
+    trainer.set_epochs(EPOCHS)
+    trainer.set_batch_size(BATCH_SIZE_GRAPHS)
+    trainer.set_learning_rate(LEARNING_RATE)
+    trainer.set_processor_size(PROCESSOR_SIZE)
+    trainer.set_hidden_dim(HIDDEN_DIM)
+    trainer.set_num_layers(NUM_LAYERS)
+    train_result = trainer.process()
+
+    # Evaluate held-out test subjects against their ground-truth phases.
+    infer = WorkflowInferPhysicsNeMoMGN(
+        model_directory=OUTPUT_DIR, log_level=LOG_LEVEL
+    )
+    eval_outputs: dict[str, Any] = {}
+    for sid in TEST_SUBJECTS:
+        eval_outputs[sid] = infer.predict(
+            manifests[sid], output_directory=OUTPUT_DIR / "eval_mgn" / sid
         )
-        trainer.set_epochs(EPOCHS)
-        trainer.set_batch_size(BATCH_SIZE_GRAPHS)
-        trainer.set_learning_rate(LEARNING_RATE)
-        trainer.set_processor_size(PROCESSOR_SIZE)
-        trainer.set_hidden_dim(HIDDEN_DIM)
-        trainer.set_num_layers(NUM_LAYERS)
-        train_result = trainer.process()
 
-        # Evaluate held-out test subjects against their ground-truth phases.
-        infer = WorkflowInferPhysicsNeMoMGN(
-            model_directory=OUTPUT_DIR, log_level=LOG_LEVEL
-        )
-        eval_outputs: dict[str, Any] = {}
-        for sid in TEST_SUBJECTS:
-            eval_outputs[sid] = infer.predict(
-                manifests[sid], output_directory=OUTPUT_DIR / "eval_mgn" / sid
-            )
+    return {"training": train_result, "evaluation": eval_outputs}
 
-        return {"training": train_result, "evaluation": eval_outputs}
-
-    tutorial_results = run_tutorial()
