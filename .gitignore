@@ -18,6 +18,7 @@ htmlcov
 
 # AI files
 .claude
+graphify-out
 
 # Intermediate files produced by skills
 .github_review_prompt.txt
