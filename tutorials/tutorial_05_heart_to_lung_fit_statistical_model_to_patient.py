@@ -99,17 +99,25 @@ if __name__ == "__main__":
     patient_image = itk.imread(str(patient_image_file))
 
     if not (output_dir / f"{project_name}_patient_image.nii.gz").exists():
-        itk.imwrite(patient_image, output_dir / f"{project_name}_patient_image.nii.gz")
+        itk.imwrite(
+            patient_image,
+            output_dir / f"{project_name}_patient_image.nii.gz",
+            compression=True,
+        )
 
         segmentation_result = segmentation_method.segment(patient_image)
         patient_labelmap = segmentation_result["labelmap"]
         itk.imwrite(
-            patient_labelmap, output_dir / f"{project_name}_patient_labelmap.nii.gz"
+            patient_labelmap,
+            output_dir / f"{project_name}_patient_labelmap.nii.gz",
+            compression=True,
         )
 
         heart_labelmap = segmentation_result["heart"]
         itk.imwrite(
-            heart_labelmap, output_dir / f"{project_name}_heart_labelmap.nii.gz"
+            heart_labelmap,
+            output_dir / f"{project_name}_heart_labelmap.nii.gz",
+            compression=True,
         )
 
         contour_tools = ContourTools()

@@ -66,7 +66,7 @@ class SegmentChestTotalSegmentator(SegmentAnatomyBase):
         """
         super().__init__(log_level=log_level)
 
-        self.target_spacing = 0.0
+        self.target_spacing = 1.0
 
         # TotalSegmentator class indices, grouped by anatomy.
         for group_name, organs in (

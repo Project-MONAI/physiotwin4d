@@ -196,7 +196,7 @@ if __name__ == "__main__":
     # Cardiac MGN model (Tutorial 9): epoch-300 checkpoint run directory and the
     # PCA template volume the model was trained on.
     mgn_model_dir = tutorials_dir / "output" / "tutorial_09_byod_mgn_3"
-    mgn_epoch = 300
+    mgn_epoch = 1500
     pca_mean_volume = Path("D:/PhysioTwin4D/kcl-heart-pca/pca-vol-kcl/pca_mean.vtu")
 
     # Case1Pack reference image (defines the cardiac deformation-field grid).
