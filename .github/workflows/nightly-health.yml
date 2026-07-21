@@ -58,7 +58,7 @@ jobs:
         # Python 3.11 is required because the [physicsnemo] extra pulls in
         # nvidia-physicsnemo, which requires Python >= 3.11.
         run: |
-          & py -3.11 -m venv "$env:RUNNER_TEMP\physiotwin4d-venv"
+          & "C:\Users\saylward\AppData\Local\Programs\Python\Python311\python.exe" -m venv "$env:RUNNER_TEMP\physiotwin4d-venv"
           echo "$env:RUNNER_TEMP\physiotwin4d-venv\Scripts" >> $env:GITHUB_PATH
 
       - name: Cache uv packages
