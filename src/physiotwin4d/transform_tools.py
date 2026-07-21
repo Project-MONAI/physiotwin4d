@@ -12,23 +12,16 @@ are used to track anatomical motion over time.
 """
 
 import logging
-from collections.abc import Sequence
-from pathlib import Path
-from typing import Type, TypeAlias, cast
+from typing import Type, cast
 
 import itk
 import numpy as np
 import pyvista as pv
 import SimpleITK as sitk
 import vtk
-from numpy.typing import NDArray
-from pxr import Gf, Sdf, Usd, UsdGeom
 
 from .image_tools import ImageTools
 from .physiotwin4d_base import PhysioTwin4DBase
-from .vtk_to_usd import add_framing_camera
-
-FloatArray: TypeAlias = NDArray[np.float32] | NDArray[np.float64]
 
 
 class TransformTools(PhysioTwin4DBase):
@@ -559,6 +552,34 @@ class TransformTools(PhysioTwin4DBase):
 
         return tfm_smooth
 
+    def smooth_deformation_field_transform(
+        self, field: itk.Image, sigma: float
+    ) -> itk.DisplacementFieldTransform:
+        """Wrap a deformation field as a Gaussian-smoothed field transform.
+
+        The float vector ``field`` is converted to a double-precision vector
+        field, wrapped as a :class:`itk.DisplacementFieldTransform` and
+        Gaussian-smoothed by ``sigma`` (physical millimeters). Smoothing spreads
+        a thin surface-shell field into a continuous deformation (and attenuates
+        its peak magnitude).
+
+        Args:
+            field (itk.Image): Input vector deformation field.
+            sigma (float): Standard deviation of the Gaussian smoothing kernel
+                in physical units (millimeters).
+
+        Returns:
+            itk.DisplacementFieldTransform: Smoothed field transform.
+        """
+        field_double = ImageTools().convert_array_to_image_of_vectors(
+            itk.array_from_image(field), reference_image=field, ptype=itk.D
+        )
+        field_transform = itk.DisplacementFieldTransform[itk.D, 3].New()
+        field_transform.SetDisplacementField(field_double)
+        return self.smooth_transform(
+            field_transform, sigma=sigma, reference_image=field
+        )
+
     def combine_transforms_with_masks(
         self,
         transform1: itk.Transform,
@@ -822,416 +843,3 @@ class TransformTools(PhysioTwin4DBase):
         grid_image_tfm = self.transform_image(grid_image, tfm, reference_image)
 
         return grid_image_tfm
-
-    def convert_itk_transform_to_usd_visualization(
-        self,
-        tfm: itk.Transform,
-        reference_image: itk.image,
-        output_filename: str,
-        visualization_type: str = "arrows",
-        subsample_factor: int = 4,
-        arrow_scale: float = 1.0,
-        magnitude_threshold: float = 0.0,
-    ) -> str:
-        """
-        Convert an ITK transform to a USD visualization for NVIDIA Omniverse.
-
-        Creates a USD file containing either arrows or flow lines that visualize
-        the displacement field from the transform. Arrows show direction and
-        magnitude at sampled points, while flow lines show particle trajectories
-        through the deformation field.
-
-        Args:
-            tfm (itk.Transform): Input ITK transform to visualize. Can be any ITK
-                transform type (Affine, BSpline, DisplacementField, Composite, etc.)
-            reference_image (itk.image): Defines the spatial grid for sampling
-                the displacement field (spacing, size, origin, direction)
-            output_filename (str): Path to output USD file (e.g., "deformation.usda")
-            visualization_type (str): Type of visualization - either "arrows" or
-                "flowlines". Default is "arrows".
-            subsample_factor (int): Subsample the displacement field by this factor
-                in each dimension to reduce primitive count. Default is 4 (64x fewer
-                points). Higher values = fewer primitives = better performance.
-            arrow_scale (float): Scale factor for arrow length. Default is 1.0.
-                Increase to make arrows longer, decrease to make them shorter.
-            magnitude_threshold (float): Only visualize displacements with magnitude
-                greater than this threshold (in mm). Default is 0.0 (show all).
-                Use to filter out small/negligible displacements.
-
-        Returns:
-            str: Path to the created USD file
-
-        Example:
-            >>> # Create arrow visualization of registration transform
-            >>> usd_file = transform_tools.convert_transform_to_usd_visualization(
-            ...     registration_transform,
-            ...     reference_ct,
-            ...     'deformation_arrows.usda',
-            ...     visualization_type='arrows',
-            ...     subsample_factor=8,  # 512x fewer arrows
-            ...     arrow_scale=2.0,  # 2x longer arrows
-            ...     magnitude_threshold=1.0,  # Only show displacements > 1mm
-            ... )
-            >>>
-            >>> # Create flow line visualization
-            >>> usd_file = transform_tools.convert_transform_to_usd_visualization(
-            ...     registration_transform,
-            ...     reference_ct,
-            ...     'deformation_flowlines.usda',
-            ...     visualization_type='flowlines',
-            ...     subsample_factor=4,
-            ... )
-
-        Note:
-            - The USD file can be opened in NVIDIA Omniverse for 3D visualization
-            - Arrows are colored by displacement magnitude (blue=low, red=high)
-            - Flowlines show particle paths through the deformation field
-            - Subsampling is critical for performance - dense fields can have millions
-                of points, creating too many primitives for interactive visualization
-        """
-        # Generate ITK displacement field from transform
-        displacement_field = self.convert_transform_to_displacement_field(
-            tfm, reference_image
-        )
-
-        displacement_array = itk.GetArrayFromImage(displacement_field)
-
-        # Get image size
-        size = displacement_field.GetLargestPossibleRegion().GetSize()
-
-        # Subsample the field to reduce number of primitives
-        displacement_array = displacement_array[
-            ::subsample_factor, ::subsample_factor, ::subsample_factor, :
-        ]
-        subsampled_size = [
-            size[0] // subsample_factor,
-            size[1] // subsample_factor,
-            size[2] // subsample_factor,
-        ]
-
-        # Remove any existing file and evict any stale in-memory USD layer.
-        # USD caches layers globally by identifier, so a prior call in the
-        # same Python session can block CreateNew even after the file is gone.
-        output_path = Path(output_filename)
-        if output_path.exists():
-            output_path.unlink()
-        stale_layer = Sdf.Layer.Find(str(output_path))
-        if stale_layer is not None:
-            stale_layer.Clear()
-            del stale_layer
-
-        # Create USD stage
-        stage = Usd.Stage.CreateNew(output_filename)
-
-        # Set up stage metadata
-        stage.SetMetadata("upAxis", "Y")
-        UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.y)
-
-        # Create root xform
-        # root_xform = UsdGeom.Xform.Define(stage, "/DeformationVisualization")
-
-        if visualization_type == "arrows":
-            self._create_arrow_visualization(
-                stage,
-                displacement_array,
-                displacement_field,
-                subsampled_size,
-                subsample_factor,
-                arrow_scale,
-                magnitude_threshold,
-            )
-        elif visualization_type == "flowlines":
-            self._create_flowline_visualization(
-                stage,
-                displacement_array,
-                displacement_field,
-                subsampled_size,
-                subsample_factor,
-                magnitude_threshold,
-            )
-        else:
-            raise ValueError(
-                f"Invalid visualization_type: {visualization_type}. "
-                "Must be 'arrows' or 'flowlines'."
-            )
-
-        # Framing camera with tight near-clip for Omniverse Kit viewer ergonomics.
-        add_framing_camera(stage)
-
-        # Save the stage
-        stage.Save()
-        self.log_info("Created USD visualization: %s", output_filename)
-        self.log_info("  Type: %s", visualization_type)
-        self.log_info("  Points: %d", np.prod(subsampled_size))
-        self.log_info("  Subsample factor: %d", subsample_factor)
-
-        return output_filename
-
-    def _create_arrow_visualization(
-        self,
-        stage: Usd.Stage,
-        displacement_array: FloatArray,
-        displacement_field: itk.Image,
-        size: Sequence[int],
-        subsample_factor: int,
-        arrow_scale: float,
-        magnitude_threshold: float,
-    ) -> None:
-        """Create arrow-based visualization of displacement field."""
-        # Iterate through all points in the subsampled field
-        arrow_count = 0
-        for k in range(size[2]):
-            for j in range(size[1]):
-                for i in range(size[0]):
-                    displacement = displacement_array[k, j, i, :]
-
-                    # Calculate magnitude
-                    magnitude = np.linalg.norm(displacement)
-
-                    # Skip if below threshold
-                    if magnitude < magnitude_threshold:
-                        continue
-
-                    # Calculate index in original image space
-                    index = [
-                        i * subsample_factor,
-                        j * subsample_factor,
-                        k * subsample_factor,
-                    ]
-
-                    # Convert index to physical/world position using ITK
-                    world_pos = displacement_field.TransformIndexToPhysicalPoint(index)
-
-                    # Create arrow at this position
-                    arrow_path = f"/DeformationVisualization/Arrow_{arrow_count}"
-                    self._create_arrow_prim(
-                        stage,
-                        arrow_path,
-                        world_pos,
-                        displacement,
-                        float(magnitude),
-                        arrow_scale,
-                    )
-                    arrow_count += 1
-
-        self.log_info("  Created %d arrows", arrow_count)
-
-    def _create_arrow_prim(
-        self,
-        stage: Usd.Stage,
-        prim_path: str,
-        position: Sequence[float],
-        displacement: FloatArray,
-        magnitude: float,
-        arrow_scale: float,
-    ) -> None:
-        """Create a single arrow primitive representing a displacement vector."""
-        # Create xform for the arrow
-        arrow_xform = UsdGeom.Xform.Define(stage, prim_path)
-
-        # Create a cone for the arrow (pointing in +Y direction by default)
-        cone = UsdGeom.Cone.Define(stage, f"{prim_path}/cone")
-
-        # Set cone size based on displacement magnitude
-        arrow_length = float(magnitude * arrow_scale)
-        cone.GetHeightAttr().Set(arrow_length)
-        cone.GetRadiusAttr().Set(arrow_length * 0.1)  # 10% of length
-
-        # Calculate rotation to align arrow with displacement direction
-        if magnitude > 1e-6:  # Avoid division by zero
-            # Normalize displacement to get direction
-            direction = displacement / magnitude
-
-            # Default cone points in +Y, we want it to point along displacement
-            # Create rotation matrix to align +Y with displacement direction
-            up = np.array([0, 1, 0])
-            rotation_axis = np.cross(up, direction)
-            rotation_axis_norm = np.linalg.norm(rotation_axis)
-
-            if rotation_axis_norm > 1e-6:  # Not parallel
-                rotation_axis = rotation_axis / rotation_axis_norm
-                cos_angle = np.dot(up, direction)
-                angle = np.arccos(np.clip(cos_angle, -1.0, 1.0))
-
-                # Convert axis-angle to quaternion
-                half_angle = angle / 2.0
-                sin_half = np.sin(half_angle)
-                quat = Gf.Quatd(
-                    np.cos(half_angle),  # w
-                    rotation_axis[0] * sin_half,  # x
-                    rotation_axis[1] * sin_half,  # y
-                    rotation_axis[2] * sin_half,  # z
-                )
-
-                # Apply rotation (using Orient for quaternion)
-                arrow_xform.AddXformOp(UsdGeom.XformOp.TypeOrient).Set(quat)
-
-        # Position the arrow at the base point + half displacement
-        # (so arrow starts at point and extends along displacement)
-        arrow_position = [
-            position[0] + displacement[0] * 0.5,
-            position[1] + displacement[1] * 0.5,
-            position[2] + displacement[2] * 0.5,
-        ]
-        arrow_xform.AddXformOp(UsdGeom.XformOp.TypeTranslate).Set(
-            Gf.Vec3f(
-                float(arrow_position[0]),
-                float(arrow_position[1]),
-                float(arrow_position[2]),
-            )
-        )
-
-        # Color based on magnitude (blue to red colormap)
-        # Normalize magnitude for coloring (assume max ~20mm displacement)
-        max_expected_displacement = 20.0
-        normalized_mag = min(magnitude / max_expected_displacement, 1.0)
-
-        # Blue (low) to red (high) colormap
-        color = Gf.Vec3f(float(normalized_mag), 0.0, float(1.0 - normalized_mag))
-        cone.GetDisplayColorAttr().Set([color])
-
-    def _create_flowline_visualization(
-        self,
-        stage: Usd.Stage,
-        displacement_array: FloatArray,
-        displacement_field: itk.Image,
-        size: Sequence[int],
-        subsample_factor: int,
-        magnitude_threshold: float,
-    ) -> None:
-        """Create flow line visualization by tracing streamlines through displacement
-        field."""
-        # Seed points - use a sparser grid for flowline seeds
-        seed_step = 2  # Every other point in the already-subsampled grid
-        flowline_count = 0
-
-        for k in range(0, size[2], seed_step):
-            for j in range(0, size[1], seed_step):
-                for i in range(0, size[0], seed_step):
-                    # Get displacement at seed point
-                    displacement = displacement_array[k, j, i, :]
-                    magnitude = np.linalg.norm(displacement)
-
-                    # Skip if below threshold
-                    if magnitude < magnitude_threshold:
-                        continue
-
-                    # Calculate index in original image space
-                    index = [
-                        i * subsample_factor,
-                        j * subsample_factor,
-                        k * subsample_factor,
-                    ]
-
-                    # Convert index to physical/world position using ITK
-                    seed_pos = displacement_field.TransformIndexToPhysicalPoint(index)
-
-                    # Trace streamline from this seed point
-                    streamline_points = self._trace_streamline(
-                        displacement_array,
-                        displacement_field,
-                        subsample_factor,
-                        seed_pos,
-                        max_steps=50,
-                        step_size=0.5,
-                    )
-
-                    # Create USD curve for this streamline
-                    if len(streamline_points) > 1:
-                        curve_path = (
-                            f"/DeformationVisualization/Flowlines/Line_{flowline_count}"
-                        )
-                        self._create_curve_prim(stage, curve_path, streamline_points)
-                        flowline_count += 1
-
-        self.log_info("  Created %d flowlines", flowline_count)
-
-    def _trace_streamline(
-        self,
-        displacement_array: FloatArray,
-        displacement_field: itk.Image,
-        subsample_factor: int,
-        seed_pos: Sequence[float],
-        max_steps: int,
-        step_size: float,
-    ) -> list[NDArray[np.float64]]:
-        """Trace a streamline through the displacement field using forward Euler
-        integration."""
-        points = [np.array(seed_pos, dtype=float)]
-        current_pos = np.array(seed_pos, dtype=float)
-
-        # Get original image size for bounds checking
-        original_size = displacement_field.GetLargestPossibleRegion().GetSize()
-
-        for _ in range(max_steps):
-            # Convert world position to array indices using ITK
-            index = displacement_field.TransformPhysicalPointToIndex(tuple(current_pos))
-
-            # Convert to subsampled array indices
-            subsampled_indices = [
-                index[0] // subsample_factor,
-                index[1] // subsample_factor,
-                index[2] // subsample_factor,
-            ]
-
-            # Get subsampled array size
-            subsampled_size = [
-                original_size[0] // subsample_factor,
-                original_size[1] // subsample_factor,
-                original_size[2] // subsample_factor,
-            ]
-
-            # Check bounds in subsampled array (array is [k, j, i, :])
-            if (
-                subsampled_indices[0] < 0
-                or subsampled_indices[0] >= subsampled_size[0]
-                or subsampled_indices[1] < 0
-                or subsampled_indices[1] >= subsampled_size[1]
-                or subsampled_indices[2] < 0
-                or subsampled_indices[2] >= subsampled_size[2]
-            ):
-                break
-
-            # Get displacement at current position (array is [k, j, i, :])
-            displacement = displacement_array[
-                subsampled_indices[2], subsampled_indices[1], subsampled_indices[0], :
-            ]
-            magnitude = np.linalg.norm(displacement)
-
-            # Stop if displacement is too small
-            if magnitude < 0.1:
-                break
-
-            # Normalize displacement for integration
-            direction = displacement / (magnitude + 1e-10)
-
-            # Take step along direction
-            current_pos = current_pos + direction * step_size
-            points.append(current_pos.copy())
-
-        return points
-
-    def _create_curve_prim(
-        self, stage: Usd.Stage, prim_path: str, points: Sequence[NDArray[np.float64]]
-    ) -> UsdGeom.BasisCurves:
-        """Create a USD BasisCurves primitive for a streamline."""
-        curve = UsdGeom.BasisCurves.Define(stage, prim_path)
-
-        # Set curve properties
-        curve.GetTypeAttr().Set(UsdGeom.Tokens.linear)  # Linear segments between points
-        curve.GetWrapAttr().Set(UsdGeom.Tokens.nonperiodic)  # Open curve
-
-        # Set points
-        points_array = [Gf.Vec3f(*p) for p in points]
-        curve.GetPointsAttr().Set(points_array)
-
-        # Set curve vertex counts (one curve with N points)
-        curve.GetCurveVertexCountsAttr().Set([len(points)])
-
-        # Set width for visibility
-        curve.GetWidthsAttr().Set([0.5])
-
-        # Set color (cyan for flowlines)
-        curve.GetDisplayColorAttr().Set([Gf.Vec3f(0.0, 1.0, 1.0)])
-
-        return curve

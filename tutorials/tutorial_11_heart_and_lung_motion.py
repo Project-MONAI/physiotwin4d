@@ -61,6 +61,9 @@ Outputs (under ``output/tutorial_11_heart_and_lung``)
   heart alone.
 - ``combined_frame_<iii>.vtp`` (``000..099``) + ``heart_and_lung_motion.usd`` -
   the combined respiratory + cardiac 4D motion, painted with anatomy materials.
+- ``combined_ct_<iii>.mha`` / ``combined_labelmap_<iii>.mha`` (``000..099``) - the
+  original CT and labelmap warped by the same per-frame combined deformation
+  (signed-short), so their anatomy tracks the displaced surfaces.
 
 Prerequisites
 -------------
@@ -71,9 +74,7 @@ Run Tutorials 1 (lung), 2 (lung), 5 (Case1Pack with the pca-vol-kcl model) and 9
 from __future__ import annotations
 
 import logging
-import shutil
 from pathlib import Path
-from typing import cast
 
 import itk
 import numpy as np
@@ -89,101 +90,6 @@ from physiotwin4d import (
     WorkflowConvertVTKToUSD,
     WorkflowInferPhysicsNeMoMGN,
 )
-from physiotwin4d import physicsnemo_tools as pnt
-
-
-def _ensure_mgn_inference_assets(
-    model_dir: Path, epoch: int, pca_mean_volume: Path
-) -> None:
-    """Complete an interrupted MGN run directory so it can be loaded for inference.
-
-    ``WorkflowInferPhysicsNeMoMGN`` expects a finalized run directory
-    (``mgn_stage_model.pt``, ``pca_mean_surface.vtp`` and the shared graph
-    tensors). A run that only holds epoch checkpoints is completed here by
-    regenerating the missing assets deterministically:
-
-    - ``mgn_stage_model.pt`` from the self-describing epoch checkpoint (it
-      carries the normalization stats and architecture the loader reads);
-    - ``pca_mean_surface.vtp`` and the shared MGN graph tensors from the PCA
-      template volume, using the same steps the trainer used.
-
-    All writes are idempotent (skipped when the target already exists).
-    """
-    import torch
-
-    epoch_ckpt = model_dir / f"mgn_stage_model_epoch_{epoch:05d}.pt"
-    if not epoch_ckpt.exists():
-        raise FileNotFoundError(f"Epoch checkpoint not found: {epoch_ckpt}")
-
-    final_ckpt = model_dir / "mgn_stage_model.pt"
-    if not final_ckpt.exists():
-        shutil.copy2(epoch_ckpt, final_ckpt)
-
-    surface_file = model_dir / "pca_mean_surface.vtp"
-    if not surface_file.exists():
-        volume = pv.read(str(pca_mean_volume))
-        mean_surface = volume.extract_surface(algorithm="dataset_surface")
-        mean_surface.save(str(surface_file))
-    mean_surface = cast(pv.PolyData, pv.read(str(surface_file)))
-
-    edge_index_file = model_dir / "shared_edge_index.pt"
-    edge_feats_file = model_dir / "shared_edge_features.pt"
-    if not edge_index_file.exists() or not edge_feats_file.exists():
-        edge_index = pnt.mesh_to_edge_index(mean_surface)
-        coords = np.asarray(mean_surface.points, dtype=np.float32)
-        edge_feats = pnt.compute_edge_features(coords, edge_index)
-        torch.save(edge_index, str(edge_index_file))
-        torch.save(edge_feats, str(edge_feats_file))
-
-
-def _smoothed_cardiac_transform(
-    field: itk.Image, sigma_mm: float, transform_tools: TransformTools
-) -> itk.DisplacementFieldTransform:
-    """Wrap a cardiac deformation field as a Gaussian-smoothed field transform.
-
-    The float vector ``field`` is converted to a double-precision vector field,
-    wrapped as a ``DisplacementFieldTransform`` and Gaussian-smoothed by
-    ``sigma_mm`` (physical millimeters). Smoothing spreads the thin surface-shell
-    field into a continuous deformation (and attenuates its peak magnitude).
-    """
-    field_double = ImageTools().convert_array_to_image_of_vectors(
-        itk.array_from_image(field), reference_image=field, ptype=itk.D
-    )
-    field_transform = itk.DisplacementFieldTransform[itk.D, 3].New()
-    field_transform.SetDisplacementField(field_double)
-    return transform_tools.smooth_transform(
-        field_transform, sigma=sigma_mm, reference_image=field
-    )
-
-
-def _condition_surface(
-    surface: pv.PolyData,
-    decimation_reduction: float,
-    smoothing_iterations: int,
-) -> pv.PolyData:
-    """Optionally decimate then smooth the model surface (no-op when disabled).
-
-    Applied once to the labeled patient surface so every warped frame inherits
-    the same resolution and smoothing. Decimation uses ``decimate_pro`` on a
-    triangulated copy; because ``decimate_pro`` discards cell data, the per-cell
-    ``boundary_labels`` (needed for anatomy splitting downstream) are transferred
-    back onto the decimated cells from their nearest original cell so anatomy
-    materials still apply. Smoothing uses non-shrinking Taubin smoothing, which
-    only moves points and therefore preserves cells and their labels.
-    """
-    conditioned = surface
-    if decimation_reduction > 0.0:
-        original = conditioned
-        conditioned = conditioned.triangulate().decimate_pro(decimation_reduction)
-        if "boundary_labels" in original.cell_data:
-            nearest = original.find_closest_cell(conditioned.cell_centers().points)
-            conditioned.cell_data["boundary_labels"] = np.asarray(
-                original.cell_data["boundary_labels"]
-            )[nearest]
-    if smoothing_iterations > 0:
-        conditioned = conditioned.smooth_taubin(n_iter=smoothing_iterations)
-    return conditioned
-
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
@@ -193,7 +99,7 @@ if __name__ == "__main__":
     tutorials_dir = Path(__file__).resolve().parent
 
     # ---- Hard-coded inputs (edit for your layout) --------------------------
-    # Cardiac MGN model (Tutorial 9): epoch-300 checkpoint run directory and the
+    # Cardiac MGN model (Tutorial 9): epoch-1500 checkpoint run directory and the
     # PCA template volume the model was trained on.
     mgn_model_dir = tutorials_dir / "output" / "tutorial_09_byod_mgn_3"
     mgn_epoch = 1500
@@ -260,7 +166,6 @@ if __name__ == "__main__":
     # ========================================================================
     # Stage 1: cardiac motion - apply the MGN model to the Case1Pack heart.
     # ========================================================================
-    _ensure_mgn_inference_assets(mgn_model_dir, mgn_epoch, pca_mean_volume)
     reference_image = itk.imread(str(reference_image_file))
     infer = WorkflowInferPhysicsNeMoMGN(model_directory=mgn_model_dir, epoch=mgn_epoch)
 
@@ -307,7 +212,7 @@ if __name__ == "__main__":
     # Stage 2: combine the cardiac fields with respiratory motion.
     # ========================================================================
     cardiac_transforms = [
-        _smoothed_cardiac_transform(field, smoothing_sigma_mm, transform_tools)
+        transform_tools.smooth_deformation_field_transform(field, smoothing_sigma_mm)
         for field in cardiac_fields
     ]
     logger.info(
@@ -322,7 +227,7 @@ if __name__ == "__main__":
     contour_tools = ContourTools()
     patient_labelmap = itk.imread(str(patient_labelmap_file))
     patient_surface = contour_tools.extract_contours(patient_labelmap)
-    patient_surface = _condition_surface(
+    patient_surface = contour_tools.smooth_and_decimate_surface(
         patient_surface, surface_decimation_reduction, surface_smoothing_iterations
     )
     logger.info(
@@ -342,11 +247,14 @@ if __name__ == "__main__":
     n_phases = len(forward_transform_files)
     n_stages = len(cardiac_surfaces)
 
+    forward_transforms = [
+        itk.transformread(str(forward_file)) for forward_file in forward_transform_files
+    ]
+
     # Respiratory-warped vertex positions for every (phase, stage):
     # resp_points[phase][stage] = forward_phase(cardiac_surface[stage]).points.
     resp_points: list[list[np.ndarray]] = []
-    for phase_idx, forward_file in enumerate(forward_transform_files):
-        forward_transform = itk.transformread(str(forward_file))
+    for phase_idx, forward_transform in enumerate(forward_transforms):
         resp_points.append(
             [
                 np.asarray(
@@ -360,8 +268,45 @@ if __name__ == "__main__":
         )
         logger.info("respiratory warp phase %d/%d done", phase_idx + 1, n_phases)
 
-    for stale_frame in output_dir.glob("combined_frame_*.vtp"):
-        stale_frame.unlink()
+    for pattern in (
+        "combined_frame_*.vtp",
+        "combined_ct_*.mha",
+        "combined_labelmap_*.mha",
+    ):
+        for stale in output_dir.glob(pattern):
+            stale.unlink()
+
+    # Combined displacement field d_ps(x) = forward_p(cardiac_s(x)) - x sampled on
+    # the reference grid, one per (phase, stage). Bilinearly blending these fields
+    # per frame reproduces the surface point-blend exactly (the blend is affine and
+    # the shared x cancels), so the warped CT/labelmap track the displaced surfaces.
+    # ITK CompositeTransform applies its last-added transform first, so cardiac is
+    # added last to act before respiratory. Fields are built lazily and evicted per
+    # phase so only the two phases bracketing the current frame are ever held.
+    image_tools = ImageTools()
+    field_cache: dict[tuple[int, int], np.ndarray] = {}
+
+    def combined_field(phase: int, stage: int) -> np.ndarray:
+        cached = field_cache.get((phase, stage))
+        if cached is not None:
+            return cached
+        forward = forward_transforms[phase]
+        composite = itk.CompositeTransform[itk.D, 3].New()
+        composite.AddTransform(
+            forward[0] if isinstance(forward, (list, tuple)) else forward
+        )
+        composite.AddTransform(cardiac_transforms[stage])
+        field = transform_tools.convert_transform_to_displacement_field(
+            composite, reference_image, np_component_type=np.float32
+        )
+        arr: np.ndarray = itk.array_from_image(field)
+        field_cache[(phase, stage)] = arr
+        return arr
+
+    def to_signed_short(image: itk.Image) -> itk.Image:
+        caster = itk.CastImageFilter[type(image), itk.Image[itk.SS, 3]].New(Input=image)
+        caster.Update()
+        return caster.GetOutput()
 
     # Render frames by bilinearly interpolating the precomputed (phase, stage)
     # warped-point grid: respiratory advances with the breath phase, while the
@@ -371,6 +316,8 @@ if __name__ == "__main__":
     frames_per_phase = n_stages
     n_frames = n_phases * frames_per_phase
     combined_files: list[Path] = []
+    ct_files: list[Path] = []
+    labelmap_files: list[Path] = []
     usd_frames: list[pv.PolyData] = []
     for frame_idx in range(n_frames):
         # Respiratory position: current breath phase and fraction into it.
@@ -403,9 +350,46 @@ if __name__ == "__main__":
         combined_files.append(frame_file)
         usd_frames.append(combined_surface)
 
+        # Warp the original CT and labelmap by the same combined deformation, using
+        # the field bilinearly blended over the same four (phase, stage) corners.
+        field_a = (1.0 - card_blend) * combined_field(phase_idx, stage_idx) + (
+            card_blend * combined_field(phase_idx, next_stage_idx)
+        )
+        field_b = (1.0 - card_blend) * combined_field(next_phase_idx, stage_idx) + (
+            card_blend * combined_field(next_phase_idx, next_stage_idx)
+        )
+        field_arr = (1.0 - resp_blend) * field_a + resp_blend * field_b
+        field_img = image_tools.convert_array_to_image_of_vectors(
+            field_arr, ptype=itk.D, reference_image=reference_image
+        )
+        field_transform = itk.DisplacementFieldTransform[itk.D, 3].New()
+        field_transform.SetDisplacementField(field_img)
+
+        warped_ct = transform_tools.transform_image(
+            reference_image, field_transform, reference_image, "linear"
+        )
+        warped_labelmap = transform_tools.transform_image(
+            patient_labelmap, field_transform, reference_image, "nearest"
+        )
+
+        ct_file = output_dir / f"combined_ct_{frame_idx:03d}.mha"
+        labelmap_file = output_dir / f"combined_labelmap_{frame_idx:03d}.mha"
+        itk.imwrite(warped_ct, str(ct_file), compression=True)
+        itk.imwrite(
+            to_signed_short(warped_labelmap), str(labelmap_file), compression=True
+        )
+        ct_files.append(ct_file)
+        labelmap_files.append(labelmap_file)
+
+        # Keep only the two phases bracketing the current frame in the field cache.
+        for key in [k for k in field_cache if k[0] not in (phase_idx, next_phase_idx)]:
+            del field_cache[key]
+
     del resp_points
     logger.info(
-        "Wrote %d combined-motion surfaces to %s", len(combined_files), output_dir
+        "Wrote %d combined-motion surfaces, CT and labelmap volumes to %s",
+        len(combined_files),
+        output_dir,
     )
 
     # Assemble the ordered frames into a single animated 4D USD, split by anatomy
@@ -430,6 +414,8 @@ if __name__ == "__main__":
     tutorial_results = {
         "cardiac_field_count": len(cardiac_fields),
         "combined_surfaces": combined_files,
+        "combined_ct_volumes": ct_files,
+        "combined_labelmap_volumes": labelmap_files,
         "beating_heart_usd": str(output_dir / "beating_heart.usd"),
         "usd_file": str(usd_file),
     }

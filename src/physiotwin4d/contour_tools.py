@@ -72,6 +72,42 @@ class ContourTools(PhysioTwin4DBase):
         return contours
 
     @staticmethod
+    def smooth_and_decimate_surface(
+        surface: pv.PolyData,
+        decimation_reduction: float,
+        smoothing_iterations: int,
+    ) -> pv.PolyData:
+        """Optionally decimate then smooth a surface (no-op when disabled).
+
+        Decimation uses ``decimate_pro`` on a triangulated copy; because
+        ``decimate_pro`` discards cell data, per-cell ``boundary_labels`` (needed
+        for anatomy splitting downstream) are transferred back onto the decimated
+        cells from their nearest original cell so anatomy materials still apply.
+        Smoothing uses non-shrinking Taubin smoothing, which only moves points and
+        therefore preserves cells and their labels.
+
+        Args:
+            surface: Input surface.
+            decimation_reduction: Fraction of triangles to remove (0.0 disables).
+            smoothing_iterations: Taubin smoothing iterations (0 disables).
+
+        Returns:
+            The decimated and/or smoothed surface.
+        """
+        conditioned = surface
+        if decimation_reduction > 0.0:
+            original = conditioned
+            conditioned = conditioned.triangulate().decimate_pro(decimation_reduction)
+            if "boundary_labels" in original.cell_data:
+                nearest = original.find_closest_cell(conditioned.cell_centers().points)
+                conditioned.cell_data["boundary_labels"] = np.asarray(
+                    original.cell_data["boundary_labels"]
+                )[nearest]
+        if smoothing_iterations > 0:
+            conditioned = conditioned.smooth_taubin(n_iter=smoothing_iterations)
+        return conditioned
+
+    @staticmethod
     def transform_contours(
         contours: pv.PolyData,
         tfm: itk.Transform,

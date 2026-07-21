@@ -38,12 +38,16 @@ import sys
 from pathlib import Path
 from typing import Any, Optional
 
-from physiotwin4d import WorkflowInferPhysicsNeMoMGN
+import pyvista as pv
+
+from physiotwin4d import WorkflowConvertVTKToUSD, WorkflowInferPhysicsNeMoMGN
 
 TUTORIALS_DIR = Path(__file__).resolve().parent
 FITTED_MESHES_DIR = Path("D:/PhysioTwin4D/duke_data/fitted_kcl_meshes")
 # Tutorial 9 run directory to evaluate (matches that trainer's OUTPUT_DIR).
-MODEL_DIR = TUTORIALS_DIR / "output" / "tutorial_09_byod_mgn"
+MODEL_DIR = TUTORIALS_DIR / "output" / "tutorial_09_byod_mgn_3"
+
+EPOCH = 1500
 
 DEFAULT_SUBJECT = "pm0027"
 DEFAULT_OUT_DIR = MODEL_DIR / "tutorial_10_byod_mgn" / DEFAULT_SUBJECT
@@ -92,12 +96,27 @@ def predict(
     """Predict cardiac surfaces for *subject* using the trained MeshGraphNet."""
     manifest_path = _write_subject_manifest(subject, out_dir)
     infer = WorkflowInferPhysicsNeMoMGN(model_directory=MODEL_DIR, epoch=epoch)
-    return infer.predict(manifest_path, stages=stages, output_directory=out_dir)
+    result = infer.predict(manifest_path, stages=stages, output_directory=out_dir)
+
+    # Assemble the ordered predicted surfaces into a 4D USD, colored with the heart
+    # anatomy material via USDAnatomyTools (appearance="anatomy").
+    surfaces = [pv.read(str(path)) for path in result["predicted_surfaces"]]
+    usd_workflow = WorkflowConvertVTKToUSD(
+        input_meshes=surfaces,
+        usd_project_name=f"{subject}_mgn_4d",
+        output_directory=out_dir,
+        appearance="anatomy",
+        anatomy_type="heart",
+        separate_by_connectivity=True,
+        frames_per_second=float(len(surfaces)),
+    )
+    result["usd_file"] = usd_workflow.process()["usd_file"]
+    return result
 
 
 def run_tutorial() -> dict[str, Any]:
     """Tutorial / test entry point: evaluate DEFAULT_SUBJECT with the final weights."""
-    return predict(DEFAULT_SUBJECT, DEFAULT_OUT_DIR)
+    return predict(DEFAULT_SUBJECT, DEFAULT_OUT_DIR, epoch=EPOCH)
 
 
 def main() -> None:
