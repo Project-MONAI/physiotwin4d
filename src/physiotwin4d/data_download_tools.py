@@ -244,7 +244,7 @@ class DataDownloadTools:
         """
         data_dir = Path(dirname)
         for subdir_name, asset_name in DataDownloadTools.CHOP_VALVE4D_ASSETS.items():
-            target_dir = data_dir / subdir_name
+            target_dir = data_dir
             if DataDownloadTools._CHOPValve4DSubdirIsPopulated(subdir_name, target_dir):
                 continue
             url = DataDownloadTools.CHOP_VALVE4D_RELEASE_URL + asset_name
@@ -304,13 +304,11 @@ class DataDownloadTools:
         experiments.
         """
         data_dir = Path(dirname)
-        has_ct = DataDownloadTools._CHOPValve4DSubdirIsPopulated("CT", data_dir / "CT")
+        has_ct = DataDownloadTools._CHOPValve4DSubdirIsPopulated("CT", data_dir)
         has_alterra = DataDownloadTools._CHOPValve4DSubdirIsPopulated(
-            "Alterra", data_dir / "Alterra"
+            "Alterra", data_dir
         )
-        has_tpv25 = DataDownloadTools._CHOPValve4DSubdirIsPopulated(
-            "TPV25", data_dir / "TPV25"
-        )
+        has_tpv25 = DataDownloadTools._CHOPValve4DSubdirIsPopulated("TPV25", data_dir)
         return has_ct or (has_alterra and has_tpv25)
 
     @staticmethod
