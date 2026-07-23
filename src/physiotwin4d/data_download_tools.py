@@ -245,7 +245,7 @@ class DataDownloadTools:
         data_dir = Path(dirname)
         for subdir_name, asset_name in DataDownloadTools.CHOP_VALVE4D_ASSETS.items():
             target_dir = data_dir / subdir_name
-            if DataDownloadTools._CHOPValve4DSubdirIsPopulated(subdir_name, target_dir):
+            if DataDownloadTools._CHOPValve4DSubdirIsPopulated(target_dir):
                 continue
             url = DataDownloadTools.CHOP_VALVE4D_RELEASE_URL + asset_name
             DataDownloadTools._DownloadAndExtractZip(url, target_dir)
@@ -254,7 +254,7 @@ class DataDownloadTools:
 
     @staticmethod
     def _CHOPValve4DSubdirIsPopulated(  # noqa: N802
-        subdir_name: str, target_dir: Path
+        target_dir: Path,
     ) -> bool:
         """Return True when ``target_dir`` already has subdir_name's expected files.
 
@@ -266,6 +266,7 @@ class DataDownloadTools:
         """
         if not target_dir.is_dir():
             return False
+        subdir_name = target_dir.name
         if subdir_name == "CT":
             has_ct_volume = any(
                 (target_dir / filename).is_file()
@@ -293,7 +294,7 @@ class DataDownloadTools:
                 raise RuntimeError(f"Downloaded archive is empty: {url}")
 
             with zipfile.ZipFile(archive_file) as archive:
-                archive.extractall(target_dir)
+                archive.extractall(target_dir.parent)
 
     @staticmethod
     def VerifyCHOPValve4DData(dirname: Union[str, Path]) -> bool:  # noqa: N802
@@ -304,13 +305,11 @@ class DataDownloadTools:
         experiments.
         """
         data_dir = Path(dirname)
-        has_ct = DataDownloadTools._CHOPValve4DSubdirIsPopulated("CT", data_dir / "CT")
+        has_ct = DataDownloadTools._CHOPValve4DSubdirIsPopulated(data_dir / "CT")
         has_alterra = DataDownloadTools._CHOPValve4DSubdirIsPopulated(
-            "Alterra", data_dir / "Alterra"
+            data_dir / "Alterra"
         )
-        has_tpv25 = DataDownloadTools._CHOPValve4DSubdirIsPopulated(
-            "TPV25", data_dir / "TPV25"
-        )
+        has_tpv25 = DataDownloadTools._CHOPValve4DSubdirIsPopulated(data_dir / "TPV25")
         return has_ct or (has_alterra and has_tpv25)
 
     @staticmethod

@@ -200,7 +200,9 @@ class TestDownloadHeartData:
         for subdir_name, asset_name in DataDownloadTools.CHOP_VALVE4D_ASSETS.items():
             url = DataDownloadTools.CHOP_VALVE4D_RELEASE_URL + asset_name
             urls_to_archives[url] = make_archive(
-                subdir_name, f"{subdir_name}.txt", f"# {subdir_name}\n".encode()
+                subdir_name,
+                f"{subdir_name}/{subdir_name}.txt",
+                f"# {subdir_name}\n".encode(),
             )
 
         def fake_urlopen(url: str, timeout: float) -> object:
@@ -274,9 +276,9 @@ class TestDownloadHeartData:
         urls_to_archives = {}
         for subdir_name, asset_name in DataDownloadTools.CHOP_VALVE4D_ASSETS.items():
             url = DataDownloadTools.CHOP_VALVE4D_RELEASE_URL + asset_name
-            member_name = "RVOT28-Dias.mha" if subdir_name == "CT" else "frame_0000.vtk"
+            leaf = "RVOT28-Dias.mha" if subdir_name == "CT" else "frame_0000.vtk"
             urls_to_archives[url] = make_archive(
-                subdir_name, member_name, f"# {subdir_name}\n".encode()
+                subdir_name, f"{subdir_name}/{leaf}", f"# {subdir_name}\n".encode()
             )
 
         def fake_urlopen(url: str, timeout: float) -> object:
