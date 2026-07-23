@@ -1,3 +1,7 @@
 *.hdf filter=lfs diff=lfs merge=lfs -text
 *.mha filter=lfs diff=lfs merge=lfs -text
 docs/assets/*.gif filter=lfs diff=lfs merge=lfs -text
+tutorials/network_weights/physicsnemo_mgn_heart/*.pt filter=lfs diff=lfs merge=lfs -text
+tutorials/network_weights/physicsnemo_mgn_heart/*.vtu filter=lfs diff=lfs merge=lfs -text
+tutorials/network_weights/physicsnemo_mgn_heart/*.vtp filter=lfs diff=lfs merge=lfs -text
+tutorials/network_weights/physicsnemo_mgn_heart/pca_model.json filter=lfs diff=lfs merge=lfs -text

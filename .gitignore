@@ -31,6 +31,11 @@ docs/_static/.buildinfo
 # Network weights
 network_weights
 
+# Track the MGN heart model weights (other network_weights stay ignored)
+!tutorials/network_weights/
+tutorials/network_weights/*
+!tutorials/network_weights/physicsnemo_mgn_heart/
+
 # Data files
 *.gz
 *.mat
