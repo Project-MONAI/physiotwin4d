@@ -107,9 +107,14 @@ jobs:
         # itself the build environment: setuptools, wheel, and torch must all be
         # installed before the physicsnemo extra is resolved.
         #
-        # torch is pinned to the pytorch-cu130 index here because the uv pip
-        # interface ignores tool.uv.sources; without it torch resolves from PyPI
-        # and torch-scatter compiles against the wrong CUDA build.
+        # torch, torchvision, and torchaudio are all pinned to the pytorch-cu130
+        # index here because the uv pip interface ignores tool.uv.sources.
+        # Pinning torch alone is not enough: the [cuda13] extra leaves the other
+        # two unconstrained, so they would resolve from PyPI and be built
+        # against a different CUDA runtime than torch. Installing all three up
+        # front means [cuda13] finds them already satisfied. --index-url (not
+        # --index) replaces PyPI for this command and matches the flag used in
+        # .readthedocs.yaml; the pytorch index also serves the transitive deps.
         #
         # PowerShell does not abort a multi-line run block when a native command
         # exits non-zero, so each install is checked explicitly. Otherwise a
@@ -119,13 +124,14 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m uv pip install setuptools wheel
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python -m uv pip install torch --index https://download.pytorch.org/whl/cu130
+          python -m uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu130
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -c "import torch; print(f'build-time torch {torch.__version__} (CUDA {torch.version.cuda})')"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m uv pip install -e ".[cuda13]"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m uv pip install -e ".[test,docs,cuda13,dev,physicsnemo]" --no-build-isolation-package torch-scatter
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Assert CUDA is accessible
         run: |
