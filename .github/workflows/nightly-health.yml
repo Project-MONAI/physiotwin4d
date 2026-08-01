@@ -83,8 +83,15 @@ jobs:
         # Invoke via python -m uv so uv targets the active venv interpreter.
         # The [physicsnemo] extra is required for --run-physicsnemo (Tutorial 9
         # and any tests marked requires_physicsnemo).
+        #
+        # torch-scatter is built with build isolation disabled (see
+        # no-build-isolation-package in pyproject.toml), so torch and setuptools
+        # must be present in the venv first. Installing the [cuda13] extra up
+        # front pulls torch from the pytorch-cu130 index via tool.uv.sources.
         run: |
           python -m pip install --upgrade pip uv
+          python -m uv pip install setuptools wheel
+          python -m uv pip install -e ".[cuda13]"
           python -m uv pip install -e ".[test,docs,cuda13,dev,physicsnemo]"
 
       - name: Assert CUDA is accessible
