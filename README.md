@@ -1,5 +1,17 @@
 # PhysioTwin4D
 
+[![CI](https://github.com/Project-MONAI/physiotwin4d/actions/workflows/ci.yml/badge.svg)](https://github.com/Project-MONAI/physiotwin4d/actions/workflows/ci.yml)
+[![Documentation](https://github.com/Project-MONAI/physiotwin4d/actions/workflows/docs.yml/badge.svg)](https://github.com/Project-MONAI/physiotwin4d/actions/workflows/docs.yml)
+[![Nightly Health](https://img.shields.io/endpoint?url=https://project-monai.github.io/physiotwin4d/status.json)](https://github.com/Project-MONAI/physiotwin4d/actions/workflows/nightly-health.yml)
+[![codecov](https://codecov.io/gh/Project-MONAI/physiotwin4d/branch/main/graph/badge.svg)](https://codecov.io/gh/Project-MONAI/physiotwin4d)
+
+[![PyPI version](https://img.shields.io/pypi/v/physiotwin4d.svg)](https://pypi.org/project/physiotwin4d/)
+[![Python versions](https://img.shields.io/pypi/pyversions/physiotwin4d.svg)](https://pypi.org/project/physiotwin4d/)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](https://mypy-lang.org/)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
+
 **A collection of methods, workflows, tutorials, and CLI tools for creating personalized physiological digital twins.**
 
 PhysioTwin4D typically begins with a 3D medical image of a subject, extracts anatomic models from that image, and then uses AI surrogates to estimate the subject's physiological processes — initially focusing on cardiac and respiratory motion, and expanding to electrophysiology, blood flow, and organ perfusion. The package provides methods for forming these physiological AI surrogates and for fine-tuning the segmentation and registration AI methods that power them, with special emphasis on statistical shape models: they capture subject-specific characteristics that help determine subject-specific physiological function, and establish correspondence across subjects to aid AI surrogate generalization and simplify the application of traditional solvers.
