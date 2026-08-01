@@ -54,6 +54,21 @@ jobs:
       - name: Check GPU availability
         run: nvidia-smi
 
+      - name: Check nvcc availability
+        # torch-scatter compiles CUDA kernels from source when no matching
+        # pre-built wheel exists. Without nvcc on PATH the build silently falls
+        # back to a CPU-only extension that only fails later, at test time, with
+        # an opaque scatter error. Fail here instead.
+        run: |
+          $nvcc = Get-Command nvcc -ErrorAction SilentlyContinue
+          if (-not $nvcc) {
+              Write-Error "nvcc not found on PATH; torch-scatter would build CPU-only"
+              exit 1
+          }
+          Write-Output "nvcc found at $($nvcc.Source)"
+          nvcc --version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Create venv in RUNNER_TEMP
         # Python 3.13 is required because the [physicsnemo] extra pulls in
         # nvidia-physicsnemo, which requires Python >= 3.11.
@@ -84,15 +99,33 @@ jobs:
         # The [physicsnemo] extra is required for --run-physicsnemo (Tutorial 9
         # and any tests marked requires_physicsnemo).
         #
-        # torch-scatter is built with build isolation disabled (see
-        # no-build-isolation-package in pyproject.toml), so torch and setuptools
-        # must be present in the venv first. Installing the [cuda13] extra up
-        # front pulls torch from the pytorch-cu130 index via tool.uv.sources.
+        # torch-scatter compiles against torch and imports it at build time, but
+        # declares neither torch nor setuptools as a build dependency. Its build
+        # therefore runs with isolation disabled (--no-build-isolation-package,
+        # passed explicitly rather than relying on uv discovering
+        # no-build-isolation-package in pyproject.toml), which makes the venv
+        # itself the build environment: setuptools, wheel, and torch must all be
+        # installed before the physicsnemo extra is resolved.
+        #
+        # torch is pinned to the pytorch-cu130 index here because the uv pip
+        # interface ignores tool.uv.sources; without it torch resolves from PyPI
+        # and torch-scatter compiles against the wrong CUDA build.
+        #
+        # PowerShell does not abort a multi-line run block when a native command
+        # exits non-zero, so each install is checked explicitly. Otherwise a
+        # failed prerequisite install is masked by the error it causes later.
         run: |
           python -m pip install --upgrade pip uv
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m uv pip install setuptools wheel
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m uv pip install torch --index https://download.pytorch.org/whl/cu130
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -c "import torch; print(f'build-time torch {torch.__version__} (CUDA {torch.version.cuda})')"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m uv pip install -e ".[cuda13]"
-          python -m uv pip install -e ".[test,docs,cuda13,dev,physicsnemo]"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m uv pip install -e ".[test,docs,cuda13,dev,physicsnemo]" --no-build-isolation-package torch-scatter
 
       - name: Assert CUDA is accessible
         run: |
