@@ -183,6 +183,7 @@ per-tutorial implementation details.
    developer/transform_conventions
    developer/usd_generation
    developer/utilities
+   developer/ai_assistants
 
 .. toctree::
    :maxdepth: 1

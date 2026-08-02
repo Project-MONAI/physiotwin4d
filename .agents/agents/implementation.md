@@ -14,7 +14,8 @@ physiological digital twins from 3D medical images.
 
 Key modules: `physiotwin4d_base.py`, `segment_chest_*.py`, `register_images_*.py`,
 `register_models_*.py`, `contour_tools.py`, `convert_vtk_to_usd.py`, `vtk_to_usd/`,
-`workflow_*.py`. Use `docs/API_MAP.md` to locate classes before searching manually.
+`workflow_*.py`. Use `graphify query "<question>"` to locate classes before
+searching manually.
 
 ## Process — follow this order every time
 

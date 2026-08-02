@@ -89,4 +89,8 @@ bring-your-own-data and runs in order:
 
 ## For Contributors
 
-Class-level API reference: [../docs/API_MAP.md](../docs/API_MAP.md)
+Class-level API reference: [../docs/api/index.rst](../docs/api/index.rst)
+
+To explore the code with an AI assistant, query the graphify knowledge graph
+(`graphify query "<question>"`) instead of grepping — see
+[../docs/developer/ai_assistants.rst](../docs/developer/ai_assistants.rst)

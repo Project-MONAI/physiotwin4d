@@ -27,16 +27,6 @@ repos:
           - types-requests
         files: ^(src/|tutorials/)
 
-  # Regenerate docs/API_MAP.md whenever Python source files change
-  - repo: local
-    hooks:
-      - id: generate-api-map
-        name: Regenerate API map (docs/API_MAP.md)
-        entry: py utils/generate_api_map.py
-        language: system
-        pass_filenames: false
-        files: \.py$
-
   # Local tests (optional - can be disabled if too slow)
   - repo: local
     hooks:

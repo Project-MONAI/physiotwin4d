@@ -29,6 +29,7 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
     prior registrations to initialize subsequent ones.
 
     The registration proceeds in two passes from a reference frame:
+
     1. Forward pass: from reference_frame to the end of the series
     2. Backward pass: from reference_frame-1 to the beginning
 
@@ -36,6 +37,7 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
     registration results.
 
     Key features:
+
     - Sequential registration of ordered image lists
     - Supports any RegisterImagesBase backend, including RegisterImagesChain
       / RegisterImagesGreedyICON for multi-stage registration

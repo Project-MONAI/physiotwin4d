@@ -57,7 +57,7 @@ ITK and OpenUSD so segmentation code can be reasoned about without pulling
 in the rendering stack.
 
 .. autoclass:: AnatomyGroup
-   :members:
+   :no-members:
 
 .. autoclass:: AnatomyTaxonomy
    :members:

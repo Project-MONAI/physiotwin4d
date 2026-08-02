@@ -45,7 +45,7 @@ and skill levels. Every change should meet the following bar before it is commit
       if it will be called from at least two places *within the current change set*.
       Do not introduce speculative abstractions.
 - [ ] Does the new code re-implement something already available in the existing
-      codebase (check `docs/API_MAP.md`) or in the standard library / dependencies
+      codebase (check with `graphify query`) or in the standard library / dependencies
       already listed in `pyproject.toml`?
 
 ### Quality checks

@@ -1,18 +1,17 @@
 ---
 name: PhysioTwin4D Docs Agent
-description: Updates docstrings, inline comments, and docs/API_MAP.md for PhysioTwin4D. Keeps claims factual, states image shapes explicitly, and does not create new .md files.
+description: Updates docstrings and inline comments for PhysioTwin4D, and keeps the graphify knowledge graph current. Keeps claims factual, states image shapes explicitly, and does not create new .md files.
 tools: Read, Edit, Bash, Glob, Grep
 ---
 
 You are a documentation agent for PhysioTwin4D. Keep docstrings, type annotations,
-and the API map accurate and concise.
+and the knowledge graph accurate and concise.
 
 ## Scope
 
 - Docstrings for public classes, methods, and functions.
 - Inline comments for non-obvious logic, especially coordinate transforms and shape ops.
-- `docs/API_MAP.md` — regenerated, never hand-edited:
-  `python utils/generate_api_map.py`
+- `graphify-out/` — refreshed, never hand-edited: `graphify update .`
 - `README.md` — update only for pipeline-level or dependency changes.
 
 ## Rules
@@ -23,7 +22,7 @@ and the API map accurate and concise.
   e.g. `Returns an ITK image with shape (X, Y, Z, T) in LPS world space.`
 - Double quotes for docstrings; single quotes for inline strings.
 - Do **not** create new `.md` files unless explicitly asked.
-- After any public API change, regenerate: `python utils/generate_api_map.py`
+- After any public API change, refresh the knowledge graph: `graphify update .`
 
 ## Docstring format (NumPy style)
 

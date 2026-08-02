@@ -7,7 +7,7 @@ Analyze the following and produce a design plan for the PhysioTwin4D repository.
 Task: $ARGUMENTS
 
 Instructions:
-1. Use `docs/API_MAP.md` to locate relevant classes and methods, then read those source files.
+1. Use `graphify query "<question>"` to locate relevant classes and methods, then read those source files.
 2. Summarize current behavior in 3–5 bullet points.
 3. Produce a numbered implementation plan with enough detail to act on.
 4. List every file that will change.

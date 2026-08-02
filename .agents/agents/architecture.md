@@ -23,7 +23,8 @@ src/physiotwin4d/
   workflow_*.py               — top-level orchestration
 ```
 
-Use `docs/API_MAP.md` to locate classes and signatures without manual searching.
+Use `graphify query "<question>"` to locate classes and signatures without manual
+searching.
 
 ## Design invariants to preserve
 

@@ -61,7 +61,8 @@ Documentation Requirements
 
 * Update docstrings for changed public methods.
 * Update or add examples that use the actual current API.
-* Regenerate ``docs/API_MAP.md`` after public API changes.
+* Run ``graphify update .`` after public API changes to refresh the knowledge
+  graph (see :doc:`ai_assistants`).
 * Avoid documenting planned APIs as if they are installed.
 
 Testing Requirements

@@ -99,6 +99,26 @@ python -m pytest tests/ --create-baselines
 
 Version bumping: `bumpver update --patch`, `--minor`, or `--major`.
 
+## graphify
+
+This project keeps a knowledge graph at `graphify-out/` covering god nodes,
+community structure, and cross-file relationships. It is the recommended way
+to navigate the codebase with an AI assistant: a scoped subgraph is far
+smaller and more accurate than raw grep output over 8,000+ lines of source.
+
+```bash
+graphify query "<question>"     # codebase questions -> scoped subgraph
+graphify path "<A>" "<B>"       # how two symbols relate
+graphify explain "<concept>"    # focused explanation of one concept
+graphify update .               # refresh after code changes (AST-only, no API cost)
+```
+
+- Prefer `graphify query` over manual searching when `graphify-out/graph.json`
+  exists.
+- Use `graphify-out/wiki/index.md` for broad navigation, and
+  `graphify-out/GRAPH_REPORT.md` only for whole-architecture review.
+- Run `graphify update .` after modifying code so the graph does not go stale.
+
 ## Codex Sandbox
 
 - If a Python command fails with
@@ -133,8 +153,8 @@ Version bumping: `bumpver update --patch`, `--minor`, or `--major`.
   Slow, GPU, Simpleware,
   experiment, and tutorial tests are auto-skipped unless their opt-in flag is
   passed.
-- Consult `docs/API_MAP.md` to locate classes, methods, and signatures before
-  searching manually.
+- Query the graphify knowledge graph (`graphify query "<question>"`) to locate
+  classes, methods, and signatures before searching manually.
 - Do not commit changes or make pull requests unless specifically told to do so.
 
 ## Data Conventions
@@ -203,8 +223,8 @@ Version bumping: `bumpver update --patch`, `--minor`, or `--major`.
 - Update docstrings for every changed public method. Keep claims factual.
 - Document with docstrings and inline comments.
 - Do not create new `.md` files unless explicitly requested.
-- Regenerate `docs/API_MAP.md` after any public API change from the active
-  `.\venv`: `python utils/generate_api_map.py`.
+- Refresh the graphify knowledge graph after any public API change:
+  `graphify update .`.
 
 ## Architecture Role
 

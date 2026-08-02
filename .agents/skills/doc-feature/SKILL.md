@@ -1,5 +1,5 @@
 ---
-description: Inspect changed PhysioTwin4D code and existing docstrings, update docstrings and inline comments with accurate shape/axis information, and regenerate docs/API_MAP.md if public APIs changed.
+description: Inspect changed PhysioTwin4D code and existing docstrings, update docstrings and inline comments with accurate shape/axis information, and refresh the graphify knowledge graph if public APIs changed.
 ---
 
 Update documentation for the following in PhysioTwin4D:
@@ -13,6 +13,6 @@ Instructions:
    State image/tensor shape and axis order wherever arrays are involved.
 4. Add inline comments only for non-obvious logic (coordinate transforms, shape permutations).
 5. Do not create new `.md` files unless explicitly asked.
-6. If any public class, method, or function signature changed, regenerate the API map:
-   `python utils/generate_api_map.py`
+6. If any public class, method, or function signature changed, refresh the
+   knowledge graph: `graphify update .`
 7. Do not paraphrase the method name as the docstring — explain what it does and why.
