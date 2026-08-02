@@ -6,14 +6,14 @@ import numpy as np
 import pyvista as pv
 from data_dirlab_4d_ct import DataDirLab4DCT
 
-from physiotwin4d.contour_tools import ContourTools
 from physiotwin4d import ConvertVTKToUSD
-from physiotwin4d.segment_chest_total_segmentator import SegmentChestTotalSegmentator
+from physiotwin4d.contour_tools import ContourTools
+from physiotwin4d.segment_nv_segment_ct_mri import SegmentNVSegmentCTMRI
 
-# Defensive: today this script only reads `seg.all_mask_ids`, but if anyone
-# adds a `seg.segment(...)` call it would trigger the nnUNet
-# multiprocessing.Pool which re-imports the script on Windows (spawn start
-# method) and crashes with a spawn-cascade RuntimeError. Guard pre-emptively.
+# Defensive: today this script only reads `seg.taxonomy`, but if anyone adds a
+# `seg.segment(...)` call the model pipeline's MONAI DataLoader may spawn
+# worker processes, which re-import the script on Windows (spawn start method)
+# and crash with a spawn-cascade RuntimeError. Guard pre-emptively.
 if __name__ == "__main__":
     case_names = DataDirLab4DCT().case_names
     case_names = [case_names[4]]
@@ -59,13 +59,13 @@ if __name__ == "__main__":
         """
         labelmap_image = itk.imread(
             f"{output_dir}/{case_name}_T{base_timepoint}_{label}_mask_org.mha",
-            pixel_type=itk.UC,
+            pixel_type=itk.US,
         )
         labelmap_arr = itk.array_view_from_image(labelmap_image)
 
         print(f"Extracting contours from {case_name} - {label} Contours")
         label_labelmap_arr = np.where(labelmap_arr > 0, all_labelmap_arr, 0).astype(
-            np.uint8
+            np.uint16
         )
         label_labelmap_image = itk.image_from_array(label_labelmap_arr)
         label_labelmap_image.CopyInformation(labelmap_image)
@@ -98,12 +98,12 @@ if __name__ == "__main__":
     # %%
     con_tools = ContourTools()
 
-    seg = SegmentChestTotalSegmentator()
+    seg = SegmentNVSegmentCTMRI()
     for case_name in case_names:
         # all labelmap
         all_labelmap = itk.imread(
             f"{output_dir}/{case_name}_T{base_timepoint}_all_mask_org.mha",
-            pixel_type=itk.UC,
+            pixel_type=itk.US,
         )
         all_labelmap_arr = itk.array_view_from_image(all_labelmap)
         all_mask_ids = seg.taxonomy.all_labels()

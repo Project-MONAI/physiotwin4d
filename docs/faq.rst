@@ -88,6 +88,8 @@ Which segmentation method should I use?
 
 * **TotalSegmentator**: Fast, good quality, general purpose
 * **Simpleware**: Best quality for cardiac imaging, requires Simpleware Medical
+* **NV-Segment-CTMR**: CT *and* MRI, 345 classes; weights are licensed for
+  non-commercial academic research only
 
 See :doc:`api/segmentation/index` for comparison.
 

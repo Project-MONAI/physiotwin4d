@@ -152,7 +152,7 @@ Examples:
     try:
         print("\nRunning pipeline...")
         print("=" * 70)
-        result = workflow.run_workflow()
+        result = workflow.process()
         print("=" * 70)
         print("\nSaving outputs...")
 

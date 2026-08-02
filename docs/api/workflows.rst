@@ -91,10 +91,9 @@ Image to VTK
        anatomy_groups=["heart", "major_vessels"],
    )
 
-   ContourTools.save_combined_surface(
+   ContourTools.save_combined_surfaces(
        result["surfaces"],
-       "./output",
-       prefix="patient01",
+       "./output/patient01_surfaces.vtp",
    )
 
 VTK to USD

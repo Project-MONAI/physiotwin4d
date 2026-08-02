@@ -44,6 +44,10 @@ class SegmentAnatomyBase(PhysioTwin4DBase):
         fast_mode (bool): When True, subclasses may skip auxiliary model
             passes and use faster/less-accurate models to trade segmentation
             fidelity for speed (e.g. in automated tests). Defaults to False.
+        labelmap_dtype (type): NumPy integer type of the labelmap returned by
+            :meth:`segment`. Defaults to ``np.uint8``; subclasses whose class
+            index space exceeds 255 (e.g.
+            :class:`physiotwin4d.SegmentNVSegmentCTMRI`) set ``np.uint16``.
         taxonomy (AnatomyTaxonomy): Group→organ mapping shared with
             :class:`physiotwin4d.USDAnatomyTools`.
     """
@@ -68,18 +72,26 @@ class SegmentAnatomyBase(PhysioTwin4DBase):
 
         self.fast_mode: bool = False
 
+        self.labelmap_dtype: type = np.uint8
+
         # Single source of truth for the anatomy hierarchy. Subclasses
         # populate this; USDAnatomyTools and ConvertVTKToUSD consume it.
         self.taxonomy = AnatomyTaxonomy()
 
-    def _finalize_other_group(self) -> None:
-        """Fill the ``other`` group with any unclaimed ids in [1, 256).
+    def _finalize_other_group(self, id_range: range = range(1, 256)) -> None:
+        """Fill the ``other`` group with any unclaimed ids in *id_range*.
 
         Subclasses call this at the end of ``__init__`` once they have
         populated their specific groups. The consolidated all-labels view is
         available via ``self.taxonomy.all_labels()``.
+
+        Args:
+            id_range: Id space to sweep. Defaults to ``range(1, 256)``, which
+                matches the default ``uint8`` :attr:`labelmap_dtype`.
+                Subclasses with a larger class index space pass a wider range
+                (and set :attr:`labelmap_dtype` accordingly).
         """
-        self.taxonomy.fill_other_group()
+        self.taxonomy.fill_other_group(id_range)
 
     def label_to_type(self, label_name: str) -> str:
         """Return the anatomy group ('heart', 'lung', etc.) for a label name.
@@ -456,7 +468,7 @@ class SegmentAnatomyBase(PhysioTwin4DBase):
         labelmaps = self.create_anatomy_group_labelmaps(labelmap_image)
 
         labelmap_image = itk.GetImageFromArray(
-            itk.GetArrayFromImage(labelmap_image).astype(np.uint8)
+            itk.GetArrayFromImage(labelmap_image).astype(self.labelmap_dtype)
         )
         labelmap_image.CopyInformation(input_image)
 
