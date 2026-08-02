@@ -8,8 +8,9 @@ of sample meshes. Tutorial 5 can reuse the saved ``pca_model.json``.
 
 Data Required
 -------------
-Full data: ``data/KCL-Heart-Model``
-Test data: ``data/test/KCL-Heart-Model``
+Full data: ``data/DirLab-4DCT/Case*T70.mha``
+Test data: ``data/test/DirLab-4DCT/Case*T70.mha``
+DirLab-4DCT is not auto-downloaded — see ``data/DirLab-4DCT/README.md``.
 """
 
 # Imports
@@ -84,10 +85,8 @@ if __name__ == "__main__":
             sample_labelmap_file = (
                 output_dir / f"{sample_image_file.stem}_labelmap.nii.gz"
             )
-            itk.imwrite(sample_labelmap, str(sample_labelmap_file))
-        else:
-            sample_surface = pv.read(str(sample_surface_file))
-        sample_surfaces.append(sample_surface)
+            itk.imwrite(sample_labelmap, str(sample_labelmap_file), compression=True)
+        sample_surfaces.append(pv.read(str(sample_surface_file)))
 
     reference_index = int(len(sample_surfaces) * 0.7)
     reference_surface = sample_surfaces[reference_index]

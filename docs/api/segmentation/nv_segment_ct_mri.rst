@@ -81,9 +81,35 @@ available through the segmenter's ``taxonomy`` attribute
 (``segmenter.taxonomy.labels_in_group("heart")``,
 ``segmenter.taxonomy.all_labels()``).
 
-``brain_parcellation`` is a group name this segmenter introduces. It has no
-entry in :data:`physiotwin4d.usd_anatomy_tools.DEFAULT_RENDER_PARAMS`, so it
-falls back to the ``other`` OmniSurface look when rendered.
+Rendering
+=========
+
+``brain_parcellation`` is a group name this segmenter introduces. Its
+group-level entry in
+:data:`physiotwin4d.usd_anatomy_tools.DEFAULT_RENDER_PARAMS` is a grey-matter
+look, which is the right default because most of its labels are cortical gyri
+or deep grey nuclei (caudate, putamen, thalamus, amygdala, hippocampus).
+
+The brain tissues whose gross appearance genuinely differs from cortex carry
+organ-level overrides, which win over the group entry on a substring match
+(longest key first):
+
+* ``white_matter`` - glossy creamy off-white myelin; also claims the
+  cerebellar white matter.
+* ``3rd_ventricle``, ``4th_ventricle``, ``lateral_ventricle``,
+  ``inf_lat_vent`` - a shared clear-fluid CSF look. Four keys because a bare
+  ``ventricle`` key would lose to the heart's ``ventricle_left`` /
+  ``ventricle_right`` overrides.
+* ``brain_stem`` - pale, fiber-tract dominated.
+* ``cerebell`` - darker, browner, more matte cerebellar cortex; matches both
+  ``cerebellum_exterior_*`` and ``cerebellar_vermal_lobules_*``.
+* ``pallidum`` - myelin-rich, paler than the neighboring putamen and caudate.
+* ``basal_forebrain`` - grey matter; present only to outrank the whole-organ
+  ``brain`` override.
+
+Note that ``white_matter_hyperintensity`` is in the ``soft_tissue`` group, not
+``brain_parcellation``; its ``hyperintensity`` override keeps the lesion dull
+and matte instead of inheriting the glossy white-matter look.
 
 Operational Notes
 =================

@@ -17,7 +17,7 @@ import logging
 import os
 import sys
 import tempfile
-from typing import Optional
+from typing import Any, Optional
 
 import itk
 import numpy as np
@@ -46,9 +46,11 @@ class SegmentNVSegmentCTMRI(SegmentAnatomyBase):
     brain_parcellation) are populated into
     :attr:`SegmentAnatomyBase.taxonomy`. The first five reuse the names the
     TotalSegmentator backend uses, so downstream consumers see the same group
-    keys; ``brain_parcellation`` is new and falls back to the ``other``
-    OmniSurface look unless registered in
-    :data:`physiotwin4d.usd_anatomy_tools.DEFAULT_RENDER_PARAMS`.
+    keys; ``brain_parcellation`` is new and renders with the grey-matter entry
+    registered for it in
+    :data:`physiotwin4d.usd_anatomy_tools.DEFAULT_RENDER_PARAMS`, plus
+    organ-level overrides for the tissues that differ (white matter, CSF-filled
+    ventricles, brainstem, cerebellum, pallidum).
 
     Licensing:
         The NV-Segment-CTMR *weights* are released under the NVIDIA OneWay
@@ -70,6 +72,7 @@ class SegmentNVSegmentCTMRI(SegmentAnatomyBase):
             ``huggingface_hub``. ``None`` uses the default Hugging Face cache.
         hf_repo_id (str): Hugging Face repository holding the bundle and
             weights.
+        hf_revision (str): Pinned commit of :attr:`hf_repo_id` to download.
         hf_allow_patterns (tuple[str, ...]): Files pulled from
             :attr:`hf_repo_id`.
         license_warning (str): Banner logged at ``WARNING`` on first use.
@@ -114,6 +117,12 @@ class SegmentNVSegmentCTMRI(SegmentAnatomyBase):
         self.modality = "CT_BODY"
 
         self.hf_repo_id = "nvidia/NV-Segment-CTMR"
+
+        # Pinned to a commit rather than tracking main: the repo publishes no
+        # tags, and an unpinned download would silently swap the weights (and
+        # the bundle's pipeline code, which is imported and executed here)
+        # whenever upstream pushes. Bump deliberately after re-testing.
+        self.hf_revision = "4fb8b4a6b2532be9f1c449a3726fe5440ab4213a"
 
         # model.safetensors is deliberately excluded: it holds the same weights
         # as model.pt under the raw MONAI keys (no 'network.' prefix), so it is
@@ -515,6 +524,7 @@ class SegmentNVSegmentCTMRI(SegmentAnatomyBase):
         self._finalize_other_group(range(1, 346))
 
         self._snapshot_dir: Optional[str] = None
+        self._pipeline: Optional[Any] = None
 
     def set_modality(self, modality: str) -> None:
         """Set the modality whose predefined class list the model segments.
@@ -560,10 +570,53 @@ class SegmentNVSegmentCTMRI(SegmentAnatomyBase):
             self.log_info("Downloading %s (cached after first use)", self.hf_repo_id)
             self._snapshot_dir = snapshot_download(
                 repo_id=self.hf_repo_id,
+                revision=self.hf_revision,
                 cache_dir=self.model_cache_dir,
                 allow_patterns=list(self.hf_allow_patterns),
             )
         return self._snapshot_dir
+
+    def _ensure_pipeline(self) -> Any:
+        """Build the VISTA3D pipeline if needed and return it.
+
+        Weight loading takes seconds and the pipeline is stateless across
+        calls (modality is passed per input), so it is built once per instance
+        and reused for every subsequent image or timepoint.
+
+        Returns:
+            Any: The bundle's ``VISTA3DPipeline`` on device ``cuda:0``.
+        """
+        if self._pipeline is None:
+            snapshot_dir = self._ensure_model()
+
+            # The bundle ships hugging_face_pipeline / vista3d_pipeline as
+            # top-level modules inside the snapshot rather than as an installed
+            # package, so the snapshot directory has to be importable.
+            if snapshot_dir not in sys.path:
+                sys.path.insert(0, snapshot_dir)
+
+            import torch  # noqa: PLC0415
+            from vista3d_config import VISTA3DConfig  # noqa: PLC0415
+            from vista3d_model import VISTA3DModel  # noqa: PLC0415
+            from vista3d_pipeline import VISTA3DPipeline  # noqa: PLC0415
+
+            # The bundle's HuggingFacePipelineHelper builds the model through
+            # PreTrainedModel.from_pretrained, which reads only
+            # model.safetensors. That file stores the weights under the raw
+            # MONAI keys, so loading it leaves every parameter of
+            # VISTA3DModel.network randomly initialized. Load model.pt into the
+            # network directly instead.
+            model = VISTA3DModel(VISTA3DConfig())
+            model.network.load_state_dict(
+                torch.load(
+                    os.path.join(snapshot_dir, "vista3d_pretrained_model", "model.pt"),
+                    map_location="cpu",
+                    weights_only=True,
+                )
+            )
+
+            self._pipeline = VISTA3DPipeline(model, device=torch.device("cuda:0"))
+        return self._pipeline
 
     def segmentation_method(self, preprocessed_image: itk.image) -> itk.image:
         """Run NV-Segment-CTMR on the preprocessed image and return the result.
@@ -593,32 +646,7 @@ class SegmentNVSegmentCTMRI(SegmentAnatomyBase):
         Example:
             >>> labelmap = segmenter.segmentation_method(preprocessed_ct)
         """
-        snapshot_dir = self._ensure_model()
-
-        # The bundle ships hugging_face_pipeline / vista3d_pipeline as
-        # top-level modules inside the snapshot rather than as an installed
-        # package, so the snapshot directory has to be importable.
-        if snapshot_dir not in sys.path:
-            sys.path.insert(0, snapshot_dir)
-
-        import torch  # noqa: PLC0415
-        from vista3d_config import VISTA3DConfig  # noqa: PLC0415
-        from vista3d_model import VISTA3DModel  # noqa: PLC0415
-        from vista3d_pipeline import VISTA3DPipeline  # noqa: PLC0415
-
-        # The bundle's HuggingFacePipelineHelper builds the model through
-        # PreTrainedModel.from_pretrained, which reads only model.safetensors.
-        # That file stores the weights under the raw MONAI keys, so loading it
-        # leaves every parameter of VISTA3DModel.network randomly initialized.
-        # Load model.pt into the network directly instead.
-        model = VISTA3DModel(VISTA3DConfig())
-        model.network.load_state_dict(
-            torch.load(
-                os.path.join(snapshot_dir, "vista3d_pretrained_model", "model.pt"),
-                map_location="cpu",
-                weights_only=True,
-            )
-        )
+        pipeline = self._ensure_pipeline()
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             in_file = os.path.join(tmp_dir, "in.nii.gz")
@@ -626,7 +654,6 @@ class SegmentNVSegmentCTMRI(SegmentAnatomyBase):
             itk.imwrite(preprocessed_image, in_file, compression=True)
 
             self.log_info("Running NV-Segment-CTMR (%s)", self.modality)
-            pipeline = VISTA3DPipeline(model, device=torch.device("cuda:0"))
             pipeline(
                 [{"image": in_file, "modality": self.modality}],
                 output_dir=out_dir,
@@ -637,8 +664,14 @@ class SegmentNVSegmentCTMRI(SegmentAnatomyBase):
             out_files = glob.glob(
                 os.path.join(out_dir, "**", "*.nii.gz"), recursive=True
             )
-            if not out_files:
-                raise RuntimeError(f"NV-Segment-CTMR produced no output in {out_dir}.")
+            # One input dict in, so exactly one output is expected; anything
+            # else means the bundle's output layout changed and picking a file
+            # would be a guess.
+            if len(out_files) != 1:
+                raise RuntimeError(
+                    f"NV-Segment-CTMR produced {len(out_files)} outputs in "
+                    f"{out_dir}, expected 1."
+                )
 
             labelmap_arr = itk.array_from_image(itk.imread(out_files[0])).astype(
                 np.uint16

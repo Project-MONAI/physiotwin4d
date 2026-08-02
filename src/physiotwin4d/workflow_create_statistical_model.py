@@ -60,7 +60,7 @@ class WorkflowCreateStatisticalModel(PhysioTwin4DBase):
         Args:
             sample_meshes: List of sample mesh DataSets (PyVista PolyData or UnstructuredGrid).
             reference_mesh: Reference mesh; its surface is used to align all samples.
-            pca_number_of_components: Number of PCA components. Default 15.
+            pca_number_of_components: Number of PCA components. Default 7.
             reference_spatial_resolution: Isotropic resolution (mm) for reference image. Default 1.0.
             reference_buffer_factor: Buffer factor around mesh for reference image. Default 0.25.
             solve_for_surface_pca: Whether to reduce the reference mesh to a surface. Default True.

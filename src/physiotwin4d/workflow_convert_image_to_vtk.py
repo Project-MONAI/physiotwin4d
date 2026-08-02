@@ -14,20 +14,20 @@ Typical usage::
         WorkflowConvertImageToVTK,
     )
 
-    ct = itk.imread('chest_ct.nii.gz')
+    ct = itk.imread("chest_ct.nii.gz")
     segmenter = SegmentChestTotalSegmentatorWithContrast()
     workflow = WorkflowConvertImageToVTK(segmentation_method=segmenter)
     result = workflow.process(ct, surface_target_reduction=0.5)
 
     # Combined single-file output (default)
-    ContourTools.save_combined_surfaces(result['surfaces'], './out/patient.vtp')
+    ContourTools.save_combined_surfaces(result["surfaces"], "./out/patient.vtp")
 
     # Per-group split output
-    ContourTools.save_surfaces(result['surfaces'], './out', prefix='patient')
+    ContourTools.save_surfaces(result["surfaces"], "./out", prefix="patient")
 
     # Per-label split output (one VTP per individual anatomical structure)
     result = workflow.process(ct, extract_label_surfaces=True)
-    ContourTools.save_surfaces(result['label_surfaces'], './out', prefix='patient')
+    ContourTools.save_surfaces(result["label_surfaces"], "./out", prefix="patient")
 """
 
 import logging

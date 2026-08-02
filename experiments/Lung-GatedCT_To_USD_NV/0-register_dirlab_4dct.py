@@ -38,9 +38,9 @@ if __name__ == "__main__":
 
     def register_image(
         fixed_image: itk.image,
-        fixed_mask: itk.image,
+        fixed_mask: Optional[itk.image],
         moving_image: itk.image,
-        moving_mask: itk.image,
+        moving_mask: Optional[itk.image],
         case_name: str,
         image_num: int,
         mask_name: str,
@@ -122,21 +122,27 @@ if __name__ == "__main__":
             compression=True,
         )
 
+        # segment() returns per-group labelmaps that keep the model's label
+        # ids, but a registration mask has to be binary: binary_dilate_image
+        # dilates only voxels equal to its foreground value (1), so anything
+        # else would be dropped. Threshold each group to foreground/background
+        # and union the static groups instead of adding label ids.
+
         # Dynamic anatomy = lung (the structure that moves with respiration)
-        lung_mask_arr = itk.array_from_image(fixed_image_lung_mask)
-        fixed_image_dynamic_anatomy_mask_arr = lung_mask_arr
+        fixed_image_dynamic_anatomy_mask_arr = (
+            itk.array_from_image(fixed_image_lung_mask) > 0
+        )
         fixed_image_dynamic_anatomy_mask = itk.image_from_array(
             fixed_image_dynamic_anatomy_mask_arr.astype(np.uint16)
         )
         fixed_image_dynamic_anatomy_mask.CopyInformation(fixed_image_mask)
 
         # Static anatomy = heart, major vessels, bone, other (all non-lung)
-        heart_mask_arr = itk.array_from_image(fixed_image_heart_mask)
-        major_vessels_mask_arr = itk.array_from_image(fixed_image_major_vessels_mask)
-        bone_mask_arr = itk.array_from_image(fixed_image_bone_mask)
-        other_mask_arr = itk.array_from_image(fixed_image_other_mask)
         fixed_image_static_anatomy_mask_arr = (
-            heart_mask_arr + major_vessels_mask_arr + bone_mask_arr + other_mask_arr
+            (itk.array_from_image(fixed_image_heart_mask) > 0)
+            | (itk.array_from_image(fixed_image_major_vessels_mask) > 0)
+            | (itk.array_from_image(fixed_image_bone_mask) > 0)
+            | (itk.array_from_image(fixed_image_other_mask) > 0)
         )
         fixed_image_static_anatomy_mask = itk.image_from_array(
             fixed_image_static_anatomy_mask_arr.astype(np.uint16)
@@ -167,25 +173,20 @@ if __name__ == "__main__":
                 moving_image_other_mask = moving_result["other"]
 
                 # Dynamic anatomy = lung
-                lung_mask_arr = itk.array_from_image(moving_image_lung_mask)
-                moving_image_dynamic_anatomy_mask_arr = lung_mask_arr
+                moving_image_dynamic_anatomy_mask_arr = (
+                    itk.array_from_image(moving_image_lung_mask) > 0
+                )
                 moving_image_dynamic_anatomy_mask = itk.image_from_array(
                     moving_image_dynamic_anatomy_mask_arr.astype(np.uint16)
                 )
                 moving_image_dynamic_anatomy_mask.CopyInformation(moving_image_mask)
 
                 # Static anatomy = heart, major vessels, bone, other (all non-lung)
-                heart_mask_arr = itk.array_from_image(moving_image_heart_mask)
-                major_vessels_mask_arr = itk.array_from_image(
-                    moving_image_major_vessels_mask
-                )
-                bone_mask_arr = itk.array_from_image(moving_image_bone_mask)
-                other_mask_arr = itk.array_from_image(moving_image_other_mask)
                 moving_image_static_anatomy_mask_arr = (
-                    heart_mask_arr
-                    + major_vessels_mask_arr
-                    + bone_mask_arr
-                    + other_mask_arr
+                    (itk.array_from_image(moving_image_heart_mask) > 0)
+                    | (itk.array_from_image(moving_image_major_vessels_mask) > 0)
+                    | (itk.array_from_image(moving_image_bone_mask) > 0)
+                    | (itk.array_from_image(moving_image_other_mask) > 0)
                 )
                 moving_image_static_anatomy_mask = itk.image_from_array(
                     moving_image_static_anatomy_mask_arr.astype(np.uint16)

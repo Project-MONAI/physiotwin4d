@@ -77,8 +77,8 @@ Examples:
     parser.add_argument(
         "--pca-components",
         type=int,
-        default=15,
-        help="Number of PCA components to retain (default: 15)",
+        default=7,
+        help="Number of PCA components to retain (default: 7)",
     )
 
     args = parser.parse_args()
