@@ -268,7 +268,7 @@ Inner API usage
           reference_mesh=reference_mesh,
           pca_number_of_components=pca_components,
       )
-      result = workflow.run_workflow()
+      result = workflow.process()
 
 Run
    .. code-block:: bash

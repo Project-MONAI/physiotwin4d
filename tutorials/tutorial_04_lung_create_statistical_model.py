@@ -8,8 +8,9 @@ of sample meshes. Tutorial 5 can reuse the saved ``pca_model.json``.
 
 Data Required
 -------------
-Full data: ``data/KCL-Heart-Model``
-Test data: ``data/test/KCL-Heart-Model``
+Full data: ``data/DirLab-4DCT/Case*T70.mha``
+Test data: ``data/test/DirLab-4DCT/Case*T70.mha``
+DirLab-4DCT is not auto-downloaded — see ``data/DirLab-4DCT/README.md``.
 """
 
 # Imports
@@ -18,13 +19,17 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
+import itk
 import numpy as np
 import pyvista as pv
 
 from physiotwin4d import (
+    ContourTools,
+    SegmentNVSegmentCTMRI,
     TestTools,
+    WorkflowConvertImageToVTK,
     WorkflowCreateStatisticalModel,
 )
 
@@ -40,18 +45,13 @@ if __name__ == "__main__":
     repo_root = Path(__file__).resolve().parent.parent
     tutorials_dir = Path(__file__).resolve().parent
 
-    class_name = "tutorial_04_heart_create_statistical_model"
+    class_name = "tutorial_04_lung_create_statistical_model"
 
-    output_dir = tutorials_dir / "output" / "tutorial_04_heart"
+    output_dir = tutorials_dir / "output" / "tutorial_04_lung"
     baselines_dir = repo_root / "tests" / "baselines"
 
-    test_mode = TestTools.running_as_test()
-    if test_mode:
-        data_dir = repo_root / "data" / "test" / "KCL-Heart-Model"
-        pca_components = 5
-    else:
-        data_dir = repo_root / "data" / "KCL-Heart-Model"
-        pca_components = 10
+    data_dir = repo_root / "data" / "DirLab-4DCT"
+    pca_components = 7
 
     log_level = logging.INFO
 
@@ -59,34 +59,43 @@ if __name__ == "__main__":
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    reference_file = data_dir / "average_mesh.vtk"
-    if not reference_file.exists():
-        raise FileNotFoundError(
-            f"KCL-Heart-Model reference mesh not found: {reference_file}\n"
-            "See data/README.md for download instructions."
-        )
+    # Create lung surface files
+    segmentation_method = SegmentNVSegmentCTMRI(log_level=log_level)
+    workflow_method = WorkflowConvertImageToVTK(
+        segmentation_method=segmentation_method, log_level=log_level
+    )
 
-    sample_dir = data_dir / "input_meshes"
-    sample_files = sorted(sample_dir.glob("*.vtk"))
-    if not sample_files:
-        sample_files = sorted(data_dir.glob("*.vtk"))
-        sample_files = [
-            path for path in sample_files if path.name != reference_file.name
-        ]
-    if len(sample_files) < 3:
-        raise FileNotFoundError(
-            f"Need at least 3 sample meshes under {sample_dir} or {data_dir}.\n"
-            "See data/README.md for download instructions."
-        )
+    contour_tools = ContourTools(log_level=log_level)
 
-    reference_mesh = cast(pv.DataSet, pv.read(str(reference_file)))
-    sample_meshes = [cast(pv.DataSet, pv.read(str(path))) for path in sample_files]
+    sample_image_files = sorted(data_dir.glob("Case*T70.mha"))
+    sample_surfaces = []
+    for sample_image_file in sample_image_files:
+        sample_surface_file = output_dir / f"{sample_image_file.stem}.vtp"
+        if not sample_surface_file.exists():
+            sample_image = itk.imread(str(sample_image_file))
+            result = workflow_method.process(
+                input_image=sample_image,
+                anatomy_groups=["lung"],
+                extract_label_surfaces=True,
+            )
+            surfaces = result["label_surfaces"]
+            contour_tools.save_combined_surfaces(surfaces, str(sample_surface_file))
+
+            sample_labelmap = result["labelmap"]
+            sample_labelmap_file = (
+                output_dir / f"{sample_image_file.stem}_labelmap.nii.gz"
+            )
+            itk.imwrite(sample_labelmap, str(sample_labelmap_file), compression=True)
+        sample_surfaces.append(pv.read(str(sample_surface_file)))
+
+    reference_index = int(len(sample_surfaces) * 0.7)
+    reference_surface = sample_surfaces[reference_index]
 
     # Workflow initialization
 
     workflow = WorkflowCreateStatisticalModel(
-        sample_meshes=sample_meshes,
-        reference_mesh=reference_mesh,
+        sample_meshes=sample_surfaces,
+        reference_mesh=reference_surface,
         pca_number_of_components=pca_components,
         log_level=log_level,
     )
@@ -96,12 +105,11 @@ if __name__ == "__main__":
 
     # Result saving
     pca_model: dict[str, Any] = result["pca_model"]
-    mean_surface: pv.PolyData = result["pca_mean_surface"]
-
     model_file = output_dir / "pca_model.json"
     with model_file.open("w", encoding="utf-8") as f:
         json.dump(pca_model, f, indent=2)
 
+    mean_surface = result["pca_mean_surface"]
     mean_surface_file = output_dir / "pca_mean_surface.vtp"
     mean_surface.save(str(mean_surface_file))
 

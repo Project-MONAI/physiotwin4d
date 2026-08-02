@@ -34,6 +34,8 @@ class ContourTools(PhysioTwin4DBase):
     @staticmethod
     def extract_contours(
         labelmap_image: itk.image,
+        smoothing_iterations: int = 10,
+        smoothing_scale: float = 1.0,
     ) -> pv.PolyData:
         """
         Make contours from a labelmap image.
@@ -51,23 +53,11 @@ class ContourTools(PhysioTwin4DBase):
                 boundary_style="all",
                 pad_background=False,
                 smoothing=True,
-                smoothing_iterations=10,
+                smoothing_iterations=smoothing_iterations,
+                smoothing_scale=smoothing_scale,
                 output_mesh_type="triangles",
             ),
         )
-
-        contours.smooth_taubin(
-            inplace=True,
-            n_iter=50,
-            pass_band=0.05,
-        )
-
-        # self.contours.decimate_pro(
-        # inplace=True,
-        # reduction=0.7,
-        # feature_angle=45,
-        # preserve_topology=True,
-        # )
 
         return contours
 
@@ -106,6 +96,21 @@ class ContourTools(PhysioTwin4DBase):
         if smoothing_iterations > 0:
             conditioned = conditioned.smooth_taubin(n_iter=smoothing_iterations)
         return conditioned
+
+    @staticmethod
+    def extract_surface(mesh: pv.DataSet) -> pv.PolyData:
+        """Extract the surface of a mesh.
+
+        Args:
+            mesh: Input mesh (PolyData is returned unchanged; any other DataSet
+                is passed through ``extract_surface``).
+
+        Returns:
+            pv.PolyData: The surface of the mesh.
+        """
+        if isinstance(mesh, pv.PolyData):
+            return mesh
+        return mesh.extract_surface(algorithm="dataset_surface")
 
     @staticmethod
     def transform_contours(
@@ -530,37 +535,47 @@ class ContourTools(PhysioTwin4DBase):
         return saved
 
     @staticmethod
-    def save_combined_surface(
+    def save_combined_surfaces(
         surfaces: dict[str, pv.PolyData],
-        output_dir: str,
-        prefix: str = "",
+        output_filename: str,
     ) -> str:
         """Merge all named surfaces into a single VTP file.
 
         The merged mesh retains per-cell ``Color`` (RGBA uint8) from each
         surface's annotation, enabling colour-by-anatomy rendering in
-        Paraview, PyVista, etc.  Per-object ``field_data`` is not preserved
-        in the merged file.
+        Paraview, PyVista, etc.
+
+        Per-object ``field_data`` is *not* preserved: it is per-object, so a
+        single merged mesh cannot carry one value per input surface.  The keys
+        set by :meth:`WorkflowConvertImageToVTK._annotate` are therefore lost:
+
+        - ``AnatomyGroup`` — group name, e.g. ``'heart'``.
+        - ``SegmentationLabelNames`` — structure names within the group.
+        - ``SegmentationLabelIds`` — corresponding integer label IDs.
+        - ``AnatomyColor`` — RGB float color (survives indirectly as the
+          per-cell ``Color`` array).
+
+        Use :meth:`save_surfaces` instead when structure identity must be
+        recoverable from the saved files.
 
         Args:
             surfaces: Mapping of name → surface.
-            output_dir: Directory to write the file into (created if absent).
-            prefix: Optional filename prefix.  Output is ``{prefix}_surfaces.vtp``
-                (or ``surfaces.vtp`` when *prefix* is empty).
+            output_filename: Path of the VTP file to write, including its
+                directory.  Any missing parent directories are created.
 
         Returns:
-            Absolute path to the saved VTP file.
+            Path to the saved VTP file.
 
         Raises:
             ValueError: If *surfaces* is empty.
         """
         if not surfaces:
             raise ValueError("No surfaces to save.")
-        os.makedirs(output_dir, exist_ok=True)
-        stem = f"{prefix}_surfaces" if prefix else "surfaces"
-        output_file = os.path.join(output_dir, f"{stem}.vtp")
+        output_dir = os.path.dirname(output_filename)
+        if output_dir:
+            os.makedirs(output_dir, exist_ok=True)
         merged = cast(
             pv.PolyData, pv.merge(list(surfaces.values()), merge_points=False)
         )
-        merged.save(output_file)
-        return output_file
+        merged.save(output_filename)
+        return output_filename

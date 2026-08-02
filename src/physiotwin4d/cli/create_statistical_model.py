@@ -77,8 +77,8 @@ Examples:
     parser.add_argument(
         "--pca-components",
         type=int,
-        default=15,
-        help="Number of PCA components to retain (default: 15)",
+        default=7,
+        help="Number of PCA components to retain (default: 7)",
     )
 
     args = parser.parse_args()
@@ -152,7 +152,7 @@ Examples:
     try:
         print("\nRunning pipeline...")
         print("=" * 70)
-        result = workflow.run_workflow()
+        result = workflow.process()
         print("=" * 70)
         print("\nSaving outputs...")
 

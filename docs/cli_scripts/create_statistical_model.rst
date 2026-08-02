@@ -95,7 +95,7 @@ Optional Arguments
 ------------------
 
 ``--pca-components N``
-   Number of PCA components to retain (default: 15).
+   Number of PCA components to retain (default: 7).
 
 See :class:`physiotwin4d.WorkflowCreateStatisticalModel` for the full API and
 additional parameters (e.g. ``reference_spatial_resolution``,

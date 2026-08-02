@@ -15,6 +15,7 @@ from physiotwin4d import (
     SegmentChestTotalSegmentatorWithContrast,
     SegmentHeartSimpleware,
     SegmentHeartSimplewareTrimmedBranches,
+    SegmentNVSegmentCTMRI,
 )
 
 #: Segmentation backend string choices exposed by CLI flags.
@@ -22,6 +23,7 @@ SEGMENTATION_METHODS: tuple[str, ...] = (
     "ChestTotalSegmentator",
     "HeartSimpleware",
     "HeartSimplewareTrimmedBranches",
+    "NVSegmentCTMR",
 )
 
 #: Registration backend string choices exposed by CLI flags.
@@ -57,6 +59,8 @@ def build_segmentation_method(name: str, contrast: bool = False) -> SegmentAnato
         return SegmentHeartSimpleware()
     if name == "HeartSimplewareTrimmedBranches":
         return SegmentHeartSimplewareTrimmedBranches()
+    if name == "NVSegmentCTMR":
+        return SegmentNVSegmentCTMRI()
     raise ValueError(
         f"Unknown segmentation method: {name}. "
         f"Must be one of: {', '.join(SEGMENTATION_METHODS)}."

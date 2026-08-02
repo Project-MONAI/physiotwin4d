@@ -98,15 +98,15 @@ if __name__ == "__main__":
 
     output_dir = tutorials_dir / "output" / "tutorial_01_lung"
 
+    data_dir = repo_root / "data" / "DirLab-4DCT"
+
     # .mha files are DirLab-4DCT data already converted to HU by
     # data/DirLab-4DCT/fix_downloaded_data.py.
     test_mode = TestTools.running_as_test()
     if test_mode:
-        data_dir = repo_root / "data" / "test" / "DirLab-4DCT"
         number_of_registration_iterations = 1
         frame_files = sorted(data_dir.glob("Case1Pack_T??.mha"))[0:2]
     else:
-        data_dir = repo_root / "data" / "DirLab-4DCT"
         number_of_registration_iterations = 10
         frame_files = sorted(data_dir.glob("Case1Pack_T??.mha"))
 
@@ -146,7 +146,7 @@ if __name__ == "__main__":
         registration_method=registration_method,
         segmentation_method=segmentation_method,
         log_level=log_level,
-        frames_per_second=4,
+        frames_per_second=1,
         save_assets=True,
     )
 

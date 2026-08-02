@@ -96,10 +96,9 @@ if __name__ == "__main__":
 
     # Result saving
     surface_file = Path(
-        ContourTools.save_combined_surface(
+        ContourTools.save_combined_surfaces(
             result["surfaces"],
-            str(output_dir),
-            prefix="patient",
+            str(output_dir / "patient_surfaces.vtp"),
         )
     )
     if save_group_surfaces:

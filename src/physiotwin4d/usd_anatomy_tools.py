@@ -36,6 +36,46 @@ from pxr import Sdf, UsdGeom, UsdShade
 
 from .physiotwin4d_base import PhysioTwin4DBase
 
+# Brain grey matter: cortical gyri and deep nuclei alike. Shared by the
+# brain_parcellation group entry and the "basal_forebrain" override below,
+# which exists only to keep the basal forebrain off the whole-organ "brain"
+# look ("brain" is a substring of "forebrain").
+_GREY_MATTER_RENDER_PARAMS: dict[str, Any] = {
+    "name": "Grey_Matter",
+    "enable_diffuse_transmission": True,
+    "diffuse_reflection_weight": 0.17,
+    "diffuse_reflection_color": (0.7, 0.56, 0.55),
+    "diffuse_reflection_roughness": 0.55,
+    "metalness": 0.0,
+    "specular_reflection_weight": 0.35,
+    "specular_reflection_roughness": 0.55,
+    "subsurface_transmission_color": (0.85, 0.7, 0.68),
+    "subsurface_scattering_color": (0.85, 0.7, 0.68),
+    "subsurface_weight": 0.09,
+    "subsurface_scale": 0.25,
+    "coat_weight": 0.08,
+}
+
+# CSF-filled ventricular spaces. Shared by the four ventricle override keys
+# below rather than repeated inline: the ventricles are one tissue (clear
+# cerebrospinal fluid) split across labels, and sharing the dict also keeps
+# them on a single "CSF" OmniSurface material in the exported stage.
+_CSF_RENDER_PARAMS: dict[str, Any] = {
+    "name": "CSF",
+    "enable_diffuse_transmission": True,
+    "diffuse_reflection_weight": 0.05,
+    "diffuse_reflection_color": (0.72, 0.84, 0.9),
+    "diffuse_reflection_roughness": 0.15,
+    "metalness": 0.0,
+    "specular_reflection_weight": 0.7,
+    "specular_reflection_roughness": 0.1,
+    "subsurface_transmission_color": (0.8, 0.92, 0.97),
+    "subsurface_scattering_color": (0.8, 0.92, 0.97),
+    "subsurface_weight": 0.3,
+    "subsurface_scale": 3.0,
+    "coat_weight": 0.3,
+}
+
 # Default OmniSurface render parameters keyed by group name (matching
 # :class:`physiotwin4d.AnatomyTaxonomy.group_names`) and by organ-level
 # overrides (e.g. ``liver``, ``spleen``, ``kidney``). ``enhance_meshes``
@@ -135,6 +175,12 @@ DEFAULT_RENDER_PARAMS: dict[str, dict[str, Any]] = {
         "subsurface_scale": 0.3,
         "coat_weight": 0.12,
     },
+    # Grey matter is the default for the brain_parcellation group of
+    # SegmentNVSegmentCTMRI: most of its labels are cortical gyri or deep grey
+    # nuclei (caudate, putamen, thalamus, amygdala, hippocampus), which in a
+    # fresh specimen all share the same pink-grey, matte, weakly translucent
+    # look. Only the tissues that genuinely differ get overrides below.
+    "brain_parcellation": _GREY_MATTER_RENDER_PARAMS,
     "other": {
         "name": "Other",
         "enable_diffuse_transmission": True,
@@ -608,6 +654,117 @@ DEFAULT_RENDER_PARAMS: dict[str, dict[str, Any]] = {
         "subsurface_scale": 2.0,
         "coat_weight": 0.0,
     },
+    # --- Brain-tissue overrides (brain_parcellation group of
+    # SegmentNVSegmentCTMRI). The group entry above paints everything as grey
+    # matter; these are the tissues whose natural gross appearance is actually
+    # different from cortex, so they are the ones worth separating. ---
+    # White matter: myelin -> glossy, creamy off-white, markedly brighter and
+    # shinier than grey matter. Key matches "cerebral_white_matter_*" and
+    # "cerebellum_white_matter_*"; being longer than "cerebell" it also wins
+    # over the cerebellar-cortex override for the cerebellar white matter.
+    "white_matter": {
+        "name": "White_Matter",
+        "enable_diffuse_transmission": True,
+        "diffuse_reflection_weight": 0.22,
+        "diffuse_reflection_color": (0.92, 0.88, 0.8),
+        "diffuse_reflection_roughness": 0.3,
+        "metalness": 0.0,
+        "specular_reflection_weight": 0.55,
+        "specular_reflection_roughness": 0.35,
+        "subsurface_transmission_color": (0.96, 0.93, 0.86),
+        "subsurface_scattering_color": (0.96, 0.93, 0.86),
+        "subsurface_weight": 0.1,
+        "subsurface_scale": 0.35,
+        "coat_weight": 0.12,
+    },
+    # White-matter hyperintensity is a gliotic lesion, not normal myelin, and
+    # it lives in the soft_tissue group rather than brain_parcellation. It
+    # needs its own key only because "white_matter" is a substring of its
+    # name; the longer key wins, keeping the lesion dull and matte instead of
+    # inheriting the glossy white-matter look.
+    "hyperintensity": {
+        "name": "White_Matter_Hyperintensity",
+        "enable_diffuse_transmission": True,
+        "diffuse_reflection_weight": 0.18,
+        "diffuse_reflection_color": (0.78, 0.76, 0.68),
+        "diffuse_reflection_roughness": 0.6,
+        "metalness": 0.0,
+        "specular_reflection_weight": 0.25,
+        "specular_reflection_roughness": 0.6,
+        "subsurface_transmission_color": (0.85, 0.83, 0.75),
+        "subsurface_scattering_color": (0.85, 0.83, 0.75),
+        "subsurface_weight": 0.07,
+        "subsurface_scale": 0.2,
+        "coat_weight": 0.05,
+    },
+    # CSF spaces: clear fluid, so heavy subsurface transport and a wet,
+    # low-roughness surface -- the most visually distinct tissue in the group.
+    # Four keys because the labels share no single safe substring: "ventricle"
+    # alone is shorter than the heart's "ventricle_left"/"ventricle_right"
+    # overrides, which would otherwise claim "lateral_ventricle_left/right"
+    # and paint the ventricles arterial red.
+    "3rd_ventricle": _CSF_RENDER_PARAMS,
+    "4th_ventricle": _CSF_RENDER_PARAMS,
+    "lateral_ventricle": _CSF_RENDER_PARAMS,
+    "inf_lat_vent": _CSF_RENDER_PARAMS,
+    # Basal forebrain: grey-matter nuclei. Present only to outrank the
+    # whole-organ "brain" override, which "forebrain" would otherwise match.
+    "basal_forebrain": _GREY_MATTER_RENDER_PARAMS,
+    # Globus pallidus: myelin-rich, so distinctly paler than the neighboring
+    # putamen and caudate it is embedded in -- the one deep nucleus that reads
+    # differently from the rest by eye. Matches "pallidum_left/right".
+    "pallidum": {
+        "name": "Pallidum",
+        "enable_diffuse_transmission": True,
+        "diffuse_reflection_weight": 0.2,
+        "diffuse_reflection_color": (0.82, 0.74, 0.68),
+        "diffuse_reflection_roughness": 0.45,
+        "metalness": 0.0,
+        "specular_reflection_weight": 0.4,
+        "specular_reflection_roughness": 0.5,
+        "subsurface_transmission_color": (0.9, 0.84, 0.78),
+        "subsurface_scattering_color": (0.9, 0.84, 0.78),
+        "subsurface_weight": 0.09,
+        "subsurface_scale": 0.3,
+        "coat_weight": 0.1,
+    },
+    # Brainstem: dominated by descending/ascending fiber tracts, so it reads
+    # pale like white matter rather than pink like cortex. Key is longer than
+    # the whole-organ "brain" override, so it wins for "brain_stem".
+    "brain_stem": {
+        "name": "Brain_Stem",
+        "enable_diffuse_transmission": True,
+        "diffuse_reflection_weight": 0.2,
+        "diffuse_reflection_color": (0.86, 0.79, 0.72),
+        "diffuse_reflection_roughness": 0.4,
+        "metalness": 0.0,
+        "specular_reflection_weight": 0.45,
+        "specular_reflection_roughness": 0.45,
+        "subsurface_transmission_color": (0.92, 0.86, 0.8),
+        "subsurface_scattering_color": (0.92, 0.86, 0.8),
+        "subsurface_weight": 0.09,
+        "subsurface_scale": 0.3,
+        "coat_weight": 0.1,
+    },
+    # Cerebellar cortex: darker and browner than cerebral cortex, and finely
+    # foliated rather than smoothly gyral, so it is given a rougher, more
+    # matte surface. The "cerebell" stem matches both "cerebellum_exterior_*"
+    # and "cerebellar_vermal_lobules_*".
+    "cerebell": {
+        "name": "Cerebellar_Cortex",
+        "enable_diffuse_transmission": True,
+        "diffuse_reflection_weight": 0.16,
+        "diffuse_reflection_color": (0.62, 0.5, 0.46),
+        "diffuse_reflection_roughness": 0.65,
+        "metalness": 0.0,
+        "specular_reflection_weight": 0.3,
+        "specular_reflection_roughness": 0.6,
+        "subsurface_transmission_color": (0.78, 0.64, 0.6),
+        "subsurface_scattering_color": (0.78, 0.64, 0.6),
+        "subsurface_weight": 0.08,
+        "subsurface_scale": 0.2,
+        "coat_weight": 0.06,
+    },
 }
 
 # Canonical AnatomyTaxonomy group names that carry a group-level entry in
@@ -616,7 +773,16 @@ DEFAULT_RENDER_PARAMS: dict[str, dict[str, Any]] = {
 # where an organ override always beats the containing group on a substring
 # match (e.g. "lung_veins" -> the "vein" override, not the "lung" group).
 GROUP_RENDER_KEYS: frozenset[str] = frozenset(
-    {"heart", "lung", "bone", "major_vessels", "contrast", "soft_tissue", "other"}
+    {
+        "heart",
+        "lung",
+        "bone",
+        "major_vessels",
+        "contrast",
+        "soft_tissue",
+        "brain_parcellation",
+        "other",
+    }
 )
 
 

@@ -14,20 +14,20 @@ Typical usage::
         WorkflowConvertImageToVTK,
     )
 
-    ct = itk.imread('chest_ct.nii.gz')
+    ct = itk.imread("chest_ct.nii.gz")
     segmenter = SegmentChestTotalSegmentatorWithContrast()
     workflow = WorkflowConvertImageToVTK(segmentation_method=segmenter)
     result = workflow.process(ct, surface_target_reduction=0.5)
 
     # Combined single-file output (default)
-    ContourTools.save_combined_surface(result['surfaces'], './out', prefix='patient')
+    ContourTools.save_combined_surfaces(result["surfaces"], "./out/patient.vtp")
 
     # Per-group split output
-    ContourTools.save_surfaces(result['surfaces'], './out', prefix='patient')
+    ContourTools.save_surfaces(result["surfaces"], "./out", prefix="patient")
 
     # Per-label split output (one VTP per individual anatomical structure)
     result = workflow.process(ct, extract_label_surfaces=True)
-    ContourTools.save_surfaces(result['label_surfaces'], './out', prefix='patient')
+    ContourTools.save_surfaces(result["label_surfaces"], "./out", prefix="patient")
 """
 
 import logging
@@ -60,7 +60,7 @@ class WorkflowConvertImageToVTK(PhysioTwin4DBase):
     **Output anatomy groups**
 
     Determined by the active segmenter's :attr:`SegmentAnatomyBase.taxonomy`
-    (see :attr:`ANATOMY_GROUPS`).  Groups that are empty after segmentation
+    (see :attr:`anatomy_groups`).  Groups that are empty after segmentation
     are silently skipped.  Pass ``extract_label_surfaces=True`` to
     :meth:`process` to additionally extract one surface per individual
     structure (label) within each group, e.g. ``left_ventricle`` separately
@@ -82,7 +82,7 @@ class WorkflowConvertImageToVTK(PhysioTwin4DBase):
     :meth:`process` performs *no* file I/O.  Use
     :class:`ContourTools`'s static helpers
     :meth:`ContourTools.save_surfaces` and
-    :meth:`ContourTools.save_combined_surface` — or the CLI
+    :meth:`ContourTools.save_combined_surfaces` — or the CLI
     ``physiotwin4d-convert-image-to-vtk`` — to write results to disk.
     """
 
@@ -117,7 +117,7 @@ class WorkflowConvertImageToVTK(PhysioTwin4DBase):
 
         #: Anatomy group names registered by the active segmenter's taxonomy,
         #: in the order they were first added.
-        self.ANATOMY_GROUPS: tuple[str, ...] = tuple(
+        self.anatomy_groups: tuple[str, ...] = tuple(
             self._segmenter.taxonomy.group_names()
         )
 
@@ -128,7 +128,7 @@ class WorkflowConvertImageToVTK(PhysioTwin4DBase):
         supported_types = set(_anatomy_tools.get_anatomy_types())
         self._anatomy_color_map: dict[str, tuple[float, float, float]] = {
             group: _anatomy_tools.get_anatomy_diffuse_color(group)
-            for group in self.ANATOMY_GROUPS
+            for group in self.anatomy_groups
             if group in supported_types
         }
 
@@ -231,7 +231,7 @@ class WorkflowConvertImageToVTK(PhysioTwin4DBase):
             input_image: Input 3D CT image (``itk.Image``).
             anatomy_groups: Subset of anatomy groups to process.  ``None`` (default)
                 processes all non-empty groups.  Valid names are given by
-                :attr:`ANATOMY_GROUPS`, derived from the active segmenter's
+                :attr:`anatomy_groups`, derived from the active segmenter's
                 taxonomy.
             surface_target_reduction: Fraction in ``[0, 1)`` of surface
                 triangles to remove via ``decimate_pro(surface_target_reduction,
@@ -262,15 +262,15 @@ class WorkflowConvertImageToVTK(PhysioTwin4DBase):
 
         # Validate requested groups
         if anatomy_groups is not None:
-            invalid = [g for g in anatomy_groups if g not in self.ANATOMY_GROUPS]
+            invalid = [g for g in anatomy_groups if g not in self.anatomy_groups]
             if invalid:
                 raise ValueError(
                     f"Unknown anatomy groups: {invalid}. "
-                    f"Valid: {list(self.ANATOMY_GROUPS)}"
+                    f"Valid: {list(self.anatomy_groups)}"
                 )
             groups_to_process: list[str] = list(anatomy_groups)
         else:
-            groups_to_process = list(self.ANATOMY_GROUPS)
+            groups_to_process = list(self.anatomy_groups)
 
         # Run segmenter
         self.log_info("Running segmenter: %s", type(self._segmenter).__name__)

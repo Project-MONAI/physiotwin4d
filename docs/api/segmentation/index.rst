@@ -13,6 +13,8 @@ PhysioTwin4D supports multiple segmentation approaches:
 
 * **TotalSegmentator**: Whole-body CT segmentation (100+ structures)
 * **Simpleware**: Cardiac-focused segmentation (requires Simpleware Medical)
+* **NV-Segment-CTMR**: Whole-body CT *and* MRI segmentation (345 structures,
+  non-commercial license)
 
 All segmentation classes inherit from :class:`SegmentAnatomyBase` and provide consistent interfaces.
 
@@ -23,6 +25,7 @@ Quick Links
    * :doc:`base` - Base class for all segmentation methods
    * :doc:`totalsegmentator` - TotalSegmentator implementation
    * :doc:`simpleware` - Simpleware ASCardio cardiac segmentation
+   * :doc:`nv_segment_ct_mri` - NVIDIA NV-Segment-CTMR CT/MRI segmentation
 
 Choosing a Method
 =================
@@ -33,6 +36,8 @@ Choosing a Method
 | TotalSegmentator | Fast (~30s)      | Good             | General purpose  |
 +------------------+------------------+------------------+------------------+
 | Simpleware       | Medium           | Excellent        | Cardiac imaging  |
++------------------+------------------+------------------+------------------+
+| NV-Segment-CTMR  | Medium           | Good             | CT and MRI       |
 +------------------+------------------+------------------+------------------+
 
 Quick Start
@@ -58,6 +63,7 @@ Module Documentation
    base
    totalsegmentator
    simpleware
+   nv_segment_ct_mri
 
 Common Operations
 =================

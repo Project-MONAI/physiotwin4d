@@ -11,7 +11,7 @@ import traceback
 
 from ._method_factories import SEGMENTATION_METHODS, build_segmentation_method
 
-ANATOMY_GROUPS = (
+anatomy_groups = (
     "heart",
     "lung",
     "major_vessels",
@@ -102,11 +102,11 @@ Examples
         "--anatomy-groups",
         nargs="+",
         metavar="GROUP",
-        choices=list(ANATOMY_GROUPS),
+        choices=list(anatomy_groups),
         default=None,
         help=(
             "Anatomy groups to extract.  Default: all non-empty groups.  "
-            "Choices: " + " ".join(ANATOMY_GROUPS)
+            "Choices: " + " ".join(anatomy_groups)
         ),
     )
     parser.add_argument(
@@ -201,8 +201,9 @@ Examples
 
     try:
         if args.output_mode == "combined":
-            surface_file = ContourTools.save_combined_surface(
-                surfaces, args.output_dir, prefix=prefix
+            stem = f"{prefix}_surfaces" if prefix else "surfaces"
+            surface_file = ContourTools.save_combined_surfaces(
+                surfaces, os.path.join(args.output_dir, f"{stem}.vtp")
             )
             print(f"  Combined surface -> {surface_file}")
         else:

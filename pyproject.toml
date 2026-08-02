@@ -167,6 +167,9 @@ docs = [
     "linkify-it-py>=2.0.0",
     "uc-micro-py>=1.0.1",
     "markdown-it-py>=3.0.0",
+
+    # Bundled ffmpeg binary used by utils/mp4_to_gif.py
+    "imageio-ffmpeg>=0.5.0",
 ]
 test = [
     "pytest>=7.0.0",
@@ -245,9 +248,9 @@ module = [
     "cupy",
     "cupy_backends",
     "cupy_backends.*",
-    "hugging_face_pipeline",
     "huggingface_hub",
     "huggingface_hub.*",
+    "imageio_ffmpeg",
     "icon_registration",
     "icon_registration.*",
     "itk",
@@ -282,6 +285,9 @@ module = [
     "trimesh.*",
     "unigradicon",
     "unigradicon.*",
+    "vista3d_config",
+    "vista3d_model",
+    "vista3d_pipeline",
     "vtk",
     "vtk.*",
     "yaml",

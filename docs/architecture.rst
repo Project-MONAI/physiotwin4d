@@ -32,6 +32,7 @@ Data Flow
       v
    SegmentChestTotalSegmentator / SegmentChestTotalSegmentatorWithContrast
    SegmentHeartSimpleware / SegmentHeartSimplewareTrimmedBranches
+   SegmentNVSegmentCTMRI (CT + MRI)
           |
           v
    ContourTools + TransformTools
@@ -131,9 +132,9 @@ Component Boundaries
 Segmentation classes produce anatomy masks or labelmaps from ITK images.
 ``SegmentAnatomyBase`` subclasses (``SegmentChestTotalSegmentator``,
 ``SegmentChestTotalSegmentatorWithContrast``, ``SegmentHeartSimpleware``,
-``SegmentHeartSimplewareTrimmedBranches``) share the same segment/taxonomy
-interface, so new segmentation methods or anatomy groups slot in without
-touching the workflow layer.
+``SegmentHeartSimplewareTrimmedBranches``, ``SegmentNVSegmentCTMRI``) share the
+same segment/taxonomy interface, so new segmentation methods or anatomy groups
+slot in without touching the workflow layer.
 
 Deriving from a base class propagates capability, not just interface. Each
 ``SegmentAnatomyBase`` subclass owns an :class:`AnatomyTaxonomy` instance and

@@ -23,6 +23,7 @@ from physiotwin4d.segment_chest_total_segmentator_with_contrast import (
     SegmentChestTotalSegmentatorWithContrast,
 )
 from physiotwin4d.segment_heart_simpleware import SegmentHeartSimpleware
+from physiotwin4d.segment_nv_segment_ct_mri import SegmentNVSegmentCTMRI
 from physiotwin4d.transform_tools import TransformTools
 
 # ============================================================================
@@ -598,6 +599,12 @@ def segmenter_total_segmentator_with_contrast() -> (
 ):
     """Create a SegmentChestTotalSegmentatorWithContrast instance."""
     return SegmentChestTotalSegmentatorWithContrast()
+
+
+@pytest.fixture(scope="session")
+def segmenter_nv_segment_ct_mri() -> SegmentNVSegmentCTMRI:
+    """Create a SegmentNVSegmentCTMRI instance."""
+    return SegmentNVSegmentCTMRI()
 
 
 @pytest.fixture(scope="session")

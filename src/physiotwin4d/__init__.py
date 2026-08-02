@@ -74,6 +74,7 @@ from .segment_heart_simpleware import SegmentHeartSimpleware
 from .segment_heart_simpleware_trimmed_branches import (
     SegmentHeartSimplewareTrimmedBranches,
 )
+from .segment_nv_segment_ct_mri import SegmentNVSegmentCTMRI
 from .test_tools import TestTools
 from .transform_tools import TransformTools
 from .usd_anatomy_tools import USDAnatomyTools
@@ -121,6 +122,7 @@ __all__ = [
     "SegmentChestTotalSegmentatorWithContrast",
     "SegmentHeartSimpleware",
     "SegmentHeartSimplewareTrimmedBranches",
+    "SegmentNVSegmentCTMRI",
     # Registration classes
     "RegisterImagesBase",
     "RegisterImagesICON",

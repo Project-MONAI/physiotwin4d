@@ -4,14 +4,14 @@ from pathlib import Path
 from data_dirlab_4d_ct import DataDirLab4DCT
 from pxr import Usd
 
-from physiotwin4d.segment_chest_total_segmentator import SegmentChestTotalSegmentator
+from physiotwin4d.segment_nv_segment_ct_mri import SegmentNVSegmentCTMRI
 from physiotwin4d.usd_anatomy_tools import USDAnatomyTools
 
-# Defensive: today this script only instantiates SegmentChestTotalSegmentator
-# to read its anatomy labels for USDAnatomyTools, but if anyone adds a
-# `seg.segment(...)` call it would trigger the nnUNet multiprocessing.Pool
-# which re-imports the script on Windows (spawn start method) and crashes
-# with a spawn-cascade RuntimeError. Guard pre-emptively.
+# Defensive: today this script only instantiates SegmentNVSegmentCTMRI to read
+# its anatomy labels for USDAnatomyTools, but if anyone adds a
+# `seg.segment(...)` call the model pipeline's MONAI DataLoader may spawn
+# worker processes, which re-import the script on Windows (spawn start method)
+# and crash with a spawn-cascade RuntimeError. Guard pre-emptively.
 if __name__ == "__main__":
     case_names = DataDirLab4DCT().case_names
 
@@ -20,7 +20,7 @@ if __name__ == "__main__":
     output_dir = Path(__file__).parent / "results"
 
     # %%
-    seg = SegmentChestTotalSegmentator()
+    seg = SegmentNVSegmentCTMRI()
 
     for anatomy in ["all", "static_anatomy", "dynamic_anatomy"]:
         for case_name in case_names:

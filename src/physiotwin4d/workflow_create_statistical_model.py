@@ -23,15 +23,6 @@ from .register_models_icp import RegisterModelsICP
 from .transform_tools import TransformTools
 
 
-def _extract_surface(mesh: pv.DataSet) -> pv.PolyData:
-    """Extract surface from a mesh (PolyData or UnstructuredGrid)."""
-    if isinstance(mesh, pv.UnstructuredGrid):
-        return mesh.extract_surface(algorithm="dataset_surface")
-    if isinstance(mesh, pv.PolyData):
-        return mesh
-    return mesh.extract_surface(algorithm="dataset_surface")
-
-
 class WorkflowCreateStatisticalModel(PhysioTwin4DBase):
     """Create a PCA statistical shape model from a sample of meshes aligned to a reference.
 
@@ -58,7 +49,7 @@ class WorkflowCreateStatisticalModel(PhysioTwin4DBase):
         self,
         sample_meshes: list[pv.DataSet],
         reference_mesh: pv.DataSet,
-        pca_number_of_components: int = 15,
+        pca_number_of_components: int = 7,
         reference_spatial_resolution: float = 1.0,
         reference_buffer_factor: float = 0.25,
         solve_for_surface_pca: bool = True,
@@ -69,7 +60,7 @@ class WorkflowCreateStatisticalModel(PhysioTwin4DBase):
         Args:
             sample_meshes: List of sample mesh DataSets (PyVista PolyData or UnstructuredGrid).
             reference_mesh: Reference mesh; its surface is used to align all samples.
-            pca_number_of_components: Number of PCA components. Default 15.
+            pca_number_of_components: Number of PCA components. Default 7.
             reference_spatial_resolution: Isotropic resolution (mm) for reference image. Default 1.0.
             reference_buffer_factor: Buffer factor around mesh for reference image. Default 0.25.
             solve_for_surface_pca: Whether to reduce the reference mesh to a surface. Default True.
@@ -110,7 +101,9 @@ class WorkflowCreateStatisticalModel(PhysioTwin4DBase):
         if not self.sample_meshes:
             raise ValueError("sample_meshes must not be empty")
         if self.solve_for_surface_pca:
-            self.reference_model = _extract_surface(self.reference_mesh)
+            self.reference_model = self.contour_tools.extract_surface(
+                self.reference_mesh
+            )
         else:
             self.reference_model = self.reference_mesh
         self.log_info(
@@ -122,7 +115,7 @@ class WorkflowCreateStatisticalModel(PhysioTwin4DBase):
         for i, mesh in enumerate(self.sample_meshes):
             model: pv.DataSet
             if self.solve_for_surface_pca:
-                model = _extract_surface(mesh)
+                model = self.contour_tools.extract_surface(mesh)
             else:
                 model = mesh
             self.sample_models.append(model)
@@ -137,13 +130,13 @@ class WorkflowCreateStatisticalModel(PhysioTwin4DBase):
         self.forward_transforms = []
         self.inverse_transforms = []
 
-        reference_surface = _extract_surface(self.reference_model)
+        reference_surface = self.contour_tools.extract_surface(self.reference_model)
         for i, (sid, moving) in enumerate(zip(self.sample_ids, self.sample_models)):
             self.log_info(
                 "ICP aligning %s (%d/%d)", sid, i + 1, len(self.sample_models)
             )
             # Always extract surfaces for ICP alignment
-            moving_surface = _extract_surface(moving)
+            moving_surface = self.contour_tools.extract_surface(moving)
             registrar = RegisterModelsICP(fixed_model=reference_surface)
             result = registrar.register(
                 moving_model=moving_surface,
@@ -309,7 +302,7 @@ class WorkflowCreateStatisticalModel(PhysioTwin4DBase):
         }
         return result
 
-    def run_workflow(self) -> dict[str, Any]:
+    def process(self) -> dict[str, Any]:
         """Run the full pipeline and return a dictionary of results (no file I/O).
 
         Returns:
