@@ -50,8 +50,8 @@ and skill levels. Every change should meet the following bar before it is commit
 
 ### Quality checks
 - [ ] Are there missing or incorrect type annotations? Fix them.
-- [ ] Does every new public method have a complete docstring (summary, Args, Returns,
-      and shape/axis notes for array/image parameters)?
+- [ ] Does every new public method have a complete docstring (summary, Args,
+      Returns)? Do not restate the fixed ITK shape / axis-order / LPS conventions.
 - [ ] Are error messages descriptive enough for a contributor who has never seen
       this code to understand what went wrong and where?
 - [ ] Is there dead code (unreachable branches, unused imports, stale comments)?

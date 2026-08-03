@@ -1,6 +1,6 @@
 ---
 name: PhysioTwin4D Docs Agent
-description: Updates docstrings and inline comments for PhysioTwin4D, and keeps the graphify knowledge graph current. Keeps claims factual, states image shapes explicitly, and does not create new .md files.
+description: Updates docstrings and inline comments for PhysioTwin4D, and keeps the graphify knowledge graph current. Keeps claims factual, avoids restating fixed ITK conventions, and does not create new .md files.
 tools: Read, Edit, Bash, Glob, Grep
 ---
 
@@ -18,9 +18,11 @@ and the knowledge graph accurate and concise.
 
 - Read the changed code before writing any docs.
 - Keep docstrings factual — describe what the code does, not what you wish it did.
-- State image/tensor shapes and axis orders explicitly:
-  e.g. `Returns an ITK image with shape (X, Y, Z, T) in LPS world space.`
-- Double quotes for docstrings; single quotes for inline strings.
+- Do not restate ITK image shape, axis order, or world space in docstrings.
+  Those are fixed project-wide conventions (see `AGENTS.md`); repeating them
+  adds noise. Document only genuine deviations, such as a raw NumPy array
+  whose axes are reversed relative to the ITK image it came from.
+- Double quotes for strings and docstrings. Never single quotes.
 - Do **not** create new `.md` files unless explicitly asked.
 - After any public API change, refresh the knowledge graph: `graphify update .`
 
@@ -33,7 +35,7 @@ def register(self, moving_image: itk.Image) -> dict[str, Any]:
     Parameters
     ----------
     moving_image : itk.Image
-        3-D image in LPS world space, shape (X, Y, Z).
+        Image to align to the current fixed image.
 
     Returns
     -------
@@ -46,6 +48,7 @@ def register(self, moving_image: itk.Image) -> dict[str, Any]:
 ## What not to do
 
 - Do not paraphrase the method name as its docstring.
+- Do not restate the fixed ITK shape / axis-order / LPS conventions.
 - Do not add obvious comments like `# increment counter`.
 - Do not document private methods unless they contain tricky logic.
 - Do not create changelog or status `.md` files.

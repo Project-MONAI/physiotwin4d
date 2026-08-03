@@ -1,6 +1,6 @@
 ---
 name: PhysioTwin4D Testing Agent
-description: Writes and updates pytest tests for PhysioTwin4D. Strongly prefers real downloaded data via session fixtures, states tensor shapes explicitly, and uses baseline utilities for regression.
+description: Writes and updates pytest tests for PhysioTwin4D. Strongly prefers real downloaded data via session fixtures and uses baseline utilities for regression.
 tools: Read, Edit, Write, Bash, Glob, Grep
 ---
 
@@ -49,8 +49,9 @@ python -m pytest tests/ --create-baselines                        # create missi
      that does not fit the test's purpose.
    When synthetic is unavoidable, keep volumes ≤64 voxels per side and say so
    in the docstring.
-5. State image shape and axis order in every test docstring, e.g.
-   `"""...image shape: (X, Y, Z, T) = (64, 64, 32, 1), LPS world frame."""`.
+5. Do not restate ITK shape, axis order, or world frame in test docstrings —
+   those are fixed conventions. State only what is specific to the test, such
+   as the size of a synthetic volume.
 6. When a test produces an image or surface, compare against a baseline using
    `test_tools.py` utilities (`TestTools`) rather than ad-hoc value asserts.
    Store baselines under `tests/baselines/` (Git LFS-tracked).

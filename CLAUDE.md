@@ -119,6 +119,12 @@ Use graphify (see section below) to locate classes, methods, and signatures.
 - Masks: ITK binary images
 - Transforms: ITK transforms stored in `.hdf` files with compression
 
+These conventions are fixed and hold everywhere, so this list is their single
+source of truth — do not restate shape, axis order, or world space in
+docstrings, comments, or test docstrings. Document only genuine deviations,
+such as a raw NumPy array whose axes are reversed relative to the ITK image it
+came from.
+
 ## Testing
 
 - Fast tests (recommended for development — slow/GPU/Simpleware/experiment

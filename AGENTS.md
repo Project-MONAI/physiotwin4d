@@ -173,6 +173,10 @@ graphify update .               # refresh after code changes (AST-only, no API c
   across segmenters.
 - Masks are binary ITK images.
 - Transforms are ITK composite transforms stored in compressed `.hdf` files.
+- These conventions are fixed and hold everywhere. This section is their single
+  source of truth — do not restate them in docstrings, comments, or test
+  docstrings. Document only genuine deviations, such as a raw NumPy array whose
+  axes are reversed relative to the ITK image it came from.
 
 ## Implementation Role
 
@@ -199,8 +203,9 @@ graphify update .               # refresh after code changes (AST-only, no API c
   or when real data would push the test into a slow, GPU, or Simpleware bucket
   that does not fit the test's purpose. Keep synthetic volumes at or below 64
   voxels per side and say so in the docstring.
-- State image shape and axis order in every test docstring, for example:
-  `shape (X, Y, Z, T) = (64, 64, 32, 1), LPS world frame`.
+- Do not restate ITK shape, axis order, or world frame in test docstrings —
+  those are fixed conventions (see Data Conventions above). State only what is
+  specific to the test, such as the size of a synthetic volume.
 - When a test produces an image or surface, compare against a baseline using
   `src/physiotwin4d/test_tools.py` utilities such as `TestTools`.
 - Store baselines under `tests/baselines/`, which is tracked by Git LFS. Run
@@ -222,6 +227,9 @@ graphify update .               # refresh after code changes (AST-only, no API c
 
 - Update docstrings for every changed public method. Keep claims factual.
 - Document with docstrings and inline comments.
+- Do not restate the fixed ITK shape, axis-order, or LPS conventions in
+  docstrings. Document only genuine deviations, such as a raw NumPy array whose
+  axes are reversed relative to the ITK image it came from.
 - Do not create new `.md` files unless explicitly requested.
 - Refresh the graphify knowledge graph after any public API change:
   `graphify update .`.

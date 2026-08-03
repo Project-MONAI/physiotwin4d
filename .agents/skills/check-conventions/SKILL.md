@@ -49,16 +49,16 @@ context such as class inheritance), then flag every occurrence of:
 - [ ] `X | None` in a type hint (use `Optional[X]`; ruff `UP007` is suppressed).
 - [ ] `Any` in a public signature without a comment explaining why.
 - [ ] A docstring delimited with `'''` (use `"""`).
-- [ ] A string literal using `"..."` for ordinary inline strings (use `'...'`;
-      docstrings stay on `"""`).
+- [ ] A string literal using `'...'` (use `"..."`; ruff `flake8-quotes` sets
+      `inline-quotes = "double"`).
 - [ ] A line longer than 88 characters.
 - [ ] An emoji or other non-ASCII glyph inside a `.py` file (Windows cp1252
       encoding has broken builds; keep emojis out of source).
 
 ### Public API hygiene
 - [ ] A public method (no leading underscore) without a NumPy-style docstring.
-- [ ] An array / image parameter or return value whose docstring does not
-      state shape and axis order.
+- [ ] A docstring that restates the fixed ITK shape, axis order, or LPS world
+      space instead of describing what the parameter or return value means.
 
 ## Output
 
