@@ -4,7 +4,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# Clone uniGradICON (feat-add-finetuning branch required for fine-tuning support)
+# Clone uniGradICON (feat-add-finetuning branch required for finetuning support)
 if [ ! -d "uniGradICON" ]; then
     git clone -b feat-add-finetuning https://github.com/uncbiag/uniGradICON.git
 else

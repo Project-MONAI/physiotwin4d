@@ -60,7 +60,8 @@ class RegisterImagesICON(RegisterImagesBase):
     - Mass preservation
     - LNCC (Local Normalized Cross Correlation) similarity metric
     - Inverse consistent transformations
-    - Fine-tuning with 50 optimization steps per registration
+    - Per-registration finetuning, 50 optimization steps by default
+      (override with set_number_of_iterations())
 
     Inherits from RegisterImagesBase:
     - Fixed and moving image management
@@ -100,7 +101,7 @@ class RegisterImagesICON(RegisterImagesBase):
     def set_weights_path(self, weights_path: str) -> None:
         """Set a custom weights file for the uniGradICON network.
 
-        Use this to load a fine-tuned checkpoint instead of the default
+        Use this to load a finetuned checkpoint instead of the default
         pretrained weights. Clears any previously loaded network so the new
         weights are applied on the next call to register().
 
@@ -119,7 +120,7 @@ class RegisterImagesICON(RegisterImagesBase):
         """Set the number of iterations for ICON registration.
 
         Args:
-            number_of_iterations: Number of fine-tuning steps for ICON registration
+            number_of_iterations: Number of finetuning steps for ICON registration
         """
         self.number_of_iterations = number_of_iterations
 
@@ -224,7 +225,8 @@ class RegisterImagesICON(RegisterImagesBase):
         Implementation details:
             - Uses UniGradIcon with LNCC loss function
             - Optionally applies mass preservation
-            - Performs 50 fine-tuning steps per registration
+            - Performs number_of_iterations finetuning steps per registration
+              (passed to unigradicon as finetune_steps; 50 by default)
             - Supports both masked and unmasked registration modes
 
         Example:

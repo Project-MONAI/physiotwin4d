@@ -76,6 +76,9 @@ dependencies = [
     "icon-registration>=1.0.0",
     "picsl-greedy>=0.0.12",
     "scipy>=1.10.0",
+    # Finetuning (``unigradicon.finetuning``, used by
+    # WorkflowFinetuneICONRegistration and Tutorial 7) only exists on the
+    # uniGradICON ``feat-add-finetuning`` branch; see [tool.uv.sources] below.
     "unigradicon>=1.0.0",
 
     # Visualization and USD
@@ -105,6 +108,13 @@ no-build-isolation-package = ["torch-scatter"]
 torch = { index = "pytorch-cu130" }
 torchvision = { index = "pytorch-cu130" }
 torchaudio = { index = "pytorch-cu130" }
+# The PyPI unigradicon release ships no ``unigradicon.finetuning`` module, so
+# finetuning (WorkflowFinetuneICONRegistration, Tutorial 7) needs this branch.
+# Declared as a uv source instead of a PEP 508 direct reference in
+# [project.dependencies] because PyPI rejects direct references at upload time.
+# pip users must install the branch explicitly:
+#   pip install "unigradicon @ git+https://github.com/uncbiag/uniGradICON.git@feat-add-finetuning"
+unigradicon = { git = "https://github.com/uncbiag/uniGradICON.git", branch = "feat-add-finetuning" }
 
 [[tool.uv.index]]
 name = "pytorch-cu130"
@@ -177,6 +187,16 @@ test = [
     "pytest-xdist>=3.0.0",
     "pytest-timeout>=2.0.0",
     "coverage[toml]>=7.0.0",
+]
+# Every optional component at once. Inherits the physicsnemo caveats above:
+# torch and setuptools must already be installed, and pip needs
+# ``--no-build-isolation`` when torch-scatter has no matching wheel.
+all = [
+    "physiotwin4d[cuda13]",
+    "physiotwin4d[dev]",
+    "physiotwin4d[docs]",
+    "physiotwin4d[physicsnemo]",
+    "physiotwin4d[test]",
 ]
 
 [project.urls]
@@ -301,6 +321,7 @@ module = [
     "physiotwin4d.cli.visualize_pca_modes",
     "physiotwin4d.vtk_to_usd.mesh_utils",
     "physiotwin4d.vtk_to_usd.vtk_reader",
+    "tutorial_07_finetune_icon_dirlab",
     "tutorial_08_byod_fit_model_to_patients",
     "tutorial_09_byod_train_physicsnemo_mgn",
     "tutorial_09_byod_train_physicsnemo_mlp",

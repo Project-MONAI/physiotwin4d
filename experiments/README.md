@@ -50,7 +50,7 @@ obtaining finer details in 4D data used to train AI motion simulations.
 - Traditional ANTs registration library
 - CT-appropriate tissue mass-preserving metric (optional)
 
-**Adaptation potential:** This approach can be fine-tuned for:
+**Adaptation potential:** This approach can be finetuned for:
 - Different anatomical regions (abdomen, pelvis, extremities)
 - Alternative imaging modalities (MRI, ultrasound time series)
 - Custom registration metrics for specific tissue types
@@ -180,7 +180,7 @@ to new anatomical regions, physiological processes, and digital twin application
 2. **Consult the CLI implementation** - See `src/physiotwin4d/cli/` to identify production classes and methods that implement similar functionality
 3. **Identify customization points:**
    - Registration parameters (metrics, transforms, optimization)
-   - Segmentation models (custom training, fine-tuning, label mappings)
+   - Segmentation models (custom training, finetuning, label mappings)
    - Meshing parameters (resolution, smoothing, topology)
    - Tissue property mappings (visualization, physics parameters)
 4. **Leverage modular design** - Swap components (registration algorithms, segmentation models) as needed

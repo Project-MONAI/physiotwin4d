@@ -28,7 +28,7 @@ Data Flow
       |        |
       |        +--> RegisterImagesANTS / RegisterImagesGreedy / RegisterImagesICON
       |        +--> RegisterImagesGreedyICON / RegisterImagesChain (chained methods)
-      |        +--> WorkflowFineTuneICONRegistration (fine-tune ICON on subject data)
+      |        +--> WorkflowFinetuneICONRegistration (finetune ICON on subject data)
       v
    SegmentChestTotalSegmentator / SegmentChestTotalSegmentatorWithContrast
    SegmentHeartSimpleware / SegmentHeartSimplewareTrimmedBranches
@@ -77,11 +77,10 @@ Primary Workflows
    Reconstructs higher-resolution 4D CT frames from a time series and a fixed
    high-resolution reference image.
 
-``WorkflowFineTuneICONRegistration``
-   Fine-tunes a uniGradICON checkpoint on subject-specific image/labelmap/
-   landmark data, then applies the fine-tuned weights through
-   :class:`RegisterTimeSeriesImages` to register a list of moving images to a
-   reference.
+``WorkflowFinetuneICONRegistration``
+   Finetunes a uniGradICON checkpoint on subject-specific image/labelmap/
+   landmark data and returns the path to the resulting weights, which
+   :class:`RegisterImagesICON` can then load.
 
 ``WorkflowConvertVTKToUSD``
    Converts in-memory PyVista/VTK meshes to static or animated USD scenes
@@ -185,6 +184,6 @@ workflow classes. They are the preferred examples for executable API usage:
 * ``physiotwin4d-reconstruct-highres-4d-ct``
 * ``physiotwin4d-visualize-pca-modes``
 
-There is no CLI wrapper for ``WorkflowFineTuneICONRegistration`` or for the
+There is no CLI wrapper for ``WorkflowFinetuneICONRegistration`` or for the
 PhysicsNeMo training/evaluation tutorials; those are used through the Python
 API and tutorial scripts.

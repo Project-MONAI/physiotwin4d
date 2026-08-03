@@ -282,7 +282,7 @@ Tutorial 5: Fit Statistical Model to Patient
 ============================================
 
 Script
-   ``tutorials/tutorial_05_heart_to_lung_fit_statistical_model_to_patient.py``
+   ``tutorials/tutorial_05_heart_fit_statistical_model_to_patient.py``
 
 Workflow
    ``WorkflowFitStatisticalModelToPatient``
@@ -321,7 +321,7 @@ Inner API usage
 Run
    .. code-block:: bash
 
-      python tutorials/tutorial_05_heart_to_lung_fit_statistical_model_to_patient.py
+      python tutorials/tutorial_05_heart_fit_statistical_model_to_patient.py
 
 Outputs
    Patient-fitted statistical model surfaces and registration diagnostics.

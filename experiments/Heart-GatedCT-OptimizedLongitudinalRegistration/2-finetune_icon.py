@@ -1,11 +1,11 @@
 # %% [markdown]
-# # Fine-tune uniGradICON on Duke 4D Gated CT Data
+# # Finetune uniGradICON on Duke 4D Gated CT Data
 #
 # Discovers per-patient gated CT images and their precomputed
 # SegmentHeartSimpleware labelmaps and applies the project-wide fixed 80/20
 # train/test split (sort patients in ``ref_data_dir`` by filename; the first
 # 80% are train, the last 20% are test).  The train cohort is handed to
-# :class:`WorkflowFineTuneICONRegistration`, which builds the paired dataset
+# :class:`WorkflowFinetuneICONRegistration`, which builds the paired dataset
 # JSON, YAML config, and derived loss-function masks, then launches
 # ``unigradicon.finetuning.finetune`` as a subprocess.
 #
@@ -28,8 +28,7 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from physiotwin4d import WorkflowFineTuneICONRegistration
-from physiotwin4d.labelmap_tools import LabelmapTools
+from physiotwin4d import WorkflowFinetuneICONRegistration
 
 # %% [markdown]
 # ## 1. Configure data, output locations, and the train/test split
@@ -41,10 +40,10 @@ labelmap_dir_base = Path("d:/PhysioTwin4D/duke_data/simple_ascardio")
 
 # Where the workflow writes the dataset JSON, YAML config, derived masks, and
 # the uniGradICON ``checkpoints/`` tree.  experiment_dir resolves to
-# ``output_dir / fine_tune_name``.
+# ``output_dir / finetune_name``.
 _HERE = Path(__file__).parent
 output_dir = _HERE / "results_finetuning"
-fine_tune_name = "icon_finetuning"
+finetune_name = "icon_finetuning"
 
 # Pre-registration augmentation: ``1-initial_registration.py`` warps every gated
 # moving frame into reference space with these backends and writes the init
@@ -114,9 +113,6 @@ train_image_files: list[list[Path]] = []
 train_labelmap_files: list[list[Optional[Path]]] = []
 train_mask_files: list[list[Optional[Path]]] = []
 valid_train_subjects: list[str] = []
-
-mask_dilation_mm = 3.0
-labelmap_tools = LabelmapTools()
 
 
 # %%
@@ -215,13 +211,13 @@ for subject_index, patient_id in enumerate(valid_train_subjects):
         train_mask_files[subject_index].extend(init_masks)
 
 # %%
-workflow = WorkflowFineTuneICONRegistration(
+workflow = WorkflowFinetuneICONRegistration(
     subject_image_files=[
         [str(image_path) for image_path in image_paths]
         for image_paths in train_image_files
     ],
     output_dir=output_dir,
-    fine_tune_name=fine_tune_name,
+    finetune_name=finetune_name,
     subject_ids=valid_train_subjects,
     subject_labelmap_files=[
         [
@@ -234,11 +230,10 @@ workflow = WorkflowFineTuneICONRegistration(
         [str(mask_path) if mask_path is not None else None for mask_path in mask_paths]
         for mask_paths in train_mask_files
     ],
-    mask_dilation_mm=0,  # masks are already dilated
     unigradicon_src_path=unigradicon_src_path,
     epochs=500,
 )
 
-weights_path = workflow.run_fine_tuning()
-print(f"\nFine-tuning complete. Expected weights at: {weights_path}")
+weights_path = workflow.process()
+print(f"\nFinetuning complete. Expected weights at: {weights_path}")
 print(f"Held-out test cohort (for 2-recon_4d_icon_eval.py): {test_subjects}")
