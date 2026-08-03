@@ -30,8 +30,9 @@ Instructions:
    (Git LFS-tracked). Run with `--create-baselines` to materialize missing
    baselines on first use; afterward, regression compares to the stored
    baseline. This catches drift that hand-written numeric thresholds miss.
-6. State image shape and axis order in every test docstring (e.g.
-   `"""...image shape: (X, Y, Z, T) = (64, 64, 32, 1), LPS world frame."""`).
+6. Do not restate ITK shape, axis order, or world frame in test docstrings —
+   those are fixed conventions. State only what is specific to the test, such
+   as the size of a synthetic volume.
 7. Mark tests that need a GPU, a slow runtime, or a licensed Simpleware
    install with `@pytest.mark.requires_gpu`, `@pytest.mark.slow`, or
    `@pytest.mark.requires_simpleware` so they fall into the right opt-in

@@ -104,8 +104,7 @@ All classes inherit from `PhysioTwin4DBase` (`physiotwin4d_base.py`),
 which provides a shared logger. Use `self.log_info()`, `self.log_debug()`
 — never `print()`.
 
-Consult `docs/API_MAP.md` and graphify (see section below) for the full
-index of classes, methods, and signatures. Regenerate API_MAP.md after any public API change: `py utils/generate_api_map.py`
+Use graphify (see section below) to locate classes, methods, and signatures.
 
 **Key data conventions:**
 
@@ -119,6 +118,12 @@ index of classes, methods, and signatures. Regenerate API_MAP.md after any publi
 - Labelmaps: ITK images with integer labels defined by anatomy segmenter used.
 - Masks: ITK binary images
 - Transforms: ITK transforms stored in `.hdf` files with compression
+
+These conventions are fixed and hold everywhere, so this list is their single
+source of truth — do not restate shape, axis order, or world space in
+docstrings, comments, or test docstrings. Document only genuine deviations,
+such as a raw NumPy array whose axes are reversed relative to the ITK image it
+came from.
 
 ## Testing
 
@@ -145,8 +150,7 @@ Claude, Codex, and other AI tooling.
 - `/impl` — read → summarize → plan → implement in small diffs
 - `/test-feature` — propose test plan, write real-data-driven pytest tests
   with baselines
-- `/doc-feature` — update docstrings (and remind you to run `/regen-api-map`)
-- `/regen-api-map` — regenerate `docs/API_MAP.md` and report public-API changes
+- `/doc-feature` — update docstrings
 - `/check-conventions` — audit changed files against project hard rules
   (base-class, logging, coordinate frame, USD entry point, Windows mp guard,
   quoting, type hints, line length, emoji ban)

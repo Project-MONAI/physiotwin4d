@@ -38,8 +38,7 @@ Class Boundaries
 * ``ContourTools`` creates and transforms VTK/PyVista surface data.
 * ``USDTools`` and ``USDAnatomyTools`` operate on USD stages and files.
 
-Public APIs should be documented in ``docs/api`` and reflected in
-``docs/API_MAP.md`` after regeneration.
+Public APIs should be documented in ``docs/api``.
 
 Validation
 ==========
@@ -56,11 +55,12 @@ auto-skipped; opt in with ``--run-slow``, ``--run-gpu``, ``--run-simpleware``,
 ``--run-all`` to enable every bucket at once. Data-dependent tests download
 their data through the session fixtures and run by default.)
 
-After public API changes, regenerate the API map:
+After public API changes, refresh the graphify knowledge graph so AI assistants
+keep resolving symbols correctly (see :doc:`ai_assistants`):
 
 .. code-block:: bash
 
-   py utils/generate_api_map.py
+   graphify update .
 
 See Also
 ========

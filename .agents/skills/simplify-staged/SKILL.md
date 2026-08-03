@@ -45,13 +45,13 @@ and skill levels. Every change should meet the following bar before it is commit
       if it will be called from at least two places *within the current change set*.
       Do not introduce speculative abstractions.
 - [ ] Does the new code re-implement something already available in the existing
-      codebase (check `docs/API_MAP.md`) or in the standard library / dependencies
+      codebase (check with `graphify query`) or in the standard library / dependencies
       already listed in `pyproject.toml`?
 
 ### Quality checks
 - [ ] Are there missing or incorrect type annotations? Fix them.
-- [ ] Does every new public method have a complete docstring (summary, Args, Returns,
-      and shape/axis notes for array/image parameters)?
+- [ ] Does every new public method have a complete docstring (summary, Args,
+      Returns)? Do not restate the fixed ITK shape / axis-order / LPS conventions.
 - [ ] Are error messages descriptive enough for a contributor who has never seen
       this code to understand what went wrong and where?
 - [ ] Is there dead code (unreachable branches, unused imports, stale comments)?

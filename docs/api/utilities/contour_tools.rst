@@ -15,4 +15,4 @@ Module Reference
 
 .. rubric:: Navigation
 
-:doc:`transform_tools` | :doc:`index` | :doc:`nrrd_conversion` | :doc:`test_tools`
+:doc:`transform_tools` | :doc:`index` | :doc:`image_conversion`

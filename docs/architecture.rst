@@ -104,8 +104,7 @@ with a learned model at inference time:
    (``WorkflowReconstructHighres4DCT``), producing the per-phase mesh/surface
    pairs used as AI surrogate training data.
 
-``tutorial_09_byod_train_physicsnemo_mgn.py`` /
-``tutorial_09_byod_train_physicsnemo_mlp.py``
+``tutorial_09_byod_train_physicsnemo_mgn.py`` / ``tutorial_09_byod_train_physicsnemo_mlp.py``
    Train a PhysicsNeMo surrogate — a graph-based ``MeshGraphNet`` via
    ``WorkflowTrainPhysicsNeMoMGN`` or a fully connected MLP via
    ``WorkflowTrainPhysicsNeMoMLP`` — on the Tutorial 8 output to predict
@@ -113,8 +112,7 @@ with a learned model at inference time:
    coefficients. Requires the ``[physicsnemo]`` extra (and ``torch-geometric``
    for the MeshGraphNet variant); Python >= 3.11.
 
-``tutorial_10_byod_eval_physicsnemo_mgn.py`` /
-``tutorial_10_byod_eval_physicsnemo_mlp.py``
+``tutorial_10_byod_eval_physicsnemo_mgn.py`` / ``tutorial_10_byod_eval_physicsnemo_mlp.py``
    Load a trained MeshGraphNet or MLP checkpoint (via
    ``WorkflowInferPhysicsNeMoMGN`` / ``WorkflowInferPhysicsNeMoMLP``) and
    predict/score cardiac surfaces without running registration, i.e. the AI

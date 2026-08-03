@@ -51,6 +51,10 @@ Getting Started
 
       pre-commit install
 
+If you work with an AI coding assistant, use the graphify knowledge graph to
+navigate the codebase — ``graphify query "<question>"`` returns a scoped
+subgraph rather than raw search output. See :doc:`developer/ai_assistants`.
+
 IDE Setup (VS Code / Cursor)
 ==============================
 

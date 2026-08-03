@@ -17,4 +17,4 @@ Module Reference
 
 .. rubric:: Navigation
 
-:doc:`nrrd_conversion` | :doc:`index` | :doc:`data_download`
+:doc:`image_conversion` | :doc:`index` | :doc:`data_download`

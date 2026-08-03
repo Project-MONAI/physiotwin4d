@@ -72,7 +72,7 @@ percent-cell markers so the same file can be executed end-to-end with
 | **Code Quality Tools**      | Ruff (lint + format), mypy                            |
 | **Example Scripts**         | 41 experiment scripts + 11 tutorial scripts           |
 | **Version Management**      | Calendar versioning via bumpver                       |
-| **API Reference**           | Google-style docstrings + generated `docs/API_MAP.md` (via `python utils/generate_api_map.py`) |
+| **API Reference**           | Google-style docstrings + Sphinx API docs under `docs/api/` |
 | **Package Distribution**    | PyPI-ready                                            |
 
 ---
@@ -98,7 +98,7 @@ PhysioTwin4D operates across several technically demanding domains:
   `PhysioTwin4DBase`)
 - Module coupling: medium (clear separation between segmentation,
   registration, USD conversion, and workflow layers)
-- Public API surface documented via generated `docs/API_MAP.md`
+- Public API surface documented via Sphinx API docs under `docs/api/`
 - ~25 major external dependencies (medical imaging, AI/ML, USD, registration)
 
 ---
@@ -161,7 +161,7 @@ PhysioTwin4D operates across several technically demanding domains:
 | **Markdown files**    | 30 (repo-wide READMEs, guides) | 3,780 |
 | **reStructuredText**  | 73 files under `docs/`   | 7,064 |
 | **Python docstrings** | All public modules       | embedded |
-| **API map**           | Generated on demand via `python utils/generate_api_map.py` | n/a (not checked in) |
+| **Knowledge graph**   | `graphify-out/`, refreshed via `graphify update .` | n/a (not checked in) |
 
 ### Documentation Highlights
 

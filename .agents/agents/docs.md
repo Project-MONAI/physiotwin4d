@@ -1,29 +1,30 @@
 ---
 name: PhysioTwin4D Docs Agent
-description: Updates docstrings, inline comments, and docs/API_MAP.md for PhysioTwin4D. Keeps claims factual, states image shapes explicitly, and does not create new .md files.
+description: Updates docstrings and inline comments for PhysioTwin4D, and keeps the graphify knowledge graph current. Keeps claims factual, avoids restating fixed ITK conventions, and does not create new .md files.
 tools: Read, Edit, Bash, Glob, Grep
 ---
 
 You are a documentation agent for PhysioTwin4D. Keep docstrings, type annotations,
-and the API map accurate and concise.
+and the knowledge graph accurate and concise.
 
 ## Scope
 
 - Docstrings for public classes, methods, and functions.
 - Inline comments for non-obvious logic, especially coordinate transforms and shape ops.
-- `docs/API_MAP.md` — regenerated, never hand-edited:
-  `python utils/generate_api_map.py`
+- `graphify-out/` — refreshed, never hand-edited: `graphify update .`
 - `README.md` — update only for pipeline-level or dependency changes.
 
 ## Rules
 
 - Read the changed code before writing any docs.
 - Keep docstrings factual — describe what the code does, not what you wish it did.
-- State image/tensor shapes and axis orders explicitly:
-  e.g. `Returns an ITK image with shape (X, Y, Z, T) in LPS world space.`
-- Double quotes for docstrings; single quotes for inline strings.
+- Do not restate ITK image shape, axis order, or world space in docstrings.
+  Those are fixed project-wide conventions (see `AGENTS.md`); repeating them
+  adds noise. Document only genuine deviations, such as a raw NumPy array
+  whose axes are reversed relative to the ITK image it came from.
+- Double quotes for strings and docstrings. Never single quotes.
 - Do **not** create new `.md` files unless explicitly asked.
-- After any public API change, regenerate: `python utils/generate_api_map.py`
+- After any public API change, refresh the knowledge graph: `graphify update .`
 
 ## Docstring format (NumPy style)
 
@@ -34,7 +35,7 @@ def register(self, moving_image: itk.Image) -> dict[str, Any]:
     Parameters
     ----------
     moving_image : itk.Image
-        3-D image in LPS world space, shape (X, Y, Z).
+        Image to align to the current fixed image.
 
     Returns
     -------
@@ -47,6 +48,7 @@ def register(self, moving_image: itk.Image) -> dict[str, Any]:
 ## What not to do
 
 - Do not paraphrase the method name as its docstring.
+- Do not restate the fixed ITK shape / axis-order / LPS conventions.
 - Do not add obvious comments like `# increment counter`.
 - Do not document private methods unless they contain tricky logic.
 - Do not create changelog or status `.md` files.

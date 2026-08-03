@@ -99,6 +99,26 @@ python -m pytest tests/ --create-baselines
 
 Version bumping: `bumpver update --patch`, `--minor`, or `--major`.
 
+## graphify
+
+This project keeps a knowledge graph at `graphify-out/` covering god nodes,
+community structure, and cross-file relationships. It is the recommended way
+to navigate the codebase with an AI assistant: a scoped subgraph is far
+smaller and more accurate than raw grep output over 8,000+ lines of source.
+
+```bash
+graphify query "<question>"     # codebase questions -> scoped subgraph
+graphify path "<A>" "<B>"       # how two symbols relate
+graphify explain "<concept>"    # focused explanation of one concept
+graphify update .               # refresh after code changes (AST-only, no API cost)
+```
+
+- Prefer `graphify query` over manual searching when `graphify-out/graph.json`
+  exists.
+- Use `graphify-out/wiki/index.md` for broad navigation, and
+  `graphify-out/GRAPH_REPORT.md` only for whole-architecture review.
+- Run `graphify update .` after modifying code so the graph does not go stale.
+
 ## Codex Sandbox
 
 - If a Python command fails with
@@ -133,8 +153,8 @@ Version bumping: `bumpver update --patch`, `--minor`, or `--major`.
   Slow, GPU, Simpleware,
   experiment, and tutorial tests are auto-skipped unless their opt-in flag is
   passed.
-- Consult `docs/API_MAP.md` to locate classes, methods, and signatures before
-  searching manually.
+- Query the graphify knowledge graph (`graphify query "<question>"`) to locate
+  classes, methods, and signatures before searching manually.
 - Do not commit changes or make pull requests unless specifically told to do so.
 
 ## Data Conventions
@@ -153,6 +173,10 @@ Version bumping: `bumpver update --patch`, `--minor`, or `--major`.
   across segmenters.
 - Masks are binary ITK images.
 - Transforms are ITK composite transforms stored in compressed `.hdf` files.
+- These conventions are fixed and hold everywhere. This section is their single
+  source of truth — do not restate them in docstrings, comments, or test
+  docstrings. Document only genuine deviations, such as a raw NumPy array whose
+  axes are reversed relative to the ITK image it came from.
 
 ## Implementation Role
 
@@ -179,8 +203,9 @@ Version bumping: `bumpver update --patch`, `--minor`, or `--major`.
   or when real data would push the test into a slow, GPU, or Simpleware bucket
   that does not fit the test's purpose. Keep synthetic volumes at or below 64
   voxels per side and say so in the docstring.
-- State image shape and axis order in every test docstring, for example:
-  `shape (X, Y, Z, T) = (64, 64, 32, 1), LPS world frame`.
+- Do not restate ITK shape, axis order, or world frame in test docstrings —
+  those are fixed conventions (see Data Conventions above). State only what is
+  specific to the test, such as the size of a synthetic volume.
 - When a test produces an image or surface, compare against a baseline using
   `src/physiotwin4d/test_tools.py` utilities such as `TestTools`.
 - Store baselines under `tests/baselines/`, which is tracked by Git LFS. Run
@@ -202,16 +227,19 @@ Version bumping: `bumpver update --patch`, `--minor`, or `--major`.
 
 - Update docstrings for every changed public method. Keep claims factual.
 - Document with docstrings and inline comments.
+- Do not restate the fixed ITK shape, axis-order, or LPS conventions in
+  docstrings. Document only genuine deviations, such as a raw NumPy array whose
+  axes are reversed relative to the ITK image it came from.
 - Do not create new `.md` files unless explicitly requested.
-- Regenerate `docs/API_MAP.md` after any public API change from the active
-  `.\venv`: `python utils/generate_api_map.py`.
+- Refresh the graphify knowledge graph after any public API change:
+  `graphify update .`.
 
 ## Architecture Role
 
 - Propose a numbered design plan with tradeoffs before structural changes.
 - Identify every file that will change and how the class hierarchy is affected.
-- Flag changes at the ITK/PyVista boundary or the RAS to Y-up coordinate
-  transform as high-risk.
+- Flag changes at the ITK/PyVista boundary, which stays in the internal LPS
+  frame, or the LPS to USD Y-up export transform as high-risk.
 
 ## File Operations
 

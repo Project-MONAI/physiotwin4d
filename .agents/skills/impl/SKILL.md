@@ -7,7 +7,7 @@ Implement the following in the PhysioTwin4D repository:
 $ARGUMENTS
 
 Instructions:
-1. Use `docs/API_MAP.md` to locate relevant files, then read them in full.
+1. Use `graphify query "<question>"` to locate relevant files, then read them in full.
 2. Summarize current behavior in 2–4 sentences.
 3. State the implementation plan in numbered steps. For non-trivial changes, pause and confirm before proceeding.
 4. Implement in the smallest reviewable diff possible.

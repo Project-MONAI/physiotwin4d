@@ -65,7 +65,6 @@ exclude_patterns = [
     "_build",
     "Thumbs.db",
     ".DS_Store",
-    "API_MAP.md",
     "README.md",
 ]
 

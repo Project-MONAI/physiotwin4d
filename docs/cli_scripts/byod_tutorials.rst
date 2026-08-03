@@ -289,7 +289,7 @@ See Also
 - :doc:`/cli_scripts/heart_gated_ct`
 - :doc:`/cli_scripts/vtk_to_usd`
 - :doc:`/api/workflows`
-- :doc:`/examples`
+- :doc:`/tutorials`
 - :doc:`/troubleshooting`
 
 .. _isaac_for_healthcare_assets:
