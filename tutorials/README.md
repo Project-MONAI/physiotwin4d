@@ -18,7 +18,7 @@ dataset licensing, and expected directory layout.
 | 2 | [tutorial_02_heart_ct_to_vtk.py](tutorial_02_heart_ct_to_vtk.py) | `WorkflowConvertImageToVTK` | Slicer-Heart-CT (prepare first) |
 | 3 | [tutorial_03_heart_vtk_to_usd.py](tutorial_03_heart_vtk_to_usd.py) | `WorkflowConvertVTKToUSD` | Output of tutorial 2 |
 | 4 | [tutorial_04_heart_create_statistical_model.py](tutorial_04_heart_create_statistical_model.py) | `WorkflowCreateStatisticalModel` | KCL-Heart-Model |
-| 5 | [tutorial_05_heart_to_lung_fit_statistical_model_to_patient.py](tutorial_05_heart_to_lung_fit_statistical_model_to_patient.py) | `WorkflowFitStatisticalModelToPatient` | KCL-Heart-Model plus Tutorial 4 output |
+| 5 | [tutorial_05_heart_fit_statistical_model_to_patient.py](tutorial_05_heart_fit_statistical_model_to_patient.py) | `WorkflowFitStatisticalModelToPatient` | KCL-Heart-Model plus Tutorial 4 output |
 | 6 | [tutorial_06_lung_reconstruct_highres_4d_ct.py](tutorial_06_lung_reconstruct_highres_4d_ct.py) | `WorkflowReconstructHighres4DCT` | DirLab-4DCT (manual) |
 | 8 | [tutorial_08_byod_fit_model_to_patients.py](tutorial_08_byod_fit_model_to_patients.py) | `WorkflowFitStatisticalModelToPatient`, `WorkflowReconstructHighres4DCT` | Bring your own (cardiac gated CT, `D:/PhysioTwin4D/`) |
 | 9 | [tutorial_09_byod_train_physicsnemo_mgn.py](tutorial_09_byod_train_physicsnemo_mgn.py) | `WorkflowTrainPhysicsNeMoMGN` (requires `[physicsnemo]` extra + `torch-geometric`) | Tutorial 8 output |

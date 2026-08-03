@@ -121,7 +121,7 @@ Examples:
         "--ICON-iterations",
         type=int,
         default=None,
-        help="ICON fine-tuning iterations. Default: None",
+        help="ICON finetuning iterations. Default: None",
     )
 
     # Mask options

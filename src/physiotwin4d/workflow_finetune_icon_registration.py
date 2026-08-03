@@ -1,16 +1,16 @@
-"""Fine-tune uniGradICON registration and apply the fine-tuned weights.
+"""Finetune uniGradICON registration and apply the finetuned weights.
 
-This module provides :class:`WorkflowFineTuneICONRegistration`
+This module provides :class:`WorkflowFinetuneICONRegistration`
 
-1. **Fine-tuning**: build a paired dataset JSON and YAML config from per-subject
+1. **Finetuning**: build a paired dataset JSON and YAML config from per-subject
    lists of image files (with optional labelmaps and landmark CSVs)
    and launch ``unigradicon.finetuning.finetune`` as a subprocess.
-2. **Apply**: load a fine-tuned uniGradICON checkpoint and register a list of
+2. **Apply**: load a finetuned uniGradICON checkpoint and register a list of
    moving images to a single reference image using
    :class:`RegisterTimeSeriesImages` (ICON backend).
 
 Conventions:
-    - Fine-tuning is file-based: it reads images/labelmaps/landmarks from disk
+    - Finetuning is file-based: it reads images/labelmaps/landmarks from disk
       because ``unigradicon.finetuning.finetune`` is launched as a subprocess
       that consumes JSON paths.
     - Apply is in-memory: takes ``itk.Image`` inputs in LPS space and
@@ -46,12 +46,12 @@ from .transform_tools import TransformTools
 Landmarks = dict[str, tuple[float, float, float]]
 
 
-class WorkflowFineTuneICONRegistration(PhysioTwin4DBase):
-    """Fine-tune uniGradICON on paired 3D images and apply the fine-tuned weights.
+class WorkflowFinetuneICONRegistration(PhysioTwin4DBase):
+    """Finetune uniGradICON on paired 3D images and apply the finetuned weights.
 
     The workflow has two stages that can be used together or independently:
 
-    **Stage 1: Fine-tuning** (file-based)
+    **Stage 1: Finetuning** (file-based)
         Build a paired dataset JSON and YAML config from per-subject lists of
         image, labelmap, and landmark files, then launch
         ``unigradicon.finetuning.finetune`` as a subprocess.  Each subject's
@@ -59,7 +59,7 @@ class WorkflowFineTuneICONRegistration(PhysioTwin4DBase):
 
     **Stage 2: Apply** (in-memory)
         Register a list of moving images to a single reference image using the
-        fine-tuned ICON weights and return both directions of the warp:
+        finetuned ICON weights and return both directions of the warp:
 
         - moving images / labelmaps / landmarks warped into reference space
         - the reference image / labelmap / landmarks warped into each
@@ -68,10 +68,10 @@ class WorkflowFineTuneICONRegistration(PhysioTwin4DBase):
     Attributes:
         subject_image_files (list[list[str]]): Per-subject lists of image
             paths.  Images within one inner list share a subject_id during
-            fine-tuning.
+            finetuning.
         output_dir (Path): Directory where dataset JSON, YAML config, derived
             masks, and the uniGradICON ``checkpoints/`` tree are written.
-        fine_tune_name (str): Sub-directory name for the experiment outputs.
+        finetune_name (str): Sub-directory name for the experiment outputs.
         subject_ids (Optional[list[str]]): One ID per subject (e.g. patient
             identifiers).  Written into the dataset JSON's ``subject_id``
             field; falls back to synthetic ``subject_NNNN`` when ``None``.
@@ -88,7 +88,7 @@ class WorkflowFineTuneICONRegistration(PhysioTwin4DBase):
         subject_landmark_files (Optional[list[list[Optional[str]]]]):
             Per-subject landmark CSV paths (``Name,X,Y,Z`` format) aligned with
             ``subject_image_files``.  Recorded in the dataset JSON for
-            traceability; not consumed by uniGradICON fine-tuning itself.
+            traceability; not consumed by uniGradICON finetuning itself.
         mask_dilation_mm (float): Millimeters of physical-radius binary
             dilation applied to the >0 labelmap when deriving the loss-masking
             binary mask via :meth:`LabelmapTools.convert_labelmap_to_mask`.
@@ -103,20 +103,20 @@ class WorkflowFineTuneICONRegistration(PhysioTwin4DBase):
             labelmaps.
 
     Example:
-        >>> # Stage 1: fine-tune
-        >>> workflow = WorkflowFineTuneICONRegistration(
+        >>> # Stage 1: finetune
+        >>> workflow = WorkflowFinetuneICONRegistration(
         ...     subject_image_files=[
         ...         ['pm0001/g000.nii.gz', 'pm0001/g050.nii.gz'],
         ...         ['pm0002/g000.nii.gz', 'pm0002/g050.nii.gz'],
         ...     ],
         ...     output_dir=Path('d:/PhysioTwin4D/icon_finetuned'),
-        ...     fine_tune_name='duke_4d_gated_icon_ft',
+        ...     finetune_name='duke_4d_gated_icon_ft',
         ...     subject_labelmap_files=[
         ...         ['pm0001/g000_labelmap.nii.gz', 'pm0001/g050_labelmap.nii.gz'],
         ...         ['pm0002/g000_labelmap.nii.gz', 'pm0002/g050_labelmap.nii.gz'],
         ...     ],
         ... )
-        >>> weights_path = workflow.run_fine_tuning()
+        >>> weights_path = workflow.run_finetuning()
         >>>
         >>> # Stage 2: apply
         >>> result = workflow.apply_registration(
@@ -134,7 +134,7 @@ class WorkflowFineTuneICONRegistration(PhysioTwin4DBase):
         self,
         subject_image_files: list[list[str]],
         output_dir: Path,
-        fine_tune_name: str,
+        finetune_name: str,
         subject_ids: Optional[list[str]] = None,
         subject_labelmap_files: Optional[list[list[Optional[str]]]] = None,
         subject_mask_files: Optional[list[list[Optional[str]]]] = None,
@@ -158,7 +158,7 @@ class WorkflowFineTuneICONRegistration(PhysioTwin4DBase):
         unigradicon_src_path: Optional[Path] = None,
         log_level: Union[int, str] = logging.INFO,
     ) -> None:
-        """Initialize the ICON fine-tuning workflow.
+        """Initialize the ICON finetuning workflow.
 
         Args:
             subject_image_files: Per-subject lists of image file paths.  Each
@@ -166,7 +166,7 @@ class WorkflowFineTuneICONRegistration(PhysioTwin4DBase):
                 frames share a ``subject_id`` for paired training.
             output_dir: Directory for dataset JSON, YAML config, derived masks,
                 and the uniGradICON checkpoint tree.
-            fine_tune_name: Sub-directory name for the experiment outputs
+            finetune_name: Sub-directory name for the experiment outputs
                 (used as the uniGradICON ``experiment.name`` stem).
             subject_ids: One ID per subject, in the same order as
                 ``subject_image_files``.  Written verbatim into the dataset
@@ -187,7 +187,7 @@ class WorkflowFineTuneICONRegistration(PhysioTwin4DBase):
                 it if no segmentation is available either).
             subject_landmark_files: Per-subject landmark CSV paths matching
                 ``subject_image_files``.  Stored in the dataset JSON for
-                traceability; not consumed by uniGradICON fine-tuning.
+                traceability; not consumed by uniGradICON finetuning.
             epochs: uniGradICON ``training.epochs``.
             batch_size: uniGradICON ``training.batch_size``.
             learning_rate: uniGradICON ``training.learning_rate``.
@@ -212,7 +212,7 @@ class WorkflowFineTuneICONRegistration(PhysioTwin4DBase):
                 (``<labelmap_dir>/<labelmap_stem>_mask.nii.gz``).  An explicit
                 path puts all derived masks in that single directory.
             unigradicon_src_path: Optional path to a local uniGradICON source
-                tree to prepend to ``PYTHONPATH`` when running fine-tuning.
+                tree to prepend to ``PYTHONPATH`` when running finetuning.
                 Useful for using a checked-out copy instead of the installed
                 package.
             log_level: Logging level (``logging.DEBUG``, ``logging.INFO``, ...).
@@ -225,7 +225,7 @@ class WorkflowFineTuneICONRegistration(PhysioTwin4DBase):
                 ``subject_image_files``.
         """
         super().__init__(
-            class_name="WorkflowFineTuneICONRegistration", log_level=log_level
+            class_name="WorkflowFinetuneICONRegistration", log_level=log_level
         )
 
         if not subject_image_files:
@@ -264,8 +264,8 @@ class WorkflowFineTuneICONRegistration(PhysioTwin4DBase):
         )
 
         self.output_dir = Path(output_dir).resolve()
-        self.fine_tune_name = fine_tune_name
-        self.experiment_dir = self.output_dir / fine_tune_name
+        self.finetune_name = finetune_name
+        self.experiment_dir = self.output_dir / finetune_name
         self.mask_dir: Optional[Path] = Path(mask_dir) if mask_dir is not None else None
 
         self.epochs = epochs
@@ -479,7 +479,7 @@ class WorkflowFineTuneICONRegistration(PhysioTwin4DBase):
 
                 dataset_entries.append(entry)
 
-        dataset_json_path = self.experiment_dir / f"{self.fine_tune_name}_dataset.json"
+        dataset_json_path = self.experiment_dir / f"{self.finetune_name}_dataset.json"
         with dataset_json_path.open("w") as fh:
             json.dump({"data": dataset_entries}, fh, indent=2)
 
@@ -492,7 +492,7 @@ class WorkflowFineTuneICONRegistration(PhysioTwin4DBase):
         return dataset_json_path
 
     def prepare_config(self, dataset_json_path: Optional[Path] = None) -> Path:
-        """Write the uniGradICON fine-tuning YAML config.
+        """Write the uniGradICON finetuning YAML config.
 
         Args:
             dataset_json_path: Path to the dataset JSON to reference.  Defaults
@@ -512,7 +512,7 @@ class WorkflowFineTuneICONRegistration(PhysioTwin4DBase):
                 "been called yet"
             )
 
-        experiment_name = self.experiment_dir / f"{self.fine_tune_name}_model"
+        experiment_name = self.experiment_dir / f"{self.finetune_name}_model"
 
         config: dict[str, Any] = {
             "experiment": {
@@ -537,7 +537,7 @@ class WorkflowFineTuneICONRegistration(PhysioTwin4DBase):
             },
             "datasets": [
                 {
-                    "name": self.fine_tune_name,
+                    "name": self.finetune_name,
                     "weight": 1.0,
                     "type": "paired",
                     "json_file": self._posix(dataset_json_path),
@@ -549,7 +549,7 @@ class WorkflowFineTuneICONRegistration(PhysioTwin4DBase):
             ],
         }
 
-        config_yaml_path = self.experiment_dir / f"{self.fine_tune_name}_config.yaml"
+        config_yaml_path = self.experiment_dir / f"{self.finetune_name}_config.yaml"
         with config_yaml_path.open("w") as fh:
             yaml.dump(config, fh, default_flow_style=False, sort_keys=False)
         self.log_info("Wrote config YAML %s", config_yaml_path)
@@ -561,17 +561,17 @@ class WorkflowFineTuneICONRegistration(PhysioTwin4DBase):
 
         ``unigradicon.finetuning.finetune`` writes
         ``<experiment.name>/checkpoints/Finetune_multi_final.trch`` at the end of
-        training.  Used both as the return value of :meth:`run_fine_tuning` and
+        training.  Used both as the return value of :meth:`run_finetuning` and
         as a default in :meth:`apply_registration`.
         """
         return (
             self.experiment_dir
-            / f"{self.fine_tune_name}_model"
+            / f"{self.finetune_name}_model"
             / "checkpoints"
             / "Finetune_multi_final.trch"
         )
 
-    def run_fine_tuning(self) -> Path:
+    def run_finetuning(self) -> Path:
         """Build configs and launch ``unigradicon.finetuning.finetune``.
 
         Equivalent to running
@@ -584,10 +584,10 @@ class WorkflowFineTuneICONRegistration(PhysioTwin4DBase):
             subprocess and exists only after a successful run.
 
         Raises:
-            subprocess.CalledProcessError: If the fine-tuning subprocess exits
+            subprocess.CalledProcessError: If the finetuning subprocess exits
                 with a non-zero status.
         """
-        self.log_section("FINE-TUNING UNIGRADICON", width=70)
+        self.log_section("FINETUNING UNIGRADICON", width=70)
 
         dataset_json_path = self.prepare_dataset()
         config_yaml_path = self.prepare_config(dataset_json_path)
@@ -606,11 +606,11 @@ class WorkflowFineTuneICONRegistration(PhysioTwin4DBase):
             "--config",
             str(config_yaml_path),
         ]
-        self.log_info("Launching fine-tuning subprocess: %s", " ".join(cmd))
+        self.log_info("Launching finetuning subprocess: %s", " ".join(cmd))
         subprocess.run(cmd, check=True, env=env)
 
         weights_path = self.expected_weights_path()
-        self.log_info("Fine-tuning complete. Expected weights at %s", weights_path)
+        self.log_info("Finetuning complete. Expected weights at %s", weights_path)
         return weights_path
 
     @staticmethod
@@ -642,7 +642,7 @@ class WorkflowFineTuneICONRegistration(PhysioTwin4DBase):
         number_of_iterations: int = 100,
         modality: str = "ct",
     ) -> dict[str, Any]:
-        """Register each moving image to the reference using fine-tuned ICON weights.
+        """Register each moving image to the reference using finetuned ICON weights.
 
         For every moving image this method:
 
@@ -686,7 +686,7 @@ class WorkflowFineTuneICONRegistration(PhysioTwin4DBase):
             moving_landmarks: Optional per-moving landmark dicts in LPS.  Each
                 set is warped into reference space.  Per-image ``None`` entries
                 are allowed.
-            number_of_iterations: ICON fine-tuning iterations per registration.
+            number_of_iterations: ICON finetuning iterations per registration.
             modality: Imaging modality passed through to the underlying ICON
                 registrar (``'ct'`` or ``'mri'``).
 
@@ -743,7 +743,7 @@ class WorkflowFineTuneICONRegistration(PhysioTwin4DBase):
                 f"moving_images length ({num_moving})"
             )
 
-        self.log_section("APPLYING FINE-TUNED ICON REGISTRATION", width=70)
+        self.log_section("APPLYING FINETUNED ICON REGISTRATION", width=70)
         self.log_info("Number of moving images: %d", num_moving)
         if weights_path is None:
             self.log_info("ICON weights: <default uniGradICON>")

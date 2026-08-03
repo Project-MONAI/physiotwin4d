@@ -6,7 +6,7 @@ Starting from a 3D medical image of a subject, this package extracts anatomic
 models and then uses AI surrogates to estimate the subject's physiological
 processes, initially cardiac and respiratory motion and expanding to
 electrophysiology, blood flow, and organ perfusion. It provides methods for
-forming those AI surrogates and for fine-tuning the segmentation and
+forming those AI surrogates and for finetuning the segmentation and
 registration AI methods that power them, with statistical shape models used
 to capture subject-specific characteristics and establish correspondence
 across subjects.
@@ -86,7 +86,7 @@ from .workflow_convert_image_to_usd import WorkflowConvertImageToUSD
 from .workflow_convert_vtk_to_usd import WorkflowConvertVTKToUSD
 from .workflow_reconstruct_highres_4d_ct import WorkflowReconstructHighres4DCT
 from .workflow_create_statistical_model import WorkflowCreateStatisticalModel
-from .workflow_fine_tune_icon_registration import WorkflowFineTuneICONRegistration
+from .workflow_finetune_icon_registration import WorkflowFinetuneICONRegistration
 from .workflow_fit_statistical_model_to_patient import (
     WorkflowFitStatisticalModelToPatient,
 )
@@ -107,7 +107,7 @@ __all__ = [
     "WorkflowConvertImageToUSD",
     "WorkflowConvertVTKToUSD",
     "WorkflowCreateStatisticalModel",
-    "WorkflowFineTuneICONRegistration",
+    "WorkflowFinetuneICONRegistration",
     "WorkflowReconstructHighres4DCT",
     "WorkflowFitStatisticalModelToPatient",
     "WorkflowTrainPhysicsNeMo",

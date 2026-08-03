@@ -50,7 +50,7 @@ percent-cell markers so the same file can be executed end-to-end with
 | `transform_tools.py`                             | 1,237 | ITK transform utilities                        |
 | `convert_vtk_to_usd.py`                          | 1,001 | High-level VTK -> USD converter                |
 | `workflow_fit_statistical_model_to_patient.py`   | 948   | Model-to-patient registration workflow         |
-| `workflow_fine_tune_icon_registration.py`        | 912   | Fine-tuning workflow for Icon registration      |
+| `workflow_finetune_icon_registration.py`        | 912   | Finetuning workflow for Icon registration      |
 | `register_models_pca.py`                         | 854   | PCA-based shape model registration             |
 | `register_images_ants.py`                        | 759   | ANTs-based image registration                  |
 | `vtk_to_usd/` subpackage                         | 2,661 | Low-level VTK -> USD building blocks (9 files) |

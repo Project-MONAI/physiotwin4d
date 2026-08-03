@@ -177,7 +177,7 @@ print("All test subjects have exactly one ref.nii.gz")
 # LPS) by ``0-cardiacGatedCT_segment_and_landmark.py``.  Binary registration
 # masks come from :meth:`LabelmapTools.convert_labelmap_to_mask` (``>0``
 # threshold plus 5 mm dilation), matching the loss-function masks used
-# during fine-tuning in ``1-finetune_icon.py``.
+# during finetuning in ``1-finetune_icon.py``.
 
 # %%
 landmark_tools = LandmarkTools()

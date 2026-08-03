@@ -1,7 +1,7 @@
-"""Unit tests for WorkflowFineTuneICONRegistration.
+"""Unit tests for WorkflowFinetuneICONRegistration.
 
 Exercises constructor validation, ``prepare_dataset`` / ``prepare_config``
-file generation, mask derivation, and the ``run_fine_tuning`` subprocess
+file generation, mask derivation, and the ``run_finetuning`` subprocess
 launch.  GPU-heavy paths (real uniGradICON training, ``apply_registration``)
 are not exercised here — only their input-validation guards.
 """
@@ -20,8 +20,8 @@ import numpy as np
 import pytest
 import yaml
 
-from physiotwin4d.workflow_fine_tune_icon_registration import (
-    WorkflowFineTuneICONRegistration,
+from physiotwin4d.workflow_finetune_icon_registration import (
+    WorkflowFinetuneICONRegistration,
 )
 
 
@@ -64,7 +64,7 @@ def two_subject_dataset(tmp_path: Path) -> dict[str, Any]:
 
     return {
         "output_dir": output_dir,
-        "fine_tune_name": "test_exp",
+        "finetune_name": "test_exp",
         "subject_ids": ["pm0001", "pm0002"],
         "subject_image_files": subject_image_files,
         "subject_labelmap_files": subject_labelmap_files,
@@ -77,9 +77,9 @@ def two_subject_dataset(tmp_path: Path) -> dict[str, Any]:
 
 
 def test_init_requires_output_dir_and_name(tmp_path: Path) -> None:
-    """output_dir and fine_tune_name are required positional args."""
+    """output_dir and finetune_name are required positional args."""
     with pytest.raises(TypeError):
-        WorkflowFineTuneICONRegistration(  # type: ignore[call-arg]
+        WorkflowFinetuneICONRegistration(  # type: ignore[call-arg]
             subject_image_files=[["a.nii.gz"]],
         )
 
@@ -87,20 +87,20 @@ def test_init_requires_output_dir_and_name(tmp_path: Path) -> None:
 def test_init_rejects_empty_image_files(tmp_path: Path) -> None:
     """Empty subject list raises immediately."""
     with pytest.raises(ValueError, match="must not be empty"):
-        WorkflowFineTuneICONRegistration(
+        WorkflowFinetuneICONRegistration(
             subject_image_files=[],
             output_dir=tmp_path,
-            fine_tune_name="x",
+            finetune_name="x",
         )
 
 
 def test_init_rejects_mismatched_companion_lengths(tmp_path: Path) -> None:
     """Mask/seg/landmark lists must match subject_image_files shape exactly."""
     with pytest.raises(ValueError, match="subject_mask_files\\[0\\] length"):
-        WorkflowFineTuneICONRegistration(
+        WorkflowFinetuneICONRegistration(
             subject_image_files=[["a.nii.gz", "b.nii.gz"]],
             output_dir=tmp_path,
-            fine_tune_name="x",
+            finetune_name="x",
             subject_mask_files=[["m.nii.gz"]],
         )
 
@@ -108,10 +108,10 @@ def test_init_rejects_mismatched_companion_lengths(tmp_path: Path) -> None:
 def test_init_rejects_duplicate_subject_ids(tmp_path: Path) -> None:
     """Duplicate subject IDs collapse paired groups, so reject them up front."""
     with pytest.raises(ValueError, match="unique"):
-        WorkflowFineTuneICONRegistration(
+        WorkflowFinetuneICONRegistration(
             subject_image_files=[["a"], ["b"]],
             output_dir=tmp_path,
-            fine_tune_name="x",
+            finetune_name="x",
             subject_ids=["same", "same"],
         )
 
@@ -119,10 +119,10 @@ def test_init_rejects_duplicate_subject_ids(tmp_path: Path) -> None:
 def test_init_rejects_mismatched_subject_ids_length(tmp_path: Path) -> None:
     """subject_ids must have one entry per subject."""
     with pytest.raises(ValueError, match="subject_ids length"):
-        WorkflowFineTuneICONRegistration(
+        WorkflowFinetuneICONRegistration(
             subject_image_files=[["a"]],
             output_dir=tmp_path,
-            fine_tune_name="x",
+            finetune_name="x",
             subject_ids=["a", "b"],
         )
 
@@ -132,19 +132,19 @@ def test_use_labelmaps_and_use_masks_flags(tmp_path: Path) -> None:
     base: dict[str, Any] = {
         "subject_image_files": [["a"]],
         "output_dir": tmp_path,
-        "fine_tune_name": "x",
+        "finetune_name": "x",
     }
-    none_wf = WorkflowFineTuneICONRegistration(**base)
+    none_wf = WorkflowFinetuneICONRegistration(**base)
     assert not none_wf.use_labelmaps
     assert not none_wf.use_masks
 
-    seg_only = WorkflowFineTuneICONRegistration(
+    seg_only = WorkflowFinetuneICONRegistration(
         **base, subject_labelmap_files=[["seg.nii.gz"]]
     )
     assert seg_only.use_labelmaps
     assert seg_only.use_masks  # derived from segs
 
-    mask_only = WorkflowFineTuneICONRegistration(
+    mask_only = WorkflowFinetuneICONRegistration(
         **base, subject_mask_files=[["mask.nii.gz"]]
     )
     assert not mask_only.use_labelmaps
@@ -160,7 +160,7 @@ def test_prepare_dataset_uses_real_subject_ids(
     two_subject_dataset: dict[str, Any],
 ) -> None:
     """Subject IDs round-trip from the caller into every dataset entry."""
-    workflow = WorkflowFineTuneICONRegistration(
+    workflow = WorkflowFinetuneICONRegistration(
         log_level=logging.CRITICAL, **two_subject_dataset
     )
     dataset_json_path = workflow.prepare_dataset()
@@ -191,10 +191,10 @@ def test_prepare_dataset_skips_frames_with_missing_segmentation(
     _make_image(img_b)
     _make_image(seg_a)
 
-    workflow = WorkflowFineTuneICONRegistration(
+    workflow = WorkflowFinetuneICONRegistration(
         subject_image_files=[[str(img_a), str(img_b)]],
         output_dir=tmp_path / "out",
-        fine_tune_name="exp",
+        finetune_name="exp",
         subject_labelmap_files=[[str(seg_a), None]],
         log_level=logging.CRITICAL,
     )
@@ -216,10 +216,10 @@ def test_prepare_dataset_uses_explicit_mask_over_derived(tmp_path: Path) -> None
     _make_image(seg)
     _make_image(explicit_mask)
 
-    workflow = WorkflowFineTuneICONRegistration(
+    workflow = WorkflowFinetuneICONRegistration(
         subject_image_files=[[str(image)]],
         output_dir=tmp_path / "out",
-        fine_tune_name="exp",
+        finetune_name="exp",
         subject_labelmap_files=[[str(seg)]],
         subject_mask_files=[[str(explicit_mask)]],
         log_level=logging.CRITICAL,
@@ -243,10 +243,10 @@ def test_prepare_dataset_mask_only_no_segmentations(tmp_path: Path) -> None:
     _make_image(image)
     _make_image(mask)
 
-    workflow = WorkflowFineTuneICONRegistration(
+    workflow = WorkflowFinetuneICONRegistration(
         subject_image_files=[[str(image)]],
         output_dir=tmp_path / "out",
-        fine_tune_name="exp",
+        finetune_name="exp",
         subject_mask_files=[[str(mask)]],
         log_level=logging.CRITICAL,
     )
@@ -261,7 +261,7 @@ def test_prepare_dataset_derives_mask_next_to_labelmap_by_default(
     two_subject_dataset: dict[str, Any],
 ) -> None:
     """Derived masks land next to each labelmap when ``mask_dir`` is not set."""
-    workflow = WorkflowFineTuneICONRegistration(
+    workflow = WorkflowFinetuneICONRegistration(
         log_level=logging.CRITICAL, **two_subject_dataset
     )
     assert workflow.mask_dir is None
@@ -288,7 +288,7 @@ def test_prepare_dataset_derives_mask_under_explicit_mask_dir(
 ) -> None:
     """Explicit ``mask_dir`` collects every derived mask in that single folder."""
     explicit_mask_dir = tmp_path / "explicit_masks"
-    workflow = WorkflowFineTuneICONRegistration(
+    workflow = WorkflowFinetuneICONRegistration(
         log_level=logging.CRITICAL,
         mask_dir=explicit_mask_dir,
         **two_subject_dataset,
@@ -309,10 +309,10 @@ def test_prepare_dataset_derives_mask_under_explicit_mask_dir(
 
 def test_prepare_dataset_raises_on_missing_image_file(tmp_path: Path) -> None:
     """Image existence is a hard requirement; missing image aborts the build."""
-    workflow = WorkflowFineTuneICONRegistration(
+    workflow = WorkflowFinetuneICONRegistration(
         subject_image_files=[[str(tmp_path / "does_not_exist.nii.gz")]],
         output_dir=tmp_path / "out",
-        fine_tune_name="exp",
+        finetune_name="exp",
         log_level=logging.CRITICAL,
     )
     with pytest.raises(FileNotFoundError, match="Image not found"):
@@ -328,7 +328,7 @@ def test_prepare_config_emits_uniGradICON_yaml(
     two_subject_dataset: dict[str, Any],
 ) -> None:
     """YAML config matches uniGradICON's expected structure when seg is present."""
-    workflow = WorkflowFineTuneICONRegistration(
+    workflow = WorkflowFinetuneICONRegistration(
         log_level=logging.CRITICAL,
         epochs=10,
         batch_size=2,
@@ -368,10 +368,10 @@ def test_prepare_config_flags_off_when_no_companions(tmp_path: Path) -> None:
     image = data_dir / "image.nii.gz"
     _make_image(image)
 
-    workflow = WorkflowFineTuneICONRegistration(
+    workflow = WorkflowFinetuneICONRegistration(
         subject_image_files=[[str(image)]],
         output_dir=tmp_path / "out",
-        fine_tune_name="exp",
+        finetune_name="exp",
         log_level=logging.CRITICAL,
     )
     dataset_json = workflow.prepare_dataset()
@@ -384,10 +384,10 @@ def test_prepare_config_flags_off_when_no_companions(tmp_path: Path) -> None:
 
 def test_prepare_config_requires_dataset_json(tmp_path: Path) -> None:
     """Calling prepare_config without first preparing the dataset is an error."""
-    workflow = WorkflowFineTuneICONRegistration(
+    workflow = WorkflowFinetuneICONRegistration(
         subject_image_files=[["a"]],
         output_dir=tmp_path,
-        fine_tune_name="x",
+        finetune_name="x",
         log_level=logging.CRITICAL,
     )
     with pytest.raises(ValueError, match="prepare_dataset"):
@@ -401,10 +401,10 @@ def test_prepare_config_requires_dataset_json(tmp_path: Path) -> None:
 
 def test_expected_weights_path_layout(tmp_path: Path) -> None:
     """Weights land at ``output_dir/<name>/<name>_model/checkpoints/...``."""
-    workflow = WorkflowFineTuneICONRegistration(
+    workflow = WorkflowFinetuneICONRegistration(
         subject_image_files=[["a"]],
         output_dir=tmp_path,
-        fine_tune_name="exp",
+        finetune_name="exp",
         log_level=logging.CRITICAL,
     )
     expected = workflow.expected_weights_path()
@@ -414,15 +414,15 @@ def test_expected_weights_path_layout(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# run_fine_tuning (subprocess is monkey-patched)
+# run_finetuning (subprocess is monkey-patched)
 # ---------------------------------------------------------------------------
 
 
-def test_run_fine_tuning_invokes_unigradicon_subprocess(
+def test_run_finetuning_invokes_unigradicon_subprocess(
     monkeypatch: pytest.MonkeyPatch,
     two_subject_dataset: dict[str, Any],
 ) -> None:
-    """run_fine_tuning launches the uniGradICON finetune module with the YAML path."""
+    """run_finetuning launches the uniGradICON finetune module with the YAML path."""
     captured: dict[str, Any] = {}
 
     def fake_run(
@@ -439,12 +439,12 @@ def test_run_fine_tuning_invokes_unigradicon_subprocess(
     monkeypatch.setattr(subprocess, "run", fake_run)
 
     unigradicon_src = two_subject_dataset["output_dir"].parent / "fake_unigradicon_src"
-    workflow = WorkflowFineTuneICONRegistration(
+    workflow = WorkflowFinetuneICONRegistration(
         log_level=logging.CRITICAL,
         unigradicon_src_path=unigradicon_src,
         **two_subject_dataset,
     )
-    weights = workflow.run_fine_tuning()
+    weights = workflow.run_finetuning()
 
     assert captured["check"] is True
     assert captured["cmd"][0] == sys.executable
@@ -460,7 +460,7 @@ def test_run_fine_tuning_invokes_unigradicon_subprocess(
     assert weights == workflow.expected_weights_path()
 
 
-def test_run_fine_tuning_without_unigradicon_src(
+def test_run_finetuning_without_unigradicon_src(
     monkeypatch: pytest.MonkeyPatch,
     two_subject_dataset: dict[str, Any],
 ) -> None:
@@ -478,11 +478,11 @@ def test_run_fine_tuning_without_unigradicon_src(
 
     monkeypatch.setattr(subprocess, "run", fake_run)
 
-    workflow = WorkflowFineTuneICONRegistration(
+    workflow = WorkflowFinetuneICONRegistration(
         log_level=logging.CRITICAL,
         **two_subject_dataset,
     )
-    workflow.run_fine_tuning()
+    workflow.run_finetuning()
 
 
 # ---------------------------------------------------------------------------
@@ -492,10 +492,10 @@ def test_run_fine_tuning_without_unigradicon_src(
 
 def test_apply_registration_rejects_empty_moving(tmp_path: Path) -> None:
     """apply_registration validates inputs before touching the registrar."""
-    workflow = WorkflowFineTuneICONRegistration(
+    workflow = WorkflowFinetuneICONRegistration(
         subject_image_files=[["a"]],
         output_dir=tmp_path,
-        fine_tune_name="x",
+        finetune_name="x",
         log_level=logging.CRITICAL,
     )
     arr = np.zeros((3, 3, 3), dtype=np.float32)
@@ -506,10 +506,10 @@ def test_apply_registration_rejects_empty_moving(tmp_path: Path) -> None:
 
 def test_apply_registration_rejects_mismatched_companions(tmp_path: Path) -> None:
     """moving_labelmaps / moving_landmarks length must match moving_images."""
-    workflow = WorkflowFineTuneICONRegistration(
+    workflow = WorkflowFinetuneICONRegistration(
         subject_image_files=[["a"]],
         output_dir=tmp_path,
-        fine_tune_name="x",
+        finetune_name="x",
         log_level=logging.CRITICAL,
     )
     ref = itk.image_from_array(np.zeros((3, 3, 3), dtype=np.float32))

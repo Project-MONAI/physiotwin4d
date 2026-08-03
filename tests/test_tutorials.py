@@ -157,9 +157,9 @@ class TestTutorial04CreateStatisticalModel:
 @pytest.mark.tutorial
 @pytest.mark.slow
 class TestTutorial05FitStatisticalModelToPatient:
-    """End-to-end test for tutorial_05_heart_to_lung_fit_statistical_model_to_patient.py."""
+    """End-to-end test for tutorial_05_heart_fit_statistical_model_to_patient.py."""
 
-    _class_name = "tutorial_05_heart_to_lung_fit_statistical_model_to_patient"
+    _class_name = "tutorial_05_heart_fit_statistical_model_to_patient"
 
     def test_run(self, test_directories: dict[str, Path]) -> None:
         kcl_dir = test_directories["data"] / "KCL-Heart-Model"
@@ -180,7 +180,7 @@ class TestTutorial05FitStatisticalModelToPatient:
 
         out_dir = _REPO_ROOT / "tutorials" / "output" / "tutorial_05_heart_to_lung"
         results = _run_tutorial_script(
-            "tutorial_05_heart_to_lung_fit_statistical_model_to_patient.py"
+            "tutorial_05_heart_fit_statistical_model_to_patient.py"
         )
         assert results["registered_file"].exists(), "Registered VTP should exist"
 
