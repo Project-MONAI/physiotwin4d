@@ -17,8 +17,9 @@ Finetuning artifacts (dataset JSON, YAML config, checkpoint tree) are written
 under ``tutorials/network_weights/icon_dirlab_4dct``.  The final checkpoint is
 ``tutorials/network_weights/icon_dirlab_4dct/icon_dirlab_4dct_model/checkpoints/
 Finetune_multi_final.trch``, the path returned by
-``WorkflowFinetuneICONRegistration.expected_weights_path()``.  An existing
-checkpoint there is reused, so re-running the tutorial skips finetuning.
+``WorkflowFinetuneICONRegistration.expected_weights_path()``.  That directory is
+deleted at the start of every run, so each run finetunes from scratch; see the
+comment above the ``shutil.rmtree`` call for how to reuse a previous run.
 
 Data Required
 -------------
@@ -32,6 +33,7 @@ from __future__ import annotations
 
 import csv
 import logging
+import shutil
 import time
 from pathlib import Path
 from typing import Optional
@@ -40,12 +42,12 @@ import itk
 import numpy as np
 
 from physiotwin4d import (
+    PhysioTwin4DBase,
     RegisterImagesGreedyICON,
     TestTools,
     TransformTools,
     WorkflowFinetuneICONRegistration,
 )
-from physiotwin4d.physiotwin4d_base import PhysioTwin4DBase
 
 # Only run if this script is not imported as a module
 
@@ -75,7 +77,7 @@ if __name__ == "__main__":
     else:
         data_dir = repo_root / "data" / "DirLab-4DCT"
         number_of_iterations_greedy = None  # Greedy defaults
-        epochs = 10
+        epochs = 100
 
     log_level = logging.INFO
     reporter = PhysioTwin4DBase(class_name=class_name, log_level=log_level)
@@ -113,9 +115,25 @@ if __name__ == "__main__":
         len(training_files),
     )
 
-    # Finetuning. DIR-Lab ships no segmentations, so no labelmaps or masks are
-    # supplied and the Dice loss must be disabled: uniGradICON requires a
-    # ``segmentation`` field on every dataset entry when dice_loss_weight > 0.
+    # Always finetune from scratch.  uniGradICON refuses to overwrite an
+    # existing experiment directory: it appends "-N" to the name instead
+    # (``icon_dirlab_4dct_model-5``, ...), while expected_weights_path() keeps
+    # pointing at the original, never-written path.  Deleting the tree up front
+    # keeps the two in agreement.
+    #
+    # To reuse a previous run instead, delete the shutil.rmtree call below and
+    # guard the process() call:
+    #     weights_path = workflow.expected_weights_path()
+    #     if not weights_path.exists():
+    #         weights_path = workflow.process()
+    experiment_dir = weights_dir / finetune_name
+    if experiment_dir.exists():
+        reporter.log_info("Removing previous finetuning outputs: %s", experiment_dir)
+        shutil.rmtree(experiment_dir)
+
+    # DIR-Lab ships no segmentations, so no labelmaps or masks are supplied and
+    # the Dice loss must be disabled: uniGradICON requires a ``segmentation``
+    # field on every dataset entry when dice_loss_weight > 0.
     workflow = WorkflowFinetuneICONRegistration(
         subject_image_files=list(subject_image_files.values()),
         output_dir=weights_dir,
@@ -125,11 +143,7 @@ if __name__ == "__main__":
         dice_loss_weight=0.0,
         log_level=log_level,
     )
-    weights_path = workflow.expected_weights_path()
-    if weights_path.exists():
-        reporter.log_info("Reusing existing finetuned weights: %s", weights_path)
-    else:
-        weights_path = workflow.process()
+    weights_path = workflow.process()
 
     # Registration with and without the finetuned weights
     fixed_image = itk.imread(str(fixed_file), pixel_type=itk.F)

@@ -321,6 +321,7 @@ module = [
     "physiotwin4d.cli.visualize_pca_modes",
     "physiotwin4d.vtk_to_usd.mesh_utils",
     "physiotwin4d.vtk_to_usd.vtk_reader",
+    "tutorial_07_finetune_icon_dirlab",
     "tutorial_08_byod_fit_model_to_patients",
     "tutorial_09_byod_train_physicsnemo_mgn",
     "tutorial_09_byod_train_physicsnemo_mlp",
