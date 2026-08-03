@@ -57,8 +57,10 @@ context such as class inheritance), then flag every occurrence of:
 
 ### Public API hygiene
 - [ ] A public method (no leading underscore) without a NumPy-style docstring.
-- [ ] A docstring that restates the fixed ITK shape, axis order, or LPS world
-      space instead of describing what the parameter or return value means.
+- [ ] A docstring or comment that restates the fixed ITK shape, axis order, or
+      LPS world space — flag it even when it also documents what the parameter
+      or return value means. Only genuine deviations from the conventions in
+      `CLAUDE.md` may be documented.
 
 ## Output
 

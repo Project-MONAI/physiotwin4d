@@ -238,8 +238,8 @@ graphify update .               # refresh after code changes (AST-only, no API c
 
 - Propose a numbered design plan with tradeoffs before structural changes.
 - Identify every file that will change and how the class hierarchy is affected.
-- Flag changes at the ITK/PyVista boundary or the RAS to Y-up coordinate
-  transform as high-risk.
+- Flag changes at the ITK/PyVista boundary, which stays in the internal LPS
+  frame, or the LPS to USD Y-up export transform as high-risk.
 
 ## File Operations
 
