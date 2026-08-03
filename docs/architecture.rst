@@ -79,9 +79,8 @@ Primary Workflows
 
 ``WorkflowFinetuneICONRegistration``
    Finetunes a uniGradICON checkpoint on subject-specific image/labelmap/
-   landmark data, then applies the finetuned weights through
-   :class:`RegisterTimeSeriesImages` to register a list of moving images to a
-   reference.
+   landmark data and returns the path to the resulting weights, which
+   :class:`RegisterImagesICON` can then load.
 
 ``WorkflowConvertVTKToUSD``
    Converts in-memory PyVista/VTK meshes to static or animated USD scenes

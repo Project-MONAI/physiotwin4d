@@ -182,7 +182,11 @@ class TestTutorial05FitStatisticalModelToPatient:
         results = _run_tutorial_script(
             "tutorial_05_heart_fit_statistical_model_to_patient.py"
         )
-        assert results["registered_file"].exists(), "Registered VTP should exist"
+        # ``out_dir.name`` is the tutorial's ``project_name`` file prefix.
+        registered_surface_file = (
+            out_dir / f"{out_dir.name}_template_surface_registered.vtp"
+        )
+        assert registered_surface_file.exists(), "Registered surface VTP should exist"
 
         tt = TestTools(
             class_name=self._class_name,

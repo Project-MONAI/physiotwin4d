@@ -1,28 +1,14 @@
-"""Finetune uniGradICON registration and apply the finetuned weights.
+"""Finetune uniGradICON registration.
 
-This module provides :class:`WorkflowFinetuneICONRegistration`
-
-1. **Finetuning**: build a paired dataset JSON and YAML config from per-subject
-   lists of image files (with optional labelmaps and landmark CSVs)
-   and launch ``unigradicon.finetuning.finetune`` as a subprocess.
-2. **Apply**: load a finetuned uniGradICON checkpoint and register a list of
-   moving images to a single reference image using
-   :class:`RegisterTimeSeriesImages` (ICON backend).
+This module provides :class:`WorkflowFinetuneICONRegistration`, which builds a
+paired dataset JSON and YAML config from per-subject lists of image files (with
+optional labelmaps and landmark CSVs) and launches
+``unigradicon.finetuning.finetune`` as a subprocess.
 
 Conventions:
     - Finetuning is file-based: it reads images/labelmaps/landmarks from disk
       because ``unigradicon.finetuning.finetune`` is launched as a subprocess
       that consumes JSON paths.
-    - Apply is in-memory: takes ``itk.Image`` inputs in LPS space and
-      ``dict[name, (x, y, z)]`` landmark dictionaries.  Segmentations are
-      resampled with nearest-neighbor interpolation; images use linear
-      interpolation.
-    - The ``inverse_transform`` returned by ICON is a resampler-convention
-      transform that maps moving-grid points back to reference-grid points;
-      ``forward_transform`` is the inverse direction (reference grid →
-      moving grid).  Landmarks are warped using ``TransformPoint`` and
-      images/labelmaps are resampled via
-      :meth:`TransformTools.transform_image`.
 """
 
 import json
@@ -33,44 +19,25 @@ import sys
 from pathlib import Path
 from typing import Any, Optional, Union
 
-import itk
-import numpy as np
 import yaml
 
-from .labelmap_tools import LabelmapTools
 from .physiotwin4d_base import PhysioTwin4DBase
-from .register_images_icon import RegisterImagesICON
-from .register_time_series_images import RegisterTimeSeriesImages
-from .transform_tools import TransformTools
-
-Landmarks = dict[str, tuple[float, float, float]]
 
 
 class WorkflowFinetuneICONRegistration(PhysioTwin4DBase):
-    """Finetune uniGradICON on paired 3D images and apply the finetuned weights.
+    """Finetune uniGradICON on paired 3D images.
 
-    The workflow has two stages that can be used together or independently:
-
-    **Stage 1: Finetuning** (file-based)
-        Build a paired dataset JSON and YAML config from per-subject lists of
-        image, labelmap, and landmark files, then launch
-        ``unigradicon.finetuning.finetune`` as a subprocess.  Each subject's
-        time-point images form one paired group (they share a ``subject_id``).
-
-    **Stage 2: Apply** (in-memory)
-        Register a list of moving images to a single reference image using the
-        finetuned ICON weights and return both directions of the warp:
-
-        - moving images / labelmaps / landmarks warped into reference space
-        - the reference image / labelmap / landmarks warped into each
-          moving-image space
+    Build a paired dataset JSON and YAML config from per-subject lists of
+    image, labelmap, and landmark files, then launch
+    ``unigradicon.finetuning.finetune`` as a subprocess.  Each subject's
+    time-point images form one paired group (they share a ``subject_id``).
 
     Attributes:
         subject_image_files (list[list[str]]): Per-subject lists of image
             paths.  Images within one inner list share a subject_id during
             finetuning.
-        output_dir (Path): Directory where dataset JSON, YAML config, derived
-            masks, and the uniGradICON ``checkpoints/`` tree are written.
+        output_dir (Path): Directory where the dataset JSON, YAML config, and
+            the uniGradICON ``checkpoints/`` tree are written.
         finetune_name (str): Sub-directory name for the experiment outputs.
         subject_ids (Optional[list[str]]): One ID per subject (e.g. patient
             identifiers).  Written into the dataset JSON's ``subject_id``
@@ -81,29 +48,14 @@ class WorkflowFinetuneICONRegistration(PhysioTwin4DBase):
             labelmap for that image.  If supplied for at least one image,
             paired-with-seg training is enabled.
         subject_mask_files (Optional[list[list[Optional[str]]]]):
-            Per-subject binary mask paths aligned with ``subject_image_files``.
-            When supplied for a frame these masks are used directly for
-            loss-function masking; otherwise masks are derived from
-            ``subject_labelmap_files``.
+            Per-subject binary mask paths aligned with ``subject_image_files``,
+            used for loss-function masking.  ``None`` disables masking.
         subject_landmark_files (Optional[list[list[Optional[str]]]]):
             Per-subject landmark CSV paths (``Name,X,Y,Z`` format) aligned with
             ``subject_image_files``.  Recorded in the dataset JSON for
             traceability; not consumed by uniGradICON finetuning itself.
-        mask_dilation_mm (float): Millimeters of physical-radius binary
-            dilation applied to the >0 labelmap when deriving the loss-masking
-            binary mask via :meth:`LabelmapTools.convert_labelmap_to_mask`.
-        mask_exclude_labels (Optional[list[int]]): Labels to exclude from the mask.
-            Default is None.
-        mask_dir (Optional[Path]): Directory where derived binary masks are
-            written and looked up.  ``None`` (default) writes each derived
-            mask next to its source labelmap on disk.
-        registrar (RegisterTimeSeriesImages): ICON-backend registrar used in
-            :meth:`apply_registration`.
-        transform_tools (TransformTools): Utility for resampling images and
-            labelmaps.
 
     Example:
-        >>> # Stage 1: finetune
         >>> workflow = WorkflowFinetuneICONRegistration(
         ...     subject_image_files=[
         ...         ['pm0001/g000.nii.gz', 'pm0001/g050.nii.gz'],
@@ -116,18 +68,7 @@ class WorkflowFinetuneICONRegistration(PhysioTwin4DBase):
         ...         ['pm0002/g000_labelmap.nii.gz', 'pm0002/g050_labelmap.nii.gz'],
         ...     ],
         ... )
-        >>> weights_path = workflow.run_finetuning()
-        >>>
-        >>> # Stage 2: apply
-        >>> result = workflow.apply_registration(
-        ...     reference_image=ref_image,
-        ...     moving_images=moving_images,
-        ...     weights_path=weights_path,
-        ...     reference_labelmap=ref_seg,
-        ...     moving_labelmaps=moving_segs,
-        ... )
-        >>> warped_to_ref = result['moving_to_reference_images']
-        >>> warped_to_moving = result['reference_to_moving_images']
+        >>> weights_path = workflow.process()
     """
 
     def __init__(
@@ -152,9 +93,6 @@ class WorkflowFinetuneICONRegistration(PhysioTwin4DBase):
         gpus: Optional[list[int]] = None,
         eval_period: int = 10,
         save_period: int = 50,
-        mask_dilation_mm: float = 5.0,
-        mask_exclude_labels: Optional[list[int]] = None,
-        mask_dir: Optional[Path] = None,
         unigradicon_src_path: Optional[Path] = None,
         log_level: Union[int, str] = logging.INFO,
     ) -> None:
@@ -164,8 +102,8 @@ class WorkflowFinetuneICONRegistration(PhysioTwin4DBase):
             subject_image_files: Per-subject lists of image file paths.  Each
                 inner list groups frames belonging to one subject; all of those
                 frames share a ``subject_id`` for paired training.
-            output_dir: Directory for dataset JSON, YAML config, derived masks,
-                and the uniGradICON checkpoint tree.
+            output_dir: Directory for the dataset JSON, YAML config, and the
+                uniGradICON checkpoint tree.
             finetune_name: Sub-directory name for the experiment outputs
                 (used as the uniGradICON ``experiment.name`` stem).
             subject_ids: One ID per subject, in the same order as
@@ -179,12 +117,9 @@ class WorkflowFinetuneICONRegistration(PhysioTwin4DBase):
                 Individual ``None`` entries inside the inner lists skip just
                 those frames when paired-with-seg training is enabled.
             subject_mask_files: Per-subject binary mask paths matching
-                ``subject_image_files``.  When supplied these are used directly
-                for ICON loss-function masking; otherwise masks are derived
-                from ``subject_labelmap_files`` via a >0 threshold and
-                dilation by ``mask_dilation_mm``.  Per-image ``None``
-                entries fall back to the derived mask for that frame (or skip
-                it if no segmentation is available either).
+                ``subject_image_files``, used for ICON loss-function masking.
+                ``None`` disables loss-function masking.  Per-image ``None``
+                entries skip just those frames.
             subject_landmark_files: Per-subject landmark CSV paths matching
                 ``subject_image_files``.  Stored in the dataset JSON for
                 traceability; not consumed by uniGradICON finetuning.
@@ -201,16 +136,6 @@ class WorkflowFinetuneICONRegistration(PhysioTwin4DBase):
             gpus: GPU device indices for training.  Defaults to ``[0]``.
             eval_period: uniGradICON ``training.eval_period``.
             save_period: uniGradICON ``training.save_period``.
-            mask_dilation_mm: Physical radius (millimeters) of binary
-                dilation applied to the >0 labelmap when deriving the
-                loss-masking binary mask via
-                :meth:`LabelmapTools.convert_labelmap_to_mask`.  Ignored when
-                no segmentations are supplied.  Default 5.0 mm.
-            mask_dir: Directory where derived binary masks are written and
-                looked up.  ``None`` (default) writes each derived mask next
-                to its source labelmap on disk
-                (``<labelmap_dir>/<labelmap_stem>_mask.nii.gz``).  An explicit
-                path puts all derived masks in that single directory.
             unigradicon_src_path: Optional path to a local uniGradICON source
                 tree to prepend to ``PYTHONPATH`` when running finetuning.
                 Useful for using a checked-out copy instead of the installed
@@ -259,14 +184,11 @@ class WorkflowFinetuneICONRegistration(PhysioTwin4DBase):
         self.subject_landmark_files = subject_landmark_files
 
         self.use_labelmaps: bool = subject_labelmap_files is not None
-        self.use_masks: bool = (
-            subject_mask_files is not None or subject_labelmap_files is not None
-        )
+        self.use_masks: bool = subject_mask_files is not None
 
         self.output_dir = Path(output_dir).resolve()
         self.finetune_name = finetune_name
         self.experiment_dir = self.output_dir / finetune_name
-        self.mask_dir: Optional[Path] = Path(mask_dir) if mask_dir is not None else None
 
         self.epochs = epochs
         self.batch_size = batch_size
@@ -281,15 +203,9 @@ class WorkflowFinetuneICONRegistration(PhysioTwin4DBase):
         self.gpus = list(gpus) if gpus is not None else [0]
         self.eval_period = eval_period
         self.save_period = save_period
-        self.mask_exclude_labels = mask_exclude_labels
-        self.mask_dilation_mm = float(mask_dilation_mm)
         self.unigradicon_src_path = (
             Path(unigradicon_src_path) if unigradicon_src_path is not None else None
         )
-
-        self.transform_tools = TransformTools()
-        self.labelmap_tools = LabelmapTools(log_level=log_level)
-        self.registrar: Optional[RegisterTimeSeriesImages] = None
 
         self._use_labelmaps: bool = self.use_labelmaps
         self._use_masks: bool = self.use_masks
@@ -323,51 +239,6 @@ class WorkflowFinetuneICONRegistration(PhysioTwin4DBase):
         """Return a forward-slashed string path (uniGradICON expects POSIX paths)."""
         return str(path).replace("\\", "/")
 
-    def _derive_mask(
-        self,
-        labelmap_path: Union[str, Path],
-    ) -> Path:
-        """Create (or reuse) a dilated binary mask from a multi-label labelmap.
-
-        Threshold the labelmap at ``>0`` and dilate by ``mask_dilation_mm`` mm
-        of physical radius via
-        :meth:`LabelmapTools.convert_labelmap_to_mask` to widen the ROI for
-        loss-function masking.
-
-        When :attr:`mask_dir` is ``None`` (the default) the mask is written
-        next to the source labelmap as
-        ``<labelmap_dir>/<labelmap_stem>_mask.nii.gz``.  Otherwise it goes
-        under :attr:`mask_dir`.  Existing masks on disk are reused unmodified.
-
-        Args:
-            labelmap_path: Path to a multi-label ``itk.Image`` on disk.
-
-        Returns:
-            Path to the binary mask file on disk.
-        """
-        labelmap_path = Path(labelmap_path)
-        stem = labelmap_path.name
-        if stem.endswith(".nii.gz"):
-            stem = stem[: -len(".nii.gz")]
-        else:
-            stem = labelmap_path.stem
-        target_dir = (
-            self.mask_dir if self.mask_dir is not None else labelmap_path.parent
-        )
-        target_dir.mkdir(parents=True, exist_ok=True)
-        mask_path = target_dir / f"{stem}_mask.nii.gz"
-        if mask_path.exists():
-            return mask_path
-
-        labelmap = itk.imread(str(labelmap_path))
-        mask = self.labelmap_tools.convert_labelmap_to_mask(
-            labelmap,
-            dilation_in_mm=self.mask_dilation_mm,
-            exclude_labels=self.mask_exclude_labels,
-        )
-        itk.imwrite(mask, str(mask_path), compression=True)
-        return mask_path
-
     def prepare_dataset(
         self,
         use_labelmaps: Optional[bool] = None,
@@ -379,12 +250,10 @@ class WorkflowFinetuneICONRegistration(PhysioTwin4DBase):
         optional ``mask``, optional ``landmarks`` (path only), and a
         ``subject_id`` derived from the inner-list index.
 
-        Masks are taken from ``subject_mask_files`` when supplied for a frame;
-        otherwise they are derived from ``subject_labelmap_files`` via a
-        >0 threshold and ``mask_dilation_mm`` mm dilation.  Frames are
-        skipped (with a log warning) when a required companion (segmentation
-        for paired-with-seg training, or mask for loss-function masking) is
-        missing.
+        Masks come from ``subject_mask_files`` only; none are derived.  Frames
+        are skipped (with a log warning) when a required companion
+        (segmentation for paired-with-seg training, or mask for loss-function
+        masking) is missing.
 
         Returns:
             Path to the dataset JSON written under :attr:`experiment_dir`.
@@ -458,21 +327,15 @@ class WorkflowFinetuneICONRegistration(PhysioTwin4DBase):
                     entry["segmentation"] = self._posix(seg_file)
 
                 if use_masks:
-                    if mask_file is not None and Path(mask_file).exists():
-                        resolved_mask: Path = Path(mask_file)
-                    elif seg_file is not None and Path(seg_file).exists():
-                        resolved_mask = self._derive_mask(seg_file)
-                    else:
+                    if mask_file is None or not Path(mask_file).exists():
                         self.log_warning(
-                            "Skipping %s: neither explicit mask nor segmentation "
-                            "available to derive a loss-function mask "
-                            "(mask=%s, seg=%s)",
+                            "Skipping %s: mask missing for loss-function masking "
+                            "(mask=%s)",
                             image_path,
                             mask_file,
-                            seg_file,
                         )
                         continue
-                    entry["mask"] = self._posix(resolved_mask)
+                    entry["mask"] = self._posix(mask_file)
 
                 if landmark_file is not None:
                     entry["landmarks"] = self._posix(landmark_file)
@@ -561,8 +424,7 @@ class WorkflowFinetuneICONRegistration(PhysioTwin4DBase):
 
         ``unigradicon.finetuning.finetune`` writes
         ``<experiment.name>/checkpoints/Finetune_multi_final.trch`` at the end of
-        training.  Used both as the return value of :meth:`run_finetuning` and
-        as a default in :meth:`apply_registration`.
+        training.  Also the return value of :meth:`process`.
         """
         return (
             self.experiment_dir
@@ -571,7 +433,7 @@ class WorkflowFinetuneICONRegistration(PhysioTwin4DBase):
             / "Finetune_multi_final.trch"
         )
 
-    def run_finetuning(self) -> Path:
+    def process(self) -> Path:
         """Build configs and launch ``unigradicon.finetuning.finetune``.
 
         Equivalent to running
@@ -612,301 +474,3 @@ class WorkflowFinetuneICONRegistration(PhysioTwin4DBase):
         weights_path = self.expected_weights_path()
         self.log_info("Finetuning complete. Expected weights at %s", weights_path)
         return weights_path
-
-    @staticmethod
-    def _transform_landmarks(
-        landmarks: Landmarks, transform: itk.Transform
-    ) -> Landmarks:
-        """Apply ``transform.TransformPoint`` to every landmark in physical LPS space."""
-        transformed: Landmarks = {}
-        for name, point in landmarks.items():
-            new_point = transform.TransformPoint(point)
-            transformed[name] = (
-                float(new_point[0]),
-                float(new_point[1]),
-                float(new_point[2]),
-            )
-        return transformed
-
-    def apply_registration(
-        self,
-        reference_image: itk.Image,
-        moving_images: list[itk.Image],
-        weights_path: Optional[Union[str, Path]] = None,
-        reference_labelmap: Optional[itk.Image] = None,
-        reference_mask: Optional[itk.Image] = None,
-        reference_landmarks: Optional[Landmarks] = None,
-        moving_labelmaps: Optional[list[Optional[itk.Image]]] = None,
-        moving_masks: Optional[list[Optional[itk.Image]]] = None,
-        moving_landmarks: Optional[list[Optional[Landmarks]]] = None,
-        number_of_iterations: int = 100,
-        modality: str = "ct",
-    ) -> dict[str, Any]:
-        """Register each moving image to the reference using finetuned ICON weights.
-
-        For every moving image this method:
-
-        - Runs ICON registration ``moving → reference``.  When a moving
-          segmentation is provided, a binary heart-ROI mask is derived from it
-          and passed as the registration mask so the ICON loss only sees the
-          ROI; the same is done for the reference segmentation (used as the
-          fixed mask).
-        - Warps the moving image, segmentation, and landmarks into reference
-          space using ``forward_transform``.  Labelmaps use nearest-neighbor
-          interpolation.  Landmarks use ``inverse_transform.TransformPoint``
-          (resampler-convention transform: maps moving-grid points back to
-          reference-grid points).
-        - Warps the reference image, segmentation, and landmarks into each
-          moving-image space using ``inverse_transform`` for image/labelmap
-          resampling and ``forward_transform.TransformPoint`` for landmarks.
-
-        Args:
-            reference_image: Fixed (reference) ``itk.Image`` in LPS.
-            moving_images: List of moving ``itk.Image`` instances to register
-                to ``reference_image``.
-            weights_path: Path to a uniGradICON checkpoint (e.g.
-                ``Finetune_multi_final.trch``).  ``None`` uses the default
-                pretrained uniGradICON weights.
-            reference_labelmap: Optional multi-label labelmap aligned with
-                ``reference_image``.  Used to derive the fixed-image mask and
-                returned warped into each moving-image space.
-            reference_mask: Optional binary mask aligned with ``reference_image``.
-                Used to derive the fixed-image mask and returned warped into each
-                moving-image space.
-            reference_landmarks: Optional ``{name: (x, y, z)}`` landmark dict in
-                LPS that will be warped into each moving-image space.
-            moving_labelmaps: Optional per-moving multi-label labelmaps
-                aligned with ``moving_images``.  Used to derive per-moving
-                masks and returned warped into reference space.  Per-image
-                ``None`` entries are allowed.
-            moving_masks: Optional per-moving binary mask paths aligned with
-                ``moving_images``.  Used to derive per-moving masks and returned
-                warped into reference space.  Per-image ``None`` entries are
-                allowed.
-            moving_landmarks: Optional per-moving landmark dicts in LPS.  Each
-                set is warped into reference space.  Per-image ``None`` entries
-                are allowed.
-            number_of_iterations: ICON finetuning iterations per registration.
-            modality: Imaging modality passed through to the underlying ICON
-                registrar (``'ct'`` or ``'mri'``).
-
-        Returns:
-            dict with:
-
-                - ``forward_transforms`` (``list[itk.Transform]``): per-moving
-                  transforms mapping reference grid → moving grid (used to
-                  resample moving → reference).
-                - ``inverse_transforms`` (``list[itk.Transform]``): per-moving
-                  transforms mapping moving grid → reference grid (used to
-                  resample reference → moving).
-                - ``losses`` (``list[float]``): per-moving registration loss.
-                - ``moving_to_reference_images`` (``list[itk.Image]``): each
-                  moving image resampled onto the reference grid.
-                - ``moving_to_reference_labelmaps`` (``list[Optional[itk.Image]]``):
-                  each moving labelmap resampled onto the reference grid
-                  with nearest-neighbor interpolation.  ``None`` when the input
-                  was ``None``.
-                - ``moving_to_reference_landmarks`` (``list[Optional[Landmarks]]``):
-                  each moving landmark set warped into reference space.
-                  ``None`` when the input was ``None``.
-                - ``reference_to_moving_images`` (``list[itk.Image]``): the
-                  reference image resampled onto each moving grid.
-                - ``reference_to_moving_labelmaps`` (``list[Optional[itk.Image]]``):
-                  the reference segmentation resampled onto each moving grid
-                  with nearest-neighbor interpolation.  ``None`` for every
-                  entry when ``reference_labelmap`` was ``None``.
-                - ``reference_to_moving_landmarks`` (``list[Optional[Landmarks]]``):
-                  reference landmarks warped into each moving space.  ``None``
-                  for every entry when ``reference_landmarks`` was ``None``.
-
-        Raises:
-            ValueError: If ``moving_images`` is empty.
-            ValueError: If ``moving_labelmaps`` or ``moving_landmarks`` is
-                supplied with a length that does not match ``moving_images``.
-        """
-        if not moving_images:
-            raise ValueError("moving_images must not be empty")
-        num_moving = len(moving_images)
-        if moving_labelmaps is not None and len(moving_labelmaps) != num_moving:
-            raise ValueError(
-                f"moving_labelmaps length ({len(moving_labelmaps)}) must "
-                f"match moving_images length ({num_moving})"
-            )
-        if moving_masks is not None and len(moving_masks) != num_moving:
-            raise ValueError(
-                f"moving_masks length ({len(moving_masks)}) must match "
-                f"moving_images length ({num_moving})"
-            )
-        if moving_landmarks is not None and len(moving_landmarks) != num_moving:
-            raise ValueError(
-                f"moving_landmarks length ({len(moving_landmarks)}) must match "
-                f"moving_images length ({num_moving})"
-            )
-
-        self.log_section("APPLYING FINETUNED ICON REGISTRATION", width=70)
-        self.log_info("Number of moving images: %d", num_moving)
-        if weights_path is None:
-            self.log_info("ICON weights: <default uniGradICON>")
-        else:
-            self.log_info("ICON weights: %s", weights_path)
-
-        if reference_mask is None:
-            reference_mask = (
-                self.labelmap_tools.convert_labelmap_to_mask(
-                    reference_labelmap, dilation_in_mm=self.mask_dilation_mm
-                )
-                if reference_labelmap is not None
-                else None
-            )
-
-        if moving_masks is None:
-            if moving_labelmaps is not None:
-                moving_masks = [
-                    (
-                        self.labelmap_tools.convert_labelmap_to_mask(
-                            labelmap, dilation_in_mm=self.mask_dilation_mm
-                        )
-                        if labelmap is not None
-                        else None
-                    )
-                    for labelmap in moving_labelmaps
-                ]
-
-        icon = RegisterImagesICON(log_level=self.log_level)
-        icon.set_number_of_iterations(number_of_iterations)
-        if weights_path is not None:
-            icon.set_weights_path(str(weights_path))
-        self.registrar = RegisterTimeSeriesImages(
-            registration_method=icon, log_level=self.log_level
-        )
-        self.registrar.set_modality(modality)
-        self.registrar.set_fixed_image(reference_image)
-        self.registrar.set_fixed_mask(reference_mask)
-
-        # TODO: set reference frame and register reference
-        result = self.registrar.register_time_series(
-            moving_images=moving_images,
-            moving_masks=moving_masks,
-            moving_labelmaps=moving_labelmaps,
-            reference_frame=0,
-            register_reference=True,
-            prior_weight=0.0,
-        )
-        forward_transforms = result["forward_transforms"]
-        inverse_transforms = result["inverse_transforms"]
-        losses = result["losses"]
-
-        moving_to_reference_images: list[itk.Image] = []
-        moving_to_reference_labelmaps: list[Optional[itk.Image]] = []
-        moving_to_reference_masks: list[Optional[itk.Image]] = []
-        moving_to_reference_landmarks: list[Optional[Landmarks]] = []
-        reference_to_moving_images: list[itk.Image] = []
-        reference_to_moving_labelmaps: list[Optional[itk.Image]] = []
-        reference_to_moving_masks: list[Optional[itk.Image]] = []
-        reference_to_moving_landmarks: list[Optional[Landmarks]] = []
-
-        for index in range(num_moving):
-            forward_tfm = forward_transforms[index]
-            inverse_tfm = inverse_transforms[index]
-            moving_image = moving_images[index]
-
-            moving_to_reference_images.append(
-                self.transform_tools.transform_image(
-                    moving_image, forward_tfm, reference_image
-                )
-            )
-            reference_to_moving_images.append(
-                self.transform_tools.transform_image(
-                    reference_image, inverse_tfm, moving_image
-                )
-            )
-
-            moving_labelmap = (
-                moving_labelmaps[index] if moving_labelmaps is not None else None
-            )
-            if moving_labelmap is not None:
-                moving_to_reference_labelmaps.append(
-                    self.transform_tools.transform_image(
-                        moving_labelmap,
-                        forward_tfm,
-                        reference_image,
-                        interpolation_method="nearest",
-                    )
-                )
-            else:
-                moving_to_reference_labelmaps.append(None)
-
-            if reference_labelmap is not None:
-                reference_to_moving_labelmaps.append(
-                    self.transform_tools.transform_image(
-                        reference_labelmap,
-                        inverse_tfm,
-                        moving_image,
-                        interpolation_method="nearest",
-                    )
-                )
-            else:
-                reference_to_moving_labelmaps.append(None)
-
-            moving_mask = moving_masks[index] if moving_masks is not None else None
-            if moving_mask is not None:
-                moving_to_reference_masks.append(
-                    self.transform_tools.transform_image(
-                        moving_mask,
-                        forward_tfm,
-                        reference_image,
-                        interpolation_method="nearest",
-                    )
-                )
-            else:
-                moving_to_reference_masks.append(None)
-
-            if reference_mask is not None:
-                reference_to_moving_masks.append(
-                    self.transform_tools.transform_image(
-                        reference_mask,
-                        inverse_tfm,
-                        moving_image,
-                        interpolation_method="nearest",
-                    )
-                )
-            else:
-                reference_to_moving_masks.append(None)
-
-            moving_lndmrks = (
-                moving_landmarks[index] if moving_landmarks is not None else None
-            )
-            if moving_lndmrks is not None:
-                moving_to_reference_landmarks.append(
-                    self._transform_landmarks(moving_lndmrks, inverse_tfm)
-                )
-            else:
-                moving_to_reference_landmarks.append(None)
-
-            if reference_landmarks is not None:
-                reference_to_moving_landmarks.append(
-                    self._transform_landmarks(reference_landmarks, forward_tfm)
-                )
-            else:
-                reference_to_moving_landmarks.append(None)
-
-        self.log_info(
-            "Average ICON loss: %.6f (min %.6f, max %.6f)",
-            float(np.mean(losses)),
-            float(np.min(losses)),
-            float(np.max(losses)),
-        )
-
-        return {
-            "forward_transforms": forward_transforms,
-            "inverse_transforms": inverse_transforms,
-            "losses": losses,
-            "moving_to_reference_images": moving_to_reference_images,
-            "moving_to_reference_labelmaps": moving_to_reference_labelmaps,
-            "moving_to_reference_masks": moving_to_reference_masks,
-            "moving_to_reference_landmarks": moving_to_reference_landmarks,
-            "reference_to_moving_images": reference_to_moving_images,
-            "reference_to_moving_labelmaps": reference_to_moving_labelmaps,
-            "reference_to_moving_masks": reference_to_moving_masks,
-            "reference_to_moving_landmarks": reference_to_moving_landmarks,
-        }

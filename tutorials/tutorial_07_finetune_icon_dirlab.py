@@ -13,9 +13,12 @@ Each registration reports the intensity RMSE (Hounsfield units) between the
 fixed image and the registered moving image, plus the wall-clock registration
 time.  The pre-registration RMSE is reported as a reference point.
 
-Finetuned weights are written to
-``tutorials/network_weights/icon_dirlab_4dct``.  An existing checkpoint there is
-reused, so re-running the tutorial skips finetuning.
+Finetuning artifacts (dataset JSON, YAML config, checkpoint tree) are written
+under ``tutorials/network_weights/icon_dirlab_4dct``.  The final checkpoint is
+``tutorials/network_weights/icon_dirlab_4dct/icon_dirlab_4dct_model/checkpoints/
+Finetune_multi_final.trch``, the path returned by
+``WorkflowFinetuneICONRegistration.expected_weights_path()``.  An existing
+checkpoint there is reused, so re-running the tutorial skips finetuning.
 
 Data Required
 -------------
@@ -72,7 +75,7 @@ if __name__ == "__main__":
     else:
         data_dir = repo_root / "data" / "DirLab-4DCT"
         number_of_iterations_greedy = None  # Greedy defaults
-        epochs = 100
+        epochs = 10
 
     log_level = logging.INFO
     reporter = PhysioTwin4DBase(class_name=class_name, log_level=log_level)
@@ -126,7 +129,7 @@ if __name__ == "__main__":
     if weights_path.exists():
         reporter.log_info("Reusing existing finetuned weights: %s", weights_path)
     else:
-        weights_path = workflow.run_finetuning()
+        weights_path = workflow.process()
 
     # Registration with and without the finetuned weights
     fixed_image = itk.imread(str(fixed_file), pixel_type=itk.F)
@@ -157,7 +160,10 @@ if __name__ == "__main__":
         registrar = RegisterImagesGreedyICON(log_level=log_level)
         if number_of_iterations_greedy is not None:
             registrar.greedy.set_number_of_iterations(number_of_iterations_greedy)
-        registrar.icon.set_number_of_iterations(0)
+        # None, not 0: icon_registration rejects 0 and takes None to mean "no
+        # test-time finetuning steps", so the comparison reflects what each set
+        # of weights predicts rather than per-pair optimization.
+        registrar.icon.set_number_of_iterations(None)
         registrar.icon.set_mass_preservation(True)  # For non-contrast CT
         if method_weights is not None:
             registrar.icon.set_weights_path(str(method_weights))

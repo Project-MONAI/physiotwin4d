@@ -29,7 +29,6 @@ from pathlib import Path
 from typing import Optional
 
 from physiotwin4d import WorkflowFinetuneICONRegistration
-from physiotwin4d.labelmap_tools import LabelmapTools
 
 # %% [markdown]
 # ## 1. Configure data, output locations, and the train/test split
@@ -114,9 +113,6 @@ train_image_files: list[list[Path]] = []
 train_labelmap_files: list[list[Optional[Path]]] = []
 train_mask_files: list[list[Optional[Path]]] = []
 valid_train_subjects: list[str] = []
-
-mask_dilation_mm = 3.0
-labelmap_tools = LabelmapTools()
 
 
 # %%
@@ -234,11 +230,10 @@ workflow = WorkflowFinetuneICONRegistration(
         [str(mask_path) if mask_path is not None else None for mask_path in mask_paths]
         for mask_paths in train_mask_files
     ],
-    mask_dilation_mm=0,  # masks are already dilated
     unigradicon_src_path=unigradicon_src_path,
     epochs=500,
 )
 
-weights_path = workflow.run_finetuning()
+weights_path = workflow.process()
 print(f"\nFinetuning complete. Expected weights at: {weights_path}")
 print(f"Held-out test cohort (for 2-recon_4d_icon_eval.py): {test_subjects}")

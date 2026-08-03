@@ -60,7 +60,8 @@ class RegisterImagesICON(RegisterImagesBase):
     - Mass preservation
     - LNCC (Local Normalized Cross Correlation) similarity metric
     - Inverse consistent transformations
-    - Finetuning with 50 optimization steps per registration
+    - Per-registration finetuning, 50 optimization steps by default
+      (override with set_number_of_iterations())
 
     Inherits from RegisterImagesBase:
     - Fixed and moving image management
@@ -224,7 +225,8 @@ class RegisterImagesICON(RegisterImagesBase):
         Implementation details:
             - Uses UniGradIcon with LNCC loss function
             - Optionally applies mass preservation
-            - Performs 50 finetuning steps per registration
+            - Performs number_of_iterations finetuning steps per registration
+              (passed to unigradicon as finetune_steps; 50 by default)
             - Supports both masked and unmasked registration modes
 
         Example:
