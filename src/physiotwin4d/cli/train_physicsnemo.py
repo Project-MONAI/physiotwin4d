@@ -10,14 +10,16 @@ import sys
 from pathlib import Path
 
 
-def _apply_common(workflow: object, args: argparse.Namespace) -> None:
+def _apply_common(
+    training_method: object, workflow: object, args: argparse.Namespace
+) -> None:
     """Apply the shared tuning setters when supplied on the command line."""
     if args.epochs is not None:
-        workflow.set_epochs(args.epochs)  # type: ignore[attr-defined]
+        training_method.set_epochs(args.epochs)  # type: ignore[attr-defined]
     if args.batch_size is not None:
-        workflow.set_batch_size(args.batch_size)  # type: ignore[attr-defined]
+        training_method.set_batch_size(args.batch_size)  # type: ignore[attr-defined]
     if args.learning_rate is not None:
-        workflow.set_learning_rate(args.learning_rate)  # type: ignore[attr-defined]
+        training_method.set_learning_rate(args.learning_rate)  # type: ignore[attr-defined]
     if args.cache_size is not None:
         workflow.set_cache_size(args.cache_size)  # type: ignore[attr-defined]
 
@@ -92,40 +94,41 @@ def main() -> int:
     output_directory = Path(args.output)
     resume_from = Path(args.resume_from) if args.resume_from else None
 
+    from ..train_physicsnemo_base import TrainPhysicsNeMoBase
+    from ..workflow_train_physicsnemo import WorkflowTrainPhysicsNeMo
+
+    training_method: TrainPhysicsNeMoBase
     if args.network == "mgn":
-        from ..workflow_train_physicsnemo import WorkflowTrainPhysicsNeMoMGN
+        from ..train_physicsnemo_mgn import TrainPhysicsNeMoMGN
 
-        mgn = WorkflowTrainPhysicsNeMoMGN(
-            train_manifests=train_manifests,
-            val_manifests=val_manifests,
-            pca_mean_mesh=pca_mean_mesh,
-            output_directory=output_directory,
-            resume_from=resume_from,
-        )
-        _apply_common(mgn, args)
+        mgn_method = TrainPhysicsNeMoMGN()
         if args.processor_size is not None:
-            mgn.set_processor_size(args.processor_size)
+            mgn_method.set_processor_size(args.processor_size)
         if args.hidden_dim is not None:
-            mgn.set_hidden_dim(args.hidden_dim)
+            mgn_method.set_hidden_dim(args.hidden_dim)
         if args.num_layers is not None:
-            mgn.set_num_layers(args.num_layers)
-        result = mgn.process()
+            mgn_method.set_num_layers(args.num_layers)
+        training_method = mgn_method
     else:
-        from ..workflow_train_physicsnemo import WorkflowTrainPhysicsNeMoMLP
+        from ..train_physicsnemo_mlp import TrainPhysicsNeMoMLP
 
-        mlp = WorkflowTrainPhysicsNeMoMLP(
-            train_manifests=train_manifests,
-            val_manifests=val_manifests,
-            pca_mean_mesh=pca_mean_mesh,
-            output_directory=output_directory,
-            resume_from=resume_from,
-        )
-        _apply_common(mlp, args)
+        mlp_method = TrainPhysicsNeMoMLP()
         if args.layer_size is not None:
-            mlp.set_layer_size(args.layer_size)
+            mlp_method.set_layer_size(args.layer_size)
         if args.num_layers is not None:
-            mlp.set_num_layers(args.num_layers)
-        result = mlp.process()
+            mlp_method.set_num_layers(args.num_layers)
+        training_method = mlp_method
+
+    workflow = WorkflowTrainPhysicsNeMo(
+        train_manifests=train_manifests,
+        val_manifests=val_manifests,
+        pca_mean_mesh=pca_mean_mesh,
+        output_directory=output_directory,
+        resume_from=resume_from,
+        training_method=training_method,
+    )
+    _apply_common(training_method, workflow, args)
+    result = workflow.process()
 
     print(f"Training complete. Checkpoint: {result['checkpoint']}")
     return 0

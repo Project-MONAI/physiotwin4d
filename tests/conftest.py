@@ -5,6 +5,7 @@ This file defines fixtures that are available to all test modules
 in the tests directory via pytest's automatic fixture discovery.
 """
 
+import logging
 import os
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -25,6 +26,8 @@ from physiotwin4d.segment_chest_total_segmentator_with_contrast import (
 from physiotwin4d.segment_heart_simpleware import SegmentHeartSimpleware
 from physiotwin4d.segment_nv_segment_ct_mri import SegmentNVSegmentCTMRI
 from physiotwin4d.transform_tools import TransformTools
+
+logger = logging.getLogger(__name__)
 
 # ============================================================================
 # Pytest Configuration - Command Line Options
@@ -430,7 +433,6 @@ def download_test_data(test_directories: dict[str, Path]) -> Path:
 
     try:
         input_image_filename = DataDownloadTools.DownloadSlicerHeartCTData(data_dir)
-        print(f"\nSlicer-Heart-CT data ready: {input_image_filename}")
     except OSError as e:
         msg = (
             f"Could not download test data: {e}. "
@@ -443,6 +445,26 @@ def download_test_data(test_directories: dict[str, Path]) -> Path:
             pytest.skip(msg)
 
     return input_image_filename
+
+
+@pytest.fixture(scope="session")
+def download_kcl_heart_model(test_directories: dict[str, Path]) -> Path:
+    """Download KCL-Heart-Model data."""
+    data_dir = test_directories["data"] / "KCL-Heart-Model"
+
+    try:
+        data_dir = DataDownloadTools.DownloadKCLHeartModelData(data_dir)
+    except OSError as e:
+        msg = (
+            f"Could not download KCL-Heart-Model data: {e}. "
+            "See data/README.md for manual download instructions."
+        )
+        if os.environ.get("CI"):
+            pytest.fail(msg)
+        else:
+            pytest.skip(msg)
+
+    return data_dir
 
 
 # ============================================================================
@@ -466,7 +488,7 @@ def test_images(
     for slice_file in sorted(data_dir.glob("slice_???.mha")):
         small_file = small_data_dir / slice_file.name
         if not small_file.exists():
-            print(f"\nResampling {slice_file.name} -> {small_file.name} ...")
+            logger.info("Resampling %s -> %s", slice_file.name, small_file.name)
             img = itk.imread(str(slice_file))
             input_spacing = list(img.GetSpacing())
             input_size = list(itk.size(img))
@@ -483,14 +505,14 @@ def test_images(
             resampler.SetOutputDirection(img.GetDirection())
             resampler.Update()
             itk.imwrite(resampler.GetOutput(), str(small_file), compression=True)
-    print("\nResampled slice files up to date")
+    logger.info("Resampled slice files up to date")
 
     slice_files = sorted(small_data_dir.glob("slice_???.mha"))
     if len(slice_files) < 3:
         pytest.skip("Resampled slice files not found.")
 
     images = [itk.imread(str(f)) for f in slice_files]
-    print(f"\nLoaded {len(images)} time points for testing")
+    logger.info("Loaded %d time points for testing", len(images))
     return images
 
 
@@ -511,7 +533,7 @@ def test_labelmaps(
     for img, slice_file in zip(test_images, slice_files):
         labelmap_file = slice_file.with_name(f"{slice_file.stem}_labelmap.mha")
         if not labelmap_file.exists():
-            print(f"\nSegmenting {slice_file.name} ...")
+            logger.info("Segmenting %s", slice_file.name)
             result = segmenter_total_segmentator.segment(img)
             itk.imwrite(result["labelmap"], str(labelmap_file), compression=True)
 
@@ -549,7 +571,7 @@ def test_transforms(
     forward_transform_path = small_data_dir / f"ants_forward_transform_{frame_tag}.hdf"
 
     if inverse_transform_path.exists() and forward_transform_path.exists():
-        print("\nLoading existing ANTs registration results...")
+        logger.info("Loading existing ANTs registration results")
         try:
             inverse_transform = itk.transformread(str(inverse_transform_path))
             forward_transform = itk.transformread(str(forward_transform_path))
@@ -558,13 +580,12 @@ def test_transforms(
                 "forward_transform": forward_transform,
             }
         except (RuntimeError, Exception) as e:
-            print(f"Error loading transforms: {e}")
-            print("Regenerating registration results...")
+            logger.warning("Error loading transforms: %s; regenerating", e)
             inverse_transform_path.unlink(missing_ok=True)
             forward_transform_path.unlink(missing_ok=True)
 
     # Perform registration if files don't exist or loading failed
-    print("\nPerforming ANTs registration...")
+    logger.info("Performing ANTs registration")
     fixed_image = test_images[7]
     moving_image = test_images[1]
 

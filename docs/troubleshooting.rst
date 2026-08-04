@@ -126,6 +126,9 @@ USD Not Animating
 
       usdview model.usd
 
+   ``usdchecker`` and ``usdview`` are not part of the ``usd-core`` package
+   installed with PhysioTwin4D; see :doc:`viewing_usd` for how to get them.
+
 3. Verify that the generated USD contains time samples.
 
 USD File Too Large

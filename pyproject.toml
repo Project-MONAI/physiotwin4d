@@ -77,7 +77,7 @@ dependencies = [
     "picsl-greedy>=0.0.12",
     "scipy>=1.10.0",
     # Finetuning (``unigradicon.finetuning``, used by
-    # WorkflowFinetuneICONRegistration and Tutorial 7) only exists on the
+    # WorkflowFinetuneICONRegistration and Tutorial 2) only exists on the
     # uniGradICON ``feat-add-finetuning`` branch; see [tool.uv.sources] below.
     "unigradicon>=1.0.0",
 
@@ -109,7 +109,7 @@ torch = { index = "pytorch-cu130" }
 torchvision = { index = "pytorch-cu130" }
 torchaudio = { index = "pytorch-cu130" }
 # The PyPI unigradicon release ships no ``unigradicon.finetuning`` module, so
-# finetuning (WorkflowFinetuneICONRegistration, Tutorial 7) needs this branch.
+# finetuning (WorkflowFinetuneICONRegistration, Tutorial 2) needs this branch.
 # Declared as a uv source instead of a PEP 508 direct reference in
 # [project.dependencies] because PyPI rejects direct references at upload time.
 # pip users must install the branch explicitly:
@@ -321,12 +321,25 @@ module = [
     "physiotwin4d.cli.visualize_pca_modes",
     "physiotwin4d.vtk_to_usd.mesh_utils",
     "physiotwin4d.vtk_to_usd.vtk_reader",
-    "tutorial_07_finetune_icon_dirlab",
-    "tutorial_08_byod_fit_model_to_patients",
-    "tutorial_09_byod_train_physicsnemo_mgn",
-    "tutorial_09_byod_train_physicsnemo_mlp",
-    "tutorial_10_byod_eval_physicsnemo_mgn",
-    "tutorial_10_byod_eval_physicsnemo_mlp",
+    # Tutorial scripts import physiotwin4d, which is absent from the isolated
+    # pre-commit mypy environment and ships no py.typed marker when installed.
+    # mypy per-module patterns match whole components only, so each tutorial is
+    # listed by name; add a line here when adding or renaming a tutorial.
+    "tutorial_01_heart_gated_ct_to_usd",
+    "tutorial_01_lung_gated_ct_to_usd",
+    "tutorial_02_lung_finetune_icon",
+    "tutorial_03_heart_reconstruct_highres_4d_ct",
+    "tutorial_03_lung_reconstruct_highres_4d_ct",
+    "tutorial_04_heart_ct_to_vtk",
+    "tutorial_04_lung_ct_to_vtk",
+    "tutorial_05_heart_vtk_to_usd",
+    "tutorial_06_heart_create_statistical_model",
+    "tutorial_06_lung_create_statistical_model",
+    "tutorial_07_heart_fit_statistical_model_to_patient",
+    "tutorial_07_lung_fit_statistical_model_to_patient",
+    "tutorial_08_lung_fit_model_to_4d_patients",
+    "tutorial_09_lung_train_physicsnemo_mgn",
+    "tutorial_10_lung_infer_physicsnemo_mgn",
 ]
 disable_error_code = ["import-not-found", "import-untyped"]
 

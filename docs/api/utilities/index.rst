@@ -37,6 +37,7 @@ Module Documentation
    image_tools
    labelmap_tools
    transform_tools
+   landmark_tools
    contour_tools
    image_conversion
    test_tools

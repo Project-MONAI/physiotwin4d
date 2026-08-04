@@ -8,10 +8,19 @@ TotalSegmentator
 ``SegmentChestTotalSegmentator`` groups a TotalSegmentator labelmap into the
 anatomy masks used by PhysioTwin4D workflows.
 
+``SegmentChestTotalSegmentatorWithContrast`` is the contrast-enhanced variant:
+same interface, thresholds and grouping tuned for contrast CT. Pick it when
+your scan has vascular contrast, and the plain class otherwise.
+
 Class Reference
 ===============
 
 .. autoclass:: SegmentChestTotalSegmentator
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. autoclass:: SegmentChestTotalSegmentatorWithContrast
    :members:
    :undoc-members:
    :show-inheritance:

@@ -1,0 +1,48 @@
+=========================
+PhysicsNeMo AI Surrogates
+=========================
+
+PhysioTwin4D trains and runs PhysicsNeMo mesh-stage models: given a subject's
+shape parameters and a stage (a point in the cardiac or respiratory cycle),
+predict a per-vertex target on the shared template mesh. When that target is a
+displacement, the prediction replaces a per-phase registration solve with one
+forward pass — see Tutorials 9 and 10 in :doc:`../../tutorials`.
+
+The layer follows the same has-a shape as the rest of the workflow tier: a
+workflow owns the data and the artifacts, and a *method* object owns the
+network.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 32 68
+
+   * - Class
+     - Role
+   * - :class:`~physiotwin4d.WorkflowTrainPhysicsNeMo`
+     - Manifests, normalization, lazy datasets, checkpoints and metadata
+   * - :class:`~physiotwin4d.WorkflowInferPhysicsNeMo`
+     - Loads a trained model and predicts raw per-point targets
+   * - :class:`~physiotwin4d.WorkflowInferMovement`
+     - Interprets 3-component targets as displacements: deformed meshes, mm
+       error statistics, rasterized deformation fields
+   * - :class:`~physiotwin4d.TrainPhysicsNeMoMGN` /
+       :class:`~physiotwin4d.TrainPhysicsNeMoMLP`
+     - The networks to train: MeshGraphNet or fully connected
+   * - :class:`~physiotwin4d.InferPhysicsNeMoMGN` /
+       :class:`~physiotwin4d.InferPhysicsNeMoMLP`
+     - The matching networks at inference time
+
+PhysicsNeMo is an optional dependency::
+
+   pip install "physiotwin4d[physicsnemo]"
+   pip install torch-geometric          # MeshGraphNet only
+
+It requires Python >= 3.11. ``import physiotwin4d`` works without it; the
+imports happen lazily inside the methods that need them.
+
+.. toctree::
+   :maxdepth: 2
+
+   manifest
+   train
+   infer

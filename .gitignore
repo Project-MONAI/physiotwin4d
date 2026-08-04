@@ -28,6 +28,9 @@ pr*review_summary.md
 docs/_build/
 docs/_static/.buildinfo
 
+# Tutorial videos (GIF versions are tracked in LFS instead)
+docs/assets/*.mp4
+
 # Network weights
 network_weights
 

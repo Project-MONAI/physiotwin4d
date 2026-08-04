@@ -64,6 +64,10 @@ Primary Workflows
 ``WorkflowConvertImageToVTK``
    Segments a 3D CT image and exports anatomy groups as VTK surfaces.
 
+``WorkflowCreateMeanSurface``
+   Builds an unbiased mean surface from a population, so a shape model can be
+   built without privileging any one subject as the template.
+
 ``WorkflowCreateStatisticalModel``
    Aligns a population of meshes to a reference and builds a PCA statistical
    shape model.
@@ -91,37 +95,49 @@ Primary Workflows
 AI Surrogate Workflows (PhysicsNeMo)
 =====================================
 
-The final tier of tutorials (``tutorials/tutorial_08`` through
-``tutorial_10``) turns a fitted statistical shape model into a trained AI
-physiological surrogate, replacing the explicit per-phase registration solve
-with a learned model at inference time:
+The final tier of tutorials (``tutorial_08`` through ``tutorial_10``) turns a
+fitted statistical shape model into a trained AI physiological surrogate,
+replacing the explicit per-phase registration solve with a learned model at
+inference time:
 
-``tutorial_08_byod_fit_model_to_patients.py``
-   Fits the cardiac PCA model to a patient (via
-   ``WorkflowFitStatisticalModelToPatient``) and propagates the fitted mesh
-   through every gated phase using ICON-based registration
-   (``WorkflowReconstructHighres4DCT``), producing the per-phase mesh/surface
-   pairs used as AI surrogate training data.
+``tutorial_08_lung_fit_model_to_4d_patients.py``
+   Fits the lung PCA model to a DIR-Lab case (via
+   ``WorkflowFitStatisticalModelToPatient``) and propagates the fitted surface
+   through every respiratory phase using ICON-based registration
+   (``WorkflowReconstructHighres4DCT``), producing the per-phase surfaces used
+   as AI surrogate training data.
 
-``tutorial_09_byod_train_physicsnemo_mgn.py`` / ``tutorial_09_byod_train_physicsnemo_mlp.py``
-   Train a PhysicsNeMo surrogate — a graph-based ``MeshGraphNet`` via
-   ``WorkflowTrainPhysicsNeMoMGN`` or a fully connected MLP via
-   ``WorkflowTrainPhysicsNeMoMLP`` — on the Tutorial 8 output to predict
-   per-phase cardiac mesh deformation directly from the fitted SSM
-   coefficients. Requires the ``[physicsnemo]`` extra (and ``torch-geometric``
-   for the MeshGraphNet variant); Python >= 3.11.
+``tutorial_09_lung_train_physicsnemo_mgn.py``
+   Trains a PhysicsNeMo surrogate with ``WorkflowTrainPhysicsNeMo``, driving a
+   graph-based ``TrainPhysicsNeMoMGN`` (``MeshGraphNet``) method on the
+   Tutorial 8 output. The tutorial writes each phase's training target — here
+   the per-vertex displacement — into a mesh point-data array the manifest
+   names, so the same stack trains on any per-point target of any width. It
+   then evaluates the held-out cases with ``WorkflowInferPhysicsNeMo`` wrapped
+   in ``WorkflowInferMovement``, turning predicted displacements back into
+   surfaces without running registration — i.e. the AI surrogate stands in for
+   ``WorkflowReconstructHighres4DCT`` at inference time. Requires the
+   ``[physicsnemo]`` extra and ``torch-geometric``; Python >= 3.11.
 
-``tutorial_10_byod_eval_physicsnemo_mgn.py`` / ``tutorial_10_byod_eval_physicsnemo_mlp.py``
-   Load a trained MeshGraphNet or MLP checkpoint (via
-   ``WorkflowInferPhysicsNeMoMGN`` / ``WorkflowInferPhysicsNeMoMLP``) and
-   predict/score cardiac surfaces without running registration, i.e. the AI
-   surrogate stands in for ``WorkflowReconstructHighres4DCT`` at inference time.
+``tutorial_10_lung_infer_physicsnemo_mgn.py``
+   Loads that checkpoint and predicts the case's surface at a requested stage
+   with ``WorkflowInferPhysicsNeMo`` plus ``WorkflowInferMovement``, then
+   exports it as USD — one forward pass in place of the registration solve that
+   produced the training data, and able to predict stages that were never
+   acquired.
 
 These tutorials are thin drivers over the ``WorkflowTrainPhysicsNeMo`` /
-``WorkflowInferPhysicsNeMo`` workflow classes; they follow the same
-fit -> propagate -> train -> predict pattern the rest of the workflow layer
-uses, and are the intended template for future cardiac, respiratory, and
-electrophysiology AI surrogates.
+``WorkflowInferPhysicsNeMo`` workflow classes; each workflow owns the data side
+(manifests, normalization, datasets, saving) and delegates the network to a
+method class (``TrainPhysicsNeMoBase`` / ``InferPhysicsNeMoBase`` subclass).
+The manifest is the extension point: it names the point-data array holding the
+targets, which the stack reads verbatim, so the same code trains on
+displacement or on any other per-point quantity. See
+:doc:`api/physicsnemo/index`.
+
+They follow the same fit -> propagate -> train -> predict pattern the rest of
+the workflow layer uses, and are the intended template for future cardiac,
+respiratory, and electrophysiology AI surrogates.
 
 Component Boundaries
 ====================
@@ -181,9 +197,13 @@ workflow classes. They are the preferred examples for executable API usage:
 * ``physiotwin4d-create-statistical-model``
 * ``physiotwin4d-download-data``
 * ``physiotwin4d-fit-statistical-model-to-patient``
+* ``physiotwin4d-infer-physicsnemo``
 * ``physiotwin4d-reconstruct-highres-4d-ct``
+* ``physiotwin4d-train-physicsnemo``
 * ``physiotwin4d-visualize-pca-modes``
 
-There is no CLI wrapper for ``WorkflowFinetuneICONRegistration`` or for the
-PhysicsNeMo training/evaluation tutorials; those are used through the Python
-API and tutorial scripts.
+``physiotwin4d-train-physicsnemo`` and ``physiotwin4d-infer-physicsnemo`` wrap
+``WorkflowTrainPhysicsNeMo`` and ``WorkflowInferPhysicsNeMo`` and need the
+optional ``[physicsnemo]`` extra. There is no CLI wrapper for
+``WorkflowFinetuneICONRegistration``; it is used through the Python API and
+tutorial scripts.
