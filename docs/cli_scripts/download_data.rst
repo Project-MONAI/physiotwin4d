@@ -24,6 +24,9 @@ Supported Datasets
        the original FEBio model to VTK/ITK and segmented with Simpleware,
        from the PhysioTwin4D GitHub release. See
        ``data/CHOP-Valve4D/README.md``.
+   * - ``Chest-CT``
+     - Routine clinical 3D chest CT scan, a single static volume, from the
+       PhysioTwin4D GitHub release. See ``data/Chest-CT/README.md``.
 
 Basic Usage
 ===========
@@ -42,11 +45,12 @@ Options
 
 .. code-block:: bash
 
-   physiotwin4d-download-data [Slicer-Heart-CT|KCL-Heart-Model|CHOP-Valve4D] [--directory DIRECTORY]
+   physiotwin4d-download-data [Slicer-Heart-CT|KCL-Heart-Model|CHOP-Valve4D|Chest-CT] [--directory DIRECTORY]
 
 ``data_name``
-   Dataset to download. One of ``Slicer-Heart-CT``, ``KCL-Heart-Model``, or
-   ``CHOP-Valve4D``. Required — omitting it prints help and exits.
+   Dataset to download. One of ``Slicer-Heart-CT``, ``KCL-Heart-Model``,
+   ``CHOP-Valve4D``, or ``Chest-CT``. Required — omitting it prints help and
+   exits.
 
 ``--directory``
    Directory where the dataset is stored. Defaults to ``data/<data_name>``.
@@ -95,11 +99,23 @@ release and skips a subdirectory once it has its expected extracted files
 ``Alterra/`` and ``TPV25/``) — a subdirectory left behind by an interrupted
 extraction is re-downloaded rather than treated as complete.
 
+For ``Chest-CT``, the command downloads and reuses a single volume:
+
+.. code-block:: text
+
+   data/Chest-CT/Chest-CT.mha
+
+The command uses
+:meth:`physiotwin4d.data_download_tools.DataDownloadTools.DownloadChestCTData`,
+which fetches the volume from the PhysioTwin4D GitHub release and reuses an
+existing non-empty file, so re-running resumes an interrupted download.
+
 See Also
 ========
 
-* :doc:`../tutorials` — Tutorials 1-4 use ``Slicer-Heart-CT`` and
-  ``KCL-Heart-Model``; ``DirLab-4DCT`` (Tutorial 6) is manual-only, see
+* :doc:`../tutorials` — Tutorials 1 and 4-7 use ``Slicer-Heart-CT``,
+  ``KCL-Heart-Model``, and ``Chest-CT`` (the lung variant of Tutorial 7);
+  ``DirLab-4DCT`` (Tutorials 2 and 3) is manual-only, see
   ``data/DirLab-4DCT/README.md``.
 * :doc:`byod_tutorials`
 * :doc:`heart_gated_ct`

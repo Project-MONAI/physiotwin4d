@@ -85,37 +85,43 @@ from .workflow_convert_image_to_vtk import WorkflowConvertImageToVTK
 from .workflow_convert_image_to_usd import WorkflowConvertImageToUSD
 from .workflow_convert_vtk_to_usd import WorkflowConvertVTKToUSD
 from .workflow_reconstruct_highres_4d_ct import WorkflowReconstructHighres4DCT
+from .workflow_create_mean_surface import WorkflowCreateMeanSurface
 from .workflow_create_statistical_model import WorkflowCreateStatisticalModel
 from .workflow_finetune_icon_registration import WorkflowFinetuneICONRegistration
 from .workflow_fit_statistical_model_to_patient import (
     WorkflowFitStatisticalModelToPatient,
 )
-from .workflow_infer_physicsnemo import (
-    WorkflowInferPhysicsNeMo,
-    WorkflowInferPhysicsNeMoMGN,
-    WorkflowInferPhysicsNeMoMLP,
-)
-from .workflow_train_physicsnemo import (
-    WorkflowTrainPhysicsNeMo,
-    WorkflowTrainPhysicsNeMoMGN,
-    WorkflowTrainPhysicsNeMoMLP,
-)
+from .workflow_infer_physicsnemo import WorkflowInferPhysicsNeMo
+from .workflow_infer_movement import WorkflowInferMovement
+from .infer_physicsnemo_base import InferPhysicsNeMoBase
+from .infer_physicsnemo_mgn import InferPhysicsNeMoMGN
+from .infer_physicsnemo_mlp import InferPhysicsNeMoMLP
+from .train_physicsnemo_base import TrainPhysicsNeMoBase
+from .train_physicsnemo_mgn import TrainPhysicsNeMoMGN
+from .train_physicsnemo_mlp import TrainPhysicsNeMoMLP
+from .workflow_train_physicsnemo import WorkflowTrainPhysicsNeMo
 
 __all__ = [
     # Workflow classes
     "WorkflowConvertImageToVTK",
     "WorkflowConvertImageToUSD",
     "WorkflowConvertVTKToUSD",
+    "WorkflowCreateMeanSurface",
     "WorkflowCreateStatisticalModel",
     "WorkflowFinetuneICONRegistration",
     "WorkflowReconstructHighres4DCT",
     "WorkflowFitStatisticalModelToPatient",
     "WorkflowTrainPhysicsNeMo",
-    "WorkflowTrainPhysicsNeMoMGN",
-    "WorkflowTrainPhysicsNeMoMLP",
     "WorkflowInferPhysicsNeMo",
-    "WorkflowInferPhysicsNeMoMGN",
-    "WorkflowInferPhysicsNeMoMLP",
+    "WorkflowInferMovement",
+    # Training method classes
+    "TrainPhysicsNeMoBase",
+    "TrainPhysicsNeMoMGN",
+    "TrainPhysicsNeMoMLP",
+    # Inference method classes
+    "InferPhysicsNeMoBase",
+    "InferPhysicsNeMoMGN",
+    "InferPhysicsNeMoMLP",
     # Segmentation classes
     "SegmentAnatomyBase",
     "SegmentChestTotalSegmentator",

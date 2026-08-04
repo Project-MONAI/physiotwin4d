@@ -18,14 +18,15 @@ Inputs
 - Optional: a reference frame image to fix the cardiac phase used as the
   segmentation source.
 
-Outputs
--------
-- ``output_dir/cardiac_model.dynamic_painted.usd`` - animated USD with
-  anatomy materials
+Outputs (under ``tutorials/output/tutorial_01_heart/``)
+------------------------------------------------------
+- The animated USD named after ``usd_project_name`` (``cardiac_model``); the
+  workflow returns the dynamic variant when one was produced, otherwise the
+  combined one.
 - Screenshots (PNG) for documentation and regression testing:
-  - ``reference_frame_axial.png`` - axial slice of the reference CT frame
-  - ``segmentation_overlay.png`` - segmentation mask overlaid on reference
-  - ``contours_3d.png`` - 3-D isometric view of the current-run contours
+  - ``slice_<n>_registered_test.png`` - each registered phase
+  - ``slice_<n>_labelmap_test.png`` - each phase's labelmap
+  - ``cardiac_model_test.png`` - the assembled contours
 
 Strengths
 ---------

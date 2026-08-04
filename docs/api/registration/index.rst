@@ -14,6 +14,7 @@ PhysioTwin4D image registration classes align moving 3D images to a fixed
    ants
    greedy
    icon
+   chained
    time_series
 
 Common Result Shape

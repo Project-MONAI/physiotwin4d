@@ -9,10 +9,19 @@ Simpleware Heart Segmenter
 as an external process and returns the resulting heart and major-vessel masks
 as ITK images.
 
+``SegmentHeartSimplewareTrimmedBranches`` is the same segmenter with the
+vessel branches trimmed back, which keeps downstream meshes and shape models
+from being dominated by variable peripheral vasculature.
+
 Class Reference
 ===============
 
 .. autoclass:: SegmentHeartSimpleware
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. autoclass:: SegmentHeartSimplewareTrimmedBranches
    :members:
    :undoc-members:
    :show-inheritance:

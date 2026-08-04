@@ -5,19 +5,27 @@ connected (MLP) PhysicsNeMo workflows so the workflow classes stay focused on
 orchestration.  It provides:
 
 - :class:`SubjectManifest` / :func:`parse_manifest` — the per-subject JSON
-  manifest that lists a reference surface, a PCA shape-parameter file, and the
-  gated-phase surfaces with their stages.
+  manifest that lists a reference mesh, a PCA shape-parameter file, the name of
+  the point-data array holding the training targets, and the phase meshes that
+  carry that array with their stages.
+- :func:`load_target_array` — read one phase's ``(n_points, n_target)`` target
+  values out of a mesh's point data.
 - :func:`build_node_features` — the shared per-vertex feature layout
   ``[mean_coords_norm, pca_norm (tiled), stage]`` used by both networks.
 - :func:`mesh_to_edge_index` / :func:`compute_edge_features` — MGN mesh-graph
-  construction from the shared mean-shape surface.
-- :func:`reconstruct_reference_points` — rebuild a subject reference surface
-  from PCA shape parameters (``P = mean + Σ b_i·std_i·eigenvector_i``), used for
-  manifest-free single-subject inference.
+  construction from the shared template mesh (surface or volumetric).
+- :func:`reconstruct_reference_points` — rebuild a subject reference mesh's
+  points from PCA shape parameters (``P = mean + Σ b_i·std_i·eigenvector_i``),
+  used for manifest-free single-subject inference.
 - :func:`uncompiled_state_dict` / :func:`strip_compile_prefix` — checkpoint I/O
   that is robust to ``torch.compile`` wrapping.
 - :class:`PhaseSampleDataset` — a lazy ``(subject, phase)`` sample provider with
   a bounded in-RAM cache so the training set need not fit in memory.
+
+Targets are whatever the caller stored in the manifest's ``target_array``: the
+stack never computes them.  A displacement model is one application of that —
+the caller writes ``phase.points - reference.points`` into the array — but any
+per-point vector of any width works the same way.
 
 ``torch`` and ``torch_geometric`` are optional dependencies; every function that
 needs them imports them locally so ``import physiotwin4d`` works without the
@@ -44,9 +52,9 @@ if TYPE_CHECKING:  # imported lazily at runtime; typed here for mypy only
 # --------------------------------------------------------------------------- #
 @dataclass
 class PhaseEntry:
-    """One gated-phase surface and its normalized cardiac stage."""
+    """One phase mesh carrying the target array, and its normalized stage."""
 
-    surface: Path
+    mesh: Path
     stage: float
 
 
@@ -56,17 +64,20 @@ class SubjectManifest:
 
     Attributes:
         subject_id: Identifier used for output naming.
-        reference_surface: The subject's SSM reference surface (``.vtp``); the
-            displacement origin for the Option B convention
-            (``target = phase.points - reference.points``).
+        reference_mesh: The subject's SSM reference mesh (``.vtp`` surface or
+            ``.vtu`` volume). It supplies the point positions the targets are
+            defined at; the stack never derives targets from it.
         pca_coefficients: JSON file holding the subject's PCA shape-parameter
             vector (a flat list of floats).
-        phases: One :class:`PhaseEntry` per gated phase (at least one).
+        target_array: Name of the point-data array holding the target values in
+            every phase mesh.
+        phases: One :class:`PhaseEntry` per phase (at least one).
     """
 
     subject_id: str
-    reference_surface: Path
+    reference_mesh: Path
     pca_coefficients: Path
+    target_array: str
     phases: list[PhaseEntry]
 
 
@@ -98,7 +109,13 @@ def parse_manifest(manifest_path: Path) -> SubjectManifest:
         p = Path(value)
         return p if p.is_absolute() else (base / p)
 
-    for key in ("subject_id", "reference_surface", "pca_coefficients", "phases"):
+    for key in (
+        "subject_id",
+        "reference_mesh",
+        "pca_coefficients",
+        "target_array",
+        "phases",
+    ):
         if key not in data:
             raise ValueError(f"Manifest {manifest_path} is missing '{key}'.")
 
@@ -108,19 +125,20 @@ def parse_manifest(manifest_path: Path) -> SubjectManifest:
 
     phases: list[PhaseEntry] = []
     for entry in raw_phases:
-        if "surface" not in entry or "stage" not in entry:
+        if "mesh" not in entry or "stage" not in entry:
             raise ValueError(
-                f"Manifest {manifest_path} has a phase missing 'surface' or "
+                f"Manifest {manifest_path} has a phase missing 'mesh' or "
                 "'stage' (stage must be supplied by the caller)."
             )
         phases.append(
-            PhaseEntry(surface=_resolve(entry["surface"]), stage=float(entry["stage"]))
+            PhaseEntry(mesh=_resolve(entry["mesh"]), stage=float(entry["stage"]))
         )
 
     return SubjectManifest(
         subject_id=str(data["subject_id"]),
-        reference_surface=_resolve(data["reference_surface"]),
+        reference_mesh=_resolve(data["reference_mesh"]),
         pca_coefficients=_resolve(data["pca_coefficients"]),
+        target_array=str(data["target_array"]),
         phases=phases,
     )
 
@@ -130,6 +148,30 @@ def load_pca_coefficients(path: Path) -> np.ndarray:
     return np.asarray(
         json.loads(Path(path).read_text(encoding="utf-8")), dtype=np.float32
     )
+
+
+def load_target_array(path: Path, array_name: str) -> np.ndarray:
+    """Read one mesh's target values out of its point data.
+
+    Args:
+        path: Mesh holding the targets (``.vtp`` surface or ``.vtu`` volume).
+        array_name: Point-data array name declared by the manifest.
+
+    Returns:
+        ``(n_points, n_target)`` float32 targets; a scalar array is returned as
+        ``(n_points, 1)``.
+
+    Raises:
+        KeyError: If ``array_name`` is not among the mesh's point-data arrays.
+    """
+    mesh = pv.read(str(path))
+    if array_name not in mesh.point_data:
+        raise KeyError(
+            f"{path} has no point-data array '{array_name}'; available arrays: "
+            f"{sorted(mesh.point_data.keys())}"
+        )
+    values = np.asarray(mesh.point_data[array_name], dtype=np.float32)
+    return values.reshape(len(values), -1)
 
 
 # --------------------------------------------------------------------------- #
@@ -158,25 +200,46 @@ def build_node_features(
 # --------------------------------------------------------------------------- #
 # MGN mesh-graph construction                                                  #
 # --------------------------------------------------------------------------- #
-def mesh_to_edge_index(poly: pv.PolyData) -> "torch.Tensor":
-    """Build an undirected ``edge_index`` from triangulated PolyData faces.
+def mesh_to_edge_index(mesh: pv.DataSet) -> "torch.Tensor":
+    """Build an undirected ``edge_index`` from a surface or volumetric mesh.
 
     Args:
-        poly: Triangulated surface whose ``faces`` array encodes the topology.
+        mesh: Template mesh whose cells encode the topology. ``pv.PolyData`` is
+            read straight from its triangulated faces; any other dataset (a
+            volumetric ``pv.UnstructuredGrid``, for example) goes through
+            ``extract_all_edges``.
 
     Returns:
-        ``(2, n_edges)`` long tensor of undirected edges.
+        ``(2, n_edges)`` long tensor of undirected edges indexing the mesh's own
+        points.
+
+    Raises:
+        ValueError: If edge extraction renumbers the points, which would break
+            the correspondence between node features and graph nodes.
     """
     import torch
     import torch_geometric.utils as pyg_utils
 
-    # extract_surface may emit quads/other polygons; triangulate (fan) so every
-    # face is a triangle. vtkTriangleFilter reuses the existing vertices, so the
-    # point ordering (and thus edge-index correspondence) is preserved.
-    tri = poly.triangulate()
-    faces = tri.faces.reshape(-1, 4)[:, 1:]  # (F, 3) - strip leading count
-    src = np.concatenate([faces[:, 0], faces[:, 1], faces[:, 2]])
-    dst = np.concatenate([faces[:, 1], faces[:, 2], faces[:, 0]])
+    if isinstance(mesh, pv.PolyData):
+        # A surface may carry quads/other polygons; triangulate (fan) so every
+        # face is a triangle. vtkTriangleFilter reuses the existing vertices, so
+        # the point ordering (and thus edge-index correspondence) is preserved.
+        tri = mesh.triangulate()
+        faces = tri.faces.reshape(-1, 4)[:, 1:]  # (F, 3) - strip leading count
+        src = np.concatenate([faces[:, 0], faces[:, 1], faces[:, 2]])
+        dst = np.concatenate([faces[:, 1], faces[:, 2], faces[:, 0]])
+    else:
+        # use_all_points keeps every input point in the output, so the line
+        # connectivity indexes the original point ids.
+        edges = mesh.extract_all_edges(use_all_points=True, clear_data=True)
+        if edges.n_points != mesh.n_points:
+            raise ValueError(
+                f"Edge extraction returned {edges.n_points} points for a mesh "
+                f"with {mesh.n_points}; the point ids were renumbered."
+            )
+        lines = edges.lines.reshape(-1, 3)[:, 1:]  # (E, 2) - strip leading count
+        src, dst = lines[:, 0], lines[:, 1]
+
     edge_index = torch.tensor(np.stack([src, dst]), dtype=torch.long)
     return cast("torch.Tensor", pyg_utils.to_undirected(edge_index))
 
@@ -199,13 +262,13 @@ def compute_edge_features(
 def reconstruct_reference_points(
     mean_mesh: pv.DataSet, pca_model: dict, coeffs: np.ndarray
 ) -> np.ndarray:
-    """Reconstruct a subject reference surface from PCA shape parameters.
+    """Reconstruct a subject reference mesh's points from PCA shape parameters.
 
     Applies the statistical-shape-model equation
     ``P = mean + Σ b_i·std_i·eigenvector_i`` on the PCA template *mesh*
-    (whose ``components`` are defined) and returns the extracted surface points.
-    Because every subject shares the template topology, the extracted surface
-    vertex ordering matches the shared mean-shape surface used for training.
+    (whose ``components`` are defined) and returns the deformed points. Because
+    every subject shares the template topology, the point ordering matches the
+    shared template mesh used for training.
 
     Args:
         mean_mesh: PCA template mesh (e.g. ``pca_mean.vtu``) whose point count
@@ -216,7 +279,7 @@ def reconstruct_reference_points(
             deviations); shorter/longer than the mode count is truncated.
 
     Returns:
-        ``(n_surface_points, 3)`` float32 reconstructed surface points.
+        ``(n_points, 3)`` float32 reconstructed points.
 
     Raises:
         ValueError: If the component dimension does not match ``mean_mesh``.
@@ -235,10 +298,8 @@ def reconstruct_reference_points(
     deform_flat = (b[:n_modes] * std[:n_modes]) @ components[:n_modes]
     deform = deform_flat.reshape(-1, 3)
 
-    deformed = mean_mesh.copy(deep=True)
-    deformed.points = np.asarray(mean_mesh.points, dtype=np.float64) + deform
-    surface = deformed.extract_surface(algorithm="dataset_surface")
-    return np.asarray(surface.points, dtype=np.float32)
+    points = np.asarray(mean_mesh.points, dtype=np.float64) + deform
+    return np.asarray(points, dtype=np.float32)
 
 
 # --------------------------------------------------------------------------- #
@@ -268,27 +329,28 @@ class _Sample:
 
     subject_id: str
     pca_norm: np.ndarray  # (n_pca,) normalized shape parameters
-    ref_points: np.ndarray  # (n_points, 3) subject reference surface
-    phase_surface: Path
+    target_mesh: Path
     stage: float
 
 
 class PhaseSampleDataset:
-    """Lazy provider of ``(node_features, target_displacement)`` samples.
+    """Lazy provider of ``(node_features, normalized_target)`` samples.
 
     One item is one ``(subject, phase)`` pair.  Node features are rebuilt on
-    access from the shared normalized mean-shape coordinates plus the subject's
+    access from the shared normalized template coordinates plus the subject's
     normalized PCA parameters and the phase stage (cheap).  Only the phase
-    surface point arrays are read from disk, and those are held in a bounded
-    LRU cache so an arbitrarily large training set streams from disk while a
-    small set stays resident.
+    target arrays are read from disk, and those are held in a bounded LRU cache
+    so an arbitrarily large training set streams from disk while a small set
+    stays resident.  Targets are returned as stored — the dataset never derives
+    them from geometry.
 
     Args:
         samples: Flat list of :class:`_Sample` (built by the workflow).
-        mean_coords_norm: ``(n_points, 3)`` normalized mean-shape coordinates.
-        displacement_scale: Target normalization factor (targets are divided by
-            it so displacements land in ``~[-1, 1]``).
-        cache_max_samples: Maximum decoded phase arrays to cache. ``0`` means
+        mean_coords_norm: ``(n_points, 3)`` normalized template coordinates.
+        target_array: Point-data array name holding the targets.
+        target_scale: Target normalization factor (targets are divided by it so
+            they land in ``~[-1, 1]``).
+        cache_max_samples: Maximum decoded target arrays to cache. ``0`` means
             unbounded (all-in-RAM, fastest); a small value forces disk streaming.
     """
 
@@ -296,16 +358,21 @@ class PhaseSampleDataset:
         self,
         samples: list[_Sample],
         mean_coords_norm: np.ndarray,
-        displacement_scale: float,
+        target_array: str,
+        target_scale: float,
         cache_max_samples: int = 0,
     ) -> None:
         self._samples = samples
         self._mean_coords_norm = mean_coords_norm.astype(np.float32)
-        self._displacement_scale = float(displacement_scale)
+        self._target_array = target_array
+        self._target_scale = float(target_scale)
         self._cache_max_samples = int(cache_max_samples)
         self._cache: "OrderedDict[Path, np.ndarray]" = OrderedDict()
         self._n_points = int(mean_coords_norm.shape[0])
         self._n_features = int(3 + samples[0].pca_norm.shape[0] + 1) if samples else 0
+        self._n_target = (
+            int(self._target_values(samples[0].target_mesh).shape[1]) if samples else 0
+        )
 
     def __len__(self) -> int:
         return len(self._samples)
@@ -320,25 +387,29 @@ class PhaseSampleDataset:
         """Node feature dimension ``3 + n_pca + 1``."""
         return self._n_features
 
-    def _phase_points(self, path: Path) -> np.ndarray:
-        """Read (and cache) a phase surface's point array."""
+    @property
+    def n_target(self) -> int:
+        """Target width (columns of the stored target array)."""
+        return self._n_target
+
+    def _target_values(self, path: Path) -> np.ndarray:
+        """Read (and cache) a phase's ``(n_points, n_target)`` target array."""
         cached = self._cache.get(path)
         if cached is not None:
             self._cache.move_to_end(path)
             return cached
 
-        mesh = pv.read(str(path))
-        if mesh.n_points != self._n_points:
+        values = load_target_array(path, self._target_array)
+        if values.shape[0] != self._n_points:
             raise ValueError(
-                f"{path} has {mesh.n_points} points, expected {self._n_points}."
+                f"{path} has {values.shape[0]} points, expected {self._n_points}."
             )
-        points = np.asarray(mesh.points, dtype=np.float32)
 
         if self._cache_max_samples != 0:
-            self._cache[path] = points
+            self._cache[path] = values
             while len(self._cache) > self._cache_max_samples:
                 self._cache.popitem(last=False)
-        return points
+        return values
 
     def __getitem__(self, index: int) -> tuple[np.ndarray, np.ndarray]:
         """Return ``(node_features, normalized_target)`` for one sample."""
@@ -346,6 +417,5 @@ class PhaseSampleDataset:
         node_feats = build_node_features(
             self._mean_coords_norm, sample.pca_norm, sample.stage
         )
-        phase_points = self._phase_points(sample.phase_surface)
-        target = (phase_points - sample.ref_points) / self._displacement_scale
+        target = self._target_values(sample.target_mesh) / self._target_scale
         return node_feats, target.astype(np.float32)

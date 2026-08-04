@@ -165,6 +165,52 @@ img {
     border-radius: var(--radius-md);
 }
 
+/* ==================== TUTORIAL PREVIEW FIGURES ==================== */
+
+/* Tutorial previews are captures of real output. Keep them readable without
+   letting a tall GIF push the following text off the screen. */
+.rst-content .figure,
+.rst-content figure {
+    margin: 1.25rem 0 1.75rem;
+    text-align: center;
+}
+
+.rst-content .figure img,
+.rst-content figure img {
+    max-height: 460px;
+    width: auto;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: var(--radius-md);
+    background: #fff;
+}
+
+.rst-content .figure .caption,
+.rst-content figure figcaption,
+.rst-content figure figcaption p {
+    font-size: 0.9rem;
+    font-style: normal;
+    opacity: 0.75;
+    margin-top: 0.5rem;
+}
+
+/* Two captures in one Preview block sit side by side on a wide screen. */
+@media (min-width: 900px) {
+    .rst-content dd > .figure + .figure,
+    .rst-content dd > figure + figure {
+        display: inline-block;
+        width: 48%;
+        vertical-align: top;
+        margin-left: 2%;
+    }
+
+    .rst-content dd > .figure:has(+ .figure),
+    .rst-content dd > figure:has(+ figure) {
+        display: inline-block;
+        width: 48%;
+        vertical-align: top;
+    }
+}
+
 /* ==================== VERSION SELECTOR ==================== */
 
 /* Use default version selector styling - removed dark gradients */

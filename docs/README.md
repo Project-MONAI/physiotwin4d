@@ -1,169 +1,45 @@
 # PhysioTwin4D Documentation
 
-This directory contains the source files for PhysioTwin4D's documentation, which is built using [Sphinx](https://www.sphinx-doc.org/) and hosted on [ReadTheDocs](https://readthedocs.org/).
+Sphinx source for the PhysioTwin4D documentation, published to GitHub Pages at
+<https://project-monai.github.io/physiotwin4d/> by
+`.github/workflows/docs.yml`. This file is excluded from the build; it is a
+note for contributors editing the docs.
 
-## Recently Updated!
-
-The documentation has been restructured with:
-- Modern table-of-contents sidebar with search
-- Separate pages for each module (33 new API files)
-- Navigation widgets (prev/next/up) on all pages
-- Comprehensive API reference organized by functionality
-- Enhanced search capabilities
-- Modern custom CSS styling
-
-## Building Documentation Locally
-
-### Prerequisites
-
-Install documentation dependencies:
+## Building locally
 
 ```bash
 pip install -e ".[docs]"
+python -m sphinx -b html docs docs/_build/html
 ```
 
-### Build HTML Documentation
+Open `docs/_build/html/index.html`. A clean build ends with
+`build succeeded` and one pre-existing docutils warning from the
+`RegisterImagesICON` docstring.
 
-**Linux/macOS:**
+## Layout
 
-```bash
-cd docs
-make html
-```
+| Path | Contents |
+| --- | --- |
+| `index.rst` | Landing page: hero, tutorial cards, topic grid, toctrees |
+| `tutorials.rst` | The primary entry point for new users — one section per tutorial |
+| `quickstart.rst`, `installation.rst` | Getting started |
+| `cli_scripts/` | Task-oriented guides for the installed `physiotwin4d-*` commands |
+| `api/` | Class and module reference, grouped by functionality |
+| `developer/` | Architecture, extension points, conventions |
+| `assets/` | Screenshots and GIFs referenced by `tutorials.rst` |
+| `_static/custom.css` | NVIDIA-styled hero, cards and figure styling |
 
-**Windows:**
+## Conventions
 
-```bash
-cd docs
-make.bat html
-```
-
-### View Documentation
-
-The built documentation will be in `docs/_build/html/`. Open `index.html` in your browser:
-
-**Linux:**
-```bash
-xdg-open _build/html/index.html
-```
-
-**macOS:**
-```bash
-open _build/html/index.html
-```
-
-**Windows:**
-```bash
-start _build/html/index.html
-```
-
-## Documentation Structure
-
-```
-docs/
-├── index.rst                    # Main entry point
-├── installation.rst             # Installation guide
-├── quickstart.rst               # Quick start guide
-├── tutorials.rst                # Tutorials (the canonical usage examples)
-│
-├── api/                         # API Reference (NEW STRUCTURE!)
-│   ├── index.rst               # Main API hub
-│   ├── base.rst                # Core base class
-│   ├── workflows.rst           # Workflow classes
-│   ├── segmentation/           # Segmentation (3 files)
-│   │   ├── index.rst
-│   │   ├── base.rst
-│   │   └── totalsegmentator.rst
-│   ├── registration/           # Image registration (5 files)
-│   │   ├── index.rst
-│   │   ├── base.rst
-│   │   ├── ants.rst
-│   │   ├── icon.rst
-│   │   └── time_series.rst
-│   ├── model_registration/     # Model registration (5 files)
-│   ├── usd/                    # USD generation (6 files)
-│   └── utilities/              # Utilities (5 files)
-│
-├── developer/                   # ‍Developer guides
-│   ├── architecture.rst
-│   ├── extending.rst
-│   ├── workflows.rst
-│   └── core.rst
-│
-├── cli_scripts/                 # CLI documentation
-├── contributing.rst
-├── testing.rst
-└── ...
-```
-
-**Total: 33 new API documentation files!**
-
-## Building Other Formats
-
-### PDF
-
-```bash
-make latexpdf
-```
-
-### ePub
-
-```bash
-make epub
-```
-
-### Check for Errors
-
-```bash
-make linkcheck  # Check for broken links
-make doctest    # Run documentation code examples
-```
-
-## ReadTheDocs
-
-Documentation is automatically built and deployed to ReadTheDocs on:
-
-- Push to `main` branch
-- Pull requests (preview builds)
-- Tagged releases
-
-Configuration is in `.readthedocs.yaml` at the repository root.
-
-## Contributing to Documentation
-
-1. Make changes to `.rst` files
-2. Build locally to test: `make html`
-3. Check for warnings: `make clean && make html`
-4. Commit and push changes
-5. Documentation will be built automatically by ReadTheDocs
-
-### Documentation Style
-
-- Use reStructuredText (`.rst`) format
-- Follow existing structure and formatting
-- Include code examples with syntax highlighting
-- Add cross-references with `:doc:` and `:class:` roles
-- Keep line length reasonable (~80-100 characters)
-
-### Adding New Pages
-
-1. Create new `.rst` file in appropriate directory
-2. Add to `toctree` in `index.rst` or parent file
-3. Follow existing naming conventions (lowercase, underscores)
-
-## Cleaning Build Files
-
-```bash
-make clean
-```
-
-This removes the `_build` directory with all generated documentation.
-
-## Help
-
-For more information:
-
-- [Sphinx Documentation](https://www.sphinx-doc.org/)
-- [reStructuredText Primer](https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html)
-- [ReadTheDocs Guide](https://docs.readthedocs.io/)
-
+- New modules do **not** appear automatically. `conf.py` uses `autodoc` with
+  hand-written `.rst` wrappers, so adding a class means adding or extending a
+  page under `api/` and wiring it into the nearest `index.rst` toctree.
+- Class references use `autoclass` under `.. currentmodule:: physiotwin4d`;
+  module-level pages use `automodule`.
+- `{{ pt4d_project_version }}` is substituted with the release at build time by
+  the `source-read` hook in `conf.py`.
+- Tutorial numbers appear in `index.rst` card anchors, `tutorials.rst` section
+  titles, `quickstart.rst`, and `tutorials/README.md`. When a tutorial is
+  renumbered, the card `href` values must be regenerated from the new section
+  titles — Sphinx derives anchors from the heading text, and `linkcheck` does
+  not catch same-page fragments.

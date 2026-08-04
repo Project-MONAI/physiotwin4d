@@ -23,7 +23,6 @@ from __future__ import annotations
 
 import importlib.util
 import runpy
-import sys
 from pathlib import Path
 from typing import Any
 
@@ -98,20 +97,82 @@ class TestTutorial01HeartGatedCTToUSD:
 
 
 # -----------------------------------------------------------------------------
-# Tutorial 2 - CT Segmentation to VTK
+# Tutorial 3 - Reconstruct High-Resolution 4D CT
 # -----------------------------------------------------------------------------
 
 
 @pytest.mark.tutorial
 @pytest.mark.slow
-class TestTutorial02HeartCTToVTK:
-    """End-to-end test for tutorial_02_heart_ct_to_vtk.py."""
+class TestTutorial03HeartReconstructHighres4DCT:
+    """End-to-end test for tutorial_03_heart_reconstruct_highres_4d_ct.py."""
 
-    _class_name = "tutorial_02_heart_ct_to_vtk"
+    _class_name = "tutorial_03_heart_reconstruct_highres_4d_ct"
 
     def test_run(self, test_directories: dict[str, Path]) -> None:
-        out_dir = _REPO_ROOT / "tutorials" / "output" / "tutorial_02_heart"
-        results = _run_tutorial_script("tutorial_02_heart_ct_to_vtk.py")
+        out_dir = _REPO_ROOT / "tutorials" / "output" / "tutorial_03_heart"
+        results = _run_tutorial_script("tutorial_03_heart_reconstruct_highres_4d_ct.py")
+        assert results["reconstructed_files"], (
+            "At least one reconstructed frame expected"
+        )
+        for f in results["reconstructed_files"]:
+            assert f.exists(), f"Reconstructed frame missing: {f}"
+
+        tt = TestTools(
+            class_name=self._class_name,
+            results_dir=out_dir,
+            baselines_dir=test_directories["baselines"] / self._class_name,
+        )
+        _compare_screenshots(results["screenshots"], tt)
+
+
+@pytest.mark.tutorial
+@pytest.mark.slow
+class TestTutorial03LungReconstructHighres4DCT:
+    """End-to-end test for tutorial_03_lung_reconstruct_highres_4d_ct.py."""
+
+    _class_name = "tutorial_03_lung_reconstruct_highres_4d_ct"
+
+    def test_run(self, test_directories: dict[str, Path]) -> None:
+        # Match the phase files the script itself globs, not a directory layout
+        # it never uses.
+        dirlab_dir = test_directories["data"] / "DirLab-4DCT"
+        if not list(dirlab_dir.glob("Case1Pack_T??.mha")):
+            pytest.skip(
+                "DirLab-4DCT Case1Pack phases not downloaded. See data/README.md "
+                "for instructions."
+            )
+
+        out_dir = _REPO_ROOT / "tutorials" / "output" / "tutorial_03_lung"
+        results = _run_tutorial_script("tutorial_03_lung_reconstruct_highres_4d_ct.py")
+        assert results["reconstructed_files"], (
+            "At least one reconstructed frame expected"
+        )
+        for f in results["reconstructed_files"]:
+            assert f.exists(), f"Reconstructed frame missing: {f}"
+
+        tt = TestTools(
+            class_name=self._class_name,
+            results_dir=out_dir,
+            baselines_dir=test_directories["baselines"] / self._class_name,
+        )
+        _compare_screenshots(results["screenshots"], tt)
+
+
+# -----------------------------------------------------------------------------
+# Tutorial 4 - CT Segmentation to VTK
+# -----------------------------------------------------------------------------
+
+
+@pytest.mark.tutorial
+@pytest.mark.slow
+class TestTutorial04HeartCTToVTK:
+    """End-to-end test for tutorial_04_heart_ct_to_vtk.py."""
+
+    _class_name = "tutorial_04_heart_ct_to_vtk"
+
+    def test_run(self, test_directories: dict[str, Path]) -> None:
+        out_dir = _REPO_ROOT / "tutorials" / "output" / "tutorial_04_heart"
+        results = _run_tutorial_script("tutorial_04_heart_ct_to_vtk.py")
         assert results["surface_file"].exists(), "Combined VTP surface should exist"
 
         tt = TestTools(
@@ -123,16 +184,60 @@ class TestTutorial02HeartCTToVTK:
 
 
 # -----------------------------------------------------------------------------
-# Tutorial 4 - Create Statistical Shape Model
+# Tutorial 5 - VTK to USD
 # -----------------------------------------------------------------------------
 
 
 @pytest.mark.tutorial
 @pytest.mark.slow
-class TestTutorial04CreateStatisticalModel:
-    """End-to-end test for tutorial_04_heart_create_statistical_model.py."""
+class TestTutorial05HeartVTKToUSD:
+    """End-to-end test for tutorial_05_heart_vtk_to_usd.py."""
 
-    _class_name = "tutorial_04_heart_create_statistical_model"
+    _class_name = "tutorial_05_heart_vtk_to_usd"
+
+    def test_run(self, test_directories: dict[str, Path]) -> None:
+        # Prefer Tutorial 4 output; fall back to any .vtp in data
+        tutorial2_vtp = (
+            _REPO_ROOT
+            / "tutorials"
+            / "output"
+            / "tutorial_04_heart"
+            / "patient_surfaces.vtp"
+        )
+        vtk_file = tutorial2_vtp if tutorial2_vtp.exists() else None
+        if vtk_file is None:
+            found = list(test_directories["data"].rglob("*.vtp"))
+            if not found:
+                pytest.skip(
+                    "No VTK file available. Run Tutorial 4 first or place a .vtp "
+                    "file under data/."
+                )
+            vtk_file = found[0]
+
+        out_dir = _REPO_ROOT / "tutorials" / "output" / "tutorial_05_heart"
+        results = _run_tutorial_script("tutorial_05_heart_vtk_to_usd.py")
+        assert results["usd_file"], "USD file path should not be empty"
+        assert Path(results["usd_file"]).exists(), "USD file should exist"
+
+        tt = TestTools(
+            class_name=self._class_name,
+            results_dir=out_dir,
+            baselines_dir=test_directories["baselines"] / self._class_name,
+        )
+        _compare_screenshots(results["screenshots"], tt)
+
+
+# -----------------------------------------------------------------------------
+# Tutorial 6 - Create Statistical Shape Model
+# -----------------------------------------------------------------------------
+
+
+@pytest.mark.tutorial
+@pytest.mark.slow
+class TestTutorial06CreateStatisticalModel:
+    """End-to-end test for tutorial_06_heart_create_statistical_model.py."""
+
+    _class_name = "tutorial_06_heart_create_statistical_model"
 
     def test_run(self, test_directories: dict[str, Path]) -> None:
         kcl_dir = test_directories["data"] / "KCL-Heart-Model"
@@ -141,8 +246,8 @@ class TestTutorial04CreateStatisticalModel:
                 "KCL-Heart-Model not downloaded. See data/README.md for instructions."
             )
 
-        out_dir = _REPO_ROOT / "tutorials" / "output" / "tutorial_04_heart"
-        results = _run_tutorial_script("tutorial_04_heart_create_statistical_model.py")
+        out_dir = _REPO_ROOT / "tutorials" / "output" / "tutorial_06_heart"
+        results = _run_tutorial_script("tutorial_06_heart_create_statistical_model.py")
         assert results["model_file"].exists(), "pca_model.json should exist"
         assert results["mean_surface_file"].exists(), "Mean surface VTP should exist"
 
@@ -156,10 +261,10 @@ class TestTutorial04CreateStatisticalModel:
 
 @pytest.mark.tutorial
 @pytest.mark.slow
-class TestTutorial05FitStatisticalModelToPatient:
-    """End-to-end test for tutorial_05_heart_fit_statistical_model_to_patient.py."""
+class TestTutorial07FitStatisticalModelToPatient:
+    """End-to-end test for tutorial_07_heart_fit_statistical_model_to_patient.py."""
 
-    _class_name = "tutorial_05_heart_fit_statistical_model_to_patient"
+    _class_name = "tutorial_07_heart_fit_statistical_model_to_patient"
 
     def test_run(self, test_directories: dict[str, Path]) -> None:
         kcl_dir = test_directories["data"] / "KCL-Heart-Model"
@@ -169,18 +274,18 @@ class TestTutorial05FitStatisticalModelToPatient:
             )
 
         pca_json = (
-            _REPO_ROOT / "tutorials" / "output" / "tutorial_04_heart" / "pca_model.json"
+            _REPO_ROOT / "tutorials" / "output" / "tutorial_06_heart" / "pca_model.json"
         )
         if not pca_json.exists():
-            _run_tutorial_script("tutorial_04_heart_create_statistical_model.py")
+            _run_tutorial_script("tutorial_06_heart_create_statistical_model.py")
             assert pca_json.exists(), (
-                "Tutorial 4 bootstrap did not create the expected PCA model file: "
+                "Tutorial 6 bootstrap did not create the expected PCA model file: "
                 f"{pca_json}"
             )
 
-        out_dir = _REPO_ROOT / "tutorials" / "output" / "tutorial_05_heart_to_lung"
+        out_dir = _REPO_ROOT / "tutorials" / "output" / "tutorial_07_heart"
         results = _run_tutorial_script(
-            "tutorial_05_heart_fit_statistical_model_to_patient.py"
+            "tutorial_07_heart_fit_statistical_model_to_patient.py"
         )
         # ``out_dir.name`` is the tutorial's ``project_name`` file prefix.
         registered_surface_file = (
@@ -197,205 +302,75 @@ class TestTutorial05FitStatisticalModelToPatient:
 
 
 # -----------------------------------------------------------------------------
-# Tutorial 3 - VTK to USD
+# Tutorials 9 and 10 - PhysicsNeMo train and infer
+#
+# Both need the optional [physicsnemo] extra and the Tutorial 8 fitted meshes,
+# so they skip rather than fail when either is absent.
 # -----------------------------------------------------------------------------
+
+
+def _require_physicsnemo_and_tutorial_08() -> Path:
+    """Skip unless PhysicsNeMo and at least three Tutorial 8 cases are present."""
+    if importlib.util.find_spec("physicsnemo") is None:
+        pytest.skip("PhysicsNeMo not installed (optional [physicsnemo] extra).")
+    data_dir = _REPO_ROOT / "tutorials" / "output" / "tutorial_08_lung"
+    if len(list(data_dir.glob("Case*Pack"))) < 3:
+        pytest.skip(
+            "Fewer than three Tutorial 8 cases under tutorials/output/tutorial_08_lung. "
+            "Run tutorial_08_lung_fit_model_to_4d_patients.py first."
+        )
+    return data_dir
 
 
 @pytest.mark.tutorial
 @pytest.mark.slow
-class TestTutorial03HeartVTKToUSD:
-    """End-to-end test for tutorial_03_heart_vtk_to_usd.py."""
+@pytest.mark.requires_physicsnemo
+class TestTutorial09LungTrainPhysicsNeMoMGN:
+    """End-to-end test for tutorial_09_lung_train_physicsnemo_mgn.py."""
 
-    _class_name = "tutorial_03_heart_vtk_to_usd"
+    _class_name = "tutorial_09_lung_train_physicsnemo_mgn"
 
     def test_run(self, test_directories: dict[str, Path]) -> None:
-        # Prefer Tutorial 2 output; fall back to any .vtp in data
-        tutorial2_vtp = (
-            _REPO_ROOT
-            / "tutorials"
-            / "output"
-            / "tutorial_02_heart"
-            / "patient_surfaces.vtp"
-        )
-        vtk_file = tutorial2_vtp if tutorial2_vtp.exists() else None
-        if vtk_file is None:
-            found = list(test_directories["data"].rglob("*.vtp"))
-            if not found:
-                pytest.skip(
-                    "No VTK file available. Run Tutorial 2 first or place a .vtp "
-                    "file under data/."
-                )
-            vtk_file = found[0]
+        _require_physicsnemo_and_tutorial_08()
 
-        out_dir = _REPO_ROOT / "tutorials" / "output" / "tutorial_03_heart"
-        results = _run_tutorial_script("tutorial_03_heart_vtk_to_usd.py")
-        assert results["usd_file"], "USD file path should not be empty"
-        assert Path(results["usd_file"]).exists(), "USD file should exist"
+        results = _run_tutorial_script("tutorial_09_lung_train_physicsnemo_mgn.py")
+        model_dir = Path(results["model_directory"])
+        assert (model_dir / "mgn_stage_model.pt").exists(), "Checkpoint should exist"
+        assert results["cases"], "At least one held-out case should be evaluated"
 
         tt = TestTools(
             class_name=self._class_name,
-            results_dir=out_dir,
+            results_dir=model_dir,
             baselines_dir=test_directories["baselines"] / self._class_name,
         )
         _compare_screenshots(results["screenshots"], tt)
 
 
-# -----------------------------------------------------------------------------
-# Tutorials 8-10 - Cardiac mesh stage-prediction pipeline (bring-your-own-data)
-#
-# These tutorials use a local ``D:/PhysioTwin4D/`` cardiac dataset and (for
-# Tutorials 9 and 10) the optional PhysicsNeMo dependency, so they are skipped
-# automatically unless that data / those checkpoints are present. They produce
-# no screenshots; the tests assert the tutorial ran and populated
-# ``tutorial_results``.
-# -----------------------------------------------------------------------------
-
-_CARDIAC_DATA_ROOT = Path("D:/PhysioTwin4D")
-_CARDIAC_FITTED_MESHES_DIR = _CARDIAC_DATA_ROOT / "duke_data" / "fitted_kcl_meshes"
-_TUTORIALS_DIR = _REPO_ROOT / "tutorials"
-
-
-def _physicsnemo_available() -> bool:
-    """True if the optional PhysicsNeMo dependency is importable."""
-    return importlib.util.find_spec("physicsnemo") is not None
-
-
-def _torch_geometric_available() -> bool:
-    """True if the optional PyTorch Geometric dependency is importable."""
-    return importlib.util.find_spec("torch_geometric") is not None
-
-
-def _run_eval_tutorial(script_name: str) -> dict[str, Any]:
-    """Run a Tutorial 10 eval script through its no-argument ``run_tutorial`` path.
-
-    ``runpy`` does not reset ``sys.argv``, so without this the eval scripts would
-    see pytest's arguments and try to parse them as CLI options. Force a single
-    argv entry so the ``len(sys.argv) > 1`` dispatch selects ``run_tutorial``.
-    """
-    saved_argv = sys.argv
-    sys.argv = [script_name]
-    try:
-        return _run_tutorial_script(script_name)
-    finally:
-        sys.argv = saved_argv
-
-
 @pytest.mark.tutorial
 @pytest.mark.slow
-class TestTutorial08BYODFitModel:
-    """End-to-end test for tutorial_08_byod_fit_model_to_patients.py."""
+@pytest.mark.requires_physicsnemo
+class TestTutorial10LungInferPhysicsNeMoMGN:
+    """End-to-end test for tutorial_10_lung_infer_physicsnemo_mgn.py."""
 
-    def test_run(self) -> None:
-        if not (_CARDIAC_DATA_ROOT / "duke_data" / "gated_nii").exists():
-            pytest.skip(
-                "Cardiac dataset not present at D:/PhysioTwin4D/. Tutorial 8 is "
-                "bring-your-own-data; see tutorials/README.md."
-            )
-        results = _run_tutorial_script("tutorial_08_byod_fit_model_to_patients.py")
-        assert "patients" in results, "Tutorial 8 should report processed patients"
-
-
-@pytest.mark.tutorial
-@pytest.mark.slow
-@pytest.mark.requires_gpu
-class TestTutorial09BYODTrainMGN:
-    """End-to-end test for tutorial_09_byod_train_physicsnemo_mgn.py."""
-
-    def test_run(self) -> None:
-        if not _physicsnemo_available():
-            pytest.skip("PhysicsNeMo not installed (optional [physicsnemo] extra).")
-        if not _torch_geometric_available():
-            pytest.skip("torch-geometric not installed (required for MeshGraphNet).")
-        if not _CARDIAC_FITTED_MESHES_DIR.exists():
-            pytest.skip("Tutorial 8 output not present; run Tutorial 8 first.")
-        results = _run_tutorial_script("tutorial_09_byod_train_physicsnemo_mgn.py")
-        assert isinstance(results, dict)
-
-
-@pytest.mark.tutorial
-@pytest.mark.slow
-@pytest.mark.requires_gpu
-class TestTutorial09BYODTrainMLP:
-    """End-to-end test for tutorial_09_byod_train_physicsnemo_mlp.py."""
-
-    def test_run(self) -> None:
-        if not _physicsnemo_available():
-            pytest.skip("PhysicsNeMo not installed (optional [physicsnemo] extra).")
-        if not _CARDIAC_FITTED_MESHES_DIR.exists():
-            pytest.skip("Tutorial 8 output not present; run Tutorial 8 first.")
-        results = _run_tutorial_script("tutorial_09_byod_train_physicsnemo_mlp.py")
-        assert isinstance(results, dict)
-
-
-@pytest.mark.tutorial
-@pytest.mark.slow
-class TestTutorial10BYODEvalMGN:
-    """End-to-end test for tutorial_10_byod_eval_physicsnemo_mgn.py."""
-
-    def test_run(self) -> None:
-        if not _physicsnemo_available():
-            pytest.skip("PhysicsNeMo not installed (optional [physicsnemo] extra).")
-        if not _torch_geometric_available():
-            pytest.skip("torch-geometric not installed (required for MeshGraphNet).")
-        checkpoint = (
-            _TUTORIALS_DIR / "output" / "tutorial_09_byod_mgn" / "mgn_stage_model.pt"
-        )
-        if not checkpoint.exists() or not _CARDIAC_FITTED_MESHES_DIR.exists():
-            pytest.skip(
-                "Tutorial 9 checkpoint or cardiac data not present; "
-                "run Tutorials 8 and 9 first."
-            )
-        results = _run_eval_tutorial("tutorial_10_byod_eval_physicsnemo_mgn.py")
-        assert "predicted_surfaces" in results
-
-
-@pytest.mark.tutorial
-@pytest.mark.slow
-class TestTutorial10BYODEvalMLP:
-    """End-to-end test for tutorial_10_byod_eval_physicsnemo_mlp.py."""
-
-    def test_run(self) -> None:
-        if not _physicsnemo_available():
-            pytest.skip("PhysicsNeMo not installed (optional [physicsnemo] extra).")
-        checkpoint = (
-            _TUTORIALS_DIR / "output" / "tutorial_09_byod_mlp" / "mlp_stage_model.pt"
-        )
-        if not checkpoint.exists() or not _CARDIAC_FITTED_MESHES_DIR.exists():
-            pytest.skip(
-                "Tutorial 9 checkpoint or cardiac data not present; "
-                "run Tutorials 8 and 9 first."
-            )
-        results = _run_eval_tutorial("tutorial_10_byod_eval_physicsnemo_mlp.py")
-        assert "predicted_surfaces" in results
-
-
-# -----------------------------------------------------------------------------
-# Tutorial 6 - Reconstruct High-Resolution 4D CT
-# -----------------------------------------------------------------------------
-
-
-@pytest.mark.tutorial
-@pytest.mark.slow
-class TestTutorial06LungReconstructHighres4DCT:
-    """End-to-end test for tutorial_06_lung_reconstruct_highres_4d_ct.py."""
-
-    _class_name = "tutorial_06_lung_reconstruct_highres_4d_ct"
+    _class_name = "tutorial_10_lung_infer_physicsnemo_mgn"
 
     def test_run(self, test_directories: dict[str, Path]) -> None:
-        dirlab_dir = test_directories["data"] / "DirLab-4DCT" / "Case1"
-        if not dirlab_dir.exists():
-            pytest.skip(
-                "DirLab-4DCT Case1 not downloaded. See data/README.md for instructions."
+        _require_physicsnemo_and_tutorial_08()
+
+        model_dir = _REPO_ROOT / "tutorials" / "output" / "tutorial_09_lung_mgn"
+        if not (model_dir / "mgn_stage_model.pt").exists():
+            _run_tutorial_script("tutorial_09_lung_train_physicsnemo_mgn.py")
+            assert (model_dir / "mgn_stage_model.pt").exists(), (
+                f"Tutorial 9 bootstrap did not create a checkpoint under {model_dir}"
             )
 
-        out_dir = _REPO_ROOT / "tutorials" / "output" / "tutorial_06_lung"
-        results = _run_tutorial_script("tutorial_06_lung_reconstruct_highres_4d_ct.py")
-        assert results["reconstructed_files"], (
-            "At least one reconstructed frame expected"
+        results = _run_tutorial_script("tutorial_10_lung_infer_physicsnemo_mgn.py")
+        assert Path(results["predicted_surface"]).exists(), (
+            "Predicted surface should exist"
         )
-        for f in results["reconstructed_files"]:
-            assert f.exists(), f"Reconstructed frame missing: {f}"
+        assert Path(results["usd_file"]).exists(), "USD file should exist"
 
+        out_dir = model_dir / "tutorial_10_lung_mgn" / "Case1Pack"
         tt = TestTools(
             class_name=self._class_name,
             results_dir=out_dir,

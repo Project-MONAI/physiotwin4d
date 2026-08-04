@@ -5,7 +5,9 @@ Workflow Classes
 .. module:: physiotwin4d.workflow_convert_image_to_usd
 .. module:: physiotwin4d.workflow_convert_image_to_vtk
 .. module:: physiotwin4d.workflow_convert_vtk_to_usd
+.. module:: physiotwin4d.workflow_create_mean_surface
 .. module:: physiotwin4d.workflow_create_statistical_model
+.. module:: physiotwin4d.workflow_finetune_icon_registration
 .. module:: physiotwin4d.workflow_fit_statistical_model_to_patient
 .. module:: physiotwin4d.workflow_reconstruct_highres_4d_ct
 .. currentmodule:: physiotwin4d
@@ -30,6 +32,9 @@ Available Workflows
      - Segment one CT image and export anatomy-group VTK surfaces.
    * - :class:`WorkflowConvertVTKToUSD`
      - Convert VTK/VTP/VTU meshes or time series into USD.
+   * - :class:`WorkflowCreateMeanSurface`
+     - Build an unbiased mean surface (atlas) from a population, for use as the
+       reference a shape model is built against.
    * - :class:`WorkflowCreateStatisticalModel`
      - Build a PCA shape model from sample meshes aligned to a reference.
    * - :class:`WorkflowFitStatisticalModelToPatient`
@@ -37,6 +42,12 @@ Available Workflows
    * - :class:`WorkflowReconstructHighres4DCT`
      - Reconstruct a high-resolution 4D CT series from phase images and a
        high-resolution reference.
+   * - :class:`WorkflowFinetuneICONRegistration`
+     - Finetune uniGradICON on your own cohort and return the weights
+       :class:`RegisterImagesICON` can load.
+
+The PhysicsNeMo AI-surrogate workflows have their own section — see
+:doc:`physicsnemo/index`.
 
 Convert Image to USD
 ====================
@@ -48,21 +59,26 @@ Convert Image to USD
 
 .. code-block:: python
 
+   import itk
+
    from physiotwin4d import (
        RegisterImagesICON,
        SegmentChestTotalSegmentatorWithContrast,
        WorkflowConvertImageToUSD,
    )
 
+   time_series_images = [itk.imread(str(path)) for path in frame_files]
+
    workflow = WorkflowConvertImageToUSD(
-       input_filenames=["cardiac_4d.nrrd"],
+       time_series_images=time_series_images,
+       reference_image=time_series_images[0],
        output_directory="./results",
        usd_project_name="patient_001",
        segmentation_method=SegmentChestTotalSegmentatorWithContrast(),
        registration_method=RegisterImagesICON(),
    )
 
-   final_usd = workflow.process()
+   results = workflow.process()
 
 Image to VTK
 ============
@@ -124,6 +140,11 @@ VTK to USD
 Statistical Shape Modeling
 ==========================
 
+.. autoclass:: WorkflowCreateMeanSurface
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 .. autoclass:: WorkflowCreateStatisticalModel
    :members:
    :undoc-members:
@@ -166,17 +187,42 @@ High-Resolution 4D CT Reconstruction
    time_series_images = [itk.imread(f"phase_{idx:02d}.mha") for idx in range(10)]
    workflow = WorkflowReconstructHighres4DCT(
        time_series_images=time_series_images,
-       fixed_image=time_series_images[0],
-       reference_frame=0,
+       reference_image=time_series_images[0],
+       reference_time_frame=0,
        registration_method=RegisterImagesGreedyICON(),
    )
 
-   workflow.set_upsample_to_fixed_resolution(True)
+   workflow.set_modality("ct")
    result = workflow.process()
+
+Finetune ICON Registration
+==========================
+
+.. autoclass:: WorkflowFinetuneICONRegistration
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. code-block:: python
+
+   from physiotwin4d import RegisterImagesICON, WorkflowFinetuneICONRegistration
+
+   workflow = WorkflowFinetuneICONRegistration(
+       subject_image_files=subject_image_files,
+       output_dir=weights_dir,
+       finetune_name="my_cohort",
+       subject_ids=subject_ids,
+       epochs=100,
+   )
+   weights_path = workflow.process()
+
+   registrar = RegisterImagesICON()
+   registrar.set_weights_path(str(weights_path))
 
 See Also
 ========
 
 * :doc:`../tutorials`
+* :doc:`physicsnemo/index`
 * :doc:`../cli_scripts/overview`
 * :doc:`../architecture`

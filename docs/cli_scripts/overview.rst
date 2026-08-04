@@ -53,9 +53,9 @@ Current Scripts
      - Download supported PhysioTwin4D example datasets
    * - :doc:`heart_gated_ct`
      - Process cardiac gated CT to animated heart models with physiological motion
-   * - ``physiotwin4d-convert-image-to-vtk``
+   * - :doc:`../api/cli/convert_image_to_vtk`
      - Segment one 3D image and export anatomy-group VTK surfaces
-   * - ``physiotwin4d-convert-image-4d-to-3d``
+   * - :doc:`../api/cli/convert_image_4d_to_3d`
      - Split a 4D medical image into a 3D time series using ITK readers
    * - :doc:`create_statistical_model`
      - Build a PCA statistical shape model from sample meshes aligned to a reference
@@ -65,7 +65,11 @@ Current Scripts
      - Reconstruct high-resolution 4D CT from time-series images and a reference
    * - :doc:`vtk_to_usd`
      - Convert VTK anatomical models to USD format with material painting
-   * - ``physiotwin4d-visualize-pca-modes``
+   * - :doc:`train_physicsnemo`
+     - Train a PhysicsNeMo mesh-stage surrogate from per-subject manifests
+   * - :doc:`infer_physicsnemo`
+     - Predict motion with a trained surrogate, and rasterize deformation fields
+   * - :doc:`../api/cli/visualize_pca_modes`
      - Render PCA model mode visualizations
 
 Installation
@@ -107,14 +111,21 @@ arguments and script-specific options.
 Output Organization
 -------------------
 
-Each script organizes outputs in a consistent structure:
+Every script writes into the directory you give it, flat, with filenames
+prefixed by the project name where one applies:
 
 .. code-block:: text
 
    output_directory/
-   ├── intermediate/          # Segmentations, registrations
-   ├── meshes/               # VTK mesh files
-   └── usd/                  # Final USD files for Omniverse
+   ├── <project_name>.dynamic_painted.usd     # animated USD, when produced
+   ├── <project_name>.static_painted.usd
+   ├── <project_name>.all_painted.usd
+   ├── patient_surfaces.vtp                   # meshes, from the VTK workflows
+   ├── patient_labelmap.mha                   # labelmaps and volumes
+   └── *.png                                  # screenshots, when requested
+
+The tutorial scripts follow the same rule under
+``tutorials/output/<tutorial_name>/``.
 
 Getting Help
 ============

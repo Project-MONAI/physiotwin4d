@@ -5,9 +5,21 @@ These are the recommended starting point for new users.
 
 ## Before You Begin
 
+These scripts live only in the source repository — `pip install physiotwin4d`
+does not install them. Clone the repository first:
+
+```bash
+git clone https://github.com/Project-MONAI/physiotwin4d.git
+cd physiotwin4d
+```
+
 Each tutorial requires one or more public datasets.
 **See [../data/README.md](../data/README.md)** for download instructions,
-dataset licensing, and expected directory layout.
+dataset licensing, and expected directory layout. Run every download from the
+top level of the clone: the tutorials resolve their inputs against the
+repository root (`<repo>/data/<dataset>`), while
+`physiotwin4d-download-data` writes to `data/<dataset>` relative to the
+current working directory.
 
 ## Tutorial Index
 
@@ -15,22 +27,23 @@ dataset licensing, and expected directory layout.
 |---|--------|-------------|---------|
 | 1 | [tutorial_01_heart_gated_ct_to_usd.py](tutorial_01_heart_gated_ct_to_usd.py) | `WorkflowConvertImageToUSD` | Slicer-Heart-CT (prepare first) |
 | 1 | [tutorial_01_lung_gated_ct_to_usd.py](tutorial_01_lung_gated_ct_to_usd.py) | `WorkflowConvertImageToUSD` | Lung gated 4D CT (prepare first) |
-| 2 | [tutorial_02_heart_ct_to_vtk.py](tutorial_02_heart_ct_to_vtk.py) | `WorkflowConvertImageToVTK` | Slicer-Heart-CT (prepare first) |
-| 3 | [tutorial_03_heart_vtk_to_usd.py](tutorial_03_heart_vtk_to_usd.py) | `WorkflowConvertVTKToUSD` | Output of tutorial 2 |
-| 4 | [tutorial_04_heart_create_statistical_model.py](tutorial_04_heart_create_statistical_model.py) | `WorkflowCreateStatisticalModel` | KCL-Heart-Model |
-| 5 | [tutorial_05_heart_fit_statistical_model_to_patient.py](tutorial_05_heart_fit_statistical_model_to_patient.py) | `WorkflowFitStatisticalModelToPatient` | KCL-Heart-Model plus Tutorial 4 output |
-| 6 | [tutorial_06_lung_reconstruct_highres_4d_ct.py](tutorial_06_lung_reconstruct_highres_4d_ct.py) | `WorkflowReconstructHighres4DCT` | DirLab-4DCT (manual) |
-| 8 | [tutorial_08_byod_fit_model_to_patients.py](tutorial_08_byod_fit_model_to_patients.py) | `WorkflowFitStatisticalModelToPatient`, `WorkflowReconstructHighres4DCT` | Bring your own (cardiac gated CT, `D:/PhysioTwin4D/`) |
-| 9 | [tutorial_09_byod_train_physicsnemo_mgn.py](tutorial_09_byod_train_physicsnemo_mgn.py) | `WorkflowTrainPhysicsNeMoMGN` (requires `[physicsnemo]` extra + `torch-geometric`) | Tutorial 8 output |
-| 9 | [tutorial_09_byod_train_physicsnemo_mlp.py](tutorial_09_byod_train_physicsnemo_mlp.py) | `WorkflowTrainPhysicsNeMoMLP` (requires `[physicsnemo]` extra) | Tutorial 8 output |
-| 10 | [tutorial_10_byod_eval_physicsnemo_mgn.py](tutorial_10_byod_eval_physicsnemo_mgn.py) | `WorkflowInferPhysicsNeMoMGN` (requires `[physicsnemo]` extra + `torch-geometric`) | Tutorial 9 checkpoint |
-| 10 | [tutorial_10_byod_eval_physicsnemo_mlp.py](tutorial_10_byod_eval_physicsnemo_mlp.py) | `WorkflowInferPhysicsNeMoMLP` (requires `[physicsnemo]` extra) | Tutorial 9 checkpoint |
+| 2 | [tutorial_02_lung_finetune_icon.py](tutorial_02_lung_finetune_icon.py) | `WorkflowFinetuneICONRegistration` | DirLab-4DCT (manual) |
+| 3 | [tutorial_03_heart_reconstruct_highres_4d_ct.py](tutorial_03_heart_reconstruct_highres_4d_ct.py) | `WorkflowReconstructHighres4DCT` | Slicer-Heart-CT (prepare first) |
+| 3 | [tutorial_03_lung_reconstruct_highres_4d_ct.py](tutorial_03_lung_reconstruct_highres_4d_ct.py) | `WorkflowReconstructHighres4DCT` | DirLab-4DCT (manual) |
+| 4 | [tutorial_04_heart_ct_to_vtk.py](tutorial_04_heart_ct_to_vtk.py) | `WorkflowConvertImageToVTK` | Slicer-Heart-CT (prepare first) |
+| 4 | [tutorial_04_lung_ct_to_vtk.py](tutorial_04_lung_ct_to_vtk.py) | `WorkflowConvertImageToVTK` | Lung gated 4D CT (prepare first) |
+| 5 | [tutorial_05_heart_vtk_to_usd.py](tutorial_05_heart_vtk_to_usd.py) | `WorkflowConvertVTKToUSD` | Output of tutorial 4 |
+| 6 | [tutorial_06_heart_create_statistical_model.py](tutorial_06_heart_create_statistical_model.py) | `WorkflowCreateStatisticalModel` | KCL-Heart-Model |
+| 6 | [tutorial_06_lung_create_statistical_model.py](tutorial_06_lung_create_statistical_model.py) | `WorkflowCreateStatisticalModel` | Lung surfaces from Tutorial 4 (lung) |
+| 7 | [tutorial_07_heart_fit_statistical_model_to_patient.py](tutorial_07_heart_fit_statistical_model_to_patient.py) | `WorkflowFitStatisticalModelToPatient` | KCL-Heart-Model plus Tutorial 6 output |
+| 7 | [tutorial_07_lung_fit_statistical_model_to_patient.py](tutorial_07_lung_fit_statistical_model_to_patient.py) | `WorkflowFitStatisticalModelToPatient` | Chest-CT plus Tutorial 6 (lung) output |
+| 8 | [tutorial_08_lung_fit_model_to_4d_patients.py](tutorial_08_lung_fit_model_to_4d_patients.py) | `WorkflowFitStatisticalModelToPatient`, `WorkflowReconstructHighres4DCT` | DirLab-4DCT plus Tutorial 6 (lung) and Tutorial 2 output |
+| 9 | [tutorial_09_lung_train_physicsnemo_mgn.py](tutorial_09_lung_train_physicsnemo_mgn.py) | `WorkflowTrainPhysicsNeMo`, `WorkflowInferPhysicsNeMo`, `WorkflowInferMovement` (requires `[physicsnemo]` extra + `torch-geometric`) | Tutorial 8 (lung) output |
+| 10 | [tutorial_10_lung_infer_physicsnemo_mgn.py](tutorial_10_lung_infer_physicsnemo_mgn.py) | `WorkflowInferPhysicsNeMo`, `WorkflowInferMovement`, `WorkflowConvertVTKToUSD` (requires `[physicsnemo]` extra + `torch-geometric`) | Tutorial 8 and 9 (lung) output |
 
-> **Tutorials 8-10 are bring-your-own-data.** Unlike the earlier data-driven
-> tutorials, they do not use the repository `data/` directory or a downloadable
-> sample. Their path constants point at a local `D:/PhysioTwin4D/` cardiac layout
-> (gated CT, labelmaps, the KCL volume PCA model, and ICON weights); edit those
-> constants to match your own data.
+The [tutorials page](https://project-monai.github.io/physiotwin4d/tutorials.html)
+covers the same set with previews of what each one produces and per-tutorial
+notes on running them against your own data.
 
 ## Running a Tutorial
 
@@ -74,23 +87,25 @@ pytest tests/test_tutorials.py::TestTutorial01HeartGatedCTToUSD --run-tutorials 
 
 ## Recommended Order
 
-1. **Tutorial 1** and **Tutorial 2** use Slicer-Heart-CT - prepare it per `data/README.md`, then start here.
-2. **Tutorial 3** uses the VTK surfaces produced by Tutorial 2 - run Tutorial 2 first.
-3. **Tutorial 4** creates the PCA statistical model from KCL-Heart-Model.
-4. **Tutorial 5** applies the statistical model, consuming Tutorial 4 output.
-5. **Tutorial 6** requires DirLab-4DCT - download it per `data/README.md`.
+1. **Tutorial 1** uses Slicer-Heart-CT - prepare it per `data/README.md`, then start here.
+2. **Tutorial 2** requires DirLab-4DCT (download it per `data/README.md`) and finetunes the ICON weights Tutorials 3 (lung) and 8 use when they are present — both fall back to the stock uniGradICON weights otherwise.
+3. **Tutorial 3** registers with those weights; the heart variant uses Slicer-Heart-CT, the lung variant DirLab-4DCT.
+4. **Tutorial 4** uses Slicer-Heart-CT.
+5. **Tutorial 5** uses the VTK surfaces produced by Tutorial 4 - run Tutorial 4 first.
+6. **Tutorial 6** creates the PCA statistical model from KCL-Heart-Model.
+7. **Tutorial 7** applies the statistical model, consuming Tutorial 6 output; the lung variant also fits it to the routine clinical `Chest-CT` scan (`physiotwin4d-download-data Chest-CT`).
 
-The cardiac mesh stage-prediction pipeline (Tutorials 8 -> 9 -> 10) is
-bring-your-own-data and runs in order:
+The AI-surrogate pipeline (Tutorials 8 -> 9 -> 10) runs on DIR-Lab and the
+Tutorial 6 lung model, in order:
 
-6. **Tutorial 8** fits the KCL cardiac PCA model to each patient's reference CT and propagates the fitted SSM mesh through every gated phase (output feeds Tutorial 9).
-7. **Tutorial 9 (MGN / MLP)** train a PhysicsNeMo MeshGraphNet and MLP to predict a cardiac surface at any cardiac stage. PhysicsNeMo is an optional extra: install with `pip install "physiotwin4d[physicsnemo]"` (requires Python >= 3.11); the MeshGraphNet also needs `torch-geometric`.
-8. **Tutorial 10 (MGN / MLP)** load a trained MeshGraphNet or MLP checkpoint and predict / score cardiac surfaces for one subject. Each can be run from the command line or, with no arguments, via its `run_tutorial` entry point.
+8. **Tutorial 8** fits the lung PCA model to each case's reference phase and propagates the fitted SSM surface through every respiratory phase (output feeds Tutorial 9). It uses the Tutorial 2 ICON weights when they exist.
+9. **Tutorial 9** trains a PhysicsNeMo MeshGraphNet to predict the per-vertex motion at any stage. PhysicsNeMo is an optional extra: install with `pip install "physiotwin4d[physicsnemo]"` (requires Python >= 3.11); the MeshGraphNet also needs `torch-geometric`. A `TrainPhysicsNeMoMLP` method exists as a drop-in alternative, without its own tutorial.
+10. **Tutorial 10** loads that checkpoint and predicts one case's surface at a requested stage, scoring it against the acquired phase and exporting USD. The case, checkpoint epoch, and stage are constants near the top of the script; for command-line runs with path arguments, use the installed `physiotwin4d-infer-physicsnemo` CLI.
 
 ## For Contributors
 
 Class-level API reference: [../docs/api/index.rst](../docs/api/index.rst)
 
 To explore the code with an AI assistant, query the graphify knowledge graph
-(`graphify query "<question>"`) instead of grepping — see
+(`graphify query "<question>"`) instead of grepping â€” see
 [../docs/developer/ai_assistants.rst](../docs/developer/ai_assistants.rst)

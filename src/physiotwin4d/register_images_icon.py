@@ -56,6 +56,7 @@ class RegisterImagesICON(RegisterImagesBase):
     for maintaining spatial relationships and avoiding registration artifacts.
 
     ICON-specific features:
+
     - GPU acceleration using UniGradIcon framework
     - Mass preservation
     - LNCC (Local Normalized Cross Correlation) similarity metric
@@ -64,6 +65,7 @@ class RegisterImagesICON(RegisterImagesBase):
       (override with set_number_of_iterations())
 
     Inherits from RegisterImagesBase:
+
     - Fixed and moving image management
     - Binary mask processing with optional dilation
     - Modality-specific parameter configuration

@@ -88,13 +88,19 @@ scene.
 
 .. code-block:: python
 
+   import itk
+
    import physiotwin4d as pt4d
 
+   # Any ITK-readable input: a DICOM directory, .nrrd, .mha or .nii.gz
+   patient_image = itk.imread("patient_dicom_dir")
+
    workflow = pt4d.WorkflowConvertImageToUSD(
-       input_filenames=["patient_dicom_dir"],
+       time_series_images=[patient_image],
+       reference_image=patient_image,
        segmentation_method=pt4d.SegmentChestTotalSegmentator(),
        output_directory="./results",
-       project_name="patient_heart",
+       usd_project_name="patient_heart",
    )
    workflow.process()
 
@@ -135,13 +141,19 @@ selects its default reference frame internally.
 
 .. code-block:: python
 
+   import itk
+
    import physiotwin4d as pt4d
 
+   phase_files = ["phase_000.mha", "phase_001.mha", "phase_002.mha"]
+   time_series_images = [itk.imread(path) for path in phase_files]
+
    workflow = pt4d.WorkflowConvertImageToUSD(
-       input_filenames=["phase_000.mha", "phase_001.mha", "phase_002.mha"],
+       time_series_images=time_series_images,
+       reference_image=time_series_images[0],
        segmentation_method=pt4d.SegmentChestTotalSegmentator(),
        output_directory="./results",
-       project_name="heart_animated",
+       usd_project_name="heart_animated",
        frames_per_second=30.0,
    )
    workflow.process()
@@ -275,11 +287,12 @@ PyVista reads the VTK input files used above, but local validation with
 PyVista 0.48.4 shows that ``pyvista.read()`` / ``pyvista.get_reader()`` do not
 support ``.usd``, ``.usda``, or ``.usdc`` output files directly.
 
-**In NVIDIA Omniverse:**
+**In a USD viewer:**
 
 Open **Omniverse USD Composer**, drag your ``.usd`` file onto the viewport,
 then press **Play** (spacebar) to watch the animation. For 4D cardiac data,
-use the **Timeline** panel to scrub through phases.
+use the **Timeline** panel to scrub through phases. ``usdview`` works the same
+way and is lighter to install — :doc:`../viewing_usd` covers both.
 
 See Also
 --------
@@ -292,26 +305,3 @@ See Also
 - :doc:`/tutorials`
 - :doc:`/troubleshooting`
 
-.. _isaac_for_healthcare_assets:
-
-4D Isaac for Healthcare Assets
-------------------------------
-
-PhysioTwin4D has been used to generate a number of 4D anatomic models for
-Isaac for Healthcare. These datasets are intended to support visualization and
-workflow development with time-varying anatomy in OpenUSD.
-
-.. list-table::
-   :header-rows: 1
-   :widths: 45 55
-
-   * - Asset
-     - Download link
-   * - Chest with cardiac motion
-     -
-   * - Chest with respiratory motion
-     -
-   * - Heart with cardiac motion
-     -
-   * - Lungs with respiratory motion
-     -

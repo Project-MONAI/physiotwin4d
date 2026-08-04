@@ -326,14 +326,15 @@ Approximate times on typical workstation (32GB RAM, NVIDIA GPU):
      - 30-60 minutes
      - 4-8 hours
 
-Viewing Results in Omniverse
-=============================
+Viewing Results
+===============
 
-1. Open NVIDIA Omniverse
-2. Navigate to output directory
-3. Open ``.usd`` file
-4. Press Play to view cardiac motion animation
-5. Adjust timeline speed for desired visualization
+1. Open the ``.usd`` file in ``usdview`` or an Omniverse Kit application
+2. Press Play to view the cardiac motion animation
+3. Adjust the timeline speed for the visualization you want
+
+:doc:`../viewing_usd` covers installing either viewer and what to look at once
+the scene is open.
 
 Next Steps
 ==========

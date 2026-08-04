@@ -62,15 +62,36 @@ physiotwin4d-convert-image-to-usd cardiac_4d.nrrd --contrast --output-dir ./resu
 ```
 
 ```python
-from physiotwin4d import RegisterImagesICON, WorkflowConvertImageToUSD
+import itk
+from pathlib import Path
 
-processor = WorkflowConvertImageToUSD(
-    input_filenames=["path/to/cardiac_4d_ct.nrrd"],
-    output_directory="./results",
-    project_name="cardiac_model",
-    registration_method=RegisterImagesICON(),  # or RegisterImagesGreedy()
+from physiotwin4d import (
+    RegisterImagesICON,
+    SegmentChestTotalSegmentatorWithContrast,
+    WorkflowConvertImageToUSD,
 )
-final_usd = processor.process()
+
+frame_files = sorted(Path("data/Slicer-Heart-CT").glob("slice_???.mha"))
+time_series_images = [itk.imread(str(path)) for path in frame_files]
+
+workflow = WorkflowConvertImageToUSD(
+    time_series_images=time_series_images,
+    reference_image=time_series_images[int(0.7 * len(time_series_images))],
+    output_directory="./results",
+    usd_project_name="cardiac_model",
+    registration_method=RegisterImagesICON(),  # or RegisterImagesGreedy()
+    segmentation_method=SegmentChestTotalSegmentatorWithContrast(),
+)
+results = workflow.process()
+```
+
+**The tutorials are not installed by pip** — they live in this repository.
+Clone it to run them:
+
+```bash
+git clone https://github.com/Project-MONAI/physiotwin4d.git
+cd physiotwin4d
+python tutorials/tutorial_01_heart_gated_ct_to_usd.py
 ```
 
 See the [quickstart](https://project-monai.github.io/physiotwin4d/quickstart.html) and [tutorials](https://project-monai.github.io/physiotwin4d/tutorials.html) for full walkthroughs covering segmentation, registration, statistical shape modeling, and USD export.

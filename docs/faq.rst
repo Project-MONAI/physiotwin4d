@@ -28,9 +28,11 @@ Do I need NVIDIA Omniverse?
 
 No, Omniverse is optional for visualization. You can also use:
 
-* usdview (comes with usd-core)
-* PyVista
-* ParaView
+* ``usdview``, the viewer that ships with OpenUSD — note that it is **not**
+  part of the ``usd-core`` package installed with PhysioTwin4D; see
+  :doc:`viewing_usd`
+* PyVista, for the intermediate ``.vtp`` / ``.vtu`` meshes
+* ParaView, likewise for the VTK files
 
 Installation Questions
 ======================

@@ -49,7 +49,7 @@ Pipeline
    fields are a thin surface shell, so smoothing spreads them into a continuous
    deformation (and, as a side effect, attenuates the peak magnitude).
 2. Load the combined patient surface
-   (``output/tutorial_02_lung/patient_surfaces.vtp``), optionally decimate and
+   (``output/tutorial_04_lung/patient_surfaces.vtp``), optionally decimate and
    smooth it once (``SURFACE_DECIMATION_REDUCTION`` /
    ``SURFACE_SMOOTHING_ITERATIONS``; both disabled by default), then
    cardiac-deform it once per stage (reused across all breath phases).
@@ -137,7 +137,7 @@ if __name__ == "__main__":
     beating_heart_dir = tutorials_dir / "output" / "temp_beating_heart"
     respiratory_dir = tutorials_dir / "output" / "tutorial_01_lung"
     patient_surface_file = (
-        tutorials_dir / "output" / "tutorial_02_lung" / "patient_surfaces.vtp"
+        tutorials_dir / "output" / "tutorial_04_lung" / "patient_surfaces.vtp"
     )
     output_dir = tutorials_dir / "output" / "temp_heart_and_lungs_combined"
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -160,7 +160,7 @@ if __name__ == "__main__":
     if not patient_surface_file.exists():
         raise FileNotFoundError(
             f"Patient surface not found: {patient_surface_file}. "
-            "Run tutorial_02_lung_ct_to_vtk.py first."
+            "Run tutorial_04_lung_ct_to_vtk.py first."
         )
 
     n_phases = len(forward_transform_files)

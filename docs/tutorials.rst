@@ -9,148 +9,173 @@ Tutorials
        <img src="_static/nvidia-logo.svg" alt="NVIDIA logo">
      </div>
      <p class="pt4d-kicker">PhysioTwin4D tutorials</p>
-     <h1>Build animated medical USD workflows for NVIDIA Omniverse</h1>
+     <h1>From a CT scan to an animated digital twin</h1>
      <p>
-       Tutorials are the primary examples: runnable, percent-cell Python
-       scripts that exercise the real workflow, registration, and
-       segmentation classes end-to-end. Each card links to the workflow it
-       demonstrates, its dataset, and the inner API calls the script makes.
+       Ten runnable, percent-cell Python scripts. Each one drives the real
+       workflow classes end-to-end on downloadable data, shows what it
+       produced, and ends with the handful of constants to change so it runs
+       on your own scans.
      </p>
    </section>
 
-   <section class="pt4d-card-grid" aria-label="Tutorial cards">
-     <a class="pt4d-card" href="#tutorial-1-heart-gated-ct-to-animated-usd">
-       <span class="pt4d-card__number">01</span>
-       <h2>Heart-Gated CT to Animated USD</h2>
-       <p>Convert cardiac 4D CT frames into registered contours and an animated OpenUSD model.</p>
-       <span class="pt4d-card__meta">Slicer-Heart-CT</span>
-     </a>
-     <a class="pt4d-card" href="#tutorial-2-ct-segmentation-to-vtk-surfaces">
-       <span class="pt4d-card__number">02</span>
-       <h2>CT Segmentation to VTK Surfaces</h2>
-       <p>Segment one CT phase and export patient anatomy as VTK PolyData surfaces.</p>
-       <span class="pt4d-card__meta">Slicer-Heart-CT</span>
-     </a>
-     <a class="pt4d-card" href="#tutorial-3-vtk-surface-series-to-animated-usd">
-       <span class="pt4d-card__number">03</span>
-       <h2>VTK Surface Series to Animated USD</h2>
-       <p>Convert VTK meshes into a time-sampled USD scene for Omniverse playback.</p>
-       <span class="pt4d-card__meta">Tutorial 2 output</span>
-     </a>
-     <a class="pt4d-card" href="#tutorial-4-create-a-pca-shape-model">
-       <span class="pt4d-card__number">04</span>
-       <h2>Create a PCA Shape Model</h2>
-       <p>Build a statistical shape model from aligned cardiac meshes.</p>
-       <span class="pt4d-card__meta">KCL-Heart-Model</span>
-     </a>
-     <a class="pt4d-card" href="#tutorial-5-fit-statistical-model-to-patient">
-       <span class="pt4d-card__number">05</span>
-       <h2>Fit Statistical Model to Patient</h2>
-       <p>Fit a PCA heart model to patient-specific anatomy for model-based reconstruction.</p>
-       <span class="pt4d-card__meta">Tutorial 4 output</span>
-     </a>
-     <a class="pt4d-card" href="#tutorial-6-reconstruct-high-resolution-4d-ct">
-       <span class="pt4d-card__number">06</span>
-       <h2>Reconstruct High-Resolution 4D CT</h2>
-       <p>Register respiratory CT phases and reconstruct a higher-resolution 4D volume series.</p>
-       <span class="pt4d-card__meta">DirLab-4DCT</span>
-     </a>
-     <a class="pt4d-card" href="#tutorial-8-fit-the-cardiac-ssm-and-propagate-through-gated-phases">
-       <span class="pt4d-card__number">08</span>
-       <h2>Fit the Cardiac SSM and Propagate Through Gated Phases</h2>
-       <p>Fit a PCA heart model to the reference phase and propagate it to every gated phase with ICON registration.</p>
-       <span class="pt4d-card__meta">Bring your own cardiac data</span>
-     </a>
-     <a class="pt4d-card" href="#tutorial-9-train-a-physicsnemo-cardiac-stage-model">
-       <span class="pt4d-card__number">09</span>
-       <h2>Train a PhysicsNeMo Cardiac Stage Model</h2>
-       <p>Train a PhysicsNeMo MeshGraphNet or MLP to predict cardiac meshes at requested stages.</p>
-       <span class="pt4d-card__meta">Tutorial 8 output</span>
-     </a>
-     <a class="pt4d-card" href="#tutorial-10-predict-and-evaluate-cardiac-surfaces">
-       <span class="pt4d-card__number">10</span>
-       <h2>Predict and Evaluate Cardiac Surfaces</h2>
-       <p>Load a Tutorial 9 checkpoint and predict cardiac surfaces at gated phases or caller-specified stages.</p>
-       <span class="pt4d-card__meta">Tutorial 9 output</span>
-     </a>
-   </section>
+Before You Start
+================
 
-Get the Data First
-===================
+**1. Get the scripts.** They ship with the source repository, not with the pip
+package — ``pip install physiotwin4d`` gives you the library and the
+``physiotwin4d-*`` commands but no ``tutorials/`` directory:
 
-Before running any tutorial below, fetch its sample dataset with the
-``physiotwin4d-download-data`` CLI:
+.. code-block:: bash
+
+   git clone https://github.com/Project-MONAI/physiotwin4d.git
+   cd physiotwin4d
+
+See :doc:`quickstart` for version-matched clones and the release tarball link.
+
+**2. Get the data**, running every download from the top level of the clone.
+The tutorials resolve their inputs against the repository root
+(``<repo>/data/<dataset>``), while the CLI writes to ``data/<dataset>``
+relative to the current working directory:
 
 .. code-block:: bash
 
    physiotwin4d-download-data Slicer-Heart-CT --directory data/Slicer-Heart-CT
    physiotwin4d-download-data KCL-Heart-Model --directory data/KCL-Heart-Model
+   physiotwin4d-download-data Chest-CT --directory data/Chest-CT
 
-This covers the data used by Tutorials 1a-5a. Run
-``physiotwin4d-download-data --help`` for all options, and see
-:doc:`cli_scripts/download_data` for dataset sizes, source URLs, and
-directory layouts.
+That covers Tutorials 1 and 4-7. ``DirLab-4DCT`` — used by Tutorials 2, 3, 6
+(lung) and 8 — is **not** auto-downloaded: DIR-Lab distributes it manually and
+may require registration. See ``data/DirLab-4DCT/README.md``, and
+:doc:`cli_scripts/download_data` for every dataset's size and source.
 
-``DirLab-4DCT`` (used by Tutorial 6) is **not** auto-downloaded — DIR-Lab
-distributes it manually and may require registration; see
-``data/DirLab-4DCT/README.md`` for instructions. Tutorials 8-10 are
-bring-your-own-data (see the note before Tutorial 8) and do not use a
-downloadable sample.
+**3. Know where output lands.** Every tutorial writes to
+``tutorials/output/<tutorial_name>/`` and reuses what it finds there, so a
+second run is cheap and later tutorials pick up earlier results automatically.
+
+.. raw:: html
+
+   <section class="pt4d-card-grid" aria-label="Tutorial cards">
+     <a class="pt4d-card" href="#tutorial-1-gated-4d-ct-to-animated-usd">
+       <span class="pt4d-card__number">01</span>
+       <h2>Gated 4D CT to Animated USD</h2>
+       <p>Segment, register and assemble a 4D CT series into an animated OpenUSD scene.</p>
+       <span class="pt4d-card__meta">Slicer-Heart-CT &middot; DIR-Lab</span>
+     </a>
+     <a class="pt4d-card" href="#tutorial-2-finetune-icon-registration">
+       <span class="pt4d-card__number">02</span>
+       <h2>Finetune ICON Registration</h2>
+       <p>Adapt uniGradICON to your own cohort and measure what the finetuning bought you.</p>
+       <span class="pt4d-card__meta">DIR-Lab</span>
+     </a>
+     <a class="pt4d-card" href="#tutorial-3-reconstruct-high-resolution-4d-ct">
+       <span class="pt4d-card__number">03</span>
+       <h2>Reconstruct High-Resolution 4D CT</h2>
+       <p>Register every phase to one reference and reconstruct the series at its resolution.</p>
+       <span class="pt4d-card__meta">Slicer-Heart-CT &middot; DIR-Lab</span>
+     </a>
+     <a class="pt4d-card" href="#tutorial-4-ct-segmentation-to-vtk-surfaces">
+       <span class="pt4d-card__number">04</span>
+       <h2>CT Segmentation to VTK Surfaces</h2>
+       <p>Segment one CT phase and export patient anatomy as VTK PolyData surfaces.</p>
+       <span class="pt4d-card__meta">Slicer-Heart-CT &middot; DIR-Lab</span>
+     </a>
+     <a class="pt4d-card" href="#tutorial-5-vtk-surfaces-to-animated-usd">
+       <span class="pt4d-card__number">05</span>
+       <h2>VTK Surfaces to Animated USD</h2>
+       <p>Convert meshes into a time-sampled USD scene for Omniverse playback.</p>
+       <span class="pt4d-card__meta">Tutorial 4 output</span>
+     </a>
+     <a class="pt4d-card" href="#tutorial-6-create-a-pca-shape-model">
+       <span class="pt4d-card__number">06</span>
+       <h2>Create a PCA Shape Model</h2>
+       <p>Turn a population of meshes into a statistical shape model and its modes.</p>
+       <span class="pt4d-card__meta">KCL-Heart-Model &middot; DIR-Lab</span>
+     </a>
+     <a class="pt4d-card" href="#tutorial-7-fit-the-shape-model-to-a-patient">
+       <span class="pt4d-card__number">07</span>
+       <h2>Fit the Shape Model to a Patient</h2>
+       <p>Fit the shape model to one routine clinical scan, PCA coefficients and all.</p>
+       <span class="pt4d-card__meta">Chest-CT &middot; Tutorial 6 output</span>
+     </a>
+     <a class="pt4d-card" href="#tutorial-8-propagate-the-shape-model-through-4d">
+       <span class="pt4d-card__number">08</span>
+       <h2>Propagate the Model Through 4D</h2>
+       <p>Fit each case at its reference phase and carry the mesh through every phase.</p>
+       <span class="pt4d-card__meta">DIR-Lab &middot; Tutorials 2 and 6</span>
+     </a>
+     <a class="pt4d-card" href="#tutorial-9-train-a-physicsnemo-surrogate">
+       <span class="pt4d-card__number">09</span>
+       <h2>Train a PhysicsNeMo Surrogate</h2>
+       <p>Train a MeshGraphNet to predict per-vertex motion from shape and phase.</p>
+       <span class="pt4d-card__meta">Tutorial 8 output</span>
+     </a>
+     <a class="pt4d-card" href="#tutorial-10-predict-motion-with-the-surrogate">
+       <span class="pt4d-card__number">10</span>
+       <h2>Predict Motion With the Surrogate</h2>
+       <p>Replace the registration solve with one forward pass, then export to USD.</p>
+       <span class="pt4d-card__meta">Tutorials 8 and 9 output</span>
+     </a>
+   </section>
 
 Recommended Run Order
 =====================
 
-Tutorials are ``# %%`` percent-cell Python scripts. Each script defines its
-data and output paths near the top, using repository ``data/`` and ``output/``
-directories by default. Edit those constants for tutorial exploration, or use
-the installed ``physiotwin4d-*`` CLI commands when you need command-line path
-arguments.
+Tutorials are ``# %%`` percent-cell scripts: run them whole
+(``python tutorials/tutorial_01_heart_gated_ct_to_usd.py``) or cell by cell in
+VS Code or Cursor. Numbers 1, 4 and 5 are the fastest way to see the toolkit
+work end-to-end; 6 through 10 build the statistical-model and AI-surrogate
+pipeline on top.
 
-1. Run Tutorials 1 and 2 after downloading Slicer-Heart-CT data (above).
-2. Run Tutorial 3 after Tutorial 2 because it consumes Tutorial 2 output.
-3. Run Tutorial 4 after downloading KCL-Heart-Model (above).
-4. Run Tutorial 5 after Tutorial 4 because it can consume the PCA model output.
-5. Run Tutorial 6 after downloading DirLab-4DCT (manual — see above).
-6. Run Tutorial 8 after preparing your own cardiac gated CT, labelmaps, KCL
-   volume PCA model, and ICON weights (bring-your-own-data; see the note below).
-7. Run Tutorial 9 (MGN and/or MLP) after Tutorial 8 because they train from its
-   fitted meshes.
-8. Run Tutorial 10 (MGN and/or MLP) after Tutorial 9 because they evaluate
-   the trained checkpoints.
+1. **Tutorial 1** — after downloading Slicer-Heart-CT.
+2. **Tutorial 2** — after obtaining DIR-Lab. It writes the finetuned ICON
+   weights that Tutorials 3 (lung) and 8 use.
+3. **Tutorial 3** — after Tutorial 2, whose weights it registers with.
+4. **Tutorial 4** — after downloading Slicer-Heart-CT.
+5. **Tutorial 5** — after Tutorial 4, whose surfaces it converts.
+6. **Tutorial 6** — heart needs KCL-Heart-Model, lung needs DIR-Lab.
+7. **Tutorial 7** — after Tutorial 6; the lung variant also needs Chest-CT.
+8. **Tutorial 8** — after Tutorials 2 and 6 (lung).
+9. **Tutorial 9** — after Tutorial 8, whose fitted meshes it trains on.
+10. **Tutorial 10** — after Tutorial 9, whose checkpoint it loads.
 
-Tutorial 1: Heart-Gated CT to Animated USD
-==========================================
+Tutorial 1: Gated 4D CT to Animated USD
+=======================================
 
 Script
-   ``tutorials/tutorial_01_heart_gated_ct_to_usd.py``
+   ``tutorials/tutorial_01_heart_gated_ct_to_usd.py`` (Slicer-Heart-CT)
+
+   ``tutorials/tutorial_01_lung_gated_ct_to_usd.py`` (DIR-Lab)
 
 Workflow
-   ``WorkflowConvertImageToUSD``
+   :class:`~physiotwin4d.WorkflowConvertImageToUSD`, driving
+   :class:`~physiotwin4d.RegisterImagesICON` and a
+   :class:`~physiotwin4d.SegmentAnatomyBase` subclass.
 
 Dataset
-   Slicer-Heart-CT, downloaded via ``physiotwin4d-download-data`` (see above).
+   Slicer-Heart-CT (auto-download) for the heart, DIR-Lab (manual) for the
+   lung. The phase roughly 70% through the series is the segmentation and
+   registration reference.
+
+Requirements
+   GPU strongly recommended — ICON registers every phase against the
+   reference. Swap in :class:`~physiotwin4d.RegisterImagesGreedy` or
+   :class:`~physiotwin4d.RegisterImagesANTS` for CPU-only environments.
 
 Preview
-   .. figure:: assets/example.gif
-      :alt: Tutorial 1 input preview (placeholder)
-      :width: 45%
+   .. figure:: assets/tutorial_01_heart_4d.gif
+      :alt: Animated cardiac USD produced by Tutorial 1
+      :width: 90%
 
-      Input (placeholder — a real capture lands in a follow-up PR)
+      The animated cardiac model, played back in Omniverse.
 
-   .. figure:: assets/example.gif
-      :alt: Tutorial 1 output preview (placeholder)
-      :width: 45%
+   .. figure:: assets/tutorial_01_lung_4d.gif
+      :alt: Animated lung USD produced by Tutorial 1
+      :width: 90%
 
-      Output (placeholder — a real capture lands in a follow-up PR)
+      The same workflow on a DIR-Lab respiratory series.
 
 Inner API usage
-   The tutorial builds a registration method, hands it to the workflow, and
-   calls ``process()`` once:
-
    .. code-block:: python
-
-      registration_method = RegisterImagesICON(log_level=log_level)
-      registration_method.set_number_of_iterations(number_of_registration_iterations)
 
       workflow = WorkflowConvertImageToUSD(
           time_series_images=time_series_images,
@@ -158,114 +183,334 @@ Inner API usage
           output_directory=str(output_dir),
           usd_project_name="cardiac_model",
           registration_method=registration_method,
+          segmentation_method=segmentation_method,
           save_assets=True,
       )
-      usd_files = workflow.process()
-
-   Swap in ``RegisterImagesGreedy()`` or ``RegisterImagesANTS()`` for
-   CPU-only environments.
+      workflow_results = workflow.process()
 
 Run
    .. code-block:: bash
 
       python tutorials/tutorial_01_heart_gated_ct_to_usd.py
+      python tutorials/tutorial_01_lung_gated_ct_to_usd.py
 
 Outputs
-   Registered phase images, transformed contours, preview screenshots, and an
-   animated USD model.
+   The animated USD named after ``usd_project_name``, the per-phase registered
+   volumes and labelmaps, and screenshots — all under
+   ``tutorials/output/tutorial_01_{heart,lung}/``.
 
-Tutorial 2: CT Segmentation to VTK Surfaces
-===========================================
+Adapt to your data
+   Point ``data_dir`` and the file glob near the top of the script at your own
+   series: any set of 3D volumes ITK can read (``.mha``, ``.nrrd``,
+   ``.nii.gz``) in acquisition order, or a 4D ``.seq.nrrd`` split first with
+   ``physiotwin4d-convert-image-4d-to-3d``. Choose the reference phase by
+   changing the index expression, and swap ``segmentation_method`` for the one
+   matching your anatomy and contrast — see :doc:`api/segmentation/index`. For
+   command-line use without editing code, run
+   ``physiotwin4d-convert-image-to-usd`` (:doc:`cli_scripts/heart_gated_ct`).
+
+Tutorial 2: Finetune ICON Registration
+======================================
 
 Script
-   ``tutorials/tutorial_02_heart_ct_to_vtk.py``
+   ``tutorials/tutorial_02_lung_finetune_icon.py``
 
 Workflow
-   ``WorkflowConvertImageToVTK``
+   :class:`~physiotwin4d.WorkflowFinetuneICONRegistration`, then
+   :class:`~physiotwin4d.RegisterImagesGreedyICON` to score the result.
 
 Dataset
-   Slicer-Heart-CT, downloaded via ``physiotwin4d-download-data`` (see above).
+   DIR-Lab (manual). Every case except ``Case1Pack`` trains; ``Case1Pack`` is
+   held out and registered twice — once with the stock uniGradICON weights and
+   once with the finetuned ones — so the improvement is measured, not asserted.
+
+Requirements
+   GPU required. 100 epochs over nine cases: the longest-running tutorial
+   before the AI-surrogate chain. The experiment directory is cleared on every
+   run, so it does not resume.
 
 Preview
-   .. figure:: assets/example.gif
-      :alt: Tutorial 2 input preview (placeholder)
-      :width: 45%
+   .. figure:: assets/tutorial_02_finetuning.png
+      :alt: Registration accuracy before and after ICON finetuning
+      :width: 90%
 
-      Input (placeholder — a real capture lands in a follow-up PR)
-
-   .. figure:: assets/example.gif
-      :alt: Tutorial 2 output preview (placeholder)
-      :width: 45%
-
-      Output (placeholder — a real capture lands in a follow-up PR)
+      The held-out case registered with the stock weights and with the
+      finetuned weights.
 
 Inner API usage
-   The workflow owns a segmentation method and turns each anatomy group into
-   a decimated VTK surface:
-
    .. code-block:: python
 
-      workflow = WorkflowConvertImageToVTK(
-          segmentation_method=SegmentChestTotalSegmentatorWithContrast(
-              log_level=log_level
-          ),
+      workflow = WorkflowFinetuneICONRegistration(
+          subject_image_files=list(subject_image_files.values()),
+          output_dir=weights_dir,
+          finetune_name=finetune_name,
+          subject_ids=list(subject_image_files.keys()),
+          epochs=epochs,
+          dice_loss_weight=0.0,
       )
-      result = workflow.process(
-          input_image=ct_image,
-          surface_target_reduction=0.5,
-      )
-
-   Use ``SegmentChestTotalSegmentator`` instead for non-contrast studies.
-
-   By default the script saves one combined ``patient_surfaces.vtp``.  Set
-   ``SAVE_GROUP_SURFACES = True`` and/or ``SAVE_LABEL_SURFACES = True`` near
-   the top of the script to additionally save one VTP per anatomy group
-   (e.g. ``patient_heart.vtp``) and/or one VTP per individual anatomical
-   structure (e.g. ``patient_left_ventricle.vtp``); the latter passes
-   ``extract_label_surfaces=True`` to :meth:`WorkflowConvertImageToVTK.process`.
+      weights_path = workflow.process()
 
 Run
    .. code-block:: bash
 
-      python tutorials/tutorial_02_heart_ct_to_vtk.py
+      python tutorials/tutorial_02_lung_finetune_icon.py
 
 Outputs
-   Segmentation artifacts, VTK PolyData surfaces, and preview screenshots.
+   The finetuned checkpoint under
+   ``tutorials/network_weights/icon_dirlab_4dct/``, plus
+   ``registration_summary.csv`` and before/after screenshots in
+   ``tutorials/output/tutorial_02_lung/``.
 
-Tutorial 4: Create a PCA Shape Model
+Adapt to your data
+   Replace the training cohort glob with your own volumes and set ``epochs``
+   to fit your budget — the workflow needs only a list of image files and
+   matching subject ids. Raise ``dice_loss_weight`` above ``0.0`` when you also
+   have labelmaps to supervise with. Load the resulting weights anywhere by
+   passing them to :class:`~physiotwin4d.RegisterImagesICON`.
+
+Tutorial 3: Reconstruct High-Resolution 4D CT
+=============================================
+
+Script
+   ``tutorials/tutorial_03_heart_reconstruct_highres_4d_ct.py``
+
+   ``tutorials/tutorial_03_lung_reconstruct_highres_4d_ct.py``
+
+Workflow
+   :class:`~physiotwin4d.WorkflowReconstructHighres4DCT` with
+   :class:`~physiotwin4d.RegisterImagesGreedyICON`.
+
+Dataset
+   Slicer-Heart-CT for the heart; DIR-Lab for the lung, which reconstructs
+   against its T70 (end-exhale) phase — the same reference Tutorial 8 fits to.
+   The lung variant registers with **Tutorial 2's finetuned ICON weights** when
+   they exist, and logs a warning and falls back to the stock uniGradICON
+   weights when they do not.
+
+Requirements
+   GPU recommended. One coarse-to-fine registration per phase, greedy schedule
+   ``[30, 15, 7, 3]``. The lung variant enables mass preservation for
+   non-contrast CT; the heart variant does not and uses the stock uniGradICON
+   weights.
+
+Preview
+   .. figure:: assets/Tutorial_03_heart_original.gif
+      :alt: Acquired cardiac phases
+      :width: 90%
+
+      The acquired cardiac phases.
+
+   .. figure:: assets/Tutorial_03_heart_recon.gif
+      :alt: Cardiac phases reconstructed at the reference resolution
+      :width: 90%
+
+      The same phases reconstructed at the reference resolution.
+
+   .. figure:: assets/tutorial_03_output_comparison.gif
+      :alt: Acquired phase beside the reconstructed high-resolution phase
+      :width: 90%
+
+      Side by side on the lung series.
+
+Inner API usage
+   .. code-block:: python
+
+      registration_method = RegisterImagesGreedyICON()
+      registration_method.greedy.set_number_of_iterations([30, 15, 7, 3])
+      registration_method.icon.set_mass_preservation(True)
+      if icon_weights_path.exists():          # Tutorial 2 output, optional
+          registration_method.icon.set_weights_path(str(icon_weights_path))
+
+      workflow = WorkflowReconstructHighres4DCT(
+          time_series_images=time_series,
+          reference_image=reference_image,
+          reference_time_frame=reference_time_frame,
+          registration_method=registration_method,
+      )
+      workflow.set_modality("ct")
+      result = workflow.process()
+
+Run
+   .. code-block:: bash
+
+      python tutorials/tutorial_03_heart_reconstruct_highres_4d_ct.py
+      python tutorials/tutorial_03_lung_reconstruct_highres_4d_ct.py
+
+Outputs
+   ``reconstructed_frame_<i>.mha`` plus forward and inverse transforms for
+   every phase, and two screenshots, under
+   ``tutorials/output/tutorial_03_{heart,lung}/``.
+
+Adapt to your data
+   Set ``case_glob`` and ``data_dir`` to your series and pick the reference
+   with ``reference_time_frame``. Point ``icon_weights_path`` at weights you
+   finetuned on your own cohort with Tutorial 2, or leave it missing to
+   register with the stock uniGradICON weights. If you have a separate
+   breath-hold or
+   contrast-enhanced volume, pass it as ``reference_image`` instead of one of
+   the phases — that is what the workflow is really designed for. Tune
+   ``number_of_iterations_greedy`` down for a fast smoke test. The saved
+   ``.hdf`` transforms are reusable:
+   :class:`~physiotwin4d.TransformTools` applies them to meshes and labelmaps.
+
+Tutorial 4: CT Segmentation to VTK Surfaces
+===========================================
+
+Script
+   ``tutorials/tutorial_04_heart_ct_to_vtk.py``
+
+   ``tutorials/tutorial_04_lung_ct_to_vtk.py``
+
+Workflow
+   :class:`~physiotwin4d.WorkflowConvertImageToVTK` with
+   :class:`~physiotwin4d.SegmentChestTotalSegmentatorWithContrast` (heart) or
+   :class:`~physiotwin4d.SegmentChestTotalSegmentator` (lung).
+
+Dataset
+   One frame of Slicer-Heart-CT or DIR-Lab — a single static volume is enough.
+
+Requirements
+   GPU recommended for segmentation; no registration, so this is the quickest
+   way to confirm your environment and model weights work.
+
+Preview
+   .. figure:: assets/tutorial_04_lung.png
+      :alt: Lung surfaces extracted from a CT phase
+      :width: 90%
+
+      Anatomy surfaces exported from one CT phase.
+
+Inner API usage
+   .. code-block:: python
+
+      workflow = WorkflowConvertImageToVTK(
+          segmentation_method=segmentation_method,
+      )
+      result = workflow.process(
+          input_image=ct_image,
+          surface_target_reduction=0.5,
+          extract_label_surfaces=save_label_surfaces,
+      )
+
+Run
+   .. code-block:: bash
+
+      python tutorials/tutorial_04_heart_ct_to_vtk.py
+      python tutorials/tutorial_04_lung_ct_to_vtk.py
+
+Outputs
+   ``patient_surfaces.vtp`` (all anatomy in one mesh), per-group and per-label
+   ``.vtp`` files, ``patient_labelmap.mha`` and two screenshots, under
+   ``tutorials/output/tutorial_04_{heart,lung}/``.
+
+Adapt to your data
+   Change the input volume path, then choose the segmenter matching your scan:
+   contrast versus non-contrast CT, or
+   :class:`~physiotwin4d.SegmentNVSegmentCTMRI` for CT **and** MRI. Raise
+   ``surface_target_reduction`` toward ``1.0`` for lighter meshes. Every
+   segmenter declares its own labels through
+   :class:`~physiotwin4d.AnatomyTaxonomy`, so downstream grouping and USD
+   materials follow automatically — see :doc:`api/segmentation/index`.
+
+Tutorial 5: VTK Surfaces to Animated USD
+========================================
+
+Script
+   ``tutorials/tutorial_05_heart_vtk_to_usd.py``
+
+Workflow
+   :class:`~physiotwin4d.WorkflowConvertVTKToUSD`.
+
+Dataset
+   Tutorial 4's ``patient_surfaces.vtp`` — no image data, no download.
+
+Requirements
+   CPU only, seconds to run. The cheapest tutorial in the set.
+
+Preview
+   .. figure:: assets/tutorial_05_heart_vtk_to_usd.png
+      :alt: Cardiac surfaces rendered from the exported USD scene
+      :width: 90%
+
+      The exported USD scene, split by anatomy and painted with OmniSurface
+      materials.
+
+Inner API usage
+   .. code-block:: python
+
+      workflow = WorkflowConvertVTKToUSD(
+          input_meshes=[mesh],
+          usd_project_name=project_name,
+          output_directory=output_dir,
+          appearance="anatomy",
+          anatomy_type="heart",
+          separate_by_connectivity=True,
+      )
+      results = workflow.process()
+
+Run
+   .. code-block:: bash
+
+      python tutorials/tutorial_05_heart_vtk_to_usd.py
+
+Outputs
+   The USD scene and a rendered screenshot under
+   ``tutorials/output/tutorial_05_heart/``.
+
+Adapt to your data
+   ``input_meshes`` takes any list of PyVista meshes — pass one per time point,
+   in order, for an animated scene instead of a static one, and set
+   ``frames_per_second`` to control playback. ``appearance="anatomy"`` binds
+   per-organ materials through :class:`~physiotwin4d.USDAnatomyTools`; use
+   ``anatomy_type`` to pick the palette. For file-in, file-out conversion
+   without Python, see :doc:`cli_scripts/vtk_to_usd`.
+
+Tutorial 6: Create a PCA Shape Model
 ====================================
 
 Script
-   ``tutorials/tutorial_04_heart_create_statistical_model.py``
+   ``tutorials/tutorial_06_heart_create_statistical_model.py``
+
+   ``tutorials/tutorial_06_lung_create_statistical_model.py``
 
 Workflow
-   ``WorkflowCreateStatisticalModel``
+   :class:`~physiotwin4d.WorkflowCreateStatisticalModel`; the lung variant
+   first builds an unbiased atlas with
+   :class:`~physiotwin4d.WorkflowCreateMeanSurface`.
 
 Dataset
-   KCL-Heart-Model, downloaded via ``physiotwin4d-download-data``.
+   KCL-Heart-Model (auto-download) for the heart. The lung variant starts from
+   raw DIR-Lab volumes, segmenting each case's T70 phase itself.
+
+Requirements
+   The heart variant is CPU-only and quick. **The lung variant is the slowest
+   of Tutorials 1-7**: one GPU segmentation per case, then a deformable
+   registration per case per atlas iteration. Every intermediate is cached, so
+   a re-run costs almost nothing.
 
 Preview
-   .. figure:: assets/example.gif
-      :alt: Tutorial 3 input preview (placeholder)
-      :width: 45%
+   .. figure:: assets/tutorial_06_heart_modes_of_variation.png
+      :alt: Cardiac shape model modes of variation
+      :width: 90%
 
-      Input (placeholder — a real capture lands in a follow-up PR)
+      Heart model: the mean shape at ±2σ along its leading modes.
 
-   .. figure:: assets/example.gif
-      :alt: Tutorial 3 output preview (placeholder)
-      :width: 45%
+   .. figure:: assets/tutorial_06_lung_modes_of_variation.png
+      :alt: Lung shape model modes of variation
+      :width: 90%
 
-      Output (placeholder — a real capture lands in a follow-up PR)
+      The same decomposition for the lung population.
 
 Inner API usage
-   The workflow aligns every sample mesh to the reference mesh and fits a
-   PCA shape model in one call:
-
    .. code-block:: python
 
+      mean_workflow = WorkflowCreateMeanSurface(surfaces=sample_surfaces)
+      mean_workflow.set_number_of_iterations(mean_surface_iterations)
+      reference_surface = mean_workflow.process()["mean_surface"]
+
       workflow = WorkflowCreateStatisticalModel(
-          sample_meshes=sample_meshes,
-          reference_mesh=reference_mesh,
+          sample_meshes=sample_surfaces,
+          reference_mesh=reference_surface,
           pca_number_of_components=pca_components,
       )
       result = workflow.process()
@@ -273,341 +518,296 @@ Inner API usage
 Run
    .. code-block:: bash
 
-      python tutorials/tutorial_04_heart_create_statistical_model.py
+      python tutorials/tutorial_06_heart_create_statistical_model.py
+      python tutorials/tutorial_06_lung_create_statistical_model.py
 
 Outputs
-   PCA model files, mean shape, and component diagnostics.
+   ``pca_model.json``, ``pca_mean_surface.vtp``, the ±2σ mode surfaces and
+   their renders, under ``tutorials/output/tutorial_06_{heart,lung}/``. The
+   lung variant also leaves its per-case segmentations there, which Tutorial 8
+   reuses.
 
-Tutorial 5: Fit Statistical Model to Patient
+Adapt to your data
+   The workflow wants a population of meshes plus one reference; point
+   ``sample_meshes`` at your own cohort and let
+   :class:`~physiotwin4d.WorkflowCreateMeanSurface` build the reference when no
+   natural template exists. ``pca_number_of_components`` trades fidelity
+   against cohort size — you need more subjects than modes. The saved
+   ``pca_model.json`` is the portable artifact: Tutorials 7 and 8 and
+   :doc:`cli_scripts/create_statistical_model` all speak it.
+
+Tutorial 7: Fit the Shape Model to a Patient
 ============================================
 
 Script
-   ``tutorials/tutorial_05_heart_fit_statistical_model_to_patient.py``
+   ``tutorials/tutorial_07_heart_fit_statistical_model_to_patient.py``
+
+   ``tutorials/tutorial_07_lung_fit_statistical_model_to_patient.py``
 
 Workflow
-   ``WorkflowFitStatisticalModelToPatient``
+   :class:`~physiotwin4d.WorkflowFitStatisticalModelToPatient`.
 
 Dataset
-   KCL-Heart-Model, downloaded via ``physiotwin4d-download-data``.
+   Tutorial 6's model plus one patient scan. The lung variant fits to
+   ``Chest-CT`` — a routine, single-time-point clinical chest CT, which is the
+   scan most adopters actually have.
+
+Requirements
+   One segmentation pass plus a PCA-constrained fit; GPU recommended for the
+   segmentation, and no registration over time.
 
 Preview
-   .. figure:: assets/example.gif
-      :alt: Tutorial 4 input preview (placeholder)
-      :width: 45%
+   .. figure:: assets/tutorial_07_heart_in_noncontrast_ct.gif
+      :alt: Fitted heart model overlaid on a non-contrast CT
+      :width: 90%
 
-      Input (placeholder — a real capture lands in a follow-up PR)
+      The heart model fitted to a non-contrast scan.
 
-   .. figure:: assets/example.gif
-      :alt: Tutorial 4 output preview (placeholder)
-      :width: 45%
+   .. figure:: assets/tutorial_07_lung.gif
+      :alt: Fitted lung model on the routine clinical Chest-CT scan
+      :width: 90%
 
-      Output (placeholder — a real capture lands in a follow-up PR)
+      The lung model fitted to the routine clinical ``Chest-CT`` volume.
 
 Inner API usage
-   The workflow registers a template model to patient surfaces with ICP,
-   with optional PCA-constrained shape fitting when a PCA model is supplied:
-
    .. code-block:: python
 
       workflow = WorkflowFitStatisticalModelToPatient(
-          template_model=template_model,
-          patient_models=patient_models,
+          template_model=pca_mean,
+          patient_models=[patient_surface],
+          patient_image=patient_image,
+          patient_labelmap=patient_labelmap,
       )
-      if pca_model is not None:
-          workflow.set_use_pca_registration(True, pca_model=pca_model)
+      workflow.set_use_pca_registration(
+          use_pca_registration=True,
+          pca_model=pca_model,
+      )
       result = workflow.process()
-      registered_surface = result["registered_template_model_surface"]
 
 Run
    .. code-block:: bash
 
-      python tutorials/tutorial_05_heart_fit_statistical_model_to_patient.py
+      python tutorials/tutorial_07_heart_fit_statistical_model_to_patient.py
+      python tutorials/tutorial_07_lung_fit_statistical_model_to_patient.py
 
 Outputs
-   Patient-fitted statistical model surfaces and registration diagnostics.
+   The registered template surface, the fitted mesh, and — the piece the rest
+   of the pipeline needs — ``*_registered_coefficients.json``, the patient's
+   position in shape space. Under
+   ``tutorials/output/tutorial_07_{heart,lung}/``.
 
-Tutorial 3: VTK Surface Series to Animated USD
+Adapt to your data
+   Set the patient image path and keep the segmenter consistent with the one
+   that built the model. ``labelmap_interior_object_ids`` (heart) tells the fit
+   which labels are interior structures — those ids are TotalSegmentator's
+   chamber labels, so change them if you change segmenter. Turn
+   ``set_use_pca_registration`` off to fall back to an unconstrained
+   template-to-patient fit when you have no model. The CLI equivalent is
+   :doc:`cli_scripts/fit_statistical_model_to_patient`.
+
+Tutorial 8: Propagate the Shape Model Through 4D
+================================================
+
+Script
+   ``tutorials/tutorial_08_lung_fit_model_to_4d_patients.py``
+
+Workflow
+   :class:`~physiotwin4d.WorkflowFitStatisticalModelToPatient` at the reference
+   phase, then :class:`~physiotwin4d.WorkflowReconstructHighres4DCT` to carry
+   the fitted surface through every other phase.
+
+Dataset
+   DIR-Lab, plus Tutorial 6 (lung)'s model. Tutorial 2's finetuned ICON weights
+   are used when present; without them the tutorial warns and registers with the
+   stock uniGradICON weights.
+
+Requirements
+   GPU required, and the heaviest registration workload in the set: one
+   segmentation and one fit per case, plus one registration per phase per case.
+
+Preview
+   .. figure:: assets/example.gif
+      :alt: Tutorial 8 output preview (capture pending)
+      :width: 60%
+
+      Capture pending — running the tutorial writes
+      ``ssm_surface_reference.png`` and ``ssm_surface_first_phase.png``.
+
+Inner API usage
+   .. code-block:: python
+
+      fit_workflow = WorkflowFitStatisticalModelToPatient(
+          template_model=pca_mean_surface,
+          patient_models=[lung_surface],
+          patient_image=reference_image,
+          patient_labelmap=lung_labelmap,
+      )
+      fit_workflow.set_use_pca_registration(True, pca_model=pca_model)
+
+      reg_workflow = WorkflowReconstructHighres4DCT(
+          time_series_images=time_series,
+          reference_image=reference_image,
+          reference_time_frame=phase_ids.index(reference_phase),
+          register_reference_time_frame_to_reference_image=False,
+          registration_method=registration_method,
+      )
+
+Run
+   .. code-block:: bash
+
+      python tutorials/tutorial_08_lung_fit_model_to_4d_patients.py
+
+Outputs
+   Per case, under ``tutorials/output/tutorial_08_lung/<case>/``: the fitted
+   reference surface, its PCA coefficients, and one warped surface plus
+   forward/inverse transform per phase. Those per-phase surfaces are exactly
+   the training set Tutorial 9 consumes.
+
+Adapt to your data
+   Point ``data_dir`` at a directory of per-case 4D series and set
+   ``reference_phase`` to the phase your model was built at; the case and phase
+   file patterns are two globs near the top of the script. Everything is cached
+   per case, so adding a subject re-runs only that subject.
+
+Tutorial 9: Train a PhysicsNeMo Surrogate
+=========================================
+
+Script
+   ``tutorials/tutorial_09_lung_train_physicsnemo_mgn.py``
+
+Workflow
+   :class:`~physiotwin4d.WorkflowTrainPhysicsNeMo` driving
+   :class:`~physiotwin4d.TrainPhysicsNeMoMGN`, then
+   :class:`~physiotwin4d.WorkflowInferPhysicsNeMo` and
+   :class:`~physiotwin4d.WorkflowInferMovement` to score the held-out case. A
+   fully connected :class:`~physiotwin4d.TrainPhysicsNeMoMLP` method is a
+   drop-in replacement; no separate tutorial ships for it.
+
+Dataset
+   Tutorial 8's per-phase surfaces and Tutorial 6 (lung)'s mean surface. The
+   tutorial writes one JSON manifest per case, plus the per-vertex displacement
+   targets those manifests point at.
+
+Requirements
+   GPU, plus the optional extra::
+
+      pip install "physiotwin4d[physicsnemo]"
+      pip install torch-geometric
+
+   Python >= 3.11. 1500 epochs by default.
+
+Preview
+   .. figure:: assets/example.gif
+      :alt: Tutorial 9 output preview (capture pending)
+      :width: 60%
+
+      Capture pending — the tutorial writes ``predicted_surface.png`` and
+      ``rmse_surface.png`` when it runs.
+
+Inner API usage
+   .. code-block:: python
+
+      training_method = TrainPhysicsNeMoMGN()
+      training_method.set_epochs(epochs)
+      training_method.set_processor_size(processor_size)
+
+      train_workflow = WorkflowTrainPhysicsNeMo(
+          train_manifests=train_manifests,
+          val_manifests=val_manifests,
+          pca_mean_mesh=ssm_mean_surface_file,
+          output_directory=output_dir,
+          training_method=training_method,
+      )
+      train_result = train_workflow.process()
+
+Run
+   .. code-block:: bash
+
+      python tutorials/tutorial_09_lung_train_physicsnemo_mgn.py
+
+Outputs
+   ``mgn_stage_model.pt``, its metadata and loss/RMSE logs, the per-case
+   manifests, and the held-out evaluation under ``eval_mgn/`` — in the
+   directory training used: ``tutorials/output/tutorial_09_lung_mgn/``
+   normally, or a fresh sibling when resuming.
+
+Adapt to your data
+   The contract is the manifest, not the tutorial. Each JSON names a reference
+   mesh, a PCA coefficient file, a ``target_array`` name and one entry per
+   phase; the workflow reads that array verbatim, so the target can be
+   displacement — as here — or any per-point quantity of any width. Produce
+   manifests in that shape from your own pipeline and nothing else changes.
+   See :doc:`api/physicsnemo/index` for the schema, and
+   :doc:`cli_scripts/train_physicsnemo` for the command-line path.
+
+Tutorial 10: Predict Motion With the Surrogate
 ==============================================
 
 Script
-   ``tutorials/tutorial_03_heart_vtk_to_usd.py``
+   ``tutorials/tutorial_10_lung_infer_physicsnemo_mgn.py``
 
 Workflow
-   ``WorkflowConvertVTKToUSD``
+   :class:`~physiotwin4d.WorkflowInferPhysicsNeMo` for the raw prediction,
+   :class:`~physiotwin4d.WorkflowInferMovement` to turn it back into geometry,
+   and :class:`~physiotwin4d.WorkflowConvertVTKToUSD` to export it.
 
 Dataset
-   Output from Tutorial 2.
+   Tutorial 8's fitted surfaces for one case, and Tutorial 9's checkpoint.
+
+Requirements
+   The ``[physicsnemo]`` extra; otherwise trivial — one forward pass replaces
+   the per-phase registration solve that produced the training data.
 
 Preview
    .. figure:: assets/example.gif
-      :alt: Tutorial 5 input preview (placeholder)
-      :width: 45%
+      :alt: Tutorial 10 output preview (capture pending)
+      :width: 60%
 
-      Input (placeholder — a real capture lands in a follow-up PR)
-
-   .. figure:: assets/example.gif
-      :alt: Tutorial 5 output preview (placeholder)
-      :width: 45%
-
-      Output (placeholder — a real capture lands in a follow-up PR)
+      Capture pending — the tutorial writes ``predicted_surface.png`` and
+      ``ground_truth_surface.png`` when it runs.
 
 Inner API usage
-   The supported workflow wrapper converts one or more in-memory PyVista/VTK
-   meshes into an animated, materially-painted USD stage:
-
    .. code-block:: python
 
-      import pyvista as pv
-
-      mesh = pv.read(str(vtk_file))
-      workflow = WorkflowConvertVTKToUSD(
-          input_meshes=[mesh],
-          usd_project_name="surfaces",
+      infer_workflow = WorkflowInferPhysicsNeMo(
+          model_directory=model_dir,
+          epoch=epoch,
+      )
+      infer_result = WorkflowInferMovement(infer_workflow).predict_single(
+          shape_parameters=pca_file,
+          stage=test_stage,
+          reference_mesh=reference_file,
+          ground_truth=ground_truth_file,
           output_directory=output_dir,
-          appearance="anatomy",
-          anatomy_type="heart",
-          separate_by_connectivity=True,
       )
-      result = workflow.process()
-      usd_file = result["usd_file"]
-
-   For callers who need more control than the workflow wrapper offers (e.g.
-   applying a colormap or per-label anatomical splitting), use
-   :class:`physiotwin4d.ConvertVTKToUSD` directly — it is the supported
-   public entry point for VTK-to-USD conversion.
 
 Run
    .. code-block:: bash
 
-      python tutorials/tutorial_03_heart_vtk_to_usd.py
+      python tutorials/tutorial_10_lung_infer_physicsnemo_mgn.py
 
 Outputs
-   Time-sampled USD scene and conversion logs for Omniverse inspection.
+   The predicted surface, its error statistics against the ground-truth phase
+   in millimetres, and a USD scene, under
+   ``tutorials/output/tutorial_09_lung_mgn/tutorial_10_lung_mgn/<case>/``.
 
-Tutorial 6: Reconstruct High-Resolution 4D CT
-=============================================
+Adapt to your data
+   Change ``case_id`` and ``stage_fraction`` to predict a different subject, or
+   a stage that was never acquired — which is the point of the surrogate. Omit
+   ``reference_mesh`` to displace the mesh reconstructed from the PCA
+   coefficients alone, needing no per-subject geometry at all. Use
+   :class:`~physiotwin4d.WorkflowInferPhysicsNeMo` on its own to get the raw
+   target array when your model predicts something other than displacement.
 
-Script
-   ``tutorials/tutorial_06_lung_reconstruct_highres_4d_ct.py``
+Where to Go Next
+================
 
-Workflow
-   ``WorkflowReconstructHighres4DCT``
-
-Dataset
-   DirLab-4DCT, downloaded manually — see ``data/DirLab-4DCT/README.md``.
-
-Preview
-   .. figure:: assets/example.gif
-      :alt: Tutorial 6 input preview (placeholder)
-      :width: 45%
-
-      Input (placeholder — a real capture lands in a follow-up PR)
-
-   .. figure:: assets/example.gif
-      :alt: Tutorial 6 output preview (placeholder)
-      :width: 45%
-
-      Output (placeholder — a real capture lands in a follow-up PR)
-
-Inner API usage
-   The workflow registers every phase to a fixed reference with a chained
-   Greedy-then-ICON registrar and reconstructs each phase at the reference
-   resolution:
-
-   .. code-block:: python
-
-      registration_method = RegisterImagesGreedyICON(log_level=log_level)
-      registration_method.greedy.set_number_of_iterations(number_of_iterations_Greedy)
-
-      workflow = WorkflowReconstructHighres4DCT(
-          time_series_images=time_series,
-          fixed_image=fixed_image,
-          reference_frame=0,
-          registration_method=registration_method,
-      )
-      workflow.set_modality("ct")
-      result = workflow.process()
-      reconstructed_images = result["reconstructed_images"]
-
-Run
-   .. code-block:: bash
-
-      python tutorials/tutorial_06_lung_reconstruct_highres_4d_ct.py
-
-Outputs
-   Registered respiratory phases, reconstructed high-resolution CT volumes,
-   and preview screenshots.
-
-.. note::
-
-   Tutorials 8-10 form the cardiac mesh stage-prediction pipeline and are
-   **bring-your-own-data**: unlike the earlier data-driven tutorials they do not
-   use the repository ``data/`` directory or a downloadable sample. Their path
-   constants point at a local ``D:/PhysioTwin4D/`` cardiac layout (gated CT,
-   labelmaps, the KCL volume PCA model, and ICON weights); edit those constants
-   to match your own data.
-
-Tutorial 8: Fit the Cardiac SSM and Propagate Through Gated Phases
-==================================================================
-
-Script
-   ``tutorials/tutorial_08_byod_fit_model_to_patients.py``
-
-Workflow
-   ``WorkflowFitStatisticalModelToPatient`` (PCA registration) and
-   ``WorkflowReconstructHighres4DCT`` (ICON time-series registration)
-
-Dataset
-   Bring your own cardiac gated CT, labelmaps, KCL volume PCA model, and ICON
-   weights under ``D:/PhysioTwin4D/``.
-
-Preview
-   .. figure:: assets/example.gif
-      :alt: Tutorial 8 input preview (placeholder)
-      :width: 45%
-
-      Input (placeholder — a real capture lands in a follow-up PR)
-
-   .. figure:: assets/example.gif
-      :alt: Tutorial 8 output preview (placeholder)
-      :width: 45%
-
-      Output (placeholder — a real capture lands in a follow-up PR)
-
-Inner API usage
-   Step 1 fits the SSM to the reference phase with PCA-constrained
-   registration; step 2 propagates the fitted mesh to every gated phase by
-   reusing the reference-to-phase ICON transforms from
-   ``WorkflowReconstructHighres4DCT``:
-
-   .. code-block:: python
-
-      ssm_fit_workflow = WorkflowFitStatisticalModelToPatient(
-          template_model=ssm_mean_mesh,
-          patient_image=ref_image,
-          patient_models=[ref_surface],
-          patient_labelmap=ref_labelmap,
-          labelmap_interior_object_ids=LABELMAP_INTERIOR_OBJECT_IDS,
-      )
-      ssm_fit_workflow.set_use_pca_registration(
-          use_pca_registration=True, pca_model=ssm_model, use_surface=False,
-      )
-      ssm_fit_workflow_result = ssm_fit_workflow.process()
-      ssm_pca_coefficients = ssm_fit_workflow.pca_coefficients
-
-      icon_registration_method = RegisterImagesICON()
-      icon_registration_method.set_weights_path(str(ICON_WEIGHTS_PATH))
-      reg_workflow = WorkflowReconstructHighres4DCT(
-          time_series_images=time_series,
-          fixed_image=ref_image,
-          registration_method=icon_registration_method,
-      )
-      reg_result = reg_workflow.process()
-      reconstructed_images = reg_result["reconstructed_images"]
-
-Run
-   .. code-block:: bash
-
-      python tutorials/tutorial_08_byod_fit_model_to_patients.py
-
-Outputs
-   Per-patient fitted SSM mesh/surface, PCA coefficients, and the SSM warped to
-   every gated phase, all written under ``OUTPUT_DIR``.
-
-Tutorial 9: Train a PhysicsNeMo Cardiac Stage Model
-===================================================
-
-Script
-   ``tutorials/tutorial_09_byod_train_physicsnemo_mgn.py`` (MeshGraphNet) and
-   ``tutorials/tutorial_09_byod_train_physicsnemo_mlp.py`` (MLP)
-
-Inner API usage
-   These are thin drivers over the reusable
-   ``WorkflowTrainPhysicsNeMoMGN`` (MGN) and ``WorkflowTrainPhysicsNeMoMLP`` (MLP)
-   workflows, which train ``physicsnemo.models.meshgraphnet.MeshGraphNet`` or
-   ``physicsnemo.models.mlp.FullyConnected`` on Tutorial 8's fitted meshes. The
-   tutorials discover subjects, write one JSON manifest per subject, split them
-   into train / validation / held-out test, and call ``process()``. They are the
-   intended template for future cardiac, respiratory, and electrophysiology AI
-   surrogates, following the same fit -> propagate -> train -> predict pattern as
-   the rest of the workflow layer.
-
-Dataset
-   Tutorial 8 fitted-mesh outputs.
-
-Preview
-   .. figure:: assets/example.gif
-      :alt: Tutorial 9 input preview (placeholder)
-      :width: 45%
-
-      Input (placeholder — a real capture lands in a follow-up PR)
-
-   .. figure:: assets/example.gif
-      :alt: Tutorial 9 output preview (placeholder)
-      :width: 45%
-
-      Output (placeholder — a real capture lands in a follow-up PR)
-
-Extra install
-   PhysicsNeMo is an optional dependency. Install with
-   ``pip install "physiotwin4d[physicsnemo]"`` (requires Python >= 3.11). The
-   MeshGraphNet variant also requires ``torch-geometric``.
-
-Run
-   .. code-block:: bash
-
-      python tutorials/tutorial_09_byod_train_physicsnemo_mgn.py
-      python tutorials/tutorial_09_byod_train_physicsnemo_mlp.py
-
-Outputs
-   Shared PhysicsNeMo checkpoints, training metadata, loss / RMSE histories, and
-   held-out predictions written under each trainer's ``OUTPUT_DIR``.
-
-Tutorial 10: Predict and Evaluate Cardiac Surfaces
-==================================================
-
-Script
-   ``tutorials/tutorial_10_byod_eval_physicsnemo_mgn.py`` (MeshGraphNet) and
-   ``tutorials/tutorial_10_byod_eval_physicsnemo_mlp.py`` (MLP)
-
-Inner API usage
-   Thin drivers over ``WorkflowInferPhysicsNeMoMGN`` / ``WorkflowInferPhysicsNeMoMLP``
-   that load a Tutorial 9 checkpoint and predict cardiac surfaces for one
-   subject at each gated phase (with error statistics) or at caller-specified
-   stages — the AI surrogate standing in for ``WorkflowReconstructHighres4DCT``
-   at inference time.
-
-Dataset
-   Tutorial 9 trained checkpoints plus the Tutorial 8 fitted meshes.
-
-Preview
-   .. figure:: assets/example.gif
-      :alt: Tutorial 10 input preview (placeholder)
-      :width: 45%
-
-      Input (placeholder — a real capture lands in a follow-up PR)
-
-   .. figure:: assets/example.gif
-      :alt: Tutorial 10 output preview (placeholder)
-      :width: 45%
-
-      Output (placeholder — a real capture lands in a follow-up PR)
-
-Run
-   .. code-block:: bash
-
-      python tutorials/tutorial_10_byod_eval_physicsnemo_mlp.py pm0002 --out results/pm0002
-
-   Run with no arguments to use the ``run_tutorial`` entry point and its
-   ``DEFAULT_SUBJECT`` / ``DEFAULT_OUT_DIR`` constants.
-
-Outputs
-   Predicted ``.vtp`` surfaces per phase, a per-point ``RMSE_mm`` surface, and a
-   ``statistics_per_phase.csv`` error summary (when ground-truth phases exist).
-
-Dataset Notes
-=============
-
-The repository-level ``tutorials/README.md`` has the most detailed dataset
-preparation notes. The tutorials are also exercised by ``tests/test_tutorials.py``
-behind the ``--run-tutorials`` opt-in flag.
+- :doc:`viewing_usd` — installing ``usdview`` or an Omniverse Kit application
+  and opening the scenes these tutorials produce.
+- :doc:`cli_scripts/byod_tutorials` — running the workflows on your own DICOM,
+  NRRD or VTK data, including directory layout and conversion.
+- :doc:`api/index` — every workflow, segmenter, registrar and utility class.
+- :doc:`architecture` — how the workflow layer fits together and where to
+  extend it.
+- :doc:`testing` — ``tests/test_tutorials.py`` runs these scripts end-to-end
+  behind the ``--run-tutorials`` flag.

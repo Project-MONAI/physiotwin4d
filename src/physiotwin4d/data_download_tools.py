@@ -1,7 +1,7 @@
 """
 Dataset download and verification helpers.
 
-Slicer-Heart-CT, KCL-Heart-Model, and CHOP-Valve4D are downloaded
+Slicer-Heart-CT, KCL-Heart-Model, CHOP-Valve4D, and Chest-CT are downloaded
 automatically. Other datasets require manual download, and the verification
 helpers check the file layouts used by the repository tutorials,
 experiments, and tests.
@@ -59,40 +59,9 @@ class DataDownloadTools:
 
         data_file = data_dir / DataDownloadTools.SLICER_HEART_CT_FILENAME
         if not (data_file.exists() and data_file.stat().st_size > 0):
-            # Stream to a unique temp file in the same directory with an
-            # explicit timeout, then atomically replace the target on
-            # success. The temp name is unique so concurrent callers do not
-            # clobber each other. Avoids partial files on interrupt and the
-            # indefinite hang that urlretrieve has without a timeout.
-            tmp_handle = tempfile.NamedTemporaryFile(
-                dir=str(data_dir),
-                prefix=f".{DataDownloadTools.SLICER_HEART_CT_FILENAME}.",
-                suffix=".tmp",
-                delete=False,
+            DataDownloadTools._DownloadFile(
+                DataDownloadTools.SLICER_HEART_CT_URL, data_file
             )
-            tmp_file = Path(tmp_handle.name)
-            try:
-                with (
-                    urllib.request.urlopen(  # noqa: S310
-                        DataDownloadTools.SLICER_HEART_CT_URL,
-                        timeout=_DOWNLOAD_TIMEOUT_SECONDS,
-                    ) as response,
-                    tmp_handle as out,
-                ):
-                    shutil.copyfileobj(response, out)
-                if tmp_file.stat().st_size == 0:
-                    raise RuntimeError(
-                        f"Downloaded file is empty: {DataDownloadTools.SLICER_HEART_CT_URL}"
-                    )
-                tmp_file.replace(data_file)
-                _logger.info(
-                    "Downloaded %s", DataDownloadTools.SLICER_HEART_CT_FILENAME
-                )
-            except BaseException:
-                tmp_handle.close()
-                if tmp_file.exists():
-                    tmp_file.unlink()
-                raise
 
         slice_basename = DataDownloadTools.SLICER_HEART_CT_SLICE_BASENAME
         if not any(data_dir.glob(f"{slice_basename}_???.mha")):
@@ -113,6 +82,41 @@ class DataDownloadTools:
                 slice_basename,
             )
         return data_file
+
+    @staticmethod
+    def _DownloadFile(url: str, target_file: Path) -> None:  # noqa: N802
+        """Stream-download ``url`` and atomically replace ``target_file``.
+
+        Streams to a unique temp file in the target's directory with an
+        explicit timeout, then atomically replaces the target on success. The
+        temp name is unique so concurrent callers do not clobber each other.
+        Avoids partial files on interrupt and the indefinite hang that
+        urlretrieve has without a timeout.
+        """
+        tmp_handle = tempfile.NamedTemporaryFile(
+            dir=str(target_file.parent),
+            prefix=f".{target_file.name}.",
+            suffix=".tmp",
+            delete=False,
+        )
+        tmp_file = Path(tmp_handle.name)
+        try:
+            with (
+                urllib.request.urlopen(  # noqa: S310
+                    url, timeout=_DOWNLOAD_TIMEOUT_SECONDS
+                ) as response,
+                tmp_handle as out,
+            ):
+                shutil.copyfileobj(response, out)
+            if tmp_file.stat().st_size == 0:
+                raise RuntimeError(f"Downloaded file is empty: {url}")
+            tmp_file.replace(target_file)
+            _logger.info("Downloaded %s", target_file.name)
+        except BaseException:
+            tmp_handle.close()
+            if tmp_file.exists():
+                tmp_file.unlink()
+            raise
 
     @staticmethod
     def VerifySlicerHeartCTData(dirname: Union[str, Path]) -> bool:  # noqa: N802
@@ -311,6 +315,39 @@ class DataDownloadTools:
         )
         has_tpv25 = DataDownloadTools._CHOPValve4DSubdirIsPopulated(data_dir / "TPV25")
         return has_ct or (has_alterra and has_tpv25)
+
+    CHEST_CT_URL = (
+        "https://github.com/Project-MONAI/physiotwin4d/releases/download/2026.07.1/"
+        "Chest-CT.mha"
+    )
+    CHEST_CT_FILENAME = "Chest-CT.mha"
+
+    @staticmethod
+    def DownloadChestCTData(dirname: Union[str, Path]) -> Path:  # noqa: N802
+        """Download the Chest-CT sample volume into ``dirname``.
+
+        Fetches ``Chest-CT.mha`` — a routine clinical 3-D chest CT — from the
+        PhysioTwin4D 2026.07.1 GitHub release. An existing non-empty file is
+        reused, so re-running resumes an interrupted download.
+
+        Args:
+            dirname: Directory where ``Chest-CT.mha`` should live.
+
+        Returns:
+            Path to the downloaded or already-cached ``Chest-CT.mha`` file.
+        """
+        data_dir = Path(dirname)
+        data_dir.mkdir(parents=True, exist_ok=True)
+
+        data_file = data_dir / DataDownloadTools.CHEST_CT_FILENAME
+        if not (data_file.exists() and data_file.stat().st_size > 0):
+            DataDownloadTools._DownloadFile(DataDownloadTools.CHEST_CT_URL, data_file)
+        return data_file
+
+    @staticmethod
+    def VerifyChestCTData(dirname: Union[str, Path]) -> bool:  # noqa: N802
+        """Return True when Chest-CT has its expected CT volume."""
+        return (Path(dirname) / DataDownloadTools.CHEST_CT_FILENAME).is_file()
 
     @staticmethod
     def _MetaImageHeaderHasBackingData(mhd_file: Path) -> bool:  # noqa: N802

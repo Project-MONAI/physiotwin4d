@@ -6,7 +6,7 @@ Drive the cardiac MeshGraphNet (MGN) motion model trained by
 ``tutorial_09_byod_train_physicsnemo_mgn.py`` over the DirLab ``Case1Pack``
 heart and, for each requested cardiac stage, rasterize the inferred per-vertex
 displacement onto the ``Case1Pack`` image grid as a deformation field via
-:meth:`WorkflowInferPhysicsNeMoMGN.create_deformation_field`.
+:meth:`WorkflowInferMovement.create_deformation_field`.
 
 Inputs
 ------
@@ -17,16 +17,16 @@ Inputs
 - Reference image (defines the deformation-field grid):
   ``data/DirLab-4DCT/Case1Pack_T70.mha``.
 - Patient heart shape: the 15-mode ``pca-vol-kcl`` fit produced by re-running
-  Tutorial 5 against Case1Pack:
-  * coefficients: ``output/tutorial_05_heart_to_lung/
-    tutorial_05_heart_to_lung_registered_coefficients.json``
-  * patient-space mesh (binning positions): ``output/tutorial_05_heart_to_lung/
-    tutorial_05_heart_to_lung_template_mesh_registered.vtu``
+  Tutorial 7 against Case1Pack:
+  * coefficients: ``output/tutorial_07_heart/
+    tutorial_07_heart_registered_coefficients.json``
+  * patient-space mesh (binning positions): ``output/tutorial_07_heart/
+    tutorial_07_heart_template_mesh_registered.vtu``
 
 Coordinate-frame note
 ---------------------
 The MGN was trained in the ``pca-vol-kcl`` basis, so its PCA reconstruction of a
-subject lands in the model's *canonical* frame (near the origin). The Tutorial 5
+subject lands in the model's *canonical* frame (near the origin). The Tutorial 7
 fit aligned that model to Case1Pack with a pose transform that the shape
 coefficients do not carry, so the patient heart sits in the scanner frame of
 ``Case1Pack_T70``. The displacements the network predicts depend only on the
@@ -64,7 +64,11 @@ import itk
 import numpy as np
 import pyvista as pv
 
-from physiotwin4d import WorkflowConvertVTKToUSD, WorkflowInferPhysicsNeMoMGN
+from physiotwin4d import (
+    WorkflowConvertVTKToUSD,
+    WorkflowInferMovement,
+    WorkflowInferPhysicsNeMo,
+)
 from physiotwin4d import physicsnemo_tools as pnt
 
 
@@ -73,14 +77,14 @@ def _ensure_mgn_inference_assets(
 ) -> None:
     """Complete an interrupted MGN run directory so it can be loaded for inference.
 
-    ``WorkflowInferPhysicsNeMoMGN`` expects a finalized run directory
-    (``mgn_stage_model.pt``, ``pca_mean_surface.vtp`` and the shared graph
+    ``WorkflowInferPhysicsNeMo`` expects a finalized run directory
+    (``mgn_stage_model.pt``, ``pca_mean_template.vtp`` and the shared graph
     tensors). The ``tutorial_09_byod_mgn_3`` directory holds only epoch
     checkpoints, so this regenerates the missing assets deterministically:
 
     - ``mgn_stage_model.pt`` from the self-describing epoch checkpoint (it
       carries the normalization stats and architecture the loader reads);
-    - ``pca_mean_surface.vtp`` and the shared MGN graph tensors from the PCA
+    - ``pca_mean_template.vtp`` and the shared MGN graph tensors from the PCA
       template volume, using the same steps the trainer used.
 
     All writes are idempotent (skipped when the target already exists).
@@ -95,7 +99,7 @@ def _ensure_mgn_inference_assets(
     if not final_ckpt.exists():
         shutil.copy2(epoch_ckpt, final_ckpt)
 
-    surface_file = model_dir / "pca_mean_surface.vtp"
+    surface_file = model_dir / "pca_mean_template.vtp"
     if not surface_file.exists():
         volume = pv.read(str(pca_mean_volume))
         mean_surface = volume.extract_surface(algorithm="dataset_surface")
@@ -127,13 +131,13 @@ if __name__ == "__main__":
     # Case1Pack reference image (defines the deformation-field grid).
     reference_image_file = repo_root / "data" / "DirLab-4DCT" / "Case1Pack_T70.mha"
 
-    # 15-mode pca-vol-kcl fit of the Case1Pack heart (Tutorial 5, re-run).
-    tutorial_05_dir = tutorials_dir / "output" / "tutorial_05_heart_to_lung"
+    # 15-mode pca-vol-kcl fit of the Case1Pack heart (Tutorial 7, re-run).
+    tutorial_07_dir = tutorials_dir / "output" / "tutorial_07_heart"
     coefficients_file = (
-        tutorial_05_dir / "tutorial_05_heart_to_lung_registered_coefficients.json"
+        tutorial_07_dir / "tutorial_07_heart_registered_coefficients.json"
     )
     registered_mesh_file = (
-        tutorial_05_dir / "tutorial_05_heart_to_lung_template_mesh_registered.vtu"
+        tutorial_07_dir / "tutorial_07_heart_template_mesh_registered.vtu"
     )
 
     output_dir = tutorials_dir / "output" / "temp_beating_heart"
@@ -155,7 +159,9 @@ if __name__ == "__main__":
 
     reference_image = itk.imread(str(reference_image_file))
 
-    infer = WorkflowInferPhysicsNeMoMGN(model_directory=model_dir, epoch=epoch)
+    infer = WorkflowInferMovement(
+        WorkflowInferPhysicsNeMo(model_directory=model_dir, epoch=epoch)
+    )
 
     deformation_files: list[Path] = []
     normal_files: list[Path] = []
@@ -166,7 +172,7 @@ if __name__ == "__main__":
             shape_parameters=coefficients_file,
             stage=float(stage),
             reference_image=reference_image,
-            reference_surface=registered_mesh_file,
+            reference_mesh=registered_mesh_file,
         )
         pct = int(round(stage * 100))
         field_path = output_dir / f"deformation_field_s{pct:03d}.mha"

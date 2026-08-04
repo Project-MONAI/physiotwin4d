@@ -15,6 +15,7 @@ This section provides detailed documentation for all PhysioTwin4D classes, funct
    segmentation/index
    registration/index
    model_registration/index
+   physicsnemo/index
    usd/index
    utilities/index
    cli/index
@@ -29,9 +30,19 @@ By Category
    * :class:`~physiotwin4d.PhysioTwin4DBase` - Base class for all components
 
 **Workflows**
-   * :class:`~physiotwin4d.WorkflowConvertImageToUSD` - Heart CT to USD
+   * :class:`~physiotwin4d.WorkflowConvertImageToUSD` - CT time series to animated USD
+   * :class:`~physiotwin4d.WorkflowConvertImageToVTK` - Segmentation to VTK surfaces
+   * :class:`~physiotwin4d.WorkflowConvertVTKToUSD` - Meshes to USD
+   * :class:`~physiotwin4d.WorkflowReconstructHighres4DCT` - High-resolution 4D reconstruction
+   * :class:`~physiotwin4d.WorkflowFinetuneICONRegistration` - Finetune ICON on your cohort
+   * :class:`~physiotwin4d.WorkflowCreateMeanSurface` - Unbiased mean surface / atlas
    * :class:`~physiotwin4d.WorkflowCreateStatisticalModel` - Create PCA statistical shape model
-   * :class:`~physiotwin4d.WorkflowFitStatisticalModelToPatient` - Heart model registration
+   * :class:`~physiotwin4d.WorkflowFitStatisticalModelToPatient` - Fit the model to a patient
+
+**AI Surrogates (PhysicsNeMo)**
+   * :class:`~physiotwin4d.WorkflowTrainPhysicsNeMo` - Train a mesh-stage model
+   * :class:`~physiotwin4d.WorkflowInferPhysicsNeMo` - Predict per-point targets
+   * :class:`~physiotwin4d.WorkflowInferMovement` - Turn predictions back into geometry
 
 **Segmentation**
    * :class:`~physiotwin4d.SegmentAnatomyBase` - Base segmentation class

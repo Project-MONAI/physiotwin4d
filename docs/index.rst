@@ -8,73 +8,91 @@
      <div class="pt4d-hero__brand">
        <img src="_static/nvidia-logo.svg" alt="NVIDIA logo">
      </div>
-     <p class="pt4d-kicker">PhysioTwin4D tutorials</p>
+     <p class="pt4d-kicker">PhysioTwin4D</p>
      <h1>Build animated medical USD workflows for NVIDIA Omniverse</h1>
      <p>
        PhysioTwin4D is a collection of methods, workflows, tutorials, and CLI
        tools for creating personalized physiological digital twins from 3D
-       medical images. Start with the tutorial cards, then use the
-       documentation sections below for installation, CLI workflows, API
-       references, developer notes, and contribution guidance.
+       medical images. Install it, clone the repository for the tutorial
+       scripts, and work through the cards below — each tutorial runs on
+       downloadable data and ends with the constants to change for your own.
      </p>
 
      <p class="pt4d-hero__version">Version {{ pt4d_project_version }}</p>
    </section>
 
+   <div class="pt4d-clinical-notice">
+     <strong>Not validated for clinical use.</strong> PhysioTwin4D is a
+     research and visualization toolkit, not a medical device. Do not use it
+     for diagnosis, treatment planning, or clinical decision-making.
+   </div>
+
    <section class="pt4d-card-grid" aria-label="Tutorial cards">
-     <a class="pt4d-card" href="tutorials.html#tutorial-1-heart-gated-ct-to-animated-usd">
-       <span class="pt4d-card__number">01</span>
-       <h2>Heart-Gated CT to Animated USD</h2>
-       <p>Convert cardiac 4D CT frames into registered contours and an animated OpenUSD model.</p>
-       <span class="pt4d-card__meta">Slicer-Heart-CT</span>
+     <a class="pt4d-card" href="installation.html">
+       <span class="pt4d-card__number">00</span>
+       <h2>Install and Clone</h2>
+       <p>Install the package, then clone the repository — the tutorial scripts do not ship in the wheel.</p>
+       <span class="pt4d-card__meta">Start here</span>
      </a>
-     <a class="pt4d-card" href="tutorials.html#tutorial-2-ct-segmentation-to-vtk-surfaces">
+     <a class="pt4d-card" href="tutorials.html#tutorial-1-gated-4d-ct-to-animated-usd">
+       <span class="pt4d-card__number">01</span>
+       <h2>Gated 4D CT to Animated USD</h2>
+       <p>Segment, register and assemble a 4D CT series into an animated OpenUSD scene.</p>
+       <span class="pt4d-card__meta">Slicer-Heart-CT &middot; DIR-Lab</span>
+     </a>
+     <a class="pt4d-card" href="tutorials.html#tutorial-2-finetune-icon-registration">
        <span class="pt4d-card__number">02</span>
+       <h2>Finetune ICON Registration</h2>
+       <p>Adapt uniGradICON to your own cohort and measure what the finetuning bought you.</p>
+       <span class="pt4d-card__meta">DIR-Lab</span>
+     </a>
+     <a class="pt4d-card" href="tutorials.html#tutorial-3-reconstruct-high-resolution-4d-ct">
+       <span class="pt4d-card__number">03</span>
+       <h2>Reconstruct High-Resolution 4D CT</h2>
+       <p>Register every phase to one reference and reconstruct the series at its resolution.</p>
+       <span class="pt4d-card__meta">Slicer-Heart-CT &middot; DIR-Lab</span>
+     </a>
+     <a class="pt4d-card" href="tutorials.html#tutorial-4-ct-segmentation-to-vtk-surfaces">
+       <span class="pt4d-card__number">04</span>
        <h2>CT Segmentation to VTK Surfaces</h2>
        <p>Segment one CT phase and export patient anatomy as VTK PolyData surfaces.</p>
-       <span class="pt4d-card__meta">Slicer-Heart-CT</span>
+       <span class="pt4d-card__meta">Slicer-Heart-CT &middot; DIR-Lab</span>
      </a>
-     <a class="pt4d-card" href="tutorials.html#tutorial-3-vtk-surface-series-to-animated-usd">
-       <span class="pt4d-card__number">03</span>
-       <h2>VTK Surface Series to Animated USD</h2>
-       <p>Convert VTK meshes into a time-sampled USD scene for Omniverse playback.</p>
-       <span class="pt4d-card__meta">Tutorial 2 output</span>
-     </a>
-     <a class="pt4d-card" href="tutorials.html#tutorial-4-create-a-pca-shape-model">
-       <span class="pt4d-card__number">04</span>
-       <h2>Create a PCA Shape Model</h2>
-       <p>Build a statistical shape model from aligned cardiac meshes.</p>
-       <span class="pt4d-card__meta">KCL-Heart-Model</span>
-     </a>
-     <a class="pt4d-card" href="tutorials.html#tutorial-5-fit-statistical-model-to-patient">
+     <a class="pt4d-card" href="tutorials.html#tutorial-5-vtk-surfaces-to-animated-usd">
        <span class="pt4d-card__number">05</span>
-       <h2>Fit Statistical Model to Patient</h2>
-       <p>Fit a PCA heart model to patient-specific anatomy for model-based reconstruction.</p>
+       <h2>VTK Surfaces to Animated USD</h2>
+       <p>Convert meshes into a time-sampled USD scene for Omniverse playback.</p>
        <span class="pt4d-card__meta">Tutorial 4 output</span>
      </a>
-     <a class="pt4d-card" href="tutorials.html#tutorial-6-reconstruct-high-resolution-4d-ct">
+     <a class="pt4d-card" href="tutorials.html#tutorial-6-create-a-pca-shape-model">
        <span class="pt4d-card__number">06</span>
-       <h2>Reconstruct High-Resolution 4D CT</h2>
-       <p>Register respiratory CT phases and reconstruct a higher-resolution 4D volume series.</p>
-       <span class="pt4d-card__meta">DirLab-4DCT</span>
+       <h2>Create a PCA Shape Model</h2>
+       <p>Turn a population of meshes into a statistical shape model and its modes.</p>
+       <span class="pt4d-card__meta">KCL-Heart-Model &middot; DIR-Lab</span>
      </a>
-     <a class="pt4d-card" href="tutorials.html#tutorial-8-fit-the-cardiac-ssm-and-propagate-through-gated-phases">
+     <a class="pt4d-card" href="tutorials.html#tutorial-7-fit-the-shape-model-to-a-patient">
+       <span class="pt4d-card__number">07</span>
+       <h2>Fit the Shape Model to a Patient</h2>
+       <p>Fit the shape model to one routine clinical scan, PCA coefficients and all.</p>
+       <span class="pt4d-card__meta">Chest-CT &middot; Tutorial 6 output</span>
+     </a>
+     <a class="pt4d-card" href="tutorials.html#tutorial-8-propagate-the-shape-model-through-4d">
        <span class="pt4d-card__number">08</span>
-       <h2>Fit the Cardiac SSM and Propagate Through Gated Phases</h2>
-       <p>Fit a PCA heart model to the reference phase and propagate it to every gated phase with ICON registration.</p>
-       <span class="pt4d-card__meta">Bring your own cardiac data</span>
+       <h2>Propagate the Model Through 4D</h2>
+       <p>Fit each case at its reference phase and carry the mesh through every phase.</p>
+       <span class="pt4d-card__meta">DIR-Lab &middot; Tutorials 2 and 6</span>
      </a>
-     <a class="pt4d-card" href="tutorials.html#tutorial-9-train-a-physicsnemo-cardiac-stage-model">
+     <a class="pt4d-card" href="tutorials.html#tutorial-9-train-a-physicsnemo-surrogate">
        <span class="pt4d-card__number">09</span>
-       <h2>Train a PhysicsNeMo Cardiac Stage Model</h2>
-       <p>Train a PhysicsNeMo MeshGraphNet or MLP to predict cardiac meshes at requested stages.</p>
+       <h2>Train a PhysicsNeMo Surrogate</h2>
+       <p>Train a MeshGraphNet to predict per-vertex motion from shape and phase.</p>
        <span class="pt4d-card__meta">Tutorial 8 output</span>
      </a>
-     <a class="pt4d-card" href="tutorials.html#tutorial-10-predict-and-evaluate-cardiac-surfaces">
+     <a class="pt4d-card" href="tutorials.html#tutorial-10-predict-motion-with-the-surrogate">
        <span class="pt4d-card__number">10</span>
-       <h2>Predict and Evaluate Cardiac Surfaces</h2>
-       <p>Load a Tutorial 9 checkpoint and predict cardiac surfaces at gated phases or caller-specified stages.</p>
-       <span class="pt4d-card__meta">Tutorial 9 output</span>
+       <h2>Predict Motion With the Surrogate</h2>
+       <p>Replace the registration solve with one forward pass, then export to USD.</p>
+       <span class="pt4d-card__meta">Tutorials 8 and 9 output</span>
      </a>
    </section>
 
@@ -100,9 +118,13 @@
          <h3>CLI Workflows</h3>
          <p>Use production command-line workflows for conversion, reconstruction, modeling, and USD export.</p>
        </a>
-       <a class="pt4d-topic-card" href="isaac_for_healthcare.html">
-         <h3>Isaac for Healthcare</h3>
-         <p>Find PhysioTwin4D workflows and assets for Isaac for Healthcare use cases.</p>
+       <a class="pt4d-topic-card" href="viewing_usd.html">
+         <h3>Viewing USD Files</h3>
+         <p>Set up usdview or an Omniverse Kit app and open the scenes the workflows produce.</p>
+       </a>
+       <a class="pt4d-topic-card" href="cli_scripts/byod_tutorials.html">
+         <h3>Bring Your Own Data</h3>
+         <p>Point the workflows at your own DICOM, NRRD, or VTK data instead of the sample datasets.</p>
        </a>
        <a class="pt4d-topic-card" href="api/index.html">
          <h3>API Reference</h3>
@@ -134,8 +156,9 @@
 Tutorial Details
 ================
 
-See :doc:`tutorials` for the recommended run order, commands, datasets, and
-per-tutorial implementation details.
+See :doc:`tutorials` for the recommended run order, commands, datasets,
+per-tutorial implementation details, and the "adapt to your data" notes that
+close every section.
 
 .. toctree::
    :maxdepth: 2
@@ -145,6 +168,8 @@ per-tutorial implementation details.
    installation
    quickstart
    tutorials
+   viewing_usd
+   cli_scripts/byod_tutorials
    architecture
 
 .. toctree::
@@ -159,6 +184,8 @@ per-tutorial implementation details.
    cli_scripts/fit_statistical_model_to_patient
    cli_scripts/4dct_reconstruction
    cli_scripts/vtk_to_usd
+   cli_scripts/train_physicsnemo
+   cli_scripts/infer_physicsnemo
    cli_scripts/best_practices
 
 .. toctree::
@@ -194,14 +221,6 @@ per-tutorial implementation details.
    testing
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Isaac for Healthcare
-   :hidden:
-
-   isaac_for_healthcare
-   cli_scripts/byod_tutorials
-
-.. toctree::
    :maxdepth: 1
    :caption: Additional Resources
    :hidden:
@@ -209,13 +228,6 @@ per-tutorial implementation details.
    faq
    troubleshooting
    references
-
-Clinical Use
-============
-
-Not validated for clinical use. PhysioTwin4D {{ pt4d_project_version }} beta
-is a research and visualization toolkit, not a medical device. Do not use it
-for diagnosis, treatment planning, or clinical decision-making.
 
 Indices and tables
 ==================

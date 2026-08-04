@@ -11,67 +11,77 @@ This guide will help you get started with PhysioTwin4D quickly.
    a medical device. Do not use it for diagnosis, treatment planning, or
    clinical decision-making.
 
-.. _tutorials:
-
-Tutorials
-=========
-
-The ``tutorials/`` directory contains eleven end-to-end scripts covering nine
-major workflows (Tutorials 9 and 10 each have MeshGraphNet and MLP variants).
-Each script is a ``# %%`` percent-cell Python script that exercises
-the workflow classes directly. Run as a regular file
-(``python tutorials/tutorial_01_...py``) or cell-by-cell in VS Code or Cursor.
-
-See :doc:`tutorials` for the NVIDIA-styled tutorial card index, dataset
-requirements, script paths, and workflow details.
-
-Fetch the sample datasets with the download CLI before running a tutorial:
-
-.. code-block:: bash
-
-   physiotwin4d-download-data Slicer-Heart-CT --directory data/Slicer-Heart-CT
-   physiotwin4d-download-data KCL-Heart-Model --directory data/KCL-Heart-Model
-
-See :doc:`cli_scripts/download_data` for all supported datasets, sizes, and
-source URLs. ``DirLab-4DCT`` (Tutorial 6) is manual-only; see
-``data/DirLab-4DCT/README.md``.
-
-After downloading the Slicer-Heart-CT data (above), run the first two
-tutorials:
-
-.. code-block:: bash
-
-   python tutorials/tutorial_01_heart_gated_ct_to_usd.py
-
-   python tutorials/tutorial_02_heart_ct_to_vtk.py
-
-Tutorial paths are defined near the top of each script. To use different paths,
-edit the script constants or use the installed ``physiotwin4d-*`` CLI commands.
-See ``tutorials/README.md`` for dataset download instructions and the
-recommended run order.
-
-Recommended run order:
-
-1. Tutorials 1 and 2 first, after downloading Slicer-Heart-CT data.
-2. Tutorial 3 after Tutorial 2 (consumes Tutorial 2 output).
-3. Tutorial 4 after downloading KCL-Heart-Model.
-4. Tutorial 5 after Tutorial 4 because it can consume Tutorial 4 output.
-5. Tutorial 6 after downloading DirLab-4DCT (manual).
-6. Tutorial 8 after preparing your own cardiac gated CT, labelmaps, KCL volume
-   PCA model, and ICON weights (bring-your-own-data).
-7. Tutorial 9 (MGN and/or MLP) after Tutorial 8 because they train from its fitted
-   meshes.
-8. Tutorial 10 (MGN and/or MLP) after Tutorial 9 because they evaluate the
-   trained checkpoints.
-
 Prerequisites
 =============
 
 Before starting, ensure you have:
 
 * PhysioTwin4D installed (see :doc:`installation`)
-* NVIDIA GPU with CUDA 13 - recommended for production performance; see :doc:`installation` for the ``[cuda13]`` extra. A CPU-only PyPI install works for evaluation but is slow.
-* 4D cardiac CT data or access to sample datasets
+* NVIDIA GPU with CUDA 13 - recommended for production performance; see
+  :doc:`installation` for the ``[cuda13]`` extra. A CPU-only PyPI install works
+  for evaluation but is slow.
+* Disk space for the sample datasets (~10-20 GB for the full set; each dataset
+  README lists its own size)
+
+.. _tutorial_scripts:
+
+Get the Tutorial Scripts
+========================
+
+The tutorials ship with the source repository, not with the pip package.
+``pip install physiotwin4d`` installs the library and the ``physiotwin4d-*``
+commands, but it does not create a ``tutorials/`` directory. Clone the
+repository to get the scripts:
+
+.. code-block:: bash
+
+   git clone https://github.com/Project-MONAI/physiotwin4d.git
+   cd physiotwin4d
+
+To match the scripts to an already-installed release, check out its tag. Tags
+are bare version strings, so use the installed version directly:
+
+.. code-block:: bash
+
+   python -c "import physiotwin4d; print(physiotwin4d.__version__)"
+
+   git clone --depth 1 --branch {{ pt4d_project_version }} \
+       https://github.com/Project-MONAI/physiotwin4d.git
+   cd physiotwin4d
+
+A release tarball works just as well if you would rather not use git:
+``https://github.com/Project-MONAI/physiotwin4d/archive/refs/tags/{{ pt4d_project_version }}.tar.gz``.
+
+No further installation step is needed after cloning — the scripts import
+``physiotwin4d`` from your environment.
+
+Run every dataset download from the top level of the clone. The tutorials
+resolve their inputs against the repository root (``<repo>/data/<dataset>``),
+while ``physiotwin4d-download-data`` writes to ``data/<dataset>`` relative to
+the current working directory, so downloading from anywhere else puts the data
+where the tutorials will not find it.
+
+Then fetch the sample datasets, again from the top level of the clone:
+
+.. code-block:: bash
+
+   physiotwin4d-download-data Slicer-Heart-CT --directory data/Slicer-Heart-CT
+   physiotwin4d-download-data KCL-Heart-Model --directory data/KCL-Heart-Model
+   physiotwin4d-download-data Chest-CT --directory data/Chest-CT
+
+``DirLab-4DCT`` is manual-only; see ``data/DirLab-4DCT/README.md``, and
+:doc:`cli_scripts/download_data` for every dataset's size and source.
+
+With Slicer-Heart-CT in place, the first tutorial runs as a plain script:
+
+.. code-block:: bash
+
+   python tutorials/tutorial_01_heart_gated_ct_to_usd.py
+
+:doc:`tutorials` is the full guide — ten tutorials with previews of what each
+one produces, the run order, and per-tutorial notes on pointing them at your
+own data. The rest of this page is the same functionality as a CLI call and as
+a Python API call, for when you would rather not start from a script.
 
 Basic Workflow
 ==============
@@ -115,60 +125,46 @@ The fastest way to process cardiac CT data is using the command-line interface:
 Python API
 ----------
 
-For more control, use the Python API:
-
-**Step 1: Import the processor**
-
-.. code-block:: python
-
-   from physiotwin4d import RegisterImagesICON, WorkflowConvertImageToUSD
-
-**Step 2: Initialize with your data**
+For more control, use the Python API. The workflow takes **images, not
+filenames**: read your series with ITK first, and pick one frame as the
+segmentation and registration reference.
 
 .. code-block:: python
 
-   processor = WorkflowConvertImageToUSD(
-       input_filenames=["path/to/cardiac_4d_ct.nrrd"],
-       output_directory="./results",
-       project_name="cardiac_model",
-       registration_method=RegisterImagesICON(),
+   import itk
+   from pathlib import Path
+
+   from physiotwin4d import (
+       RegisterImagesICON,
+       SegmentChestTotalSegmentatorWithContrast,
+       WorkflowConvertImageToUSD,
    )
 
-**Step 3: Run the workflow**
+   frame_files = sorted(Path("data/Slicer-Heart-CT").glob("slice_???.mha"))
+   time_series_images = [itk.imread(str(path)) for path in frame_files]
+   reference_image = time_series_images[int(0.7 * len(time_series_images))]
 
-.. code-block:: python
-
-   # Run complete workflow
-   final_usd = processor.process()
-
-   print(f"USD model saved to: {final_usd}")
-
-That's it! The processor will:
-
-1. Convert 4D NRRD to 3D time frames
-2. Perform image registration between phases
-3. Generate AI-based segmentation
-4. Transform contours across time
-5. Create animated USD model
-
-Step-by-Step Workflow
-======================
-
-For more control over individual steps:
-
-.. code-block:: python
-
-   from physiotwin4d import RegisterImagesICON, WorkflowConvertImageToUSD
-
-   # Initialize workflow
    workflow = WorkflowConvertImageToUSD(
-       input_filenames=["cardiac_4d.nrrd"],
+       time_series_images=time_series_images,
+       reference_image=reference_image,
        output_directory="./results",
-       project_name="cardiac_model",
+       usd_project_name="cardiac_model",
        registration_method=RegisterImagesICON(),
+       segmentation_method=SegmentChestTotalSegmentatorWithContrast(),
+       save_assets=True,
    )
+   results = workflow.process()
 
-   final_usd = workflow.process()
+   print(f"USD model saved to: {results['dynamic']}")
+
+That is the whole pipeline: 4D input to 3D frames, registration between
+phases, AI segmentation of the reference, contour transformation across time,
+and an animated USD scene. A 4D ``.seq.nrrd`` needs splitting into frames
+first — use ``physiotwin4d-convert-image-4d-to-3d`` or
+:class:`~physiotwin4d.ConvertImage4DTo3D`.
+
+:doc:`tutorials` walks the same call through real data with screenshots, and
+each tutorial section ends with the constants to change for your own scans.
 
 Working with Individual Components
 ===================================
@@ -252,8 +248,8 @@ Sample Data
 Download Sample Datasets
 -------------------------
 
-``Slicer-Heart-CT``, ``KCL-Heart-Model``, and ``CHOP-Valve4D`` are all
-auto-downloadable, via the CLI:
+``Slicer-Heart-CT``, ``KCL-Heart-Model``, ``CHOP-Valve4D``, and ``Chest-CT``
+are all auto-downloadable, via the CLI:
 
 .. code-block:: bash
 
@@ -271,36 +267,25 @@ or from Python:
 See :doc:`cli_scripts/download_data` for sizes, source URLs, and directory
 layouts for every dataset.
 
-DirLab-4DCT data is manual-only; see ``data/DirLab-4DCT/README.md`` before
-running the high-resolution 4D CT reconstruction tutorial. Tutorials 8-10 are
-bring-your-own-data cardiac tutorials; see :doc:`tutorials` for their dataset
-layout. Tutorials 9a/9b/10a/10b additionally require the optional
-``physicsnemo`` extra (``pip install "physiotwin4d[physicsnemo]"``);
-PhysicsNeMo itself requires Python >= 3.11.
+DirLab-4DCT data is manual-only; see ``data/DirLab-4DCT/README.md``. It drives
+the lung pipeline — Tutorials 2, 3, 6 (lung) and 8 — which then feeds the
+AI-surrogate Tutorials 9 and 10. Those two additionally require the optional
+``physicsnemo`` extra (``pip install "physiotwin4d[physicsnemo]"``, plus
+``torch-geometric`` for the MeshGraphNet); PhysicsNeMo itself requires
+Python >= 3.11.
 
 Visualizing Results
 ===================
 
-In NVIDIA Omniverse
--------------------
+The workflows write OpenUSD scenes, and viewing them needs a USD viewer —
+``usdview`` for inspection and debugging, or an Omniverse Kit application for
+real-time RTX playback. Note that the ``usd-core`` package installed with
+PhysioTwin4D provides the OpenUSD *libraries* only and contains no viewer.
 
-1. Open NVIDIA Omniverse
-2. Launch USD Composer or USD Presenter
-3. File -> Open -> Select your generated `.usd` file
-4. Press Play to view the animation
+:doc:`viewing_usd` covers where to get each one, how to set it up, and how to
+open a PhysioTwin4D scene.
 
-Using USD Viewer
-----------------
-
-.. code-block:: bash
-
-   # View USD file with usdview (comes with usd-core)
-   usdview results/final_model.usd
-
-In PyVista
-----------
-
-For quick visualization of VTK meshes:
+The intermediate meshes need no USD tooling:
 
 .. code-block:: python
 

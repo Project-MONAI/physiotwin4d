@@ -78,3 +78,23 @@ def test_download_data_cli_routes_chop_valve4d(
     assert result == 0
     assert calls == [Path("data/CHOP-Valve4D")]
     assert "Downloaded CHOP-Valve4D" in capsys.readouterr().out
+
+
+def test_download_data_cli_routes_chest_ct(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Chest-CT routes to its own downloader and default directory."""
+    calls: list[Path] = []
+
+    def fake_download(dirname: Union[str, Path]) -> Path:
+        calls.append(Path(dirname))
+        return Path(dirname) / DataDownloadTools.CHEST_CT_FILENAME
+
+    monkeypatch.setattr(DataDownloadTools, "DownloadChestCTData", fake_download)
+
+    result = download_data.main(["Chest-CT"])
+
+    assert result == 0
+    assert calls == [Path("data/Chest-CT")]
+    assert "Downloaded Chest-CT" in capsys.readouterr().out

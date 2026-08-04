@@ -19,15 +19,13 @@ Inputs
 - The mid-inspiration phase (index ~0.7 through the series) is used as the
   reference frame for segmentation and registration.
 
-Outputs
--------
-- An animated USD file with anatomy materials, written under ``output_dir``
-  and named after the workflow's ``usd_project_name``.
+Outputs (under ``tutorials/output/tutorial_01_lung/``)
+-----------------------------------------------------
+- An animated USD file with anatomy materials, named after the workflow's
+  ``usd_project_name`` (``lung_model``).
 - Screenshots (PNG) for documentation and regression testing:
-  - ``slice_<n>_registered_test.png`` - axial slice of the registered
-    reference phase
-  - ``slice_<n>_labelmap_test.png`` - segmentation mask overlaid on that slice
-  - a rendered view of the exported USD model
+  - ``slice_<n>_registered_test.png`` - each registered respiratory phase
+  - ``lung_model_test.png`` - a rendered view of the exported USD model
 
 Strengths
 ---------

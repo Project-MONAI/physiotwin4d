@@ -32,16 +32,21 @@ Workflow Example
 
 .. code-block:: python
 
+   import itk
+
    from physiotwin4d import RegisterImagesICON, WorkflowConvertImageToUSD
 
+   time_series_images = [itk.imread(str(path)) for path in frame_files]
+
    workflow = WorkflowConvertImageToUSD(
-       input_filenames=["cardiac_4d.nrrd"],
+       time_series_images=time_series_images,
+       reference_image=time_series_images[0],
        output_directory="./results",
-       project_name="patient_001",
+       usd_project_name="patient_001",
        registration_method=RegisterImagesICON(),
    )
 
-   final_usd = workflow.process()
+   results = workflow.process()
 
 Adding a Workflow
 =================
