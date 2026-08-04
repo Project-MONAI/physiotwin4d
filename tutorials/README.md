@@ -107,5 +107,5 @@ Tutorial 6 lung model, in order:
 Class-level API reference: [../docs/api/index.rst](../docs/api/index.rst)
 
 To explore the code with an AI assistant, query the graphify knowledge graph
-(`graphify query "<question>"`) instead of grepping â€” see
+(`graphify query "<question>"`) instead of grepping — see
 [../docs/developer/ai_assistants.rst](../docs/developer/ai_assistants.rst)

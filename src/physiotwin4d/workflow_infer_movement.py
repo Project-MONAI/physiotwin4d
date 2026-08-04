@@ -292,15 +292,24 @@ class WorkflowInferMovement(PhysioTwin4DBase):
         ref_points = self._reference_points(coeffs, patient_mesh)
         disps = workflow.predict(coeffs, stage)
 
-        # Reference (undeformed) surface normals.
+        # Reference (undeformed) surface normals. Extraction drops the interior
+        # points of a volumetric template, so the normals come back on a subset
+        # of the points in a different order; ``vtkOriginalPointIds`` scatters
+        # them back into ``ref_points`` order. Interior points keep a zero
+        # normal, which contributes nothing to a voxel's mean.
         ref_mesh = template.copy(deep=True)
         ref_mesh.points = ref_points
-        ref_mesh = ref_mesh.extract_surface(
-            algorithm="dataset_surface"
+        surface = ref_mesh.extract_surface(
+            pass_pointid=True, algorithm="dataset_surface"
         ).compute_normals(
             point_normals=True, cell_normals=False, auto_orient_normals=True
         )
-        normals = np.asarray(ref_mesh.point_data["Normals"], dtype=np.float64)
+        surface_normals = np.asarray(surface.point_data["Normals"], dtype=np.float64)
+        original_ids = np.asarray(
+            surface.point_data["vtkOriginalPointIds"], dtype=np.intp
+        )
+        normals = np.zeros((ref_points.shape[0], 3), dtype=np.float64)
+        normals[original_ids] = surface_normals
 
         size = itk.size(reference_image)  # x, y, z
         sx, sy, sz = int(size[0]), int(size[1]), int(size[2])

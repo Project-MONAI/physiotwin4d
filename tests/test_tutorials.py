@@ -108,7 +108,9 @@ class TestTutorial03HeartReconstructHighres4DCT:
 
     _class_name = "tutorial_03_heart_reconstruct_highres_4d_ct"
 
-    def test_run(self, test_directories: dict[str, Path]) -> None:
+    def test_run(
+        self, test_directories: dict[str, Path], test_images: list[Any]
+    ) -> None:
         out_dir = _REPO_ROOT / "tutorials" / "output" / "tutorial_03_heart"
         results = _run_tutorial_script("tutorial_03_heart_reconstruct_highres_4d_ct.py")
         assert results["reconstructed_files"], (
@@ -170,7 +172,9 @@ class TestTutorial04HeartCTToVTK:
 
     _class_name = "tutorial_04_heart_ct_to_vtk"
 
-    def test_run(self, test_directories: dict[str, Path]) -> None:
+    def test_run(
+        self, test_directories: dict[str, Path], test_images: list[Any]
+    ) -> None:
         out_dir = _REPO_ROOT / "tutorials" / "output" / "tutorial_04_heart"
         results = _run_tutorial_script("tutorial_04_heart_ct_to_vtk.py")
         assert results["surface_file"].exists(), "Combined VTP surface should exist"
@@ -239,13 +243,9 @@ class TestTutorial06CreateStatisticalModel:
 
     _class_name = "tutorial_06_heart_create_statistical_model"
 
-    def test_run(self, test_directories: dict[str, Path]) -> None:
-        kcl_dir = test_directories["data"] / "KCL-Heart-Model"
-        if not (kcl_dir / "average_mesh.vtk").exists():
-            pytest.skip(
-                "KCL-Heart-Model not downloaded. See data/README.md for instructions."
-            )
-
+    def test_run(
+        self, test_directories: dict[str, Path], download_kcl_heart_model: Path
+    ) -> None:
         out_dir = _REPO_ROOT / "tutorials" / "output" / "tutorial_06_heart"
         results = _run_tutorial_script("tutorial_06_heart_create_statistical_model.py")
         assert results["model_file"].exists(), "pca_model.json should exist"
@@ -266,11 +266,16 @@ class TestTutorial07FitStatisticalModelToPatient:
 
     _class_name = "tutorial_07_heart_fit_statistical_model_to_patient"
 
-    def test_run(self, test_directories: dict[str, Path]) -> None:
-        kcl_dir = test_directories["data"] / "KCL-Heart-Model"
-        if not (kcl_dir / "average_mesh.vtk").exists():
+    def test_run(
+        self, test_directories: dict[str, Path], download_kcl_heart_model: Path
+    ) -> None:
+        # The patient scan comes from DIR-Lab, which must be acquired manually.
+        if not (
+            test_directories["data"] / "DirLab-4DCT" / "Case1Pack_T70.mha"
+        ).exists():
             pytest.skip(
-                "KCL-Heart-Model not downloaded. See data/README.md for instructions."
+                "DirLab-4DCT Case1Pack_T70 not downloaded. See data/README.md "
+                "for instructions."
             )
 
         pca_json = (
@@ -310,9 +315,15 @@ class TestTutorial07FitStatisticalModelToPatient:
 
 
 def _require_physicsnemo_and_tutorial_08() -> Path:
-    """Skip unless PhysicsNeMo and at least three Tutorial 8 cases are present."""
+    """Skip unless the MGN dependencies and three Tutorial 8 cases are present."""
     if importlib.util.find_spec("physicsnemo") is None:
         pytest.skip("PhysicsNeMo not installed (optional [physicsnemo] extra).")
+    if importlib.util.find_spec("torch_geometric") is None:
+        pytest.skip(
+            "PyTorch Geometric not installed; the MGN trainer needs it in addition "
+            'to PhysicsNeMo. Install with: pip install "physiotwin4d[physicsnemo]" '
+            "&& pip install torch-geometric"
+        )
     data_dir = _REPO_ROOT / "tutorials" / "output" / "tutorial_08_lung"
     if len(list(data_dir.glob("Case*Pack"))) < 3:
         pytest.skip(

@@ -136,8 +136,9 @@ if __name__ == "__main__":
 
     beating_heart_dir = tutorials_dir / "output" / "temp_beating_heart"
     respiratory_dir = tutorials_dir / "output" / "tutorial_01_lung"
+    repo_tutorials_dir = Path(__file__).resolve().parents[2] / "tutorials"
     patient_surface_file = (
-        tutorials_dir / "output" / "tutorial_04_lung" / "patient_surfaces.vtp"
+        repo_tutorials_dir / "output" / "tutorial_04_lung" / "patient_surfaces.vtp"
     )
     output_dir = tutorials_dir / "output" / "temp_heart_and_lungs_combined"
     output_dir.mkdir(parents=True, exist_ok=True)

@@ -1,8 +1,8 @@
 """
 Convert MP4 files into web-friendly animated GIFs.
 
-Produces GIFs with a consistent width (512 px by default) and playback rate
-(5 fps by default) so that a collection of them renders uniformly in a
+Produces GIFs with a consistent width (384 px by default) and playback rate
+(10 fps by default) so that a collection of them renders uniformly in a
 documentation image gallery.  Uses the two-pass ffmpeg palette workflow
 (``palettegen`` then ``paletteuse``) for good color fidelity at small size.
 
@@ -10,7 +10,7 @@ The ffmpeg binary bundled with ``imageio-ffmpeg`` is used when available,
 otherwise ``ffmpeg`` from PATH.
 
 Usage:
-    python utils/mp4_to_gif.py [input.mp4 ...] [--width 512] [--fps 5]
+    python utils/mp4_to_gif.py [input.mp4 ...] [--width 384] [--fps 10]
 
 If no inputs are given, every ``.mp4`` in ``docs/assets`` is converted.
 Each GIF is written next to its source MP4 unless ``--output-dir`` is given.

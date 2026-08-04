@@ -445,6 +445,27 @@ def download_test_data(test_directories: dict[str, Path]) -> Path:
     return input_image_filename
 
 
+@pytest.fixture(scope="session")
+def download_kcl_heart_model(test_directories: dict[str, Path]) -> Path:
+    """Download KCL-Heart-Model data."""
+    data_dir = test_directories["data"] / "KCL-Heart-Model"
+
+    try:
+        data_dir = DataDownloadTools.DownloadKCLHeartModelData(data_dir)
+        print(f"\nKCL-Heart-Model data ready: {data_dir}")
+    except OSError as e:
+        msg = (
+            f"Could not download KCL-Heart-Model data: {e}. "
+            "See data/README.md for manual download instructions."
+        )
+        if os.environ.get("CI"):
+            pytest.fail(msg)
+        else:
+            pytest.skip(msg)
+
+    return data_dir
+
+
 # ============================================================================
 # Image Conversion Fixtures
 # ============================================================================
