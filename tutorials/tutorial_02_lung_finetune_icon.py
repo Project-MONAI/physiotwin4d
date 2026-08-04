@@ -4,14 +4,24 @@ Tutorial 2: Finetune uniGradICON on DIR-Lab 4D CT
 Purpose
 -------
 Finetune uniGradICON on every DIR-Lab 4D CT case except Case 1, then register
-``Case1Pack_T30.mha`` (moving) to ``Case1Pack_T70.mha`` (fixed) with
-``RegisterImagesGreedyICON`` twice: once with the stock uniGradICON weights and
-once with the finetuned weights.  Case 1 is never seen during finetuning, so
-it is a held-out evaluation pair.
+``Case1Pack_T30.mha`` (moving) to ``Case1Pack_T70.mha`` (fixed) three ways:
+``RegisterImagesGreedy`` alone with its default settings, and
+``RegisterImagesGreedyICON`` with the stock uniGradICON weights and with the
+finetuned weights.  Case 1 is never seen during finetuning, so it is a held-out
+evaluation pair.
 
-Each registration reports the intensity RMSE (Hounsfield units) between the
-fixed image and the registered moving image, plus the wall-clock registration
-time.  The pre-registration RMSE is reported as a reference point.
+Accuracy is measured by label overlap.  ``SegmentNVSegmentCTMRI`` segments the
+fixed image, and segments each registered moving image after it is warped onto
+the fixed grid; every labelmap is then compared against the fixed one.
+Reported per method: the mean, 5th percentile, median, 95th percentile,
+minimum and maximum of the per-class Dice scores, the number of mislabeled
+voxels, and the wall-clock registration time.  The unregistered moving image,
+resampled onto the fixed grid and segmented the same way, supplies the "before
+registration" reference row.
+
+Note that segmenting each registered image separately means the scores include
+segmentation variability on the warped volumes, not the geometric error of the
+transform alone.  It also costs one GPU segmentation per method.
 
 Finetuning artifacts (dataset JSON, YAML config, checkpoint tree) are written
 under ``tutorials/network_weights/icon_dirlab_4dct``.  The final checkpoint is
@@ -36,14 +46,17 @@ import logging
 import shutil
 import time
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import itk
 import numpy as np
 
 from physiotwin4d import (
     PhysioTwin4DBase,
+    RegisterImagesBase,
+    RegisterImagesGreedy,
     RegisterImagesGreedyICON,
+    SegmentNVSegmentCTMRI,
     TestTools,
     TransformTools,
     WorkflowFinetuneICONRegistration,
@@ -145,42 +158,88 @@ if __name__ == "__main__":
     )
     weights_path = workflow.process()
 
-    # Registration with and without the finetuned weights
+    # Registration comparison
     fixed_image = itk.imread(str(fixed_file), pixel_type=itk.F)
     moving_image = itk.imread(str(moving_file), pixel_type=itk.F)
     transform_tools = TransformTools()
 
-    fixed_array = itk.array_from_image(fixed_image).astype(np.float64)
+    # Every image is segmented independently: the fixed image once, then each
+    # registered image after warping.  The Dice scores therefore include
+    # whatever the segmenter does differently on each warped volume, not only
+    # the geometric error of the transform.
+    segmenter = SegmentNVSegmentCTMRI(log_level=log_level)
+    fixed_labelmap = segmenter.segment(fixed_image)["labelmap"]
+    fixed_labels = itk.array_from_image(fixed_labelmap)
 
-    def rmse_to_fixed(image: itk.Image) -> float:
-        """RMSE in HU between ``image`` and the fixed image, on the fixed grid."""
-        array = itk.array_from_image(image).astype(np.float64)
-        return float(np.sqrt(np.mean((array - fixed_array) ** 2)))
+    def overlap_metrics(labelmap: itk.Image) -> dict[str, Any]:
+        """Per-class Dice summary against the fixed labelmap.
 
-    initial_rmse = rmse_to_fixed(
-        itk.resample_image_filter(
-            moving_image,
-            ReferenceImage=fixed_image,
-            UseReferenceImage=True,
+        Classes are the union of the two labelmaps' non-zero ids, so a class
+        found in only one of them scores 0 rather than being dropped.
+        """
+        labels = itk.array_from_image(labelmap)
+        classes = np.union1d(np.unique(fixed_labels), np.unique(labels))
+        classes = classes[classes != 0]
+        dice = np.array(
+            [
+                2.0
+                * np.count_nonzero((fixed_labels == c) & (labels == c))
+                / (np.count_nonzero(fixed_labels == c) + np.count_nonzero(labels == c))
+                for c in classes
+            ]
         )
+        return {
+            "n_classes": int(dice.size),
+            "dice_mean": float(dice.mean()),
+            "dice_p5": float(np.percentile(dice, 5)),
+            "dice_median": float(np.median(dice)),
+            "dice_p95": float(np.percentile(dice, 95)),
+            "dice_min": float(dice.min()),
+            "dice_max": float(dice.max()),
+            "mislabeled_voxels": int(np.count_nonzero(fixed_labels != labels)),
+        }
+
+    # Reference row: the moving image on the fixed grid, unregistered.
+    unregistered_image = itk.resample_image_filter(
+        moving_image,
+        ReferenceImage=fixed_image,
+        UseReferenceImage=True,
     )
 
     registered_images: dict[str, itk.Image] = {}
-    rows: list[dict[str, object]] = []
+    labelmaps: dict[str, itk.Image] = {
+        "unregistered": segmenter.segment(unregistered_image)["labelmap"]
+    }
+    rows: list[dict[str, Any]] = [
+        {
+            "method": "unregistered",
+            "weights": "-",
+            "registration_time_s": None,
+            "loss": None,
+            **overlap_metrics(labelmaps["unregistered"]),
+        }
+    ]
     for method_name, method_weights in (
-        ("default", None),
-        ("finetuned", weights_path),
+        ("greedy", None),
+        ("icon_stock", None),
+        ("icon_finetuned", weights_path),
     ):
-        registrar = RegisterImagesGreedyICON(log_level=log_level)
-        if number_of_iterations_greedy is not None:
-            registrar.greedy.set_number_of_iterations(number_of_iterations_greedy)
-        # None, not 0: icon_registration rejects 0 and takes None to mean "no
-        # test-time finetuning steps", so the comparison reflects what each set
-        # of weights predicts rather than per-pair optimization.
-        registrar.icon.set_number_of_iterations(None)
-        registrar.icon.set_mass_preservation(True)  # For non-contrast CT
-        if method_weights is not None:
-            registrar.icon.set_weights_path(str(method_weights))
+        registrar: RegisterImagesBase
+        if method_name == "greedy":
+            registrar = RegisterImagesGreedy(log_level=log_level)
+            if number_of_iterations_greedy is not None:
+                registrar.set_number_of_iterations(number_of_iterations_greedy)
+        else:
+            registrar = RegisterImagesGreedyICON(log_level=log_level)
+            if number_of_iterations_greedy is not None:
+                registrar.greedy.set_number_of_iterations(number_of_iterations_greedy)
+            # None, not 0: icon_registration rejects 0 and takes None to mean
+            # "no test-time finetuning steps", so the comparison reflects what
+            # each set of weights predicts rather than per-pair optimization.
+            registrar.icon.set_number_of_iterations(None)
+            registrar.icon.set_mass_preservation(True)  # For non-contrast CT
+            if method_weights is not None:
+                registrar.icon.set_weights_path(str(method_weights))
         registrar.set_modality("ct")
         registrar.set_fixed_image(fixed_image)
 
@@ -192,21 +251,31 @@ if __name__ == "__main__":
             moving_image, result["forward_transform"], fixed_image
         )
         registered_images[method_name] = registered
+        labelmaps[method_name] = segmenter.segment(registered)["labelmap"]
         rows.append(
             {
                 "method": method_name,
-                "weights": str(method_weights) if method_weights else "unigradicon",
-                "rmse_hu": rmse_to_fixed(registered),
+                "weights": str(method_weights) if method_weights else "-",
                 "registration_time_s": elapsed_s,
                 "loss": float(result["loss"]),
+                **overlap_metrics(labelmaps[method_name]),
             }
         )
 
     # Result saving
+    itk.imwrite(
+        fixed_labelmap, str(output_dir / "fixed_labelmap.mha"), compression=True
+    )
     for method_name, image in registered_images.items():
         itk.imwrite(
             image,
             str(output_dir / f"registered_{method_name}.mha"),
+            compression=True,
+        )
+    for method_name, labelmap in labelmaps.items():
+        itk.imwrite(
+            labelmap,
+            str(output_dir / f"labelmap_{method_name}.mha"),
             compression=True,
         )
 
@@ -218,16 +287,35 @@ if __name__ == "__main__":
 
     # Reporting
     reporter.log_info(
-        "Case1Pack_T30 -> Case1Pack_T70, RMSE before registration: %.3f HU",
-        initial_rmse,
+        "Case1Pack_T30 -> Case1Pack_T70, per-class Dice against the fixed labelmap"
+    )
+    reporter.log_info(
+        "  %-13s %7s %7s %7s %7s %7s %7s %7s %12s %9s",
+        "method",
+        "classes",
+        "mean",
+        "p5",
+        "median",
+        "p95",
+        "min",
+        "max",
+        "mislabeled",
+        "time_s",
     )
     for row in rows:
+        elapsed = row["registration_time_s"]
         reporter.log_info(
-            "  %-10s RMSE: %8.3f HU   time: %7.1f s   loss: %.6f",
+            "  %-13s %7d %7.4f %7.4f %7.4f %7.4f %7.4f %7.4f %12d %9s",
             row["method"],
-            row["rmse_hu"],
-            row["registration_time_s"],
-            row["loss"],
+            row["n_classes"],
+            row["dice_mean"],
+            row["dice_p5"],
+            row["dice_median"],
+            row["dice_p95"],
+            row["dice_min"],
+            row["dice_max"],
+            row["mislabeled_voxels"],
+            "-" if elapsed is None else f"{float(elapsed):.1f}",
         )
     reporter.log_info("Wrote summary: %s", summary_file)
 
@@ -261,8 +349,8 @@ if __name__ == "__main__":
 
     tutorial_results = {
         "weights_path": weights_path,
-        "initial_rmse_hu": initial_rmse,
         "registration_metrics": rows,
+        "labelmaps": labelmaps,
         "summary_file": summary_file,
         "registered_images": registered_images,
         "screenshots": screenshots,

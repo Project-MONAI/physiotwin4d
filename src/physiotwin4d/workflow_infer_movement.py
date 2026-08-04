@@ -140,9 +140,17 @@ class WorkflowInferMovement(PhysioTwin4DBase):
                 self.log_info("stage %.3f -> %s", stage, path.name)
                 continue
 
-            actual = ref_points + pnt.load_target_array(
+            stored = pnt.load_target_array(
                 manifest.phases[index].mesh, manifest.target_array
             )
+            if stored.shape != ref_points.shape:
+                raise ValueError(
+                    f"Stored '{manifest.target_array}' targets in "
+                    f"{manifest.phases[index].mesh} have shape {stored.shape}, "
+                    f"expected {ref_points.shape} to be displacements of the "
+                    "reference mesh."
+                )
+            actual = ref_points + stored
             euclidean = np.linalg.norm(pred_points - actual, axis=1)
             sq_err_sum += euclidean.astype(np.float64) ** 2
             stats.append(self._error_row(sid, stage, pred_points, actual))

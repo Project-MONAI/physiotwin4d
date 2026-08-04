@@ -197,9 +197,13 @@ workflow classes. They are the preferred examples for executable API usage:
 * ``physiotwin4d-create-statistical-model``
 * ``physiotwin4d-download-data``
 * ``physiotwin4d-fit-statistical-model-to-patient``
+* ``physiotwin4d-infer-physicsnemo``
 * ``physiotwin4d-reconstruct-highres-4d-ct``
+* ``physiotwin4d-train-physicsnemo``
 * ``physiotwin4d-visualize-pca-modes``
 
-There is no CLI wrapper for ``WorkflowFinetuneICONRegistration`` or for the
-PhysicsNeMo training/evaluation tutorials; those are used through the Python
-API and tutorial scripts.
+``physiotwin4d-train-physicsnemo`` and ``physiotwin4d-infer-physicsnemo`` wrap
+``WorkflowTrainPhysicsNeMo`` and ``WorkflowInferPhysicsNeMo`` and need the
+optional ``[physicsnemo]`` extra. There is no CLI wrapper for
+``WorkflowFinetuneICONRegistration``; it is used through the Python API and
+tutorial scripts.

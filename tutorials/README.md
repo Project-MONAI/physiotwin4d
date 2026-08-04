@@ -87,13 +87,17 @@ pytest tests/test_tutorials.py::TestTutorial01HeartGatedCTToUSD --run-tutorials 
 
 ## Recommended Order
 
-1. **Tutorial 1** uses Slicer-Heart-CT - prepare it per `data/README.md`, then start here.
+Each numbered step has a heart variant, a lung variant, or both. Follow the
+variants for the anatomy you care about: every tutorial consumes the output of
+its own anatomy's earlier tutorials, never the other's.
+
+1. **Tutorial 1** converts one gated 4D CT into an animated USD - the heart variant uses Slicer-Heart-CT, the lung variant DirLab-4DCT. Prepare the dataset for your anatomy per `data/README.md`, then start here.
 2. **Tutorial 2** requires DirLab-4DCT (download it per `data/README.md`) and finetunes the ICON weights Tutorials 3 (lung) and 8 use when they are present — both fall back to the stock uniGradICON weights otherwise.
 3. **Tutorial 3** registers with those weights; the heart variant uses Slicer-Heart-CT, the lung variant DirLab-4DCT.
-4. **Tutorial 4** uses Slicer-Heart-CT.
-5. **Tutorial 5** uses the VTK surfaces produced by Tutorial 4 - run Tutorial 4 first.
-6. **Tutorial 6** creates the PCA statistical model from KCL-Heart-Model.
-7. **Tutorial 7** applies the statistical model, consuming Tutorial 6 output; the lung variant also fits it to the routine clinical `Chest-CT` scan (`physiotwin4d-download-data Chest-CT`).
+4. **Tutorial 4** segments a CT into VTK surfaces; the heart variant uses Slicer-Heart-CT, the lung variant DirLab-4DCT.
+5. **Tutorial 5** (heart only) uses the VTK surfaces produced by Tutorial 4 (heart) - run Tutorial 4 first.
+6. **Tutorial 6** creates the PCA statistical model; the heart variant from KCL-Heart-Model, the lung variant from the DirLab-4DCT `Case*T70.mha` phases, which it segments itself. Both write `pca_model.json` and `pca_mean_surface.vtp` under their own output directory.
+7. **Tutorial 7** applies the statistical model, consuming its own anatomy's Tutorial 6 output; the heart variant fits the Tutorial 6 (heart) model, the lung variant fits the Tutorial 6 (lung) model to the routine clinical `Chest-CT` scan (`physiotwin4d-download-data Chest-CT`).
 
 The AI-surrogate pipeline (Tutorials 8 -> 9 -> 10) runs on DIR-Lab and the
 Tutorial 6 lung model, in order:

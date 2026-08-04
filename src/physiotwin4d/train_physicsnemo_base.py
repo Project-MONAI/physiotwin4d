@@ -209,10 +209,12 @@ class TrainPhysicsNeMoBase(PhysioTwin4DBase):
                 train_rmse = self._evaluate_rmse(
                     model, train_dataset, target_scale, device
                 )
+                # None, not NaN: rmse_log is serialized with json.dumps, which
+                # emits a bare NaN token that strict JSON parsers reject.
                 val_rmse = (
                     self._evaluate_rmse(model, val_dataset, target_scale, device)
                     if len(val_dataset) > 0
-                    else float("nan")
+                    else None
                 )
                 rmse_log.append(
                     {
@@ -228,11 +230,11 @@ class TrainPhysicsNeMoBase(PhysioTwin4DBase):
                 torch.save(self.build_checkpoint(model, stats), ckpt_path)
                 self.log_info(
                     "  intermittent test epoch %05d/%d  train RMSE=%.4f  "
-                    "val RMSE=%.4f  checkpoint=%s",
+                    "val RMSE=%s  checkpoint=%s",
                     epoch + 1,
                     epochs,
                     train_rmse,
-                    val_rmse,
+                    "n/a" if val_rmse is None else f"{val_rmse:.4f}",
                     ckpt_path.name,
                 )
         model.eval()

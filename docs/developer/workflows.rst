@@ -32,10 +32,13 @@ Workflow Example
 
 .. code-block:: python
 
+   from pathlib import Path
+
    import itk
 
    from physiotwin4d import RegisterImagesICON, WorkflowConvertImageToUSD
 
+   frame_files = sorted(Path("data/Slicer-Heart-CT").glob("slice_???.mha"))
    time_series_images = [itk.imread(str(path)) for path in frame_files]
 
    workflow = WorkflowConvertImageToUSD(

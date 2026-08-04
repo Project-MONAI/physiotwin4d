@@ -11,10 +11,10 @@ Tutorials
      <p class="pt4d-kicker">PhysioTwin4D tutorials</p>
      <h1>From a CT scan to an animated digital twin</h1>
      <p>
-       Ten runnable, percent-cell Python scripts. Each one drives the real
-       workflow classes end-to-end on downloadable data, shows what it
-       produced, and ends with the handful of constants to change so it runs
-       on your own scans.
+       Ten numbered stages across 15 runnable, percent-cell Python scripts.
+       Each one drives the real workflow classes end-to-end on downloadable
+       data, shows what it produced, and ends with the handful of constants
+       to change so it runs on your own scans.
      </p>
    </section>
 
@@ -43,10 +43,11 @@ relative to the current working directory:
    physiotwin4d-download-data KCL-Heart-Model --directory data/KCL-Heart-Model
    physiotwin4d-download-data Chest-CT --directory data/Chest-CT
 
-That covers Tutorials 1 and 4-7. ``DirLab-4DCT`` — used by Tutorials 2, 3, 6
-(lung) and 8 — is **not** auto-downloaded: DIR-Lab distributes it manually and
-may require registration. See ``data/DirLab-4DCT/README.md``, and
-:doc:`cli_scripts/download_data` for every dataset's size and source.
+That covers Tutorials 1, 3 (heart) and 4-7. ``DirLab-4DCT`` — used by
+Tutorials 2, 3 (lung), 6 (lung) and 8 — is **not** auto-downloaded: DIR-Lab
+distributes it manually and may require registration. See
+``data/DirLab-4DCT/README.md``, and :doc:`cli_scripts/download_data` for every
+dataset's size and source.
 
 **3. Know where output lands.** Every tutorial writes to
 ``tutorials/output/<tutorial_name>/`` and reuses what it finds there, so a
@@ -217,12 +218,23 @@ Script
 
 Workflow
    :class:`~physiotwin4d.WorkflowFinetuneICONRegistration`, then
-   :class:`~physiotwin4d.RegisterImagesGreedyICON` to score the result.
+   :class:`~physiotwin4d.RegisterImagesGreedy` and
+   :class:`~physiotwin4d.RegisterImagesGreedyICON` to score the result, with
+   :class:`~physiotwin4d.SegmentNVSegmentCTMRI` supplying the labelmaps.
 
 Dataset
    DIR-Lab (manual). Every case except ``Case1Pack`` trains; ``Case1Pack`` is
-   held out and registered twice — once with the stock uniGradICON weights and
-   once with the finetuned ones — so the improvement is measured, not asserted.
+   held out and registered three ways — Greedy alone with its defaults, then
+   Greedy+ICON with the stock uniGradICON weights and with the finetuned ones —
+   so the improvement is measured, not asserted.
+
+Scoring
+   The fixed image is segmented once, and each registered moving image is
+   segmented again after warping. The table reports the mean, 5th percentile,
+   median, 95th percentile, minimum and maximum of the per-class Dice scores,
+   plus the mislabeled voxel count, with the unregistered moving image as a
+   reference row. Segmenting each warped volume separately costs one GPU
+   segmentation per method and folds segmentation variability into the scores.
 
 Requirements
    GPU required. 100 epochs over nine cases: the longest-running tutorial
@@ -258,7 +270,8 @@ Run
 Outputs
    The finetuned checkpoint under
    ``tutorials/network_weights/icon_dirlab_4dct/``, plus
-   ``registration_summary.csv`` and before/after screenshots in
+   ``registration_summary.csv``, the registered images, the fixed and warped
+   labelmaps, and before/after screenshots in
    ``tutorials/output/tutorial_02_lung/``.
 
 Adapt to your data

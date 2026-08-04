@@ -283,6 +283,12 @@ class WorkflowInferPhysicsNeMo(PhysioTwin4DBase):
             actual = pnt.load_target_array(
                 manifest.phases[index].mesh, manifest.target_array
             )
+            if actual.shape != predicted.shape:
+                raise ValueError(
+                    f"Stored '{manifest.target_array}' targets in "
+                    f"{manifest.phases[index].mesh} have shape {actual.shape}, "
+                    f"but the model predicts {predicted.shape}."
+                )
             stats.append(self._error_row(sid, stage, predicted, actual))
             self.log_info(
                 "stage %.3f: mean abs error=%.4f  max abs error=%.4f",

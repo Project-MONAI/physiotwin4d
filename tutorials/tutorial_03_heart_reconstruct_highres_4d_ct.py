@@ -84,6 +84,9 @@ if __name__ == "__main__":
         time_series_images=time_series,
         reference_image=reference_image,
         reference_time_frame=reference_time_frame,
+        # The reference image *is* the reference frame here, so registering the
+        # two would be a self-registration; use an identity transform instead.
+        register_reference_time_frame_to_reference_image=False,
         registration_method=registration_method,
         log_level=log_level,
     )

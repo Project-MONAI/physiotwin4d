@@ -199,24 +199,23 @@ class TestTutorial05HeartVTKToUSD:
 
     _class_name = "tutorial_05_heart_vtk_to_usd"
 
-    def test_run(self, test_directories: dict[str, Path]) -> None:
-        # Prefer Tutorial 4 output; fall back to any .vtp in data
-        tutorial2_vtp = (
+    def test_run(
+        self, test_directories: dict[str, Path], test_images: list[Any]
+    ) -> None:
+        # The script reads this exact path and offers no input override, so
+        # bootstrap Tutorial 4 rather than pointing it at another surface.
+        vtk_file = (
             _REPO_ROOT
             / "tutorials"
             / "output"
             / "tutorial_04_heart"
             / "patient_surfaces.vtp"
         )
-        vtk_file = tutorial2_vtp if tutorial2_vtp.exists() else None
-        if vtk_file is None:
-            found = list(test_directories["data"].rglob("*.vtp"))
-            if not found:
-                pytest.skip(
-                    "No VTK file available. Run Tutorial 4 first or place a .vtp "
-                    "file under data/."
-                )
-            vtk_file = found[0]
+        if not vtk_file.exists():
+            _run_tutorial_script("tutorial_04_heart_ct_to_vtk.py")
+            assert vtk_file.exists(), (
+                f"Tutorial 4 bootstrap did not create the expected surface: {vtk_file}"
+            )
 
         out_dir = _REPO_ROOT / "tutorials" / "output" / "tutorial_05_heart"
         results = _run_tutorial_script("tutorial_05_heart_vtk_to_usd.py")
