@@ -14,7 +14,7 @@
        PhysioTwin4D is a collection of methods, workflows, tutorials, and CLI
        tools for creating personalized physiological digital twins from 3D
        medical images. Install it, clone the repository for the tutorial
-       scripts, and work through the cards below â€” each tutorial runs on
+       scripts, and work through the cards below — each tutorial runs on
        downloadable data and ends with the constants to change for your own.
        It is not validated for clinical use: PhysioTwin4D is a research and
        visualization toolkit, not a medical device, and must not be used for
@@ -28,7 +28,7 @@
      <a class="pt4d-card" href="installation.html">
        <span class="pt4d-card__number">00</span>
        <h2>Install and Clone</h2>
-       <p>Install the package, then clone the repository â€” the tutorial scripts do not ship in the wheel.</p>
+       <p>Install the package, then clone the repository — the tutorial scripts do not ship in the wheel.</p>
      </a>
      <a class="pt4d-card" href="tutorials.html#tutorial-1-gated-4d-ct-to-animated-usd">
        <span class="pt4d-card__number">01</span>

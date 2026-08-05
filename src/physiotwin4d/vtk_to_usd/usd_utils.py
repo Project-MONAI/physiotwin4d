@@ -447,7 +447,8 @@ def add_framing_camera(
 
     A ``UsdLux.DistantLight`` is added at ``{parent_path}/{light_name}`` sharing
     the camera's orientation, so the anatomy is lit from the viewing direction
-    in stages that carry no other light.
+    in stages that carry no other light. The light is created only when valid,
+    non-degenerate bounds exist; otherwise no light is authored.
 
     Bounds must be expressed in stage coordinates (post axis-swap and unit
     scaling). For time-varying stages, bounds are sampled at the start time

@@ -26,9 +26,17 @@ The recommended application is **USD Composer**, built from the
 <https://github.com/NVIDIA-Omniverse/kit-app-template/tree/main/templates/apps/usd_composer>`_
 in NVIDIA's `kit-app-template
 <https://github.com/NVIDIA-Omniverse/kit-app-template>`_ repository. Clone the
-repository and follow its README: ``repo template new`` to create an app from
-the ``usd_composer`` template, ``repo build`` to build it, and ``repo launch``
-to run it. The same repository holds a ``usd_viewer`` template if you want a
+repository and follow its README: ``template new`` to create an app from the
+``usd_composer`` template, ``build`` to build it, and ``launch`` to run it —
+driven through ``./repo.sh`` on Linux and macOS, or ``.\repo.bat`` on Windows:
+
+.. code-block:: bat
+
+   .\repo.bat template new
+   .\repo.bat build
+   .\repo.bat launch
+
+The same repository holds a ``usd_viewer`` template if you want a
 review-and-playback app or a starting point for embedding a viewer in your own
 tool.
 

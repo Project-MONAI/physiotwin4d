@@ -151,7 +151,8 @@ medical-scale meshes (~0.03 m wide). Alongside it, ``add_framing_camera``
 authors a ``/World/DistantLight`` sharing the camera's transform — a
 DistantLight emits along its local -Z, the same direction the camera looks,
 so the anatomy is lit from the viewing direction in stages that carry no
-other light. The camera is also baked into stages
+other light. The light is created only when valid, non-degenerate bounds
+exist; otherwise no light is authored. The camera is also baked into stages
 produced by ``TransformTools.convert_transform_to_usd_visualization`` and
 ``USDTools.merge_usd_files``; the helper is idempotent so re-merging a USD
 that already has a Camera does not produce a duplicate transform op.
