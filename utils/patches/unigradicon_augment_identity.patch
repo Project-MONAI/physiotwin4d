@@ -1,0 +1,74 @@
+Subject: [PATCH] finetuning: stop randomly permuting and flipping axes in augment()
+
+`augment()` builds its "identity" affine by drawing a random axis permutation
+and then a random sign per axis, giving 48 orientations (6 permutations x 8 sign
+patterns) of which only one matches the data.  Image A and image B share the
+permutation, so a training pair stays internally consistent, but inference never
+reorients anything -- `unigradicon.preprocess` and `icon_registration`'s
+`register_pair` both work on the array as read, with no direction handling.  The
+permuted and mirrored poses therefore never occur at test time.
+
+For a foundation-model pretraining run that is arguably useful regularization.
+For finetuning it is not: a finetune is a few hundred optimizer steps at a low
+learning rate on a task-specific cohort, and spending most of them on
+orientations the model will never be asked about leaves the checkpoint
+statistically indistinguishable from the starting weights.  Observed on a
+DIR-Lab 4D CT lung finetune (9 cases, 90 volumes, 220 steps at 5e-5): mean Dice
+on a held-out case moved by 4e-4 versus stock uniGradICON.
+
+This patch keeps the random affine augmentation -- the `0.05 * randn` noise, and
+the independent `noise_A` / `noise_B` draws that make the pair differ in detail
+-- and only replaces the randomized orientation with a true identity.
+
+Applies to the `feat-add-finetuning` branch of
+https://github.com/uncbiag/uniGradICON.
+
+Note for this repository: `pyproject.toml` installs uniGradICON from that branch
+via `[tool.uv.sources]`, so any reinstall reverts a locally applied copy of this
+patch until it lands upstream.  Re-apply with:
+
+    py -c "import unigradicon, os; print(os.path.dirname(os.path.dirname(unigradicon.__file__)))"
+    cd <that site-packages directory>
+    git apply -p2 <repo>/utils/patches/unigradicon_augment_identity.patch
+
+`-p2` strips the leading ``a/src/``, leaving ``unigradicon/finetuning/
+finetune.py``, which is the installed layout.  ``git apply -R -p2`` reverts it,
+and either direction fails cleanly if the file has already been changed.
+
+--- a/src/unigradicon/finetuning/finetune.py
++++ b/src/unigradicon/finetuning/finetune.py
+@@ -53,23 +53,21 @@
+     Images are warped with bilinear interpolation; segmentations and masks
+     use nearest interpolation to preserve label values.
+
+-    Both images share the same random flip/permutation but have slightly
+-    different affine noise, so they share orientation but differ in detail.
++    The two images of a pair get independent affine noise around a common
++    identity, so they stay in the same orientation but differ in detail.
++
++    The augmentation deliberately does not permute or flip axes.  Inference
++    applies no reorientation, so the 48 permuted/mirrored orientations never
++    occur at test time and training on them spends the finetuning budget on
++    poses the model is never asked about.
+     """
+     device = batch[PairKeys.IMAGE_A].device
+     batch_size = batch[PairKeys.IMAGE_A].shape[0]
+
+-    identity_list = []
+-    for _ in range(batch_size):
+-        identity = torch.zeros((1, 3, 4), dtype=torch.float32, device=device)
+-        idxs = {0, 1, 2}
+-        for j in range(3):
+-            k = random.choice(list(idxs))
+-            idxs.remove(k)
+-            identity[0, j, k] = 1
+-        identity = identity * (torch.randint_like(identity, 0, 2) * 2 - 1)
+-        identity_list.append(identity)
+-    identity = torch.cat(identity_list)
++    identity = torch.zeros((batch_size, 3, 4), dtype=torch.float32, device=device)
++    identity[:, 0, 0] = 1
++    identity[:, 1, 1] = 1
++    identity[:, 2, 2] = 1
+
+     noise_A = torch.randn((batch_size, 3, 4), device=device)
+     forward_A = identity + 0.05 * noise_A

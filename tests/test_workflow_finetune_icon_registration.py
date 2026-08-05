@@ -38,6 +38,13 @@ def _make_image(path: Path, value: int = 1) -> None:
     itk.imwrite(img, str(path), compression=True)
 
 
+def _write_fake_checkpoint(workflow: WorkflowFinetuneICONRegistration) -> None:
+    """Stand in for the checkpoint the monkey-patched subprocess never writes."""
+    weights_path = workflow.expected_weights_path()
+    weights_path.parent.mkdir(parents=True, exist_ok=True)
+    weights_path.touch()
+
+
 @pytest.fixture
 def two_subject_dataset(tmp_path: Path) -> dict[str, Any]:
     """Two patients, two frames each, with matching labelmaps and masks on disk."""
@@ -391,8 +398,16 @@ def test_expected_weights_path_layout(tmp_path: Path) -> None:
     )
     expected = workflow.expected_weights_path()
     assert expected == (
-        tmp_path / "exp" / "exp_model" / "checkpoints" / "Finetune_multi_final.trch"
+        tmp_path / "exp" / "exp_model" / "checkpoints" / "network_weights_final.trch"
     )
+
+    # The filename must track uniGradICON's own checkpoint prefix, so an
+    # upstream rename breaks this test rather than silently sending the
+    # tutorials to a path that only ever holds stock weights.  The finetuning
+    # submodule exists only on the feat-add-finetuning branch, so skip where
+    # it is absent.
+    finetune = pytest.importorskip("unigradicon.finetuning.finetune")
+    assert expected.name == f"{finetune.NETWORK_WEIGHTS_PREFIX}_final.trch"
 
 
 # ---------------------------------------------------------------------------
@@ -407,6 +422,13 @@ def test_process_invokes_unigradicon_subprocess(
     """process launches the uniGradICON finetune module with the YAML path."""
     captured: dict[str, Any] = {}
 
+    unigradicon_src = two_subject_dataset["output_dir"].parent / "fake_unigradicon_src"
+    workflow = WorkflowFinetuneICONRegistration(
+        log_level=logging.CRITICAL,
+        unigradicon_src_path=unigradicon_src,
+        **two_subject_dataset,
+    )
+
     def fake_run(
         cmd: list[str],
         *,
@@ -416,16 +438,11 @@ def test_process_invokes_unigradicon_subprocess(
         captured["cmd"] = cmd
         captured["check"] = check
         captured["env"] = env
+        _write_fake_checkpoint(workflow)
         return subprocess.CompletedProcess(args=cmd, returncode=0)
 
     monkeypatch.setattr(subprocess, "run", fake_run)
 
-    unigradicon_src = two_subject_dataset["output_dir"].parent / "fake_unigradicon_src"
-    workflow = WorkflowFinetuneICONRegistration(
-        log_level=logging.CRITICAL,
-        unigradicon_src_path=unigradicon_src,
-        **two_subject_dataset,
-    )
     weights = workflow.process()
 
     assert captured["check"] is True
@@ -448,6 +465,11 @@ def test_process_without_unigradicon_src(
 ) -> None:
     """When unigradicon_src_path is None, PYTHONPATH is not prefixed."""
 
+    workflow = WorkflowFinetuneICONRegistration(
+        log_level=logging.CRITICAL,
+        **two_subject_dataset,
+    )
+
     def fake_run(
         cmd: list[str],
         *,
@@ -456,6 +478,30 @@ def test_process_without_unigradicon_src(
     ) -> subprocess.CompletedProcess[bytes]:
         # No leading entry referencing a "fake" src tree.
         assert "fake_unigradicon_src" not in env.get("PYTHONPATH", "")
+        _write_fake_checkpoint(workflow)
+        return subprocess.CompletedProcess(args=cmd, returncode=0)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    workflow.process()
+
+
+def test_process_raises_when_checkpoint_missing(
+    monkeypatch: pytest.MonkeyPatch,
+    two_subject_dataset: dict[str, Any],
+) -> None:
+    """A successful subprocess that wrote no checkpoint is an error.
+
+    uniGradICON treats an unknown weights path as a download destination, so an
+    unnoticed missing checkpoint silently degrades to stock weights.
+    """
+
+    def fake_run(
+        cmd: list[str],
+        *,
+        check: bool,
+        env: dict[str, str],
+    ) -> subprocess.CompletedProcess[bytes]:
         return subprocess.CompletedProcess(args=cmd, returncode=0)
 
     monkeypatch.setattr(subprocess, "run", fake_run)
@@ -464,4 +510,5 @@ def test_process_without_unigradicon_src(
         log_level=logging.CRITICAL,
         **two_subject_dataset,
     )
-    workflow.process()
+    with pytest.raises(FileNotFoundError, match="no checkpoint"):
+        workflow.process()
