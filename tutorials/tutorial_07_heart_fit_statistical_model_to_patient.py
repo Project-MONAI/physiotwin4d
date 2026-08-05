@@ -55,9 +55,6 @@ if __name__ == "__main__":
     pca_mean_file = (
         tutorials_dir / "output" / "tutorial_06_heart" / "pca_mean_surface.vtp"
     )
-    # BYOD example:
-    # pca_mean_file = Path("D:/PhysioTwin4D/kcl-heart-pca/pca-vol-kcl/pca_mean.vtu")
-    # pca_json = Path("D:/PhysioTwin4D/kcl-heart-pca/pca-vol-kcl/pca_model.json")
 
     test_mode = TestTools.running_as_test()
     if test_mode:
@@ -167,7 +164,7 @@ if __name__ == "__main__":
 
     template_mesh = workflow.pca_template_model
     assert template_mesh is not None, "pca_template_model must be set after process()"
-    template_mesh.save(str(output_dir / f"{project_name}_template_mesh.vtu"))
+    template_mesh.save(str(output_dir / f"{project_name}_template_mesh.vtp"))
 
     template_surface = workflow.pca_template_model_surface
     assert template_surface is not None, (
@@ -177,7 +174,7 @@ if __name__ == "__main__":
 
     registered_mesh = workflow_results["registered_template_model"]
     registered_mesh.save(
-        str(output_dir / f"{project_name}_template_mesh_registered.vtu")
+        str(output_dir / f"{project_name}_template_mesh_registered.vtp")
     )
 
     registered_surface = workflow_results["registered_template_model_surface"]
