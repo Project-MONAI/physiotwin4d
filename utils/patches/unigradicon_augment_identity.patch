@@ -27,8 +27,13 @@ Note for this repository: `pyproject.toml` installs uniGradICON from that branch
 via `[tool.uv.sources]`, so any reinstall reverts a locally applied copy of this
 patch until it lands upstream.  Re-apply with:
 
-    py -m pip show unigradicon    # to find the install location
-    git apply --directory=<site-packages>/unigradicon utils/patches/unigradicon_augment_identity.patch
+    py -c "import unigradicon, os; print(os.path.dirname(os.path.dirname(unigradicon.__file__)))"
+    cd <that site-packages directory>
+    git apply -p2 <repo>/utils/patches/unigradicon_augment_identity.patch
+
+`-p2` strips the leading ``a/src/``, leaving ``unigradicon/finetuning/
+finetune.py``, which is the installed layout.  ``git apply -R -p2`` reverts it,
+and either direction fails cleanly if the file has already been changed.
 
 --- a/src/unigradicon/finetuning/finetune.py
 +++ b/src/unigradicon/finetuning/finetune.py

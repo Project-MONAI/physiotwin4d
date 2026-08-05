@@ -5,9 +5,9 @@ Purpose
 -------
 Finetune uniGradICON on every DIR-Lab 4D CT case except Case 1, then register
 ``Case1Pack_T00.mha`` (moving) to ``Case1Pack_T50.mha`` (fixed) three ways:
-``RegisterImagesGreedy`` alone with its default settings, and
-``RegisterImagesGreedyICON`` with the stock uniGradICON weights and with the
-finetuned weights.  Case 1 is never seen during finetuning, so it is a held-out
+``RegisterImagesGreedy`` alone, deformable, with its default iteration
+schedule, and ``RegisterImagesICON`` with the stock uniGradICON weights and
+with the finetuned weights.  Case 1 is never seen during finetuning, so it is a held-out
 evaluation pair.
 
 Accuracy is measured two ways.  The primary metric is target registration

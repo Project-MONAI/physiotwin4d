@@ -424,8 +424,17 @@ class WorkflowFinetuneICONRegistration(PhysioTwin4DBase):
 
         ``unigradicon.finetuning.finetune`` writes
         ``<experiment.name>/checkpoints/network_weights_final.trch`` at the end
-        of training -- ``NETWORK_WEIGHTS_PREFIX`` plus the ``"final"`` epoch
+        of training -- its ``NETWORK_WEIGHTS_PREFIX`` plus the ``"final"`` epoch
         label.  Also the return value of :meth:`process`.
+
+        The filename is hard-coded rather than imported: training runs in a
+        subprocess so that this process never imports ``unigradicon`` (its
+        ``finetuning`` submodule exists only on the ``feat-add-finetuning``
+        branch, so an import here would raise on a stock install).  An upstream
+        rename is caught by ``test_expected_weights_path_layout``, which
+        compares this filename against ``NETWORK_WEIGHTS_PREFIX`` wherever the
+        submodule is installed, and by the ``FileNotFoundError`` :meth:`process`
+        raises when the checkpoint is not where this says it should be.
         """
         return (
             self.experiment_dir
@@ -475,9 +484,10 @@ class WorkflowFinetuneICONRegistration(PhysioTwin4DBase):
         subprocess.run(cmd, check=True, env=env)
 
         # A missing checkpoint here is silent otherwise: uniGradICON treats an
-        # unknown weights path as a download destination, so a stale filename or
-        # a footsteps "-N" run directory would yield stock-weight registrations
-        # that look finetuned.
+        # unknown weights path as a download destination, so a stale filename,
+        # or a run directory renamed with a "-N" suffix by the ``footsteps``
+        # package uniGradICON uses to lay out its runs, would yield
+        # stock-weight registrations that look finetuned.
         weights_path = self.expected_weights_path()
         if not weights_path.exists():
             raise FileNotFoundError(
