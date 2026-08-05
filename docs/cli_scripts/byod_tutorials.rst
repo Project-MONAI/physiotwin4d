@@ -9,12 +9,6 @@ of 3D or 4D DICOM data, a single 3D or 4D file in a common medical image format
 such as MHA, NRRD, or NIfTI, or a list of 3D image files representing a time
 series. VTK inputs may be one mesh file or a mesh sequence.
 
-.. note::
-
-   PhysioTwin4D is a research tool and has **not** been validated for
-   clinical use. Outputs must not be used for diagnostic or therapeutic
-   decisions without independent validation.
-
 Installation
 ------------
 
@@ -291,8 +285,9 @@ support ``.usd``, ``.usda``, or ``.usdc`` output files directly.
 
 Open **Omniverse USD Composer**, drag your ``.usd`` file onto the viewport,
 then press **Play** (spacebar) to watch the animation. For 4D cardiac data,
-use the **Timeline** panel to scrub through phases. ``usdview`` works the same
-way and is lighter to install — :doc:`../viewing_usd` covers both.
+use the **Timeline** panel to scrub through phases. Set the viewport renderer
+to RTX and switch to the scene's ``/World/Camera`` first —
+:doc:`../viewing_usd` covers both.
 
 See Also
 --------

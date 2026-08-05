@@ -120,14 +120,12 @@ USD Not Animating
 
       usdchecker model.usd
 
-2. Check time samples:
+   ``usdchecker`` is not part of the ``usd-core`` package installed with
+   PhysioTwin4D; it ships with the OpenUSD toolset, available pre-built from
+   https://developer.nvidia.com/usd.
 
-   .. code-block:: bash
-
-      usdview model.usd
-
-   ``usdchecker`` and ``usdview`` are not part of the ``usd-core`` package
-   installed with PhysioTwin4D; see :doc:`viewing_usd` for how to get them.
+2. Open the scene in an Omniverse Kit application, switch the viewport to the
+   scene's ``/World/Camera``, and press Play; see :doc:`viewing_usd`.
 
 3. Verify that the generated USD contains time samples.
 

@@ -14,85 +14,71 @@
        PhysioTwin4D is a collection of methods, workflows, tutorials, and CLI
        tools for creating personalized physiological digital twins from 3D
        medical images. Install it, clone the repository for the tutorial
-       scripts, and work through the cards below — each tutorial runs on
+       scripts, and work through the cards below â€” each tutorial runs on
        downloadable data and ends with the constants to change for your own.
+       It is not validated for clinical use: PhysioTwin4D is a research and
+       visualization toolkit, not a medical device, and must not be used for
+       diagnosis, treatment planning, or clinical decision-making.
      </p>
 
      <p class="pt4d-hero__version">Version {{ pt4d_project_version }}</p>
    </section>
 
-   <div class="pt4d-clinical-notice">
-     <strong>Not validated for clinical use.</strong> PhysioTwin4D is a
-     research and visualization toolkit, not a medical device. Do not use it
-     for diagnosis, treatment planning, or clinical decision-making.
-   </div>
-
    <section class="pt4d-card-grid" aria-label="Tutorial cards">
      <a class="pt4d-card" href="installation.html">
        <span class="pt4d-card__number">00</span>
        <h2>Install and Clone</h2>
-       <p>Install the package, then clone the repository — the tutorial scripts do not ship in the wheel.</p>
-       <span class="pt4d-card__meta">Start here</span>
+       <p>Install the package, then clone the repository â€” the tutorial scripts do not ship in the wheel.</p>
      </a>
      <a class="pt4d-card" href="tutorials.html#tutorial-1-gated-4d-ct-to-animated-usd">
        <span class="pt4d-card__number">01</span>
        <h2>Gated 4D CT to Animated USD</h2>
        <p>Segment, register and assemble a 4D CT series into an animated OpenUSD scene.</p>
-       <span class="pt4d-card__meta">Slicer-Heart-CT &middot; DIR-Lab</span>
      </a>
      <a class="pt4d-card" href="tutorials.html#tutorial-2-finetune-icon-registration">
        <span class="pt4d-card__number">02</span>
        <h2>Finetune ICON Registration</h2>
        <p>Adapt uniGradICON to your own cohort and measure what the finetuning bought you.</p>
-       <span class="pt4d-card__meta">DIR-Lab</span>
      </a>
      <a class="pt4d-card" href="tutorials.html#tutorial-3-reconstruct-high-resolution-4d-ct">
        <span class="pt4d-card__number">03</span>
        <h2>Reconstruct High-Resolution 4D CT</h2>
        <p>Register every phase to one reference and reconstruct the series at its resolution.</p>
-       <span class="pt4d-card__meta">Slicer-Heart-CT &middot; DIR-Lab</span>
      </a>
      <a class="pt4d-card" href="tutorials.html#tutorial-4-ct-segmentation-to-vtk-surfaces">
        <span class="pt4d-card__number">04</span>
        <h2>CT Segmentation to VTK Surfaces</h2>
        <p>Segment one CT phase and export patient anatomy as VTK PolyData surfaces.</p>
-       <span class="pt4d-card__meta">Slicer-Heart-CT &middot; DIR-Lab</span>
      </a>
      <a class="pt4d-card" href="tutorials.html#tutorial-5-vtk-surfaces-to-animated-usd">
        <span class="pt4d-card__number">05</span>
        <h2>VTK Surfaces to Animated USD</h2>
        <p>Convert meshes into a time-sampled USD scene for Omniverse playback.</p>
-       <span class="pt4d-card__meta">Tutorial 4 output</span>
      </a>
      <a class="pt4d-card" href="tutorials.html#tutorial-6-create-a-pca-shape-model">
        <span class="pt4d-card__number">06</span>
        <h2>Create a PCA Shape Model</h2>
        <p>Turn a population of meshes into a statistical shape model and its modes.</p>
-       <span class="pt4d-card__meta">KCL-Heart-Model &middot; DIR-Lab</span>
      </a>
      <a class="pt4d-card" href="tutorials.html#tutorial-7-fit-the-shape-model-to-a-patient">
        <span class="pt4d-card__number">07</span>
        <h2>Fit the Shape Model to a Patient</h2>
        <p>Fit the shape model to one routine clinical scan, PCA coefficients and all.</p>
-       <span class="pt4d-card__meta">Chest-CT &middot; Tutorial 6 output</span>
      </a>
      <a class="pt4d-card" href="tutorials.html#tutorial-8-propagate-the-shape-model-through-4d">
        <span class="pt4d-card__number">08</span>
        <h2>Propagate the Model Through 4D</h2>
        <p>Fit each case at its reference phase and carry the mesh through every phase.</p>
-       <span class="pt4d-card__meta">DIR-Lab &middot; Tutorials 2 and 6</span>
      </a>
      <a class="pt4d-card" href="tutorials.html#tutorial-9-train-a-physicsnemo-surrogate">
        <span class="pt4d-card__number">09</span>
        <h2>Train a PhysicsNeMo Surrogate</h2>
        <p>Train a MeshGraphNet to predict per-vertex motion from shape and phase.</p>
-       <span class="pt4d-card__meta">Tutorial 8 output</span>
      </a>
      <a class="pt4d-card" href="tutorials.html#tutorial-10-predict-motion-with-the-surrogate">
        <span class="pt4d-card__number">10</span>
        <h2>Predict Motion With the Surrogate</h2>
        <p>Replace the registration solve with one forward pass, then export to USD.</p>
-       <span class="pt4d-card__meta">Tutorials 8 and 9 output</span>
      </a>
    </section>
 
@@ -120,7 +106,7 @@
        </a>
        <a class="pt4d-topic-card" href="viewing_usd.html">
          <h3>Viewing USD Files</h3>
-         <p>Set up usdview or an Omniverse Kit app and open the scenes the workflows produce.</p>
+         <p>Set up an Omniverse Kit app with RTX rendering and open the scenes the workflows produce.</p>
        </a>
        <a class="pt4d-topic-card" href="cli_scripts/byod_tutorials.html">
          <h3>Bring Your Own Data</h3>

@@ -8,138 +8,69 @@ commands — writes an OpenUSD scene: anatomy split into per-organ prims, painte
 with OmniSurface materials, and time-sampled when the input was a series. To
 see the motion you need a USD viewer.
 
-Two are worth knowing. Use **usdview** for day-to-day inspection and debugging,
-and an **Omniverse Kit application** when you want real-time ray tracing or to
-build on the scene.
+Use an **NVIDIA Omniverse Kit application**. It is built on OpenUSD, renders
+with RTX in real time, and is the only viewer that shows these scenes as the
+workflows intend them.
 
 .. important::
 
    ``pip install physiotwin4d`` pulls in `usd-core
    <https://pypi.org/project/usd-core/>`_, which is the OpenUSD *libraries*
    only — enough to write and read stages, but it contains no viewer.
-   ``usdview`` needs a build that includes USD Imaging, from one of the two
-   routes below.
-
-usdview
-=======
-
-``usdview`` is the canonical viewer that ships with OpenUSD. It is a
-lightweight application for opening a stage, walking its scene graph,
-inspecting prim properties and composition, scrubbing the timeline, and
-switching between renderers — the tool to reach for when you want to know what
-is actually in the file. See the `OpenUSD toolset documentation
-<https://openusd.org/release/toolset.html>`_ for the full feature list.
-
-Getting it: pre-built binaries
-------------------------------
-
-The quickest route is NVIDIA's pre-built OpenUSD libraries and tools, which
-include ``usdview`` for Windows and Linux and are matched to specific Python
-versions: https://developer.nvidia.com/usd
-
-Download the package matching your Python version, unpack it, and put its
-``bin`` and ``lib`` directories on your path. On Windows:
-
-.. code-block:: bat
-
-   set USD_ROOT=C:\usd
-   set PATH=%USD_ROOT%\bin;%USD_ROOT%\lib;%PATH%
-   set PYTHONPATH=%USD_ROOT%\lib\python;%PYTHONPATH%
-
-   usdview tutorials\output\tutorial_01_heart\cardiac_model.usd
-
-On Linux:
-
-.. code-block:: bash
-
-   export USD_ROOT=$HOME/usd
-   export PATH=$USD_ROOT/bin:$PATH
-   export PYTHONPATH=$USD_ROOT/lib/python:$PYTHONPATH
-
-   usdview tutorials/output/tutorial_01_heart/cardiac_model.usd
-
-Use a **separate environment** from the one PhysioTwin4D runs in, or at least
-be deliberate about ordering: the ``PYTHONPATH`` above puts a second copy of
-``pxr`` ahead of the ``usd-core`` wheel, and mixing two OpenUSD builds in one
-interpreter causes import errors that are tedious to diagnose.
-
-Getting it: building from source
---------------------------------
-
-To build OpenUSD yourself — needed if no pre-built package matches your Python,
-or you want a specific release — clone
-https://github.com/PixarAnimationStudios/OpenUSD and run its build script:
-
-.. code-block:: bash
-
-   git clone https://github.com/PixarAnimationStudios/OpenUSD.git
-   python OpenUSD/build_scripts/build_usd.py ~/usd
-
-The script fetches and builds the dependencies as well, so expect it to take a
-while. USD Imaging and ``usdview`` are included by default; ``usdview`` also
-needs PySide and PyOpenGL in the Python environment you launch it from. The
-repository's build instructions list the per-platform prerequisites.
-
-Using it
---------
-
-.. code-block:: bash
-
-   usdview cardiac_model.usd
-
-- The **viewport** opens on frame one. Press the play button, or scrub the
-  timeline at the bottom, to see the cardiac or respiratory motion — a static
-  scene means the workflow wrote a single time sample.
-- The **scene graph** on the left is the anatomy hierarchy the workflow built
-  (``/World/<name>/<group>/<organ>``). Select a prim to isolate an organ.
-- The **property panel** shows the attributes on the selected prim, including
-  the time-sampled ``points`` that carry the motion and the bound material.
-- The **interpreter** (``Window > Interpreter``) gives you a Python prompt on
-  the live stage, which is the fastest way to check an attribute's values at a
-  given time code.
-
-For a non-interactive sanity check that a file is valid USD, the same toolset
-ships ``usdchecker``:
-
-.. code-block:: bash
-
-   usdchecker cardiac_model.usd
 
 Omniverse Kit applications
 ==========================
 
-NVIDIA Omniverse is built on OpenUSD and renders it with RTX in real time. Use
-it when you want photorealistic playback of the anatomy, to compose a
-PhysioTwin4D scene with other assets, or to drive a downstream simulation or
-XR workflow rather than to inspect the file.
+The recommended application is **USD Composer**, built from the
+`usd_composer template
+<https://github.com/NVIDIA-Omniverse/kit-app-template/tree/main/templates/apps/usd_composer>`_
+in NVIDIA's `kit-app-template
+<https://github.com/NVIDIA-Omniverse/kit-app-template>`_ repository. Clone the
+repository and follow its README: ``repo template new`` to create an app from
+the ``usd_composer`` template, ``repo build`` to build it, and ``repo launch``
+to run it. The same repository holds a ``usd_viewer`` template if you want a
+review-and-playback app or a starting point for embedding a viewer in your own
+tool.
 
-Download the Omniverse launcher and applications from
-https://www.nvidia.com/en-us/omniverse/download/. The relevant Kit-based apps
-are **USD Composer** for authoring and layout, and **USD Presenter** for
-review and playback; the Kit SDK and the `USD Viewer
-<https://docs.omniverse.nvidia.com/>`_ sample are the starting points if you
-want to embed a viewer in your own tool.
-
-Omniverse needs an RTX-capable NVIDIA GPU and a current driver, which is a
-heavier requirement than ``usdview``'s GL preview — that is the main reason to
-keep both around.
+Omniverse needs an RTX-capable NVIDIA GPU and a current driver.
 
 Opening a PhysioTwin4D scene:
 
-1. Launch **USD Composer** (or **USD Presenter**).
+1. Launch your **USD Composer** app.
 2. ``File > Open`` and select the generated ``.usd`` file — for the tutorials,
    under ``tutorials/output/<tutorial_name>/``.
-3. Press **Play** on the timeline to run the animation. The frame rate is the
+3. Switch the viewport to the **camera defined in the USD scene**
+   (``/World/Camera``) — see below.
+4. Press **Play** on the timeline to run the animation. The frame rate is the
    ``frames_per_second`` the workflow was given, so a value of ``1.0`` plays one
    phase per second; raise it for smoother playback.
-4. Anatomy materials are already bound, so the organs arrive colored. Select a
+5. Anatomy materials are already bound, so the organs arrive colored. Select a
    prim in the stage tree to adjust its material, or to hide organs that
    occlude the structure you care about.
 
-If a scene opens but appears empty, check the units and the camera: the
-workflows write millimetre-scale geometry in USD's right-handed Y-up frame, and
-a viewport whose near plane is set for metre-scale content will clip it. See
-:doc:`developer/usd_generation` for the conversion details.
+Use RTX rendering
+-----------------
+
+The workflows assign each tissue an OmniSurface material carrying its visual
+properties — color, roughness, transmission and subsurface scattering for
+translucent tissue. Those properties are only evaluated by the **RTX**
+renderers (``RTX - Real-Time`` or ``RTX - Interactive``). In a preview or
+Storm-style render mode the organs fall back to flat approximate shading, so
+tissues that should read as translucent or wet look uniformly opaque. Set the
+viewport renderer to RTX before judging how a scene looks.
+
+Use the camera in the scene
+---------------------------
+
+Each scene ships a ``/World/Camera`` prim framing the anatomy, with clipping
+planes and focus distance fitted to the anatomy's scale — the near plane is set
+from the geometry's bounding-box diagonal, so you can zoom in close without the
+surfaces vanishing. The default Omniverse perspective camera is set up for
+room- and building-sized content, so on an organ-sized scene it clips the
+anatomy away and navigates awkwardly. In the viewport camera menu, select the
+scene's ``Camera`` rather than ``Perspective``. If a scene opens but appears
+empty, this is almost always why. See :doc:`developer/usd_generation` for the
+coordinate and unit details.
 
 Before USD: viewing the meshes directly
 =======================================

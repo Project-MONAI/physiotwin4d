@@ -16,9 +16,9 @@
 
 PhysioTwin4D typically begins with a 3D medical image of a subject, extracts anatomic models from that image, and then uses AI surrogates to estimate the subject's physiological processes — initially focusing on cardiac and respiratory motion, and expanding to electrophysiology, blood flow, and organ perfusion. The package provides methods for forming these physiological AI surrogates and for finetuning the segmentation and registration AI methods that power them, with special emphasis on statistical shape models: they capture subject-specific characteristics that help determine subject-specific physiological function, and establish correspondence across subjects to aid AI surrogate generalization and simplify the application of traditional solvers.
 
-> **Not validated for clinical use.** PhysioTwin4D is a research toolkit. It
-> is not a medical device and must not be used for diagnosis, treatment
-> planning, or clinical decision-making.
+PhysioTwin4D is not validated for clinical use. It is a research and
+visualization toolkit, not a medical device, and must not be used for
+diagnosis, treatment planning, or clinical decision-making.
 
 ## Documentation
 

@@ -140,14 +140,18 @@ the source array in either ``point_data`` or ``cell_data`` and writes the
 scalar back to the same data dict so the convert step picks it up as a
 USD primvar.
 
-Framing Camera
---------------
+Framing Camera and Light
+------------------------
 
 Every USD stage that ``ConvertVTKToUSD`` (and the lower-level
 ``convert_vtk_file`` facade) writes gets a ``/World/Camera`` prim with a
 tight ``clippingRange`` sized to the geometry's bounding box. This avoids
 the common "Omniverse Kit near-plane clips small geometry" problem for
-medical-scale meshes (~0.03 m wide). The camera is also baked into stages
+medical-scale meshes (~0.03 m wide). Alongside it, ``add_framing_camera``
+authors a ``/World/DistantLight`` sharing the camera's transform — a
+DistantLight emits along its local -Z, the same direction the camera looks,
+so the anatomy is lit from the viewing direction in stages that carry no
+other light. The camera is also baked into stages
 produced by ``TransformTools.convert_transform_to_usd_visualization`` and
 ``USDTools.merge_usd_files``; the helper is idempotent so re-merging a USD
 that already has a Camera does not produce a duplicate transform op.

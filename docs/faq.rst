@@ -26,11 +26,10 @@ What data formats are supported?
 Do I need NVIDIA Omniverse?
 ----------------------------
 
-No, Omniverse is optional for visualization. You can also use:
+Omniverse is the recommended way to view the USD scenes: its RTX renderer is
+what evaluates the material properties assigned to each tissue. See
+:doc:`viewing_usd`. For the intermediate results you can also use:
 
-* ``usdview``, the viewer that ships with OpenUSD — note that it is **not**
-  part of the ``usd-core`` package installed with PhysioTwin4D; see
-  :doc:`viewing_usd`
 * PyVista, for the intermediate ``.vtp`` / ``.vtu`` meshes
 * ParaView, likewise for the VTK files
 
