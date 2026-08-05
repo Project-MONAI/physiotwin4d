@@ -4,29 +4,32 @@ Tutorial 2: Finetune uniGradICON on DIR-Lab 4D CT
 Purpose
 -------
 Finetune uniGradICON on every DIR-Lab 4D CT case except Case 1, then register
-``Case1Pack_T30.mha`` (moving) to ``Case1Pack_T70.mha`` (fixed) three ways:
+``Case1Pack_T00.mha`` (moving) to ``Case1Pack_T50.mha`` (fixed) three ways:
 ``RegisterImagesGreedy`` alone with its default settings, and
 ``RegisterImagesGreedyICON`` with the stock uniGradICON weights and with the
 finetuned weights.  Case 1 is never seen during finetuning, so it is a held-out
 evaluation pair.
 
-Accuracy is measured by label overlap.  ``SegmentNVSegmentCTMRI`` segments the
-fixed image, and segments each registered moving image after it is warped onto
-the fixed grid; every labelmap is then compared against the fixed one.
-Reported per method: the mean, 5th percentile, median, 95th percentile,
-minimum and maximum of the per-class Dice scores, the number of mislabeled
-voxels, and the wall-clock registration time.  The unregistered moving image,
-resampled onto the fixed grid and segmented the same way, supplies the "before
-registration" reference row.
+Accuracy is measured two ways.  The primary metric is target registration
+error: DIR-Lab ships 300 expert landmarks for the extreme phases (T00 and T50)
+of every case, so each fixed-image landmark is mapped through the registration
+transform and compared, in millimeters, against its moving-image counterpart.
+The secondary metric is label overlap: ``SegmentNVSegmentCTMRI`` segments the
+fixed and moving images once each, and the moving labelmap is warped onto the
+fixed grid by every transform, so the Dice scores reflect the transform rather
+than segmentation variability on re-segmented warped volumes.  The moving image
+and labelmap resampled onto the fixed grid without registration supply the
+"before registration" reference row for both metrics.
 
-Note that segmenting each registered image separately means the scores include
-segmentation variability on the warped volumes, not the geometric error of the
-transform alone.  It also costs one GPU segmentation per method.
+Reported per method: the mean, standard deviation, 95th percentile and maximum
+landmark error in millimeters; the mean, 5th percentile, median, 95th
+percentile, minimum and maximum of the per-class Dice scores; the number of
+mislabeled voxels; and the wall-clock registration time.
 
 Finetuning artifacts (dataset JSON, YAML config, checkpoint tree) are written
 under ``tutorials/network_weights/icon_dirlab_4dct``.  The final checkpoint is
 ``tutorials/network_weights/icon_dirlab_4dct/icon_dirlab_4dct_model/checkpoints/
-Finetune_multi_final.trch``, the path returned by
+network_weights_final.trch``, the path returned by
 ``WorkflowFinetuneICONRegistration.expected_weights_path()``.  That directory is
 deleted at the start of every run, so each run finetunes from scratch; see the
 comment above the ``shutil.rmtree`` call for how to reuse a previous run.
@@ -34,7 +37,8 @@ comment above the ``shutil.rmtree`` call for how to reuse a previous run.
 Data Required
 -------------
 Full data: ``data/DirLab-4DCT`` (all 10 cases, converted to HU ``.mha`` by
-``data/DirLab-4DCT/fix_downloaded_data.py``)
+``data/DirLab-4DCT/fix_downloaded_data.py``), including the raw
+``downloaded_data/Case1Pack/ExtremePhases`` landmark files
 Test data: ``data/test/DirLab-4DCT``
 """
 
@@ -55,7 +59,7 @@ from physiotwin4d import (
     PhysioTwin4DBase,
     RegisterImagesBase,
     RegisterImagesGreedy,
-    RegisterImagesGreedyICON,
+    RegisterImagesICON,
     SegmentNVSegmentCTMRI,
     TestTools,
     TransformTools,
@@ -82,14 +86,20 @@ if __name__ == "__main__":
     weights_dir = tutorials_dir / "network_weights"
     finetune_name = "icon_dirlab_4dct"
 
+    run_finetuning = True
+
     test_mode = TestTools.running_as_test()
     if test_mode:
         data_dir = repo_root / "data" / "test" / "DirLab-4DCT"
         number_of_iterations_greedy: Optional[list[int]] = [1, 0]
-        epochs = 5
+        epochs = 1
     else:
         data_dir = repo_root / "data" / "DirLab-4DCT"
-        number_of_iterations_greedy = None  # Greedy defaults
+        number_of_iterations_greedy = [60, 30, 20]  # Greedy defaults
+        # 90 training frames at batch_size 4 is 22 optimizer steps per epoch, so
+        # 100 epochs is ~2200 steps at a 5e-5 learning rate.  Far fewer than
+        # that leaves the finetuned weights statistically indistinguishable
+        # from the stock weights they started from.
         epochs = 100
 
     log_level = logging.INFO
@@ -97,13 +107,22 @@ if __name__ == "__main__":
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Held-out evaluation pair (Case 1 is excluded from finetuning)
-    fixed_file = data_dir / "Case1Pack_T70.mha"
-    moving_file = data_dir / "Case1Pack_T30.mha"
-    missing = [str(p) for p in (fixed_file, moving_file) if not p.exists()]
+    # Held-out evaluation pair (Case 1 is excluded from finetuning).  T00 and
+    # T50 are the extreme inhale/exhale phases, the only pair DIR-Lab supplies
+    # expert landmarks for.
+    fixed_file = data_dir / "Case1Pack_T50.mha"
+    moving_file = data_dir / "Case1Pack_T00.mha"
+    landmark_dir = data_dir / "downloaded_data" / "Case1Pack" / "ExtremePhases"
+    fixed_landmark_file = landmark_dir / "Case1_300_T50_xyz.txt"
+    moving_landmark_file = landmark_dir / "Case1_300_T00_xyz.txt"
+    missing = [
+        str(p)
+        for p in (fixed_file, moving_file, fixed_landmark_file, moving_landmark_file)
+        if not p.exists()
+    ]
     if missing:
         raise FileNotFoundError(
-            f"Missing DirLab phase images: {missing}.\n"
+            f"Missing DirLab phase images or landmarks: {missing}.\n"
             "See data/DirLab-4DCT/README.md for download instructions."
         )
 
@@ -140,35 +159,84 @@ if __name__ == "__main__":
     #     if not weights_path.exists():
     #         weights_path = workflow.process()
     experiment_dir = weights_dir / finetune_name
-    if experiment_dir.exists():
-        reporter.log_info("Removing previous finetuning outputs: %s", experiment_dir)
-        shutil.rmtree(experiment_dir)
+    if run_finetuning:
+        if experiment_dir.exists():
+            reporter.log_info(
+                "Removing previous finetuning outputs: %s", experiment_dir
+            )
+            shutil.rmtree(experiment_dir)
 
-    # DIR-Lab ships no segmentations, so no labelmaps or masks are supplied and
-    # the Dice loss must be disabled: uniGradICON requires a ``segmentation``
-    # field on every dataset entry when dice_loss_weight > 0.
-    workflow = WorkflowFinetuneICONRegistration(
-        subject_image_files=list(subject_image_files.values()),
-        output_dir=weights_dir,
-        finetune_name=finetune_name,
-        subject_ids=list(subject_image_files.keys()),
-        epochs=epochs,
-        dice_loss_weight=0.0,
-        log_level=log_level,
-    )
-    weights_path = workflow.process()
+        # DIR-Lab ships no segmentations, so no labelmaps or masks are supplied and
+        # the Dice loss must be disabled: uniGradICON requires a ``segmentation``
+        # field on every dataset entry when dice_loss_weight > 0.
+        #
+        # lncc_sigma matches the sigma RegisterImagesICON uses at inference, so
+        # finetuning optimizes the similarity this comparison scores.
+        workflow = WorkflowFinetuneICONRegistration(
+            subject_image_files=list(subject_image_files.values()),
+            output_dir=weights_dir,
+            finetune_name=finetune_name,
+            subject_ids=list(subject_image_files.keys()),
+            epochs=epochs,
+            dice_loss_weight=0.0,
+            lncc_sigma=5,
+            log_level=log_level,
+        )
+        weights_path = workflow.process()
+    else:
+        weights_path = (
+            Path(__file__).resolve().parent
+            / "network_weights/icon_dirlab_4dct/icon_dirlab_4dct_model/checkpoints/network_weights_final.trch"
+        )
 
     # Registration comparison
     fixed_image = itk.imread(str(fixed_file), pixel_type=itk.F)
     moving_image = itk.imread(str(moving_file), pixel_type=itk.F)
     transform_tools = TransformTools()
 
-    # Every image is segmented independently: the fixed image once, then each
-    # registered image after warping.  The Dice scores therefore include
-    # whatever the segmenter does differently on each warped volume, not only
-    # the geometric error of the transform.
+    def read_landmarks(landmark_file: Path, image: itk.Image) -> np.ndarray:
+        """Read a DIR-Lab landmark file as an (N, 3) array of world points.
+
+        Each line holds one 1-based voxel index as ``x y z``.
+        """
+        indices = np.loadtxt(landmark_file, dtype=int) - 1
+        return np.array(
+            [
+                image.TransformIndexToPhysicalPoint([int(v) for v in index])
+                for index in indices
+            ]
+        )
+
+    fixed_landmarks = read_landmarks(fixed_landmark_file, fixed_image)
+    moving_landmarks = read_landmarks(moving_landmark_file, moving_image)
+
+    def landmark_metrics(errors_mm: np.ndarray) -> dict[str, Any]:
+        """Summarize per-landmark target registration errors, in millimeters."""
+        return {
+            "tre_mean": float(errors_mm.mean()),
+            "tre_std": float(errors_mm.std()),
+            "tre_p95": float(np.percentile(errors_mm, 95)),
+            "tre_max": float(errors_mm.max()),
+        }
+
+    def landmark_errors(transform: itk.Transform) -> np.ndarray:
+        """Distance from each mapped fixed landmark to its moving counterpart.
+
+        ``forward_transform`` is the resampling transform: it maps points on the
+        fixed grid back into moving space, which is the direction the landmark
+        correspondences are defined in.
+        """
+        mapped = np.array(
+            [transform.TransformPoint(tuple(point)) for point in fixed_landmarks]
+        )
+        return np.asarray(np.linalg.norm(mapped - moving_landmarks, axis=1))
+
+    # Each image is segmented once and the moving labelmap is warped by every
+    # transform, so Dice reflects the transform rather than what the segmenter
+    # does differently on each interpolated volume.
     segmenter = SegmentNVSegmentCTMRI(log_level=log_level)
     fixed_labelmap = segmenter.segment(fixed_image)["labelmap"]
+    moving_labelmap = segmenter.segment(moving_image)["labelmap"]
     fixed_labels = itk.array_from_image(fixed_labelmap)
 
     def overlap_metrics(labelmap: itk.Image) -> dict[str, Any]:
@@ -199,24 +267,32 @@ if __name__ == "__main__":
             "mislabeled_voxels": int(np.count_nonzero(fixed_labels != labels)),
         }
 
-    # Reference row: the moving image on the fixed grid, unregistered.
+    # Reference row: the moving image and its labelmap on the fixed grid,
+    # unregistered.
     unregistered_image = itk.resample_image_filter(
         moving_image,
         ReferenceImage=fixed_image,
         UseReferenceImage=True,
     )
+    unregistered_labelmap = itk.resample_image_filter(
+        moving_labelmap,
+        Interpolator=itk.NearestNeighborInterpolateImageFunction.New(moving_labelmap),
+        ReferenceImage=fixed_image,
+        UseReferenceImage=True,
+    )
 
-    registered_images: dict[str, itk.Image] = {}
-    labelmaps: dict[str, itk.Image] = {
-        "unregistered": segmenter.segment(unregistered_image)["labelmap"]
-    }
+    registered_images: dict[str, itk.Image] = {"unregistered": unregistered_image}
+    labelmaps: dict[str, itk.Image] = {"unregistered": unregistered_labelmap}
     rows: list[dict[str, Any]] = [
         {
             "method": "unregistered",
             "weights": "-",
             "registration_time_s": None,
             "loss": None,
-            **overlap_metrics(labelmaps["unregistered"]),
+            **landmark_metrics(
+                np.linalg.norm(fixed_landmarks - moving_landmarks, axis=1)
+            ),
+            **overlap_metrics(unregistered_labelmap),
         }
     ]
     for method_name, method_weights in (
@@ -227,19 +303,18 @@ if __name__ == "__main__":
         registrar: RegisterImagesBase
         if method_name == "greedy":
             registrar = RegisterImagesGreedy(log_level=log_level)
+            registrar.set_transform_type("Deformable")
             if number_of_iterations_greedy is not None:
                 registrar.set_number_of_iterations(number_of_iterations_greedy)
         else:
-            registrar = RegisterImagesGreedyICON(log_level=log_level)
-            if number_of_iterations_greedy is not None:
-                registrar.greedy.set_number_of_iterations(number_of_iterations_greedy)
+            registrar = RegisterImagesICON(log_level=log_level)
             # None, not 0: icon_registration rejects 0 and takes None to mean
             # "no test-time finetuning steps", so the comparison reflects what
             # each set of weights predicts rather than per-pair optimization.
-            registrar.icon.set_number_of_iterations(None)
-            registrar.icon.set_mass_preservation(True)  # For non-contrast CT
+            registrar.set_number_of_iterations(None)
+            registrar.set_mass_preservation(True)  # For non-contrast CT
             if method_weights is not None:
-                registrar.icon.set_weights_path(str(method_weights))
+                registrar.set_weights_path(str(method_weights))
         registrar.set_modality("ct")
         registrar.set_fixed_image(fixed_image)
 
@@ -247,17 +322,22 @@ if __name__ == "__main__":
         result = registrar.register(moving_image)
         elapsed_s = time.perf_counter() - start_time
 
-        registered = transform_tools.transform_image(
+        registered_images[method_name] = transform_tools.transform_image(
             moving_image, result["forward_transform"], fixed_image
         )
-        registered_images[method_name] = registered
-        labelmaps[method_name] = segmenter.segment(registered)["labelmap"]
+        labelmaps[method_name] = transform_tools.transform_image(
+            moving_labelmap,
+            result["forward_transform"],
+            fixed_image,
+            interpolation_method="nearest",
+        )
         rows.append(
             {
                 "method": method_name,
                 "weights": str(method_weights) if method_weights else "-",
                 "registration_time_s": elapsed_s,
                 "loss": float(result["loss"]),
+                **landmark_metrics(landmark_errors(result["forward_transform"])),
                 **overlap_metrics(labelmaps[method_name]),
             }
         )
@@ -287,10 +367,27 @@ if __name__ == "__main__":
 
     # Reporting
     reporter.log_info(
-        "Case1Pack_T30 -> Case1Pack_T70, per-class Dice against the fixed labelmap"
+        "Case1Pack_T00 -> Case1Pack_T50, error at %d expert landmarks, mm",
+        len(fixed_landmarks),
     )
     reporter.log_info(
-        "  %-13s %7s %7s %7s %7s %7s %7s %7s %12s %9s",
+        "  %-13s %7s %7s %7s %7s %9s", "method", "mean", "std", "p95", "max", "time_s"
+    )
+    for row in rows:
+        elapsed = row["registration_time_s"]
+        reporter.log_info(
+            "  %-13s %7.2f %7.2f %7.2f %7.2f %9s",
+            row["method"],
+            row["tre_mean"],
+            row["tre_std"],
+            row["tre_p95"],
+            row["tre_max"],
+            "-" if elapsed is None else f"{float(elapsed):.1f}",
+        )
+
+    reporter.log_info("Per-class Dice of the warped moving labelmap against the fixed")
+    reporter.log_info(
+        "  %-13s %7s %7s %7s %7s %7s %7s %7s %12s",
         "method",
         "classes",
         "mean",
@@ -300,12 +397,10 @@ if __name__ == "__main__":
         "min",
         "max",
         "mislabeled",
-        "time_s",
     )
     for row in rows:
-        elapsed = row["registration_time_s"]
         reporter.log_info(
-            "  %-13s %7d %7.4f %7.4f %7.4f %7.4f %7.4f %7.4f %12d %9s",
+            "  %-13s %7d %7.4f %7.4f %7.4f %7.4f %7.4f %7.4f %12d",
             row["method"],
             row["n_classes"],
             row["dice_mean"],
@@ -315,7 +410,6 @@ if __name__ == "__main__":
             row["dice_min"],
             row["dice_max"],
             row["mislabeled_voxels"],
-            "-" if elapsed is None else f"{float(elapsed):.1f}",
         )
     reporter.log_info("Wrote summary: %s", summary_file)
 

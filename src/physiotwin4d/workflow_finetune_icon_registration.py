@@ -423,14 +423,15 @@ class WorkflowFinetuneICONRegistration(PhysioTwin4DBase):
         """Return the path uniGradICON writes its final checkpoint to.
 
         ``unigradicon.finetuning.finetune`` writes
-        ``<experiment.name>/checkpoints/Finetune_multi_final.trch`` at the end of
-        training.  Also the return value of :meth:`process`.
+        ``<experiment.name>/checkpoints/network_weights_final.trch`` at the end
+        of training -- ``NETWORK_WEIGHTS_PREFIX`` plus the ``"final"`` epoch
+        label.  Also the return value of :meth:`process`.
         """
         return (
             self.experiment_dir
             / f"{self.finetune_name}_model"
             / "checkpoints"
-            / "Finetune_multi_final.trch"
+            / "network_weights_final.trch"
         )
 
     def process(self) -> Path:
@@ -441,13 +442,15 @@ class WorkflowFinetuneICONRegistration(PhysioTwin4DBase):
         existing dataset JSON or YAML in :attr:`experiment_dir` is overwritten.
 
         Returns:
-            Path to the expected final checkpoint
-            (``Finetune_multi_final.trch``).  The file is written by the
-            subprocess and exists only after a successful run.
+            Path to the final checkpoint (``network_weights_final.trch``).  The
+            file is written by the subprocess and exists only after a successful
+            run.
 
         Raises:
             subprocess.CalledProcessError: If the finetuning subprocess exits
                 with a non-zero status.
+            FileNotFoundError: If the subprocess succeeded but the checkpoint is
+                not where :meth:`expected_weights_path` says it should be.
         """
         self.log_section("FINETUNING UNIGRADICON", width=70)
 
@@ -471,6 +474,16 @@ class WorkflowFinetuneICONRegistration(PhysioTwin4DBase):
         self.log_info("Launching finetuning subprocess: %s", " ".join(cmd))
         subprocess.run(cmd, check=True, env=env)
 
+        # A missing checkpoint here is silent otherwise: uniGradICON treats an
+        # unknown weights path as a download destination, so a stale filename or
+        # a footsteps "-N" run directory would yield stock-weight registrations
+        # that look finetuned.
         weights_path = self.expected_weights_path()
-        self.log_info("Finetuning complete. Expected weights at %s", weights_path)
+        if not weights_path.exists():
+            raise FileNotFoundError(
+                f"Finetuning finished but no checkpoint at {weights_path}.  "
+                "Check for a suffixed run directory (uniGradICON appends "
+                "'-1', '-2', ... when the experiment directory already exists)."
+            )
+        self.log_info("Finetuning complete. Weights at %s", weights_path)
         return weights_path

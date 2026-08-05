@@ -13,7 +13,7 @@ Data Required
 Full data: ``data/DirLab-4DCT/Case1Pack_T??.mha``
 Test data: ``data/test/DirLab-4DCT/Case1Pack_T??.mha``
 ICON weights: Tutorial 2 output
-(``tutorials/network_weights/icon_dirlab_4dct/.../Finetune_multi_final.trch``),
+(``tutorials/network_weights/icon_dirlab_4dct/.../network_weights_final.trch``),
 optional — the stock uniGradICON weights are used when it is absent.
 
 Outputs (under ``tutorials/output/tutorial_03_lung/``)
@@ -66,7 +66,7 @@ if __name__ == "__main__":
         / "icon_dirlab_4dct"
         / "icon_dirlab_4dct_model"
         / "checkpoints"
-        / "Finetune_multi_final.trch"
+        / "network_weights_final.trch"
     )
 
     test_mode = TestTools.running_as_test()

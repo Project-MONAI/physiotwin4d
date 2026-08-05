@@ -11,6 +11,7 @@ deformable registration with mass preservation constraints.
 """
 
 import logging
+from pathlib import Path
 from typing import Optional, Union
 
 import itk
@@ -107,14 +108,23 @@ class RegisterImagesICON(RegisterImagesBase):
         pretrained weights. Clears any previously loaded network so the new
         weights are applied on the next call to register().
 
-        Also, use this to specify the path to store the downloaded weights.  The
-        file must not exist for the weights to be downloaded correctly.  Typical
-        suffix is ".trch".
+        The file must already exist.  uniGradICON treats a missing
+        ``weights_location`` as a download destination and silently fetches the
+        stock pretrained weights into it, so an unvalidated path yields a
+        stock-weights registration that looks like a finetuned one.
 
         Args:
-            weights_path: Path to a uniGradICON checkpoint, e.g.
-                "results/duke_4d_finetune/checkpoints/network_weights_100"
+            weights_path: Path to an existing uniGradICON checkpoint, e.g.
+                "results/duke_4d_finetune/checkpoints/network_weights_final.trch"
+
+        Raises:
+            FileNotFoundError: If weights_path does not exist.
         """
+        if not Path(weights_path).exists():
+            raise FileNotFoundError(
+                f"uniGradICON weights not found: {weights_path}.  Leave the "
+                "weights path unset to use the stock pretrained weights."
+            )
         self.weights_path = weights_path
         self.net = None  # force reload on next register() call
 

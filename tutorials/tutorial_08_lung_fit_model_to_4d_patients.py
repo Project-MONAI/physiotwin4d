@@ -32,7 +32,7 @@ PCA model: Tutorial 6 output (``output/tutorial_06_lung/pca_model.json``,
 ``pca_mean_surface.vtp``)
 ICON weights: Tutorial 2 output
 (``network_weights/icon_dirlab_4dct/icon_dirlab_4dct_model/checkpoints/
-Finetune_multi_final.trch``), optional — the stock uniGradICON weights are used
+network_weights_final.trch``), optional — the stock uniGradICON weights are used
 when it is absent.
 
 Outputs (per case, under ``output/tutorial_08_lung/<case>/``)
@@ -98,7 +98,7 @@ if __name__ == "__main__":
         / "icon_dirlab_4dct"
         / "icon_dirlab_4dct_model"
         / "checkpoints"
-        / "Finetune_multi_final.trch"
+        / "network_weights_final.trch"
     )
 
     # Phase the SSM is fitted to; Tutorial 6 builds the lung PCA model from the

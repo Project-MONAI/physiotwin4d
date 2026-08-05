@@ -466,5 +466,23 @@ class TestRegisterImagesICON:
         print(f"Tested {len(iteration_counts)} different iteration counts")
 
 
+def test_set_weights_path_rejects_missing_file(tmp_path: Path) -> None:
+    """A missing checkpoint must raise instead of downloading stock weights.
+
+    uniGradICON treats an unknown ``weights_location`` as a download
+    destination, so an unchecked path silently yields a stock-weights
+    registration that looks like a finetuned one.
+    """
+    registrar = RegisterImagesICON()
+    with pytest.raises(FileNotFoundError, match="weights not found"):
+        registrar.set_weights_path(str(tmp_path / "network_weights_final.trch"))
+    assert registrar.weights_path is None
+
+    existing = tmp_path / "network_weights_final.trch"
+    existing.touch()
+    registrar.set_weights_path(str(existing))
+    assert registrar.weights_path == str(existing)
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v", "-s"])
