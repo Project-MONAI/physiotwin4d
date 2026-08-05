@@ -25,6 +25,7 @@ import pyvista as pv
 from physiotwin4d import (
     ContourTools,
     SegmentChestTotalSegmentatorWithContrast,
+    SegmentHeartSimpleware,
     TestTools,
     WorkflowConvertImageToVTK,
 )
@@ -51,6 +52,9 @@ if __name__ == "__main__":
     save_group_surfaces = True
     save_label_surfaces = True
 
+    use_simpleware = True
+    use_totalsegmentator_academic_license = True
+
     test_mode = TestTools.running_as_test()
     if test_mode:
         data_dir = repo_root / "data" / "test" / "slicer_heart_small"
@@ -61,8 +65,15 @@ if __name__ == "__main__":
 
     log_level = logging.INFO
 
-    segmentation_method = SegmentChestTotalSegmentatorWithContrast(log_level=log_level)
-    segmentation_method.set_has_academic_license(True)
+    if use_simpleware:
+        segmentation_method = SegmentHeartSimpleware(log_level=log_level)
+    else:
+        segmentation_method = SegmentChestTotalSegmentatorWithContrast(
+            log_level=log_level
+        )
+        segmentation_method.set_has_academic_license(
+            use_totalsegmentator_academic_license
+        )
 
     # Directory setup and data reading
 

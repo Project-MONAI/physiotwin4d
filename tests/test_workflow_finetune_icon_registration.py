@@ -396,19 +396,18 @@ def test_expected_weights_path_layout(tmp_path: Path) -> None:
         finetune_name="exp",
         log_level=logging.CRITICAL,
     )
-    # The filename is built from uniGradICON's own checkpoint prefix, so an
-    # upstream rename breaks this test rather than silently sending the
-    # tutorials to a path that only ever holds stock weights.
-    from unigradicon.finetuning.finetune import NETWORK_WEIGHTS_PREFIX
-
     expected = workflow.expected_weights_path()
     assert expected == (
-        tmp_path
-        / "exp"
-        / "exp_model"
-        / "checkpoints"
-        / f"{NETWORK_WEIGHTS_PREFIX}_final.trch"
+        tmp_path / "exp" / "exp_model" / "checkpoints" / "network_weights_final.trch"
     )
+
+    # The filename must track uniGradICON's own checkpoint prefix, so an
+    # upstream rename breaks this test rather than silently sending the
+    # tutorials to a path that only ever holds stock weights.  The finetuning
+    # submodule exists only on the feat-add-finetuning branch, so skip where
+    # it is absent.
+    finetune = pytest.importorskip("unigradicon.finetuning.finetune")
+    assert expected.name == f"{finetune.NETWORK_WEIGHTS_PREFIX}_final.trch"
 
 
 # ---------------------------------------------------------------------------
