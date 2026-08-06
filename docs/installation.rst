@@ -11,7 +11,7 @@ System Requirements
 -------------------
 
 * **Python**: 3.10, 3.11, or 3.12
-* **GPU**: NVIDIA GPU with CUDA 13 — recommended for production use; CPU-only PyPI installation is supported but will be slow and will emit a runtime warning
+* **GPU**: NVIDIA GPU with CUDA 13 — required for full capability and best performance; a CPU-only PyPI installation is a supported fallback, but it is slow, emits a runtime warning, and cannot run the AI-surrogate workflows
 * **RAM**: 16GB minimum (32GB+ recommended for large datasets)
 * **Storage**: 10GB+ for package and model weights
 * **Visualization**: NVIDIA Omniverse (optional, for USD visualization)
@@ -26,6 +26,8 @@ PhysioTwin4D relies on several key packages:
 * **Registration**: icon-registration, unigradicon
 * **Visualization**: USD-core, PyVista
 * **Segmentation**: TotalSegmentator
+* **AI surrogates**: PhysicsNeMo (``nvidia-physicsnemo``), torch-geometric,
+  torch-scatter - optional, installed with the ``[physicsnemo]`` extra
 
 Installation Methods
 ====================
@@ -33,25 +35,8 @@ Installation Methods
 Method 1: Install from PyPI (Recommended)
 ------------------------------------------
 
-The simplest way to install PhysioTwin4D is from PyPI.
-
-CPU-only PyPI install (evaluation / no GPU):
-
-.. code-block:: bash
-
-   pip install physiotwin4d
-
-This works immediately. CuPy is absent, so a ``UserWarning`` is emitted at
-import time (visible by default in all standard Python runs):
-
-.. code-block:: text
-
-   CuPy is not installed — GPU acceleration is unavailable and processing will be
-   slow. Re-install with uv to get CuPy and CUDA-enabled PyTorch in one step
-   (pip alone will not select the correct CUDA wheel):
-     uv pip install 'physiotwin4d[cuda13]'  # CUDA 13
-
-CUDA 13 install (recommended for production):
+Install the ``[cuda13]`` extra. It enables every feature and gives the best
+performance:
 
 .. code-block:: bash
 
@@ -60,6 +45,26 @@ CUDA 13 install (recommended for production):
 The ``[cuda13]`` extra installs CuPy. In uv-managed source environments,
 PyTorch, torchvision, and torchaudio resolve from the CUDA 13.0 PyTorch wheel
 index. There is no need to install PyTorch separately.
+
+CPU-only fallback (evaluation, or no NVIDIA GPU available):
+
+.. code-block:: bash
+
+   pip install physiotwin4d
+
+This works immediately but is a limited configuration: GPU acceleration is
+unavailable, segmentation and registration run slowly enough that the larger
+tutorials become impractical, and the AI-surrogate workflows behind the
+``[physicsnemo]`` extra need CUDA and cannot run at all. CuPy is absent, so a
+``UserWarning`` is emitted at import time (visible by default in all standard
+Python runs):
+
+.. code-block:: text
+
+   CuPy is not installed — GPU acceleration is unavailable and processing will be
+   slow. Re-install with uv to get CuPy and CUDA-enabled PyTorch in one step
+   (pip alone will not select the correct CUDA wheel):
+     uv pip install 'physiotwin4d[cuda13]'  # CUDA 13
 
 Method 2: Install from Source
 ------------------------------
@@ -99,21 +104,45 @@ For development or to get the latest features:
 
 **Step 4: Install PhysioTwin4D**
 
-Default uv-managed source install:
-
-.. code-block:: bash
-
-   uv pip install -e "."
-
-This uses the CUDA 13.0 PyTorch wheel index by default. To add CuPy for CUDA 13
-GPU acceleration:
+Install the ``[cuda13]`` extra for the full-capability source install:
 
 .. code-block:: bash
 
    uv pip install -e ".[cuda13]"
 
+Without the extra:
+
+.. code-block:: bash
+
+   uv pip install -e "."
+
+still uses the CUDA 13.0 PyTorch wheel index by default, but leaves out CuPy
+and the GPU acceleration that depends on it.
+
 Optional Dependencies
 =====================
+
+Everything at Once
+------------------
+
+The ``[all]`` extra pulls in every optional component — ``[cuda13]``,
+``[physicsnemo]``, ``[dev]``, ``[docs]`` and ``[test]`` — so every feature is
+enabled and every use of the platform is supported, from the AI-surrogate
+workflows to building the docs and running the full test suite:
+
+.. code-block:: bash
+
+   uv pip install "physiotwin4d[all]"
+
+It inherits the ``[physicsnemo]`` caveats: PyTorch and setuptools must already
+be installed, because ``torch-scatter`` compiles against torch when no matching
+wheel exists, and ``nvidia-physicsnemo`` requires Python >= 3.11. uv handles the
+build isolation automatically; with pip, install in two steps:
+
+.. code-block:: bash
+
+   pip install "physiotwin4d[cuda13]" setuptools
+   pip install "physiotwin4d[all]" --no-build-isolation
 
 Development Tools
 -----------------

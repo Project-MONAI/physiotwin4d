@@ -58,16 +58,49 @@ Then fetch the sample datasets, again from the top level of the clone:
 
 .. code-block:: bash
 
-   # Tutorials 1, 3 and 4 (heart)
+   # Heart Tutorials 1, 3 and 4
    physiotwin4d-download-data Slicer-Heart-CT --directory data/Slicer-Heart-CT
 
-   # Tutorial 6 (heart)
+   # Heart Tutorial 6
    physiotwin4d-download-data KCL-Heart-Model --directory data/KCL-Heart-Model
 
-   # Tutorial 7 (lung)
+   # Lung Tutorial 7
    physiotwin4d-download-data Chest-CT --directory data/Chest-CT
 
-``DirLab-4DCT`` is manual-only; see ``data/DirLab-4DCT/README.md``, and
+   # No tutorial - transcatheter pulmonary valve experiments only, >2 GB
+   physiotwin4d-download-data CHOP-Valve4D --directory data/CHOP-Valve4D
+
+Which dataset each tutorial needs:
+
+.. list-table::
+   :widths: 25 20 55
+   :header-rows: 1
+
+   * - Dataset
+     - Download
+     - Used by
+   * - ``Slicer-Heart-CT``
+     - CLI
+     - Heart Tutorials 1, 3, 4
+   * - ``DirLab-4DCT``
+     - Manual
+     - Lung Tutorials 1, 2, 3, 4, 6, 8, and Heart Tutorial 7
+   * - ``KCL-Heart-Model``
+     - CLI
+     - Heart Tutorial 6
+   * - ``Chest-CT``
+     - CLI
+     - Lung Tutorial 7
+   * - ``CHOP-Valve4D``
+     - CLI
+     - No tutorial - used by the valve experiments under ``experiments/``
+
+Tutorials 5, 9 and 10 need no dataset of their own: they consume the outputs of
+Tutorials 4, 8 and 9 respectively.
+
+``DirLab-4DCT`` is the one dataset with no automatic downloader: DIR-Lab
+distributes each case individually and may require registration, so download it
+by hand following ``data/DirLab-4DCT/README.md``. See
 :doc:`cli_scripts/download_data` for every dataset's size and source.
 
 Tutorial 1 needs only ``Slicer-Heart-CT``; with that dataset in place it runs
@@ -104,7 +137,7 @@ CUDA-capable GPU are required for practical runtime.
 Command-Line Interface
 ----------------------
 
-The fastest way to process cardiac CT data is using the command-line interface:
+The same cardiac processing, packaged as a command for unattended runs:
 
 .. code-block:: bash
 
@@ -267,8 +300,9 @@ See :doc:`cli_scripts/download_data` for sizes, source URLs, and directory
 layouts for every dataset.
 
 DirLab-4DCT data is manual-only; see ``data/DirLab-4DCT/README.md``. It drives
-the lung pipeline — Tutorials 2, 3, 6 (lung) and 8 — which then feeds the
-AI-surrogate Tutorials 9 and 10. Those two additionally require the optional
+the whole lung pipeline — Lung Tutorials 1, 2, 3, 4, 6 and 8, plus Heart
+Tutorial 7 — which then feeds the AI-surrogate Tutorials 9 and 10. Those two
+additionally require the optional
 ``physicsnemo`` extra (``pip install "physiotwin4d[physicsnemo]"``, plus
 ``torch-geometric`` for the MeshGraphNet); PhysicsNeMo itself requires
 Python >= 3.11.
@@ -301,20 +335,26 @@ Next Steps
 
 Now that you've completed your first workflow:
 
-* Explore :doc:`tutorials` for more runnable examples
-* Read detailed :doc:`cli_scripts/overview`
+* Work through :doc:`tutorials` — the primary guide to using and adapting the
+  toolkit
+* Read detailed :doc:`cli_scripts/overview` for unattended and production runs
 * Learn about :doc:`api/segmentation/index` options
 * Understand :doc:`api/registration/index` methods
 * Check the :doc:`api/base` for advanced usage
 
 .. important::
 
-   **About CLI Commands and Experiments:**
+   **Where to learn the toolkit:**
 
-   * **CLI Commands** ⭐ **PRIMARY RESOURCE** - Production-ready workflows with proper class usage
-     (``physiotwin4d-convert-image-to-usd``, ``physiotwin4d-create-statistical-model``,
-     ``physiotwin4d-fit-statistical-model-to-patient``).
-     See ``src/physiotwin4d/cli/`` for implementation details.
+   * **tutorials/** - the primary resource. Each tutorial runs end-to-end on
+     downloadable data, shows the workflow classes in context, and closes with
+     the constants to change for your own scans. See :doc:`tutorials`.
+
+   * **CLI Commands** - the same workflows packaged as commands for unattended
+     and production runs (``physiotwin4d-convert-image-to-usd``,
+     ``physiotwin4d-create-statistical-model``,
+     ``physiotwin4d-fit-statistical-model-to-patient``). See
+     ``src/physiotwin4d/cli/`` for implementation details.
 
    * **experiments/** - Research prototypes and design explorations. These demonstrate conceptual
      approaches for adapting workflows to new anatomical regions and digital twin applications,

@@ -38,9 +38,10 @@ This report summarizes development effort, code quality, and project maturity.
 | **Markdown (repo-wide READMEs, guides)** | 35 files       | 2,958          | 5.5%       |
 | **TOTAL**                                | **298 files**  | **~53,400**    | **100%**   |
 
-All experiment and tutorial sources are plain `.py` files. Each uses `# %%`
-percent-cell markers so the same file can be executed end-to-end with
-`python <script>.py` or stepped through cell-by-cell in VS Code / Cursor.
+All experiment and tutorial sources are plain `.py` files run with
+`python <script>.py`. Experiment scripts additionally carry `# %%` percent-cell
+markers, so they can be stepped through cell-by-cell in VS Code / Cursor;
+tutorials are straightforward top-to-bottom scripts.
 
 ### Core Module Highlights (Python Source)
 
@@ -187,7 +188,7 @@ subject-specific characterization and cross-subject correspondence - to
 estimate a subject's physiological processes, currently cardiac and
 respiratory motion. It is built on top of established medical imaging, AI/ML,
 and 3D graphics libraries with a small, focused public API and a
-percent-cell-script example/tutorial layout that runs both interactively and
+plain-Python-script example/tutorial layout that runs both interactively and
 unattended.
 
 ---

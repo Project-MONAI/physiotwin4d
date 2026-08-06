@@ -47,9 +47,8 @@ notes on running them against your own data.
 
 ## Running a Tutorial
 
-Each tutorial is a standalone percent-cell Python script (`# %%`) that can be
-run cell-by-cell in VS Code or Cursor, or executed end-to-end as a regular
-Python script. Paths are defined near the top of each script. By default, data
+Each tutorial is a standalone, straightforward Python script, executed
+end-to-end. Paths are defined near the top of each script. By default, data
 is read from the repository `data/` directory and outputs are written under
 `tutorials/output/<tutorial_name>/`.
 
