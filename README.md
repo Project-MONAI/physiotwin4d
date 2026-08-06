@@ -133,8 +133,11 @@ See the [contributing guide](https://project-monai.github.io/physiotwin4d/contri
 
 This project is licensed under the Apache 2.0 License - see the LICENSE file for details.
 
-Note that some optional dependencies carry their own license terms: 
-* NVIDIA Omniverse is distributed under its own customer license, which is
+Additionally, NVIDIA Omniverse is distributed under its own custom license, which makes it
 free for academic and commercial use.  https://docs.omniverse.nvidia.com/ov/latest/common/NVIDIA_Omniverse_License_Agreement.html
+
+### Non-commercial Licenses (optional)
 * NVIDIA Segment CT MRI AI weights (used in the SegmentNVSegmentCTMRI class,
 are restricted from commercial use. https://github.com/NVIDIA-Medtech/NV-Segment-CTMR
+* TotalSegmentator includes the optional use of some of their research-only models. Using those models assumes that you have
+the appropriate license key install, otherwise an error occurs.   Those models can be disabled by calling ```set_has_academic_license(False)``` member function of the ```SegmentChestTotalSegmentator``` class.
