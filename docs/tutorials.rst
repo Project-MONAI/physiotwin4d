@@ -243,11 +243,18 @@ Requirements
 
 Preview
    .. figure:: assets/tutorial_02_finetuning.png
-      :alt: Registration accuracy before and after ICON finetuning
+      :alt: Registration accuracy table for the held-out case
+      :width: 100%
+
+      The held-out case scored per method — unregistered, Greedy, Greedy+ICON
+      with the stock weights, and with the finetuned weights.
+
+   .. figure:: assets/experiment_finetuning_landmark_results.png
+      :alt: Landmark error summary for stock and finetuned ICON weights
       :width: 90%
 
-      The held-out case registered with the stock weights and with the
-      finetuned weights.
+      Landmark target registration error over six held-out subjects, stock
+      weights against finetuned.
 
 Inner API usage
    .. code-block:: python
@@ -387,11 +394,17 @@ Requirements
    way to confirm your environment and model weights work.
 
 Preview
+   .. figure:: assets/tutorial_04_heart.gif
+      :alt: Cardiac surfaces extracted from a CT phase
+      :width: 90%
+
+      Cardiac anatomy surfaces exported from one CT phase.
+
    .. figure:: assets/tutorial_04_lung.png
       :alt: Lung surfaces extracted from a CT phase
       :width: 90%
 
-      Anatomy surfaces exported from one CT phase.
+      The same workflow on a DIR-Lab respiratory case.
 
 Inner API usage
    .. code-block:: python
