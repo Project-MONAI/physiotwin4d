@@ -214,6 +214,7 @@ close every section.
    faq
    troubleshooting
    references
+   statistics
 
 Indices and tables
 ==================
