@@ -91,8 +91,16 @@ Clone it to run them:
 ```bash
 git clone https://github.com/Project-MONAI/physiotwin4d.git
 cd physiotwin4d
+
+# Tutorial 1 (heart) runs on the public Slicer-Heart 4D CT sample
+physiotwin4d-download-data Slicer-Heart-CT --directory data/Slicer-Heart-CT
+
 python tutorials/tutorial_01_heart_gated_ct_to_usd.py
 ```
+
+Run the download from the top level of the clone: the tutorials resolve their
+inputs against the repository root, so downloading elsewhere puts the data
+where they will not find it.
 
 See the [quickstart](https://project-monai.github.io/physiotwin4d/quickstart.html) and [tutorials](https://project-monai.github.io/physiotwin4d/tutorials.html) for full walkthroughs covering segmentation, registration, statistical shape modeling, and USD export.
 

@@ -58,14 +58,20 @@ Then fetch the sample datasets, again from the top level of the clone:
 
 .. code-block:: bash
 
+   # Tutorials 1, 3 and 4 (heart)
    physiotwin4d-download-data Slicer-Heart-CT --directory data/Slicer-Heart-CT
+
+   # Tutorial 6 (heart)
    physiotwin4d-download-data KCL-Heart-Model --directory data/KCL-Heart-Model
+
+   # Tutorial 7 (lung)
    physiotwin4d-download-data Chest-CT --directory data/Chest-CT
 
 ``DirLab-4DCT`` is manual-only; see ``data/DirLab-4DCT/README.md``, and
 :doc:`cli_scripts/download_data` for every dataset's size and source.
 
-With Slicer-Heart-CT in place, the first tutorial runs as a plain script:
+Tutorial 1 needs only ``Slicer-Heart-CT``; with that dataset in place it runs
+as a plain script:
 
 .. code-block:: bash
 
