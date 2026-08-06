@@ -333,9 +333,15 @@ dt.sig {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 1.15rem;
-    margin: -4rem 0 2.25rem;
+    margin: 0 0 2.25rem;
     position: relative;
     z-index: 2;
+}
+
+/* Only a grid that directly follows the hero rides up into its lower padding;
+   elsewhere (tutorials.rst) the grid follows body text and must not overlap it. */
+.pt4d-hero + .pt4d-card-grid {
+    margin-top: -4rem;
 }
 
 .pt4d-card,

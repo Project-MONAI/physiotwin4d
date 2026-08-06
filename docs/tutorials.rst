@@ -11,7 +11,7 @@ Tutorials
      <p class="pt4d-kicker">PhysioTwin4D tutorials</p>
      <h1>From a CT scan to an animated digital twin</h1>
      <p>
-       Ten numbered stages across 15 runnable, percent-cell Python scripts.
+       Ten numbered stages across 15 runnable Python scripts.
        Each one drives the real workflow classes end-to-end on downloadable
        data, shows what it produced, and ends with the handful of constants
        to change so it runs on your own scans.
@@ -43,11 +43,13 @@ relative to the current working directory:
    physiotwin4d-download-data KCL-Heart-Model --directory data/KCL-Heart-Model
    physiotwin4d-download-data Chest-CT --directory data/Chest-CT
 
-That covers Tutorials 1, 3 (heart) and 4-7. ``DirLab-4DCT`` — used by
-Tutorials 2, 3 (lung), 6 (lung) and 8 — is **not** auto-downloaded: DIR-Lab
-distributes it manually and may require registration. See
-``data/DirLab-4DCT/README.md``, and :doc:`cli_scripts/download_data` for every
-dataset's size and source.
+That covers Heart Tutorials 1, 3, 4 and 6 (``Slicer-Heart-CT`` and
+``KCL-Heart-Model``) and Lung Tutorial 7 (``Chest-CT``). ``DirLab-4DCT`` — used
+by Lung Tutorials 1, 2, 3, 4, 6 and 8, and by Heart Tutorial 7 — is **not**
+auto-downloaded: DIR-Lab distributes each case individually and may require
+registration. Tutorials 5, 9 and 10 need no dataset of their own; they consume
+the outputs of Tutorials 4, 8 and 9. See ``data/DirLab-4DCT/README.md``, and
+:doc:`cli_scripts/download_data` for every dataset's size and source.
 
 **3. Know where output lands.** Every tutorial writes to
 ``tutorials/output/<tutorial_name>/`` and reuses what it finds there, so a
@@ -121,9 +123,10 @@ second run is cheap and later tutorials pick up earlier results automatically.
 Recommended Run Order
 =====================
 
-Tutorials are ``# %%`` percent-cell scripts: run them whole
-(``python tutorials/tutorial_01_heart_gated_ct_to_usd.py``) or cell by cell in
-VS Code or Cursor. Numbers 1, 4 and 5 are the fastest way to see the toolkit
+Tutorials are straightforward Python scripts: run one with
+``python tutorials/tutorial_01_heart_gated_ct_to_usd.py``, or open it in your
+editor and read it top to bottom. Numbers 1, 4 and 5 are the fastest way to see
+the toolkit
 work end-to-end; 6 through 10 build the statistical-model and AI-surrogate
 pipeline on top.
 
@@ -248,13 +251,6 @@ Preview
 
       The held-out case scored per method — unregistered, Greedy, Greedy+ICON
       with the stock weights, and with the finetuned weights.
-
-   .. figure:: assets/experiment_finetuning_landmark_results.png
-      :alt: Landmark error summary for stock and finetuned ICON weights
-      :width: 90%
-
-      Landmark target registration error over six held-out subjects, stock
-      weights against finetuned.
 
 Inner API usage
    .. code-block:: python
@@ -652,12 +648,12 @@ Requirements
    segmentation and one fit per case, plus one registration per phase per case.
 
 Preview
-   .. figure:: assets/example.gif
-      :alt: Tutorial 8 output preview (capture pending)
-      :width: 60%
+   .. figure:: assets/tutorial_08_lung.gif
+      :alt: Fitted lung shape model carried through every respiratory phase
+      :width: 90%
 
-      Capture pending — running the tutorial writes
-      ``ssm_surface_reference.png`` and ``ssm_surface_first_phase.png``.
+      The fitted shape-model surface propagated across the phases of a DIR-Lab
+      case.
 
 Inner API usage
    .. code-block:: python

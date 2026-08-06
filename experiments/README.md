@@ -273,20 +273,26 @@ Each subdirectory represents a different experimental domain:
 
 ### For Production Use, Consult:
 
-1. **CLI Commands** ⭐ **PRIMARY RESOURCE**
+1. **Tutorials in `tutorials/`** - the primary resource
+   - End-to-end runnable scripts on downloadable data
+   - Show the workflow classes in context, with the constants to change for
+     your own scans
+   - Documented at https://project-monai.github.io/physiotwin4d/tutorials.html
+
+2. **CLI Commands** - the same workflows packaged for unattended runs
    - `physiotwin4d-convert-image-to-usd` - Complete heart-gated CT workflow
    - `physiotwin4d-create-statistical-model` - Create PCA statistical shape model from sample meshes
    - `physiotwin4d-fit-statistical-model-to-patient` - Model-to-patient registration
    - Run with `--help` for all options and parameter specifications
    - Tested on diverse datasets
 
-2. **CLI Implementation in `src/physiotwin4d/cli/`**
+3. **CLI Implementation in `src/physiotwin4d/cli/`**
    - Production-ready workflow code
    - Proper class usage patterns and parameter specifications
    - Complete error handling and validation
    - Python API usage examples
 
-3. **Main library documentation**
+4. **Main library documentation**
    - API references and class documentation
    - Architecture explanations
    - Performance considerations

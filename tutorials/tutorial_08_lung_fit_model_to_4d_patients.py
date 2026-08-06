@@ -200,6 +200,7 @@ if __name__ == "__main__":
         fit_workflow.set_use_pca_registration(
             use_pca_registration=True,
             pca_model=pca_model,
+            pca_number_of_modes=6,
             use_surface=False,
         )
         fit_result = fit_workflow.process()
