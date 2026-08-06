@@ -43,23 +43,49 @@ for users and contributors. Key sections:
 - **NVIDIA Omniverse as the simulation hub**: the end goal for simulation — a simulation-information hub and gateway to other engines (e.g., Ansys solvers), interactive simulations for treatment planning (e.g., Isaac Sim, Newton), visualization systems (e.g., AR/VR devices), and physical systems (e.g., robots via ROS)
 - **CLI and Python API**: installed command-line tools and workflow classes for repeatable, scriptable pipelines
 
-## Installation
-
-```bash
-# CPU-only — works out of the box; a runtime warning points to the GPU extra
-pip install physiotwin4d
-
-# CUDA 13 (recommended for production)
-uv pip install "physiotwin4d[cuda13]"
-```
-
-See the [installation guide](https://project-monai.github.io/physiotwin4d/installation.html) for GPU setup, source installs, and optional extras (PhysicsNeMo).
-
 ## Quick Start
 
-```bash
-physiotwin4d-convert-image-to-usd cardiac_4d.nrrd --contrast --output-dir ./results
+### Install
+
 ```
+uv pip install "physiotwin4d[all]"
+```
+
+See the [installation guide](https://project-monai.github.io/physiotwin4d/installation.html) for GPU setup, source installs, and optional extras (PhysicsNeMo). 
+
+### Download Tutorials
+
+The tutorials are not installed by pip. They live in this repository.
+Clone it to run them:
+
+```
+git clone https://github.com/Project-MONAI/physiotwin4d.git
+```
+
+### Download Tutorial Data
+
+Tutorial 1 (heart) runs on the public Slicer-Heart 4D CT sample.  We provide
+automated download for multiple datasets via a CLI.  However, one key dataset
+from DirLab requires manual download, see [data/DirLab-4DCT/README.md](data/DirLab-4DCT/README.md).
+
+**IMPORTANT:** Run the download from the top level of the clone. The tutorials
+resolve their inputs against the repository root, so downloading
+elsewhere puts the data where they will not find it.
+
+```
+cd physiotwin4d
+physiotwin4d-download-data Slicer-Heart-CT --directory data/Slicer-Heart-CT
+```
+
+### Run Tutorial 01: Gated CT to USD
+
+```
+python tutorials/tutorial_01_heart_gated_ct_to_usd.py
+```
+
+### Explore the Code
+
+That tutorial builds the same workflow the Python API exposes:
 
 ```python
 import itk
@@ -85,22 +111,17 @@ workflow = WorkflowConvertImageToUSD(
 results = workflow.process()
 ```
 
-**The tutorials are not installed by pip** — they live in this repository.
-Clone it to run them:
+### Explore the CLIs
+
+The Tutorial 01 workflow and many of the workflows in this toolkit are also
+available as command-line tools but CLIs provide fewer options for
+customization:
 
 ```bash
-git clone https://github.com/Project-MONAI/physiotwin4d.git
-cd physiotwin4d
-
-# Tutorial 1 (heart) runs on the public Slicer-Heart 4D CT sample
-physiotwin4d-download-data Slicer-Heart-CT --directory data/Slicer-Heart-CT
-
-python tutorials/tutorial_01_heart_gated_ct_to_usd.py
+physiotwin4d-convert-image-to-usd cardiac_4d.nrrd --contrast --output-dir ./results
 ```
 
-Run the download from the top level of the clone: the tutorials resolve their
-inputs against the repository root, so downloading elsewhere puts the data
-where they will not find it.
+# Next Steps
 
 See the [quickstart](https://project-monai.github.io/physiotwin4d/quickstart.html) and [tutorials](https://project-monai.github.io/physiotwin4d/tutorials.html) for full walkthroughs covering segmentation, registration, statistical shape modeling, and USD export.
 
@@ -112,8 +133,8 @@ See the [contributing guide](https://project-monai.github.io/physiotwin4d/contri
 
 This project is licensed under the Apache 2.0 License - see the LICENSE file for details.
 
-Note that some optional dependencies carry their own license terms: NVIDIA
-Omniverse is distributed under its own customer license, which is free for
-academic and commercial use. To our knowledge, none of the dependencies
-carry commercially prohibitive licenses such as GPL, but no guarantees are
-provided — review the license of each dependency for your own use case.
+Note that some optional dependencies carry their own license terms: 
+* NVIDIA Omniverse is distributed under its own customer license, which is
+free for academic and commercial use.  https://docs.omniverse.nvidia.com/ov/latest/common/NVIDIA_Omniverse_License_Agreement.html
+* NVIDIA Segment CT MRI AI weights (used in the SegmentNVSegmentCTMRI class,
+are restricted from commercial use. https://github.com/NVIDIA-Medtech/NV-Segment-CTMR
