@@ -10,7 +10,7 @@ from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
-from pxr import Gf, Sdf, Usd, UsdGeom, Vt
+from pxr import Gf, Sdf, Usd, UsdGeom, UsdLux, Vt
 
 from .data_structures import DataType, GenericArray
 
@@ -430,6 +430,8 @@ def add_framing_camera(
     *,
     parent_path: str = "/World",
     name: str = "Camera",
+    light_name: str = "DistantLight",
+    light_intensity: float = 3000.0,
     bounds_min: tuple[float, float, float] | None = None,
     bounds_max: tuple[float, float, float] | None = None,
     focal_length_mm: float = 50.0,
@@ -443,6 +445,11 @@ def add_framing_camera(
     ``clippingRange`` so users can zoom close in Omniverse Kit and other USD
     viewers without geometry vanishing at the near plane.
 
+    A ``UsdLux.DistantLight`` is added at ``{parent_path}/{light_name}`` sharing
+    the camera's orientation, so the anatomy is lit from the viewing direction
+    in stages that carry no other light. The light is created only when valid,
+    non-degenerate bounds exist; otherwise no light is authored.
+
     Bounds must be expressed in stage coordinates (post axis-swap and unit
     scaling). For time-varying stages, bounds are sampled at the start time
     code.
@@ -452,6 +459,9 @@ def add_framing_camera(
             supplied; world bounds are then computed from the stage.
         parent_path: Parent prim path. Defaults to ``"/World"``.
         name: Camera prim name. Defaults to ``"Camera"``.
+        light_name: Distant light prim name. Defaults to ``"DistantLight"``.
+        light_intensity: Distant light intensity. Defaults to ``3000.0``, which
+            reads as a neutral key light under the RTX renderers.
         bounds_min: Optional min corner ``(x, y, z)`` in stage coordinates.
         bounds_max: Optional max corner ``(x, y, z)`` in stage coordinates.
         focal_length_mm: Camera focal length. USD camera lens parameters are
@@ -527,5 +537,16 @@ def add_framing_camera(
     camera.CreateFocalLengthAttr().Set(float(focal_length_mm))
     camera.CreateHorizontalApertureAttr().Set(float(horizontal_aperture_mm))
     camera.CreateFocusDistanceAttr().Set(float(distance))
+
+    # A DistantLight emits along its local -Z, the same direction the camera
+    # looks, so reusing the camera transform lights whatever the camera frames.
+    light_path = f"{parent_path.rstrip('/')}/{light_name}"
+    light = UsdLux.DistantLight.Define(stage, light_path)
+    light_xformable = UsdGeom.Xformable(light.GetPrim())
+    light_xformable.ClearXformOpOrder()
+    light_xformable.AddTransformOp().Set(camera_to_world)
+    light.CreateIntensityAttr().Set(float(light_intensity))
+    # Sun-like angular diameter: soft enough to avoid hard-edged shadows.
+    light.CreateAngleAttr().Set(0.53)
 
     return camera

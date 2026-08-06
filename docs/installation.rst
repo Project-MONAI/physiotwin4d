@@ -254,7 +254,8 @@ Solution: TotalSegmentator downloads models on first use. Ensure you have:
 Solution:
 
 1. Ensure NVIDIA Omniverse is installed
-2. Check USD file integrity with ``usdview`` (included with usd-core)
+2. Set the viewport renderer to RTX and switch to the scene's
+   ``/World/Camera``; see :doc:`viewing_usd`
 3. Verify file paths are accessible to Omniverse
 
 Getting Help

@@ -815,8 +815,8 @@ Adapt to your data
 Where to Go Next
 ================
 
-- :doc:`viewing_usd` — installing ``usdview`` or an Omniverse Kit application
-  and opening the scenes these tutorials produce.
+- :doc:`viewing_usd` — installing an Omniverse Kit application and opening the
+  scenes these tutorials produce.
 - :doc:`cli_scripts/byod_tutorials` — running the workflows on your own DICOM,
   NRRD or VTK data, including directory layout and conversion.
 - :doc:`api/index` — every workflow, segmenter, registrar and utility class.

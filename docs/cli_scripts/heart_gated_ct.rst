@@ -329,11 +329,13 @@ Approximate times on typical workstation (32GB RAM, NVIDIA GPU):
 Viewing Results
 ===============
 
-1. Open the ``.usd`` file in ``usdview`` or an Omniverse Kit application
-2. Press Play to view the cardiac motion animation
-3. Adjust the timeline speed for the visualization you want
+1. Open the ``.usd`` file in an Omniverse Kit application, with the viewport
+   renderer set to RTX
+2. Switch the viewport to the scene's ``/World/Camera``
+3. Press Play to view the cardiac motion animation
+4. Adjust the timeline speed for the visualization you want
 
-:doc:`../viewing_usd` covers installing either viewer and what to look at once
+:doc:`../viewing_usd` covers installing the viewer and what to look at once
 the scene is open.
 
 Next Steps

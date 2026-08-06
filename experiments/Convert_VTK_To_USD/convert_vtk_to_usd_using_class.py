@@ -376,11 +376,11 @@ print("=" * 60)
 # 7. **Data Preservation**: All VTK arrays preserved as USD primvars
 # 8. **Coordinate Systems**: Automatic LPS to USD right-handed Y-up conversion
 #
-# The library is production-ready and can be used for converting medical imaging data, simulation results, and other VTK-based datasets to USD for visualization in Omniverse, USDView, or other USD-compatible applications.
+# The library is production-ready and can be used for converting medical imaging data, simulation results, and other VTK-based datasets to USD for visualization in Omniverse or other USD-compatible applications.
 #
 # ### Next Steps
 #
-# - View the generated USD files in USDView or Omniverse
+# - View the generated USD files in Omniverse with RTX rendering enabled
 # - Experiment with different conversion settings
 # - Test with your own VTK datasets
 # - Explore advanced features like custom colormaps and transfer functions

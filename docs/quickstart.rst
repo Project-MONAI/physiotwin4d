@@ -4,13 +4,6 @@ Quick Start
 
 This guide will help you get started with PhysioTwin4D quickly.
 
-.. warning::
-
-   **Not validated for clinical use.** PhysioTwin4D
-   {{ pt4d_project_version }} beta is a research and visualization toolkit, not
-   a medical device. Do not use it for diagnosis, treatment planning, or
-   clinical decision-making.
-
 Prerequisites
 =============
 
@@ -277,13 +270,15 @@ Python >= 3.11.
 Visualizing Results
 ===================
 
-The workflows write OpenUSD scenes, and viewing them needs a USD viewer —
-``usdview`` for inspection and debugging, or an Omniverse Kit application for
-real-time RTX playback. Note that the ``usd-core`` package installed with
-PhysioTwin4D provides the OpenUSD *libraries* only and contains no viewer.
+The workflows write OpenUSD scenes, and viewing them needs a USD viewer — use
+an Omniverse Kit application with RTX rendering, which is what evaluates the
+material properties assigned to each tissue. Note that the ``usd-core``
+package installed with PhysioTwin4D provides the OpenUSD *libraries* only and
+contains no viewer.
 
-:doc:`viewing_usd` covers where to get each one, how to set it up, and how to
-open a PhysioTwin4D scene.
+:doc:`viewing_usd` covers where to get it, how to set it up, and how to open a
+PhysioTwin4D scene — including switching to the camera defined in the scene,
+whose clipping planes are fitted to the anatomy's scale.
 
 The intermediate meshes need no USD tooling:
 

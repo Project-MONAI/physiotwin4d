@@ -8,11 +8,6 @@ personalized physiological digital twins from 3D medical images. Runtime
 workflow classes inherit from :class:`PhysioTwin4DBase` for logging and common
 runtime configuration.
 
-.. warning::
-
-   PhysioTwin4D {{ pt4d_project_version }} beta is not validated for clinical
-   use. It is a research and visualization toolkit, not a medical device.
-
 Data Flow
 =========
 
