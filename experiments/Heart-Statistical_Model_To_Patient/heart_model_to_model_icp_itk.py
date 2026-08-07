@@ -29,7 +29,6 @@ from physiotwin4d import (
     TransformTools,
 )
 from physiotwin4d.image_tools import ImageTools
-from physiotwin4d.test_tools import TestTools
 
 # %% [markdown]
 # ## Define File Paths
@@ -200,5 +199,4 @@ plotter.add_mesh(
 plotter.add_title("ICP Shape Fitting")
 plotter.add_axes()
 
-if not TestTools.running_as_test():
-    plotter.show()
+plotter.show()

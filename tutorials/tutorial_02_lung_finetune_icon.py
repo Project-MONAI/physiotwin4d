@@ -4,11 +4,14 @@ Tutorial 2: Finetune uniGradICON on DIR-Lab 4D CT
 Purpose
 -------
 Finetune uniGradICON on every DIR-Lab 4D CT case except Case 1, then register
-``Case1Pack_T00.mha`` (moving) to ``Case1Pack_T50.mha`` (fixed) three ways:
+``Case1Pack_T00.mha`` (moving) to ``Case1Pack_T50.mha`` (fixed) four ways:
 ``RegisterImagesGreedy`` alone, deformable, with its default iteration
-schedule, and ``RegisterImagesICON`` with the stock uniGradICON weights and
-with the finetuned weights.  Case 1 is never seen during finetuning, so it is a held-out
-evaluation pair.
+schedule; ``RegisterImagesICON`` with the stock uniGradICON weights and with
+the finetuned weights; and ``RegisterImagesGreedyICON`` -- the same Greedy
+stage initializing an ICON stage that carries the finetuned weights -- which
+separates what the finetuned network adds on its own from what it adds on top
+of a classical affine-plus-deformable initialization.  Case 1 is never seen
+during finetuning, so it is a held-out evaluation pair.
 
 Accuracy is measured two ways.  The primary metric is target registration
 error: DIR-Lab ships 300 expert landmarks for the extreme phases (T00 and T50)
@@ -59,6 +62,7 @@ from physiotwin4d import (
     PhysioTwin4DBase,
     RegisterImagesBase,
     RegisterImagesGreedy,
+    RegisterImagesGreedyICON,
     RegisterImagesICON,
     SegmentNVSegmentCTMRI,
     TestTools,
@@ -79,6 +83,8 @@ if __name__ == "__main__":
     class_name = "tutorial_02_lung_finetune_icon"
 
     output_dir = tutorials_dir / "output" / "tutorial_02_lung"
+    # Segmented labelmaps, cached so re-runs skip the segmentation.
+    labelmaps_dir = output_dir / "labelmaps"
     baselines_dir = repo_root / "tests" / "baselines"
 
     # The workflow writes its dataset JSON, YAML config, and checkpoint tree
@@ -92,10 +98,12 @@ if __name__ == "__main__":
     if test_mode:
         data_dir = repo_root / "data" / "test" / "DirLab-4DCT"
         number_of_iterations_greedy: Optional[list[int]] = [1, 0]
+        number_of_iterations_icon = 1
         epochs = 1
     else:
         data_dir = repo_root / "data" / "DirLab-4DCT"
-        number_of_iterations_greedy = [60, 30, 20]  # Greedy defaults
+        number_of_iterations_greedy = [60, 30, 20]
+        number_of_iterations_icon = 10
         # 90 training frames at batch_size 4 is 22 optimizer steps per epoch, so
         # 100 epochs is ~2200 steps at a 5e-5 learning rate.  Far fewer than
         # that leaves the finetuned weights statistically indistinguishable
@@ -105,7 +113,7 @@ if __name__ == "__main__":
     log_level = logging.INFO
     reporter = PhysioTwin4DBase(class_name=class_name, log_level=log_level)
 
-    output_dir.mkdir(parents=True, exist_ok=True)
+    labelmaps_dir.mkdir(parents=True, exist_ok=True)
 
     # Held-out evaluation pair (Case 1 is excluded from finetuning).  T00 and
     # T50 are the extreme inhale/exhale phases, the only pair DIR-Lab supplies
@@ -185,9 +193,18 @@ if __name__ == "__main__":
         weights_path = workflow.process()
     else:
         weights_path = (
-            Path(__file__).resolve().parent
-            / "network_weights/icon_dirlab_4dct/icon_dirlab_4dct_model/checkpoints/network_weights_final.trch"
+            experiment_dir
+            / f"{finetune_name}_model"
+            / "checkpoints"
+            / "network_weights_final.trch"
         )
+        # Checked here rather than at the first set_weights_path() call, which
+        # only happens after the greedy and stock-ICON rows have already run.
+        if not weights_path.exists():
+            raise FileNotFoundError(
+                f"run_finetuning is False but no checkpoint at {weights_path}.  "
+                "Set run_finetuning = True to finetune from scratch."
+            )
 
     # Registration comparison
     fixed_image = itk.imread(str(fixed_file), pixel_type=itk.F)
@@ -235,8 +252,24 @@ if __name__ == "__main__":
     # transform, so Dice reflects the transform rather than what the segmenter
     # does differently on each interpolated volume.
     segmenter = SegmentNVSegmentCTMRI(log_level=log_level)
-    fixed_labelmap = segmenter.segment(fixed_image)["labelmap"]
-    moving_labelmap = segmenter.segment(moving_image)["labelmap"]
+
+    def segment_phase(image_file: Path, image: itk.Image) -> itk.Image:
+        """Segment one phase, caching the labelmap under ``labelmaps_dir``.
+
+        An existing labelmap short-circuits the segmentation, which dominates
+        this tutorial's runtime outside of finetuning.
+        """
+        labelmap_file = labelmaps_dir / f"{image_file.stem}_labelmap.mha"
+        if labelmap_file.exists():
+            reporter.log_info("Reusing cached labelmap: %s", labelmap_file.name)
+            return itk.imread(str(labelmap_file))
+
+        labelmap = segmenter.segment(image)["labelmap"]
+        itk.imwrite(labelmap, str(labelmap_file), compression=True)
+        return labelmap
+
+    fixed_labelmap = segment_phase(fixed_file, fixed_image)
+    moving_labelmap = segment_phase(moving_file, moving_image)
     fixed_labels = itk.array_from_image(fixed_labelmap)
 
     def overlap_metrics(labelmap: itk.Image) -> dict[str, Any]:
@@ -299,6 +332,7 @@ if __name__ == "__main__":
         ("greedy", None),
         ("icon_stock", None),
         ("icon_finetuned", weights_path),
+        ("greedy_icon_finetuned", weights_path),
     ):
         registrar: RegisterImagesBase
         if method_name == "greedy":
@@ -306,12 +340,24 @@ if __name__ == "__main__":
             registrar.set_transform_type("Deformable")
             if number_of_iterations_greedy is not None:
                 registrar.set_number_of_iterations(number_of_iterations_greedy)
+        elif method_name == "greedy_icon_finetuned":
+            # Both stages are configured exactly as the standalone "greedy" and
+            # "icon_finetuned" rows above, so this row differs from
+            # "icon_finetuned" only by the Greedy transform ICON starts from.
+            chain = RegisterImagesGreedyICON(log_level=log_level)
+            chain.greedy.set_transform_type("Deformable")
+            if number_of_iterations_greedy is not None:
+                chain.greedy.set_number_of_iterations(number_of_iterations_greedy)
+            chain.icon.set_number_of_iterations(number_of_iterations_icon)
+            chain.icon.set_mass_preservation(True)  # For non-contrast CT
+            chain.icon.set_weights_path(str(method_weights))
+            registrar = chain
         else:
             registrar = RegisterImagesICON(log_level=log_level)
             # None, not 0: icon_registration rejects 0 and takes None to mean
             # "no test-time finetuning steps", so the comparison reflects what
             # each set of weights predicts rather than per-pair optimization.
-            registrar.set_number_of_iterations(None)
+            registrar.set_number_of_iterations(number_of_iterations_icon)
             registrar.set_mass_preservation(True)  # For non-contrast CT
             if method_weights is not None:
                 registrar.set_weights_path(str(method_weights))
@@ -371,12 +417,12 @@ if __name__ == "__main__":
         len(fixed_landmarks),
     )
     reporter.log_info(
-        "  %-13s %7s %7s %7s %7s %9s", "method", "mean", "std", "p95", "max", "time_s"
+        "  %-21s %7s %7s %7s %7s %9s", "method", "mean", "std", "p95", "max", "time_s"
     )
     for row in rows:
         elapsed = row["registration_time_s"]
         reporter.log_info(
-            "  %-13s %7.2f %7.2f %7.2f %7.2f %9s",
+            "  %-21s %7.2f %7.2f %7.2f %7.2f %9s",
             row["method"],
             row["tre_mean"],
             row["tre_std"],
@@ -387,7 +433,7 @@ if __name__ == "__main__":
 
     reporter.log_info("Per-class Dice of the warped moving labelmap against the fixed")
     reporter.log_info(
-        "  %-13s %7s %7s %7s %7s %7s %7s %7s %12s",
+        "  %-21s %7s %7s %7s %7s %7s %7s %7s %12s",
         "method",
         "classes",
         "mean",
@@ -400,7 +446,7 @@ if __name__ == "__main__":
     )
     for row in rows:
         reporter.log_info(
-            "  %-13s %7d %7.4f %7.4f %7.4f %7.4f %7.4f %7.4f %12d",
+            "  %-21s %7d %7.4f %7.4f %7.4f %7.4f %7.4f %7.4f %12d",
             row["method"],
             row["n_classes"],
             row["dice_mean"],

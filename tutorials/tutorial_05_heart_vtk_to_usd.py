@@ -6,9 +6,16 @@ Purpose
 Convert the VTK surface output from Tutorial 4, or another VTK-compatible mesh,
 into a USD file with anatomy materials.
 
+Tutorial 4 writes one VTP per anatomical structure, each annotated with its
+structure name. Feeding those files in individually — rather than the single
+combined surface — keeps that name attached through the conversion, so each
+structure becomes its own named USD prim and gets its own material: bright
+oxygenated red for the left chambers, darker deoxygenated red for the right,
+red-brown myocardium, and so on, instead of one uniform heart material.
+
 Data Required
 -------------
-Preferred input: ``tutorials/output/tutorial_04_heart/patient_surfaces.vtp``
+Preferred input: ``tutorials/output/tutorial_04_heart/patient_*.vtp``
 """
 
 # Imports
@@ -43,8 +50,8 @@ if __name__ == "__main__":
 
     project_name = "tutorial_04_heart"
 
-    # Preferred input: the combined surface saved by Tutorial 4.
-    vtk_file = tutorials_dir / "output" / "tutorial_04_heart" / "patient_surfaces.vtp"
+    # Preferred input: the per-structure surfaces saved by Tutorial 4.
+    input_dir = tutorials_dir / "output" / "tutorial_04_heart"
 
     log_level = logging.INFO
 
@@ -52,16 +59,42 @@ if __name__ == "__main__":
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    mesh = pv.read(str(vtk_file))
+    # Tutorial 4 writes both per-group and per-structure surfaces into one
+    # directory. A per-structure surface is the one carrying exactly one name
+    # in SegmentationLabelNames, and its filename ends with that name; the
+    # per-group surfaces list every structure in the group and are skipped, as
+    # their geometry would otherwise be exported twice.
+    meshes: list[pv.PolyData] = []
+    structure_names: list[str] = []
+    for vtk_file in sorted(input_dir.glob("patient_*.vtp")):
+        mesh = pv.read(str(vtk_file))
+        label_names = mesh.field_data.get("SegmentationLabelNames")
+        if label_names is None or len(label_names) != 1:
+            continue
+        if not vtk_file.stem.endswith(str(label_names[0])):
+            continue
+        meshes.append(mesh)
+        structure_names.append(str(label_names[0]))
+
+    if not meshes:
+        raise FileNotFoundError(
+            "No per-structure surfaces found. Checked:\n"
+            + f"  - {input_dir}/patient_*.vtp\n"
+            + "Run tutorial_04_heart_ct_to_vtk.py with save_label_surfaces=True."
+        )
 
     # Workflow initialization
-
+    #
+    # static_merge=True treats the meshes as separate objects in one scene
+    # rather than as frames of a time series. Leaving anatomy_type unset lets
+    # each object's name select its material, and object names default to the
+    # structure names read from field_data above.
     workflow = WorkflowConvertVTKToUSD(
-        input_meshes=[mesh],
+        input_meshes=meshes,
         usd_project_name=project_name,
         output_directory=output_dir,
         appearance="anatomy",
-        anatomy_type="heart",
+        static_merge=True,
         separate_by_connectivity=True,
         log_level=log_level,
     )
@@ -84,4 +117,8 @@ if __name__ == "__main__":
         )
     ]
 
-    tutorial_results = {"usd_file": results["usd_file"], "screenshots": screenshots}
+    tutorial_results = {
+        "usd_file": results["usd_file"],
+        "structures": structure_names,
+        "screenshots": screenshots,
+    }

@@ -485,8 +485,10 @@ class RegisterImagesBase(PhysioTwin4DBase):
         # mapped by the residual, then by the initial transform, to land in the
         # original moving image.
         forward_transform = itk.CompositeTransform[itk.D, 3].New()
-        forward_transform.AddTransform(initial_forward_transform)
-        forward_transform.AddTransform(cast(itk.Transform, result["forward_transform"]))
+        self._add_transform_flattened(forward_transform, initial_forward_transform)
+        self._add_transform_flattened(
+            forward_transform, cast(itk.Transform, result["forward_transform"])
+        )
 
         # The inverse runs the other way -- a moving-grid sample is mapped by the
         # initial transform's inverse into the pre-warped frame, then by the
@@ -496,14 +498,43 @@ class RegisterImagesBase(PhysioTwin4DBase):
             initial_forward_transform, moving_image
         )
         inverse_transform = itk.CompositeTransform[itk.D, 3].New()
-        inverse_transform.AddTransform(cast(itk.Transform, result["inverse_transform"]))
-        inverse_transform.AddTransform(initial_inverse)
+        self._add_transform_flattened(
+            inverse_transform, cast(itk.Transform, result["inverse_transform"])
+        )
+        self._add_transform_flattened(inverse_transform, initial_inverse)
 
         return {
             "forward_transform": forward_transform,
             "inverse_transform": inverse_transform,
             "loss": result["loss"],
         }
+
+    @staticmethod
+    def _add_transform_flattened(
+        composite: itk.CompositeTransform, transform: itk.Transform
+    ) -> None:
+        """Append a transform to a composite, splicing in nested composites.
+
+        itk.HDF5TransformIO refuses to write a CompositeTransform that holds
+        another CompositeTransform ("Composite Transform can only be 1st
+        transform in a file"), which every multi-stage registration would
+        otherwise produce: RegisterImagesGreedy already returns an affine+warp
+        composite, and composing a residual onto it would nest that composite.
+
+        Splicing the sub-transforms in at the position their composite occupied
+        leaves the mapping unchanged, since itk.CompositeTransform applies its
+        queue back to front either way.
+
+        The down_cast is required: ITK hands back base-typed ``itkTransformD33``
+        Python objects from ``GetInverseTransform()`` and ``GetNthTransform()``,
+        which carry none of CompositeTransform's methods.
+        """
+        transform = itk.down_cast(transform)
+        if isinstance(transform, itk.CompositeTransform[itk.D, 3]):
+            for i in range(transform.GetNumberOfTransforms()):
+                composite.AddTransform(transform.GetNthTransform(i))
+        else:
+            composite.AddTransform(transform)
 
     def _delegate_to(
         self,

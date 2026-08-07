@@ -81,7 +81,6 @@ python -m pytest tests/ -v --run-slow
 python -m pytest tests/ -v --run-gpu
 python -m pytest tests/ -v --run-simpleware
 python -m pytest tests/ -v --run-physicsnemo
-python -m pytest tests/ -v --run-experiments
 python -m pytest tests/ -v --run-tutorials
 
 # Enable every bucket at once (equivalent to passing all --run-* flags)
@@ -151,7 +150,7 @@ graphify update .               # refresh after code changes (AST-only, no API c
   `X | None`.
 - Run `python -m pytest tests/ -v` from the active virtual venv to verify changes.
   Slow, GPU, Simpleware,
-  experiment, and tutorial tests are auto-skipped unless their opt-in flag is
+  and tutorial tests are auto-skipped unless their opt-in flag is
   passed.
 - Query the graphify knowledge graph (`graphify query "<question>"`) to locate
   classes, methods, and signatures before searching manually.
@@ -216,8 +215,7 @@ graphify update .               # refresh after code changes (AST-only, no API c
 - Mark tests that need a GPU, a slow runtime, or a licensed Simpleware install
   with `@pytest.mark.requires_gpu`, `@pytest.mark.slow`, or
   `@pytest.mark.requires_simpleware`.
-- Mark experiment and tutorial tests with `@pytest.mark.experiment` or
-  `@pytest.mark.tutorial`.
+- Mark tutorial tests with `@pytest.mark.tutorial`.
 - Tests that just need downloadable data need no marker; the fixture chain
   handles it.
 - Prefer images from `ROOT/data/test/slicer_heart_small` for tests.

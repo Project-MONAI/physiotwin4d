@@ -14,7 +14,6 @@ from physiotwin4d import (
     SegmentHeartSimplewareTrimmedBranches,
     WorkflowFitStatisticalModelToPatient,
 )
-from physiotwin4d.test_tools import TestTools
 
 # %% [markdown]
 # ## Define File Paths
@@ -55,7 +54,7 @@ registrar = WorkflowFitStatisticalModelToPatient(
 )
 
 registrar.set_use_pca_registration(
-    True, pca_model=model_pca_data, pca_number_of_modes=model_pca_n_modes
+    True, pca_model=model_pca_data, number_of_pca_components=model_pca_n_modes
 )
 
 registrar.set_use_labelmap_to_labelmap_registration(True)
@@ -110,8 +109,7 @@ plotter.add_mesh(
 plotter.add_title("Final Registration")
 
 plotter.link_views()
-if not TestTools.running_as_test():
-    plotter.show()
+plotter.show()
 
 # %% [markdown]
 # ## Visualize Deformation Magnitude
@@ -128,8 +126,7 @@ if "DeformationMagnitude" in registered_model_surface.point_data:
         scalar_bar_args={"title": "Deformation (mm)"},
     )
     plotter.add_title("Deformation Magnitude")
-    if not TestTools.running_as_test():
-        plotter.show()
+    plotter.show()
 
     # Print statistics
     deformation = registered_model_surface["DeformationMagnitude"]

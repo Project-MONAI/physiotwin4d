@@ -115,8 +115,11 @@ Examples:
     parser.add_argument(
         "--anatomy-type",
         choices=ANATOMY_TYPES,
-        default="heart",
-        help="Anatomy material when --appearance anatomy (default: heart)",
+        default=None,
+        help=(
+            "Anatomy material applied to every mesh when --appearance anatomy. "
+            "Omit to pick a material per object from its name (default)."
+        ),
     )
     parser.add_argument(
         "--primvar",

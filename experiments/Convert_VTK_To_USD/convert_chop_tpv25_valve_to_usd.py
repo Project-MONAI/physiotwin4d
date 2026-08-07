@@ -29,7 +29,6 @@ import re
 from pathlib import Path
 
 from physiotwin4d import ConvertVTKToUSD
-from physiotwin4d.test_tools import TestTools
 
 # Import USDTools for post-processing colormap
 from physiotwin4d.usd_tools import USDTools
@@ -38,11 +37,6 @@ from physiotwin4d.usd_tools import USDTools
 # ## 1. Discover and Organize Time-Series Files
 
 # %%
-# Set to True to use as a test.  Automatically done by
-#    TestTools.running_as_test() helper function.
-quick_run = TestTools.running_as_test()
-quick_run_step = 4
-
 # Define data directories (TPV25 only). Anchored to the script's location
 # so the experiment runs from any working directory.
 script_dir = Path(__file__).resolve().parent
@@ -50,10 +44,7 @@ data_dir = script_dir.parent.parent / "data" / "CHOP-Valve4D"
 tpv25_dir = data_dir / "TPV25"
 
 output_dir = script_dir / "results" / "valve4d-tpv25"
-if quick_run:
-    output_usd = output_dir / "tpv25_quick.usd"
-else:
-    output_usd = output_dir / "tpv25_full.usd"
+output_usd = output_dir / "tpv25_full.usd"
 
 colormap_primvar_substrs = ["von_mises_stress"]
 colormap_name = "jet"  # matplotlib colormap name
@@ -133,10 +124,6 @@ for cell_type in mesh_info["cell_types"]:
 # %%
 tpv25_files = [file_path for _, file_path in tpv25_series]
 tpv25_times = [float(time_step) for time_step, _ in tpv25_series]
-
-if quick_run:
-    tpv25_files = tpv25_files[::quick_run_step]
-    tpv25_times = tpv25_times[::quick_run_step]
 
 print(f"\nConverting to: {output_usd}")
 print(f"Number of time steps: {len(tpv25_times)}")

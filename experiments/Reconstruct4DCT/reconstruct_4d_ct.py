@@ -4,7 +4,7 @@ import os
 import itk
 import numpy as np
 
-from physiotwin4d import RegisterImagesGreedy, TestTools, TransformTools
+from physiotwin4d import RegisterImagesGreedy, TransformTools
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -15,10 +15,6 @@ files = [
     for f in sorted(os.listdir(data_dir))
     if f.endswith(".mha") and f.startswith("slice_")
 ]
-
-quick_run = TestTools.running_as_test()
-if quick_run:
-    exit(0)
 
 num_files = len(files)
 files_indx = list(range(num_files))

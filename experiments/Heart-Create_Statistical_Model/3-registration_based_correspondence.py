@@ -27,7 +27,6 @@ import pyvista as pv
 from pathlib import Path
 
 from physiotwin4d.contour_tools import ContourTools
-from physiotwin4d.test_tools import TestTools
 from physiotwin4d.register_models_distance_maps import RegisterModelsDistanceMaps
 
 _HERE = Path(__file__).parent
@@ -219,8 +218,7 @@ for case_id in example_ids:
 
     # Link the camera views so they rotate together
     plotter.link_views()
-    if not TestTools.running_as_test():
-        plotter.show()
+    plotter.show()
 
 # %% [markdown]
 # ## Visualize Deformation Magnitude
@@ -274,8 +272,7 @@ for case_id in example_ids:
 
     plotter.show_axes()
     plotter.camera_position = "iso"
-    if not TestTools.running_as_test():
-        plotter.show()
+    plotter.show()
 
 # %%
 # Save registration statistics
@@ -318,8 +315,7 @@ if registration_stats:
     plot_file = output_dir / "registration_statistics.png"
     plt.savefig(plot_file, dpi=150, bbox_inches="tight")
     print(f"\nPlot saved to: {plot_file}")
-    if not TestTools.running_as_test():
-        plt.show()
+    plt.show()
 else:
     print("\nNo statistics to plot.")
 

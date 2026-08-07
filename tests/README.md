@@ -6,9 +6,7 @@ This directory contains comprehensive test suites for the PhysioTwin4D package, 
 
 - **[TESTING_GUIDE.md](TESTING_GUIDE.md)** - Comprehensive testing guide with setup, troubleshooting, and best practices
 - **[GITHUB_WORKFLOWS.md](GITHUB_WORKFLOWS.md)** - CI/CD documentation and GitHub Actions workflow details
-- **[EXPERIMENT_TESTS_GUIDE.md](EXPERIMENT_TESTS_GUIDE.md)** - Guide for running experiment script tests
-- **[PARALLEL_EXECUTION_GUIDE.md](PARALLEL_EXECUTION_GUIDE.md)** - How parallel execution works with experiment tests
-- **[EXPERIMENT_FLAG_USAGE.md](EXPERIMENT_FLAG_USAGE.md)** - Details on the --run-experiments flag
+- **[PARALLEL_EXECUTION_GUIDE.md](PARALLEL_EXECUTION_GUIDE.md)** - How parallel execution works
 - **[TEST_FIXES_SUMMARY.md](TEST_FIXES_SUMMARY.md)** - Recent bug fixes and known issues
 
 ## Test Categories
@@ -33,16 +31,14 @@ This directory contains comprehensive test suites for the PhysioTwin4D package, 
 - **`test_usd_merge.py`** - USD file merging with material preservation
 - **`test_usd_time_preservation.py`** - Time-varying data validation
 
-### Experiment Tests (EXTREMELY SLOW - Manual Only)
-- **`test_experiments.py`** - End-to-end experiment script execution (hours to complete)
-  - **Opt-in only** - Requires `--run-experiments` flag to run
-  - **NOT included in CI/CD** - Never runs in automated workflows
-  - **Automatically skipped** - Won't run with `pytest tests/` unless flag is set
-  - Runs every `*.py` script in each `experiments/` subdirectory
-  - Each subdirectory gets its own test
-  - Scripts run in alphanumeric order
-  - Requires GPU, CUDA, and all dependencies installed
-  - See [EXPERIMENT_TESTS_GUIDE.md](EXPERIMENT_TESTS_GUIDE.md) for detailed usage instructions
+### Tutorial Tests (SLOW - Opt-in)
+- **`test_tutorials.py`** - End-to-end execution of each `tutorials/*.py` script,
+  comparing the screenshots it writes against stored baselines
+  - **Opt-in only** - Requires `--run-tutorials` flag to run
+  - Requires GPU, CUDA, all dependencies, and the tutorial datasets
+  - Scripts in `experiments/` are exploratory and are **not** run as tests
+
+
 
 ## Directory Structure
 
@@ -82,7 +78,7 @@ uv pip install -e ".[test]"
 ### Run Tests
 
 The fast path is the default. Heavy buckets (slow tests, GPU tests, Simpleware
-tests, experiment notebooks, tutorial scripts) are **auto-skipped** unless you
+tests, tutorial scripts) are **auto-skipped** unless you
 pass their `--run-<bucket>` flag. Tests that need downloadable data fetch it
 through the session fixtures and run by default — there is no `requires_data`
 marker any more.
@@ -105,8 +101,7 @@ Each flag enables one marker family. Flags compose, so you can stack them.
 | `--run-gpu` | `requires_gpu` | CUDA-dependent tests (ICON, Simpleware, etc.) |
 | `--run-simpleware` | `requires_simpleware` | Need a licensed Synopsys Simpleware Medical install (also marked `requires_gpu`) |
 | `--run-physicsnemo` | `requires_physicsnemo` | Need the optional `[physicsnemo]` extra installed |
-| `--run-experiments` | `experiment` | End-to-end experiment notebooks (hours to run) |
-| `--run-tutorials` | `tutorial` | Tutorial scripts run end-to-end |
+| `--run-tutorials` | `tutorial` | Tutorial scripts run end-to-end (hours to run) |
 | `--run-all` | every bucket above | Equivalent to passing all `--run-*` flags at once |
 
 ```bash
@@ -122,11 +117,11 @@ pytest tests/ -v --run-all
 # Full Simpleware coverage (requires Simpleware Medical installed locally)
 pytest tests/ -v --run-simpleware --run-gpu --run-slow
 
-# Experiment tests (EXTREMELY SLOW — hours to complete)
-pytest tests/test_experiments.py -v --run-experiments
+# Tutorial tests (SLOW — hours to complete)
+pytest tests/test_tutorials.py -v --run-tutorials
 
-# A single experiment by name
-pytest tests/test_experiments.py::test_experiment_heart_gated_ct_to_usd -v -s --run-experiments
+# A single tutorial by name
+pytest tests/test_tutorials.py::TestTutorial01HeartGatedCTToUSD -v -s --run-tutorials
 ```
 
 ### Common Test Commands
@@ -145,7 +140,7 @@ pytest tests/ --create-baselines
 
 ## Test Timing Reports
 
-All test runs automatically generate a comprehensive timing report at the end showing individual test durations, session time, and pass/fail/skip counts. The report separates regular tests from experiment tests and highlights the slowest tests.
+All test runs automatically generate a comprehensive timing report at the end showing individual test durations, session time, and pass/fail/skip counts. The report separates regular tests from tutorial tests and highlights the slowest tests.
 
 ## Test Configuration
 
@@ -163,10 +158,8 @@ All test runs automatically generate a comprehensive timing report at the end sh
 - `@pytest.mark.requires_physicsnemo` — Tests needing the optional
   `[physicsnemo]` extra (`pip install "physiotwin4d[physicsnemo]"`, requires
   Python >= 3.11). Opt in: `--run-physicsnemo`.
-- `@pytest.mark.experiment` — End-to-end experiment notebooks (EXTREMELY
-  SLOW, never in CI). Opt in: `--run-experiments`.
-- `@pytest.mark.tutorial` — Tutorial scripts run end-to-end. Opt in:
-  `--run-tutorials`.
+- `@pytest.mark.tutorial` — Tutorial scripts run end-to-end (SLOW, never in
+  CI). Opt in: `--run-tutorials`.
 
 `--run-all` is a convenience flag that turns on every `--run-*` bucket at once.
 - `@pytest.mark.integration` — Integration tests vs unit tests (filter-only).
@@ -201,7 +194,7 @@ Tests automatically run on pull requests via GitHub Actions. The CI workflow:
 
 - **Runs fast tests** - USD utilities, data conversion, basic validation
 - **Skips slow tests** - Registration and segmentation (too slow for CI)
-- **Automatically skips experiment tests** - Protected by `--run-experiments` flag requirement
+- **Automatically skips tutorial tests** - Protected by `--run-tutorials` flag requirement
 - **Caches test data** - Speeds up subsequent runs
 - **Generates coverage** - Reports uploaded to Codecov
 
@@ -209,7 +202,7 @@ Tests automatically run on pull requests via GitHub Actions. The CI workflow:
 - Platforms: Ubuntu, Windows, macOS
 - Python versions: 3.11, 3.12
 - Target coverage: >70%
-- Protection: Experiment tests require `--run-experiments` flag (never used in CI/CD)
+- Protection: Tutorial tests require `--run-tutorials` flag (never used in CI/CD)
 
 **For detailed CI/CD information**, see [GITHUB_WORKFLOWS.md](GITHUB_WORKFLOWS.md)
 
@@ -269,9 +262,7 @@ Tests automatically:
 ## Additional Resources
 
 - **Detailed Testing Guide**: [TESTING_GUIDE.md](TESTING_GUIDE.md)
-- **Experiment Tests Guide**: [EXPERIMENT_TESTS_GUIDE.md](EXPERIMENT_TESTS_GUIDE.md)
 - **Parallel Execution Guide**: [PARALLEL_EXECUTION_GUIDE.md](PARALLEL_EXECUTION_GUIDE.md)
-- **Experiment Flag Usage**: [EXPERIMENT_FLAG_USAGE.md](EXPERIMENT_FLAG_USAGE.md)
 - **CI/CD Documentation**: [GITHUB_WORKFLOWS.md](GITHUB_WORKFLOWS.md)
 - **Recent Fixes**: [TEST_FIXES_SUMMARY.md](TEST_FIXES_SUMMARY.md)
 - **Main Project**: [../README.md](../README.md)

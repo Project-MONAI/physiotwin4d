@@ -32,7 +32,6 @@ from physiotwin4d import (
     TransformTools,
 )
 from physiotwin4d.image_tools import ImageTools
-from physiotwin4d.test_tools import TestTools
 
 # %% [markdown]
 # ## Define File Paths
@@ -161,12 +160,10 @@ print(f"  Template surface: {template_model_surface.n_points} points")
 
 icp_registrar = RegisterModelsICP(fixed_model=patient_surface)
 
-# Use fewer iterations when run as test (pytest) for faster execution
-max_iterations_icp = 100 if TestTools.running_as_test() else 2000
 icp_result = icp_registrar.register(
     transform_type="Affine",
     moving_model=template_model_surface,
-    max_iterations=max_iterations_icp,
+    max_iterations=2000,
 )
 
 # Get the aligned mesh and transform
@@ -325,8 +322,7 @@ plotter.add_title("PCA Shape Fitting")
 plotter.add_axes()
 
 plotter.link_views()
-if not TestTools.running_as_test():
-    plotter.show()
+plotter.show()
 
 # %% [markdown]
 # ## Visualize PCA Displacement Magnitude
@@ -385,8 +381,7 @@ plotter.add_mesh(
 )
 plotter.add_title("PCA Signed Displacement on Registered Model")
 plotter.add_axes()
-if not TestTools.running_as_test():
-    plotter.show()
+plotter.show()
 
 # Save the mesh with displacement data
 pca_registered_model_with_displacement.save(

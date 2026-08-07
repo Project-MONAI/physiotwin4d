@@ -24,7 +24,6 @@ from physiotwin4d import (
     RegisterTimeSeriesImages,
     TransformTools,
 )
-from physiotwin4d.test_tools import TestTools
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -69,44 +68,19 @@ files = [
 print(f"Found {len(files)} slice files")
 
 # %%
-# Configuration: quick run when executed as test (pytest); full run when manual (set quick_run = True for interactive quick test)
-quick_run = TestTools.running_as_test()
+num_files = len(files)
+files_indx = list(range(num_files))
+reference_image_num = 7
 
-# Select files and parameters based on mode
-if quick_run:
-    print("=== QUICK RUN MODE ===")
-    total_num_files = len(files)
-    target_num_files = 2
-    if total_num_files == 0:
-        raise FileNotFoundError(f"No slice_*.mha files found in {data_dir}")
-    target_num_files = min(target_num_files, total_num_files)
-    file_step = max(1, total_num_files // target_num_files)
-    files = files[0:total_num_files:file_step]
-    files_indx = list(range(0, total_num_files, file_step))
-    num_files = len(files)
-    reference_image_num = num_files // 2
-
-    # Registration parameters - only Greedy for quick run. ICON and
-    # Greedy_ICON are exercised by dedicated registration tests elsewhere;
-    # this experiment validates the reconstruction pipeline, not every
-    # registration backend.
-    registration_method_names = ["Greedy"]
-    number_of_iterations_list = [[2, 1, 1]]  # For Greedy
-else:
-    print("=== FULL RUN MODE ===")
-    num_files = len(files)
-    files_indx = list(range(num_files))
-    reference_image_num = 7
-
-    # Registration parameters - Greedy_ICON is the recommended method
-    registration_method_names = [
-        "Default"
-    ]  # Use default, or ["Greedy", "ICON", "Greedy_ICON"]
-    number_of_iterations_list = [None]  # [
-    # [30, 15, 7, 3],
-    # 20,  # For ICON
-    # [[30, 15, 7, 3], 20],  # For Greedy_ICON
-    # ]
+# Registration parameters - Greedy_ICON is the recommended method
+registration_method_names = [
+    "Default"
+]  # Use default, or ["Greedy", "ICON", "Greedy_ICON"]
+number_of_iterations_list = [None]  # [
+# [30, 15, 7, 3],
+# 20,  # For ICON
+# [[30, 15, 7, 3], 20],  # For Greedy_ICON
+# ]
 
 # Common parameters
 reference_image_file = os.path.join(
@@ -254,41 +228,40 @@ for method_idx, registration_method_name in enumerate(registration_method_names)
     print(f"  Min loss: {np.min(losses):.6f}")
     print(f"  Max loss: {np.max(losses):.6f}")
 
-    if not quick_run:
-        # Generate grid image for visualization
-        grid_image = tfm_tools.generate_grid_image(fixed_image, 30, 1)
+    # Generate grid image for visualization
+    grid_image = tfm_tools.generate_grid_image(fixed_image, 30, 1)
 
-        print(f"Generating {registration_method_name.upper()} grid visualizations...")
-        for i, img_indx in enumerate(files_indx):
-            print(f"  Generating grid for slice {img_indx:03d}...")
+    print(f"Generating {registration_method_name.upper()} grid visualizations...")
+    for i, img_indx in enumerate(files_indx):
+        print(f"  Generating grid for slice {img_indx:03d}...")
 
-            # Transform grid with inverse transform (FM)
-            inverse_grid_image = tfm_tools.transform_image(
-                grid_image,
-                inverse_transforms[i],
-                fixed_image,
-            )
-            itk.imwrite(
-                inverse_grid_image,
-                os.path.join(
-                    _RESULTS_DIR,
-                    f"slice_fixed_{registration_method_name}_inverse_grid_{img_indx:03d}.mha",
-                ),
-                compression=True,
-            )
+        # Transform grid with inverse transform (FM)
+        inverse_grid_image = tfm_tools.transform_image(
+            grid_image,
+            inverse_transforms[i],
+            fixed_image,
+        )
+        itk.imwrite(
+            inverse_grid_image,
+            os.path.join(
+                _RESULTS_DIR,
+                f"slice_fixed_{registration_method_name}_inverse_grid_{img_indx:03d}.mha",
+            ),
+            compression=True,
+        )
 
-            # Save displacement field as image
-            inverse_transform_image = tfm_tools.convert_transform_to_displacement_field(
-                inverse_transforms[i],
-                fixed_image,
-                np_component_type=np.float32,
-            )
-            itk.imwrite(
-                inverse_transform_image,
-                os.path.join(
-                    _RESULTS_DIR,
-                    f"slice_{registration_method_name}_inverse_{img_indx:03d}_field.mha",
-                ),
-                compression=True,
-            )
-        print(f"Grid visualizations saved for {registration_method_name.upper()}")
+        # Save displacement field as image
+        inverse_transform_image = tfm_tools.convert_transform_to_displacement_field(
+            inverse_transforms[i],
+            fixed_image,
+            np_component_type=np.float32,
+        )
+        itk.imwrite(
+            inverse_transform_image,
+            os.path.join(
+                _RESULTS_DIR,
+                f"slice_{registration_method_name}_inverse_{img_indx:03d}_field.mha",
+            ),
+            compression=True,
+        )
+    print(f"Grid visualizations saved for {registration_method_name.upper()}")

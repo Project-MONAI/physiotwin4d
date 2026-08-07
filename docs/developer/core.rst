@@ -49,9 +49,9 @@ For most code changes, run:
 
    py -m pytest tests/ -v
 
-(Slow / GPU / Simpleware / PhysicsNeMo / experiment / tutorial tests are
+(Slow / GPU / Simpleware / PhysicsNeMo / tutorial tests are
 auto-skipped; opt in with ``--run-slow``, ``--run-gpu``, ``--run-simpleware``,
-``--run-physicsnemo``, ``--run-experiments``, ``--run-tutorials``, or use
+``--run-physicsnemo``, ``--run-tutorials``, or use
 ``--run-all`` to enable every bucket at once. Data-dependent tests download
 their data through the session fixtures and run by default.)
 

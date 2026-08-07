@@ -8,7 +8,7 @@ Run the fast test suite during development:
 
    pytest tests/ -v
 
-Slow, GPU, Simpleware, experiment, and tutorial tests are auto-skipped unless
+Slow, GPU, Simpleware, and tutorial tests are auto-skipped unless
 their opt-in flag is passed. Tests that depend on downloadable data fetch it
 automatically via the session fixtures, so no marker filter is needed for them.
 
@@ -23,7 +23,6 @@ Each ``--run-<bucket>`` flag enables one marker family:
    pytest tests/ -v --run-gpu          # tests marked 'requires_gpu'
    pytest tests/ -v --run-simpleware   # tests marked 'requires_simpleware'
    pytest tests/ -v --run-physicsnemo  # tests marked 'requires_physicsnemo'
-   pytest tests/ -v --run-experiments  # tests marked 'experiment'
    pytest tests/ -v --run-tutorials    # tests marked 'tutorial'
 
 Flags compose. A typical local GPU profile is:

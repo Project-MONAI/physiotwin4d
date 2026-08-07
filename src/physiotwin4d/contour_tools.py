@@ -627,17 +627,27 @@ class ContourTools(PhysioTwin4DBase):
         surface's annotation, enabling colour-by-anatomy rendering in
         Paraview, PyVista, etc.
 
+        It also gains a per-cell ``SegmentationLabelIds`` (int32) array, which
+        carries each cell's originating label ID so structure identity survives
+        the merge.  Downstream, :class:`ConvertVTKToUSD` splits on this array
+        when given ``mask_ids``, giving one prim (and one anatomy material) per
+        structure.  A surface whose ``field_data['SegmentationLabelIds']`` does
+        not hold exactly one ID has no per-cell attribution — that is the case
+        for the per-group surfaces of :class:`WorkflowConvertImageToVTK`, which
+        are contoured from a merged binary mask — so its cells are tagged ``0``.
+        Pass the per-label surfaces (``'label_surfaces'``) to get real IDs.
+
         Per-object ``field_data`` is *not* preserved: it is per-object, so a
-        single merged mesh cannot carry one value per input surface.  The keys
-        set by :meth:`WorkflowConvertImageToVTK._annotate` are therefore lost:
+        single merged mesh cannot carry one value per input surface.  The
+        remaining keys set by :meth:`WorkflowConvertImageToVTK._annotate` are
+        therefore lost:
 
         - ``AnatomyGroup`` — group name, e.g. ``'heart'``.
         - ``SegmentationLabelNames`` — structure names within the group.
-        - ``SegmentationLabelIds`` — corresponding integer label IDs.
         - ``AnatomyColor`` — RGB float color (survives indirectly as the
           per-cell ``Color`` array).
 
-        Use :meth:`save_surfaces` instead when structure identity must be
+        Use :meth:`save_surfaces` instead when structure *names* must be
         recoverable from the saved files.
 
         Args:
@@ -656,8 +666,20 @@ class ContourTools(PhysioTwin4DBase):
         output_dir = os.path.dirname(output_filename)
         if output_dir:
             os.makedirs(output_dir, exist_ok=True)
-        merged = cast(
-            pv.PolyData, pv.merge(list(surfaces.values()), merge_points=False)
-        )
+        # Shallow copies so tagging does not add an array to the caller's
+        # surfaces; the point/cell arrays themselves stay shared.
+        tagged: list[pv.PolyData] = []
+        for surface in surfaces.values():
+            label_ids = surface.field_data.get("SegmentationLabelIds")
+            if label_ids is not None and len(label_ids) == 1:
+                label_id = int(label_ids[0])
+            else:
+                label_id = 0
+            tagged_surface = surface.copy(deep=False)
+            tagged_surface.cell_data["SegmentationLabelIds"] = np.full(
+                tagged_surface.n_cells, label_id, dtype=np.int32
+            )
+            tagged.append(tagged_surface)
+        merged = cast(pv.PolyData, pv.merge(tagged, merge_points=False))
         merged.save(output_filename)
         return output_filename

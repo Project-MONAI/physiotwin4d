@@ -7,7 +7,6 @@ from physiotwin4d.register_images_ants import RegisterImagesANTS
 from physiotwin4d.segment_chest_total_segmentator_with_contrast import (
     SegmentChestTotalSegmentatorWithContrast,
 )
-from physiotwin4d.test_tools import TestTools
 from physiotwin4d.transform_tools import TransformTools
 
 # nnUNetv2 (used by TotalSegmentator) spawns a multiprocessing.Pool. On Windows
@@ -15,14 +14,12 @@ from physiotwin4d.transform_tools import TransformTools
 # __name__ == "__main__" guard around the top-level work, that re-import fires
 # segment() again and Python's spawn-cascade detector raises RuntimeError.
 if __name__ == "__main__":
-    test_mode = TestTools.running_as_test()
-
     _HERE = Path(__file__).resolve().parent
 
     # %%
     # Number of cardiac frames and step size; downstream scripts must use the same values.
     N_FRAMES = 21
-    FRAME_STEP = 21 if test_mode else 1
+    FRAME_STEP = 1
 
     data_dir = _HERE.parent.parent / "data" / "Slicer-Heart-CT"
 
@@ -34,7 +31,6 @@ if __name__ == "__main__":
 
     # %%
     seg = SegmentChestTotalSegmentatorWithContrast()
-    seg.fast_mode = test_mode
     result = seg.segment(fixed_image)
     # %%
     labelmap_mask = result["labelmap"]
@@ -79,8 +75,7 @@ if __name__ == "__main__":
     # %%
     reg = RegisterImagesANTS()
     reg.set_mask_dilation(5)
-    reg.fast_mode = test_mode
-    reg.set_number_of_iterations([2, 1, 1] if test_mode else [10, 5, 2])
+    reg.set_number_of_iterations([10, 5, 2])
 
     # %%
     for i in range(0, N_FRAMES, FRAME_STEP):
@@ -108,8 +103,6 @@ if __name__ == "__main__":
         print(f"  Done registering whole image for slice {i:03d}.")
         inverse_transform = results["inverse_transform"]
         forward_transform = results["forward_transform"]
-        whole_image_forward_transform = forward_transform
-        whole_image_inverse_transform = inverse_transform
         moving_image_reg = TransformTools().transform_image(
             moving_image, forward_transform, fixed_image, "sinc"
         )  # Final resampling with sinc
@@ -129,28 +122,20 @@ if __name__ == "__main__":
             compression=True,
         )
 
-        # Register the dynamic anatomy mask. In test mode, masked ANTs
-        # registration (mask applied at every pyramid level) is far more
-        # expensive than the unmasked whole-image case above; reuse the
-        # whole-image transform instead of re-registering with a mask.
+        # Register the dynamic anatomy mask.
         heart_arr = itk.GetArrayFromImage(heart_mask)
         contrast_arr = itk.GetArrayFromImage(contrast_mask)
         major_vessels_arr = itk.GetArrayFromImage(major_vessels_mask)
         dynamic_anatomy_arr = heart_arr + contrast_arr + major_vessels_arr
         moving_image_dynamic_anatomy_mask = itk.GetImageFromArray(dynamic_anatomy_arr)
         moving_image_dynamic_anatomy_mask.CopyInformation(moving_image)
-        if test_mode:
-            print(f"  Reusing whole-image transform for slice {i:03d} (test mode).")
-            forward_transform = whole_image_forward_transform
-            inverse_transform = whole_image_inverse_transform
-        else:
-            print(f"  Registering dynamic anatomy mask for slice {i:03d}...")
-            reg.set_fixed_image(fixed_image)
-            reg.set_fixed_mask(fixed_image_dynamic_anatomy_mask)
-            results = reg.register(moving_image, moving_image_dynamic_anatomy_mask)
-            print(f"  Done registering dynamic anatomy mask for slice {i:03d}.")
-            inverse_transform = results["inverse_transform"]
-            forward_transform = results["forward_transform"]
+        print(f"  Registering dynamic anatomy mask for slice {i:03d}...")
+        reg.set_fixed_image(fixed_image)
+        reg.set_fixed_mask(fixed_image_dynamic_anatomy_mask)
+        results = reg.register(moving_image, moving_image_dynamic_anatomy_mask)
+        print(f"  Done registering dynamic anatomy mask for slice {i:03d}.")
+        inverse_transform = results["inverse_transform"]
+        forward_transform = results["forward_transform"]
         moving_image_reg_dynamic_anatomy = TransformTools().transform_image(
             moving_image, forward_transform, fixed_image, "sinc"
         )  # Final resampling with sinc
@@ -175,7 +160,7 @@ if __name__ == "__main__":
             compression=True,
         )
 
-        # Register the static anatomy mask (same test-mode shortcut as above).
+        # Register the static anatomy mask.
         lung_arr = itk.GetArrayFromImage(lung_mask)
         bone_arr = itk.GetArrayFromImage(bone_mask)
         other_arr = itk.GetArrayFromImage(other_mask)
@@ -183,18 +168,13 @@ if __name__ == "__main__":
             lung_arr + bone_arr + other_arr
         )
         moving_image_static_mask.CopyInformation(moving_image)
-        if test_mode:
-            print(f"  Reusing whole-image transform for slice {i:03d} (test mode).")
-            forward_transform = whole_image_forward_transform
-            inverse_transform = whole_image_inverse_transform
-        else:
-            print(f"  Registering static anatomy mask for slice {i:03d}...")
-            reg.set_fixed_image(fixed_image)
-            reg.set_fixed_mask(fixed_image_static_mask)
-            results = reg.register(moving_image, moving_image_static_mask)
-            print(f"  Done registering static anatomy mask for slice {i:03d}.")
-            inverse_transform = results["inverse_transform"]
-            forward_transform = results["forward_transform"]
+        print(f"  Registering static anatomy mask for slice {i:03d}...")
+        reg.set_fixed_image(fixed_image)
+        reg.set_fixed_mask(fixed_image_static_mask)
+        results = reg.register(moving_image, moving_image_static_mask)
+        print(f"  Done registering static anatomy mask for slice {i:03d}.")
+        inverse_transform = results["inverse_transform"]
+        forward_transform = results["forward_transform"]
         moving_image_reg_static = TransformTools().transform_image(
             moving_image, forward_transform, fixed_image, "sinc"
         )  # Final resampling with sinc

@@ -98,6 +98,55 @@ def test_chain_refines_previous_stage_result() -> None:
     assert result["loss"] == 2.0
 
 
+class _CompositeRegistrar(_RecordingRegistrar):
+    """Stub registrar returning a CompositeTransform, as RegisterImagesGreedy
+    does (its result is an affine plus a displacement field)."""
+
+    def registration_method(
+        self,
+        moving_image: itk.Image,
+        moving_mask: Optional[itk.Image] = None,
+        moving_labelmap: Optional[itk.Image] = None,
+        moving_image_pre: Optional[itk.Image] = None,
+    ) -> dict[str, Union[object, float]]:
+        """Wrap the parent's translations in single-entry composites."""
+        result = super().registration_method(
+            moving_image, moving_mask, moving_labelmap, moving_image_pre
+        )
+        for key in ("forward_transform", "inverse_transform"):
+            composite = itk.CompositeTransform[itk.D, 3].New()
+            composite.AddTransform(cast(itk.Transform, result[key]))
+            result[key] = composite
+        return result
+
+
+def test_chain_result_holds_no_nested_composite(tmp_path: Any) -> None:
+    """A stage returning a CompositeTransform must not end up nested.
+
+    itk.HDF5TransformIO refuses to write a CompositeTransform that holds
+    another one, so a chain over Greedy (which returns affine+warp composites)
+    would produce transforms that cannot be saved.
+    """
+    stage1 = _CompositeRegistrar("stage1", 1.0)
+    stage2 = _CompositeRegistrar("stage2", 2.0)
+    chain = RegisterImagesChain([stage1, stage2])
+    chain.set_fixed_image(_small_image())
+
+    result = chain.register(_small_image())
+
+    for key in ("forward_transform", "inverse_transform"):
+        composed = cast(itk.Transform, result[key])
+        assert isinstance(composed, itk.CompositeTransform[itk.D, 3])
+        for i in range(composed.GetNumberOfTransforms()):
+            sub = composed.GetNthTransform(i)
+            assert "Composite" not in sub.GetNameOfClass()
+        itk.transformwrite(composed, str(tmp_path / f"{key}.hdf"))
+
+    # Splicing the sub-transforms in must leave the mapping unchanged.
+    forward = cast(itk.Transform, result["forward_transform"])
+    assert list(forward.TransformPoint([0.0, 0.0, 0.0])) == [3.0, 0.0, 0.0]
+
+
 def test_chain_propagates_fixed_and_moving_state_to_each_child() -> None:
     """Every child must see a non-None fixed_image_pre (computed via its own
     preprocess(), not copied from the chain's no-op preprocess()) and the

@@ -33,7 +33,6 @@ import pyvista as pv
 
 from physiotwin4d.landmark_tools import LandmarkTools
 from physiotwin4d.segment_heart_simpleware import SegmentHeartSimpleware
-from physiotwin4d.test_tools import TestTools
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -59,18 +58,13 @@ log_level = logging.INFO  # Change to logging.DEBUG for more detail
 # Load a cardiac CT image for segmentation. This should be a 3D volume containing the heart.
 
 # %%
-if TestTools.running_as_test():
-    input_image_path = os.path.join(
-        _HERE, "..", "..", "data", "CHOP-Valve4D", "CT", "RVOT28-Dias.nii.gz"
-    )
-else:
-    root = tk.Tk()
-    root.withdraw()
-    input_image_path = filedialog.askopenfilename(
-        title="Select a cardiac CT image",
-        filetypes=[("NIfTI", "*.nii.gz"), ("MetaIO", "*.mhd"), ("All files", "*.*")],
-    )
-    root.destroy()
+root = tk.Tk()
+root.withdraw()
+input_image_path = filedialog.askopenfilename(
+    title="Select a cardiac CT image",
+    filetypes=[("NIfTI", "*.nii.gz"), ("MetaIO", "*.mhd"), ("All files", "*.*")],
+)
+root.destroy()
 
 # Load the image
 try:
@@ -119,8 +113,7 @@ if input_image is not None:
     axes[2].axis("off")
 
     plt.tight_layout()
-    if not TestTools.running_as_test():
-        plt.show()
+    plt.show()
 
     print(f"Image intensity range: [{image_array.min():.1f}, {image_array.max():.1f}]")
 else:
@@ -362,8 +355,7 @@ if result is not None and input_image is not None:
 
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, "segmentation_visualization.png"), dpi=150)
-    if not TestTools.running_as_test():
-        plt.show()
+    plt.show()
 
     print(
         f"Visualization saved to: {os.path.join(output_dir, 'segmentation_visualization.png')}"
@@ -417,8 +409,7 @@ if result is not None:
 
     # Save screenshot
     screenshot_path = os.path.join(output_dir, "3d_visualization.png")
-    if not TestTools.running_as_test():
-        plotter.show(screenshot=screenshot_path)
+    plotter.show(screenshot=screenshot_path)
 
     print(f"3D visualization saved to: {screenshot_path}")
 else:

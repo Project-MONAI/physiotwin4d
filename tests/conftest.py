@@ -39,7 +39,6 @@ _pytest_config: Optional[pytest.Config] = None
 
 
 _RUN_BUCKET_FLAGS = (
-    "--run-experiments",
     "--run-tutorials",
     "--run-simpleware",
     "--run-slow",
@@ -58,12 +57,6 @@ def _run_bucket_enabled(config: pytest.Config, flag: str) -> bool:
 
 def pytest_addoption(parser: pytest.Parser) -> None:
     """Add custom command-line options for pytest."""
-    parser.addoption(
-        "--run-experiments",
-        action="store_true",
-        default=False,
-        help="Run experiment tests (extremely long-running notebook tests)",
-    )
     parser.addoption(
         "--run-tutorials",
         action="store_true",
@@ -127,10 +120,6 @@ def pytest_configure(config: pytest.Config) -> None:
 
     config.addinivalue_line(
         "markers",
-        "experiment: marks tests that run experiment notebooks (extremely slow, manual only)",
-    )
-    config.addinivalue_line(
-        "markers",
         "tutorial: marks tests that run tutorial scripts (data/GPU gated, manual only)",
     )
     config.addinivalue_line(
@@ -155,21 +144,12 @@ def pytest_collection_modifyitems(
     config: pytest.Config, items: list[pytest.Item]
 ) -> None:
     """
-    Automatically skip experiment and tutorial tests unless their opt-in flags
-    are passed.
+    Automatically skip bucketed tests unless their opt-in flags are passed.
 
-    This ensures that experiment tests are opt-in only and won't run
+    This ensures that long-running tests are opt-in only and won't run
     accidentally when running the normal test suite.
     """
     for item in items:
-        if "experiment" in item.keywords and not _run_bucket_enabled(
-            config, "--run-experiments"
-        ):
-            item.add_marker(
-                pytest.mark.skip(
-                    reason="Experiment tests require --run-experiments (or --run-all) to run"
-                )
-            )
         if "tutorial" in item.keywords and not _run_bucket_enabled(
             config, "--run-tutorials"
         ):
@@ -233,7 +213,6 @@ def pytest_runtest_logreport(report: pytest.TestReport) -> None:
             "nodeid": report.nodeid,
             "duration": report.duration,
             "outcome": report.outcome,
-            "is_experiment": "experiment" in report.keywords,
             "is_tutorial": "tutorial" in report.keywords,
         }
 
@@ -250,7 +229,7 @@ def pytest_terminal_summary(
     Print comprehensive test timing report after all tests complete.
 
     This hook is called at the end of the test session to display
-    timing statistics for all tests, including experiment tests.
+    timing statistics for all tests, including tutorial tests.
     """
     timings = config._test_timings  # type: ignore[attr-defined]
     tests = timings["tests"]
@@ -261,12 +240,9 @@ def pytest_terminal_summary(
     # Calculate session duration
     session_duration = datetime.now() - timings["start_time"]
 
-    # Separate regular, tutorial, and experiment tests
-    regular_tests = [
-        t for t in tests if not t["is_experiment"] and not t["is_tutorial"]
-    ]
+    # Separate regular and tutorial tests
+    regular_tests = [t for t in tests if not t["is_tutorial"]]
     tutorial_tests = [t for t in tests if t["is_tutorial"]]
-    experiment_tests = [t for t in tests if t["is_experiment"]]
 
     # Write the timing report
     terminalreporter.write_sep("=", "TEST TIMING REPORT", bold=True)
@@ -323,33 +299,6 @@ def pytest_terminal_summary(
             )
         terminalreporter.write_line("")
 
-    # Experiment tests section
-    if experiment_tests:
-        terminalreporter.write_sep("-", "Experiment Tests", bold=True)
-        terminalreporter.write_line(f"Count: {len(experiment_tests)}")
-
-        # Sort by duration (longest first)
-        sorted_experiments = sorted(
-            experiment_tests, key=lambda x: x["duration"], reverse=True
-        )
-
-        # Calculate total time
-        experiment_total = sum(t["duration"] for t in experiment_tests)
-        terminalreporter.write_line(
-            f"Total Time: {timedelta(seconds=int(experiment_total))}"
-        )
-        terminalreporter.write_line("")
-
-        # Show all experiment tests with timing
-        terminalreporter.write_line("Individual Test Times:")
-        for test in sorted_experiments:
-            outcome_symbol = "+" if test["outcome"] == "passed" else "x"
-            duration_str = _format_duration(test["duration"])
-            terminalreporter.write_line(
-                f"  {outcome_symbol} {duration_str:>10s}  {test['nodeid']}"
-            )
-        terminalreporter.write_line("")
-
     # Top 10 slowest tests overall
     if len(tests) > 10:
         terminalreporter.write_sep("-", "Top 10 Slowest Tests", bold=True)
@@ -358,12 +307,7 @@ def pytest_terminal_summary(
         for i, test in enumerate(sorted_all, 1):
             outcome_symbol = "+" if test["outcome"] == "passed" else "x"
             duration_str = _format_duration(test["duration"])
-            if test["is_experiment"]:
-                test_type = "[EXP]"
-            elif test["is_tutorial"]:
-                test_type = "[TUT]"
-            else:
-                test_type = "[REG]"
+            test_type = "[TUT]" if test["is_tutorial"] else "[REG]"
             terminalreporter.write_line(
                 f"  {i:2d}. {outcome_symbol} {duration_str:>10s} {test_type} {test['nodeid']}"
             )

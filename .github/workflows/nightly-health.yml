@@ -1,6 +1,6 @@
 name: Nightly Health
 
-# Run the full test suite (including experiments) on the GPU runner every night.
+# Run the full test suite (including tutorials) on the GPU runner every night.
 #
 # Schedule: 07:00 UTC daily ≈ 02:00 EST / 03:00 EDT
 #

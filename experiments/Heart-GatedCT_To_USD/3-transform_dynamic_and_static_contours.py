@@ -7,7 +7,6 @@ import pyvista as pv
 from physiotwin4d import ConvertVTKToUSD
 from physiotwin4d.contour_tools import ContourTools
 from physiotwin4d.segment_chest_total_segmentator import SegmentChestTotalSegmentator
-from physiotwin4d.test_tools import TestTools
 from physiotwin4d.usd_anatomy_tools import USDAnatomyTools
 
 # Defensive: this script only reads `seg.all_mask_ids` today, but if anyone
@@ -15,12 +14,11 @@ from physiotwin4d.usd_anatomy_tools import USDAnatomyTools
 # multiprocessing.Pool which re-imports the script on Windows (spawn start
 # method) and crashes with a spawn-cascade RuntimeError. Guard pre-emptively.
 if __name__ == "__main__":
-    test_mode = TestTools.running_as_test()
     _HERE = os.path.dirname(os.path.abspath(__file__))
 
     # Must match N_FRAMES / FRAME_STEP in 1-register_images.py
     N_FRAMES = 21
-    FRAME_STEP = 21 if test_mode else 1
+    FRAME_STEP = 1
 
     # %%
     output_dir = os.path.join(_HERE, "results")

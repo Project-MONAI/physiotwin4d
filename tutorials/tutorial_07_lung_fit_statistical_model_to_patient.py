@@ -14,6 +14,10 @@ PCA model: Tutorial 6 output (``output/tutorial_06_lung/pca_model.json``,
 Patient image: a routine clinical 3D chest CT,
 ``data/Chest-CT/Chest-CT.mha``, downloaded with
 ``physiotwin4d-download-data Chest-CT --directory data/Chest-CT``
+ICON weights: ``tutorial_02_lung_distancemap_finetune_icon.py`` output
+(``network_weights/icon_dirlab_4dct_distancemap/
+icon_dirlab_4dct_distancemap_model/checkpoints/network_weights_final.trch``),
+optional -- the stock uniGradICON weights are used when it is absent.
 """
 
 # Imports
@@ -57,9 +61,22 @@ if __name__ == "__main__":
     pca_json = tutorial_06_dir / "pca_model.json"
     pca_mean_file = tutorial_06_dir / "pca_mean_surface.vtp"
 
-    pca_number_of_modes = 5
+    number_of_pca_components = 5
 
     patient_image_file = repo_root / "data" / "Chest-CT" / "Chest-CT.mha"
+
+    # Distance-map weights finetuned on DIR-Lab by Tutorial 2; see
+    # WorkflowFinetuneICONRegistration.expected_weights_path().  The
+    # mask_dilation_mm set below must match the one that tutorial finetuned
+    # with, since it fixes the distance maps' saturation radius.
+    icon_weights_path = (
+        tutorials_dir
+        / "network_weights"
+        / "icon_dirlab_4dct_distancemap"
+        / "icon_dirlab_4dct_distancemap_model"
+        / "checkpoints"
+        / "network_weights_final.trch"
+    )
 
     log_level = logging.INFO
 
@@ -124,11 +141,25 @@ if __name__ == "__main__":
         workflow.set_use_pca_registration(
             use_pca_registration=True,
             pca_model=pca_model,
-            pca_number_of_modes=pca_number_of_modes,
+            number_of_pca_components=number_of_pca_components,
             use_surface=False,
         )
 
     workflow.set_mask_dilation_mm(mask_dilation_mm=40)
+
+    # The labelmap-to-labelmap stage registers distance maps, not intensities,
+    # so it uses the distance-map-finetuned weights when they exist; without
+    # them the tutorial still runs, on the stock uniGradICON weights.
+    if icon_weights_path.exists():
+        workflow.set_labelmap_to_labelmap_icon_weights_path(str(icon_weights_path))
+    else:
+        workflow.log_warning(
+            "Finetuned distance-map ICON weights not found at %s; fitting with "
+            "the stock uniGradICON weights. Run "
+            "tutorials/tutorial_02_lung_distancemap_finetune_icon.py to create "
+            "them.",
+            icon_weights_path,
+        )
 
     # Workflow execution
     workflow_results = workflow.process()

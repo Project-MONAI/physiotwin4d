@@ -172,6 +172,23 @@ class RegisterModelsDistanceMaps(PhysioTwin4DBase):
         self.inverse_transform: Optional[itk.CompositeTransform] = None  # Fixed→moving
         self.registered_model: Optional[pv.PolyData] = None
 
+    def set_icon_weights_path(self, weights_path: str) -> None:
+        """Use a finetuned uniGradICON checkpoint for the deformable stage.
+
+        The distance maps this class registers are not CT intensities, so stock
+        uniGradICON weights are out of distribution for them.  Weights finetuned
+        on distance maps, e.g. by
+        ``tutorials/tutorial_02_lung_distancemap_finetune_icon.py``, are
+        supplied here.
+
+        Args:
+            weights_path: Path to an existing uniGradICON checkpoint.
+
+        Raises:
+            FileNotFoundError: If weights_path does not exist.
+        """
+        self.registrar_ICON.set_weights_path(weights_path)
+
     def _create_masks_from_models(self) -> None:
         """Generate distance maps and binary registration masks from moving and fixed models.
 

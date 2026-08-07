@@ -22,7 +22,6 @@ import pandas as pd
 import pyvista as pv
 
 from physiotwin4d.contour_tools import ContourTools
-from physiotwin4d.test_tools import TestTools
 from physiotwin4d.register_models_icp import RegisterModelsICP
 
 _HERE = Path(__file__).parent
@@ -168,8 +167,7 @@ for mesh_id in example_ids:
     plotter.show_axes()
 
     plotter.link_views()
-    if not TestTools.running_as_test():
-        plotter.show()
+    plotter.show()
 
 # %% [markdown]
 # ## 6. Calculate Registration Statistics
@@ -266,7 +264,6 @@ axes[1].grid(axis="y", alpha=0.3)
 
 plt.tight_layout()
 plt.savefig(output_dir / "registration_statistics.png", dpi=150, bbox_inches="tight")
-if not TestTools.running_as_test():
-    plt.show()
+plt.show()
 
 print(f"\nPlot saved to: {output_dir / 'registration_statistics.png'}")
