@@ -477,6 +477,49 @@ class TestSyntheticConversion:
                 f"{prim_path} should have no time samples but got {samples}"
             )
 
+    def test_mask_ids_split_on_segmentation_label_ids(self, tmp_path: Path) -> None:
+        """A merged surface file splits on the array save_combined_surfaces writes."""
+        mesh = _make_poly()
+        mesh.cell_data["SegmentationLabelIds"] = np.array(
+            [141] * 4 + [142] * 5, dtype=np.int32
+        )
+        converter = ConvertVTKToUSD(
+            data_basename="P",
+            input_polydata=[mesh],
+            mask_ids={141: "atrium_left", 142: "ventricle_left"},
+        )
+        stage = converter.convert(str(tmp_path / "out.usd"))
+
+        assert stage.GetPrimAtPath("/World/P/Anatomy/atrium_left").IsValid()
+        assert stage.GetPrimAtPath("/World/P/Anatomy/ventricle_left").IsValid()
+
+    def test_static_merge_object_names_name_prims(self, tmp_path: Path) -> None:
+        """object_names replaces the positional {data_basename}_{i} naming."""
+        mesh_a, mesh_b = _make_poly(), _make_poly()
+        converter = ConvertVTKToUSD(
+            data_basename="Organ",
+            input_polydata=[mesh_a, mesh_b],
+            static_merge=True,
+            object_names=["myocardium", "ventricle_left"],
+        )
+        stage = converter.convert(str(tmp_path / "out.usd"))
+
+        assert stage.GetPrimAtPath("/World/Organ/myocardium").IsValid()
+        assert stage.GetPrimAtPath("/World/Organ/ventricle_left").IsValid()
+        assert not stage.GetPrimAtPath("/World/Organ/Organ_0").IsValid(), (
+            "Positional naming still present"
+        )
+
+    def test_object_names_length_mismatch_raises(self) -> None:
+        """A short object_names list would silently mis-name prims."""
+        with pytest.raises(ValueError, match="object_names length"):
+            ConvertVTKToUSD(
+                data_basename="Organ",
+                input_polydata=[_make_poly(), _make_poly()],
+                static_merge=True,
+                object_names=["myocardium"],
+            )
+
     # ------------------------------------------------------------------
     # Gap D — mask_ids / _convert_with_labels
     # ------------------------------------------------------------------

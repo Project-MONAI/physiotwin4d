@@ -152,8 +152,8 @@ PhysioTwin4D operates across several technically demanding domains:
 - `requires_gpu` - GPU/CUDA-dependent tests (opt-in via `--run-gpu`)
 - `requires_simpleware` - tests needing a local Synopsys Simpleware Medical install (opt-in via `--run-simpleware`)
 - `requires_physicsnemo` - tests needing the optional `[physicsnemo]` extra (opt-in via `--run-physicsnemo`)
-- `experiment` - runs experiment scripts end-to-end (opt-in via `--run-experiments`; multi-hour)
-- `tutorial` - runs tutorial scripts end-to-end (opt-in via `--run-tutorials`)
+- `tutorial` - runs tutorial scripts end-to-end
+  (opt-in via `--run-tutorials`; multi-hour)
 
 ---
 

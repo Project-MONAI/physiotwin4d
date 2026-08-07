@@ -10,7 +10,7 @@ appropriate for synthetic/stub-based unit tests rather than real data.
 
 from __future__ import annotations
 
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, cast
 
 import itk
 import numpy as np
@@ -41,7 +41,6 @@ class _RecordingRegistrar(RegisterImagesBase):
         self.seen_moving_image: Optional[itk.Image] = None
         self.seen_moving_image_pre: Optional[itk.Image] = None
         self.seen_moving_mask: Optional[itk.Image] = None
-        self.seen_initial_forward_transform: Optional[object] = None
         self.preprocess_call_count = 0
 
     def preprocess(self, image: itk.Image, modality: str = "ct") -> itk.Image:
@@ -55,35 +54,97 @@ class _RecordingRegistrar(RegisterImagesBase):
         moving_mask: Optional[itk.Image] = None,
         moving_labelmap: Optional[itk.Image] = None,
         moving_image_pre: Optional[itk.Image] = None,
-        initial_forward_transform: Optional[object] = None,
     ) -> dict[str, Union[object, float]]:
-        """Record the state visible at call time; return a sentinel result."""
+        """Record the state visible at call time; return a sentinel result.
+
+        The sentinel transforms are real translations along x of
+        ``sentinel_value`` mm, so a chained result can be checked numerically.
+        """
         self.seen_fixed_image_pre = self.fixed_image_pre
         self.seen_moving_image = self.moving_image
         self.seen_moving_image_pre = moving_image_pre
         self.seen_moving_mask = moving_mask
-        self.seen_initial_forward_transform = initial_forward_transform
+        forward = itk.TranslationTransform[itk.D, 3].New()
+        forward.SetOffset([self.sentinel_value, 0.0, 0.0])
+        inverse = itk.TranslationTransform[itk.D, 3].New()
+        inverse.SetOffset([-self.sentinel_value, 0.0, 0.0])
         return {
-            "forward_transform": f"forward_{self.name}",
-            "inverse_transform": f"inverse_{self.name}",
+            "forward_transform": forward,
+            "inverse_transform": inverse,
             "loss": self.sentinel_value,
         }
 
 
-def test_chain_feeds_forward_transform_to_next_stage() -> None:
-    """Stage 2 must receive stage 1's forward_transform as its
-    initial_forward_transform."""
+def test_chain_refines_previous_stage_result() -> None:
+    """Stage 2 must refine stage 1's alignment rather than start over.
+
+    Stage 1 is called on the raw moving image; stage 2 sees a moving image
+    pre-warped by stage 1's forward transform, and the chain's composed
+    forward transform is the sum of both stages' translations.
+    """
     stage1 = _RecordingRegistrar("stage1", 1.0)
     stage2 = _RecordingRegistrar("stage2", 2.0)
+    chain = RegisterImagesChain([stage1, stage2])
+    chain.set_fixed_image(_small_image())
+    moving = _small_image()
+
+    result = chain.register(moving)
+
+    assert stage1.seen_moving_image is moving
+    # Stage 2 registers the pre-warped image, not the caller's image.
+    assert stage2.seen_moving_image is not moving
+    composed = cast(itk.Transform, result["forward_transform"])
+    assert list(composed.TransformPoint([0.0, 0.0, 0.0])) == [3.0, 0.0, 0.0]
+    assert result["loss"] == 2.0
+
+
+class _CompositeRegistrar(_RecordingRegistrar):
+    """Stub registrar returning a CompositeTransform, as RegisterImagesGreedy
+    does (its result is an affine plus a displacement field)."""
+
+    def registration_method(
+        self,
+        moving_image: itk.Image,
+        moving_mask: Optional[itk.Image] = None,
+        moving_labelmap: Optional[itk.Image] = None,
+        moving_image_pre: Optional[itk.Image] = None,
+    ) -> dict[str, Union[object, float]]:
+        """Wrap the parent's translations in single-entry composites."""
+        result = super().registration_method(
+            moving_image, moving_mask, moving_labelmap, moving_image_pre
+        )
+        for key in ("forward_transform", "inverse_transform"):
+            composite = itk.CompositeTransform[itk.D, 3].New()
+            composite.AddTransform(cast(itk.Transform, result[key]))
+            result[key] = composite
+        return result
+
+
+def test_chain_result_holds_no_nested_composite(tmp_path: Any) -> None:
+    """A stage returning a CompositeTransform must not end up nested.
+
+    itk.HDF5TransformIO refuses to write a CompositeTransform that holds
+    another one, so a chain over Greedy (which returns affine+warp composites)
+    would produce transforms that cannot be saved.
+    """
+    stage1 = _CompositeRegistrar("stage1", 1.0)
+    stage2 = _CompositeRegistrar("stage2", 2.0)
     chain = RegisterImagesChain([stage1, stage2])
     chain.set_fixed_image(_small_image())
 
     result = chain.register(_small_image())
 
-    assert stage1.seen_initial_forward_transform is None
-    assert stage2.seen_initial_forward_transform == "forward_stage1"
-    assert result["forward_transform"] == "forward_stage2"
-    assert result["loss"] == 2.0
+    for key in ("forward_transform", "inverse_transform"):
+        composed = cast(itk.Transform, result[key])
+        assert isinstance(composed, itk.CompositeTransform[itk.D, 3])
+        for i in range(composed.GetNumberOfTransforms()):
+            sub = composed.GetNthTransform(i)
+            assert "Composite" not in sub.GetNameOfClass()
+        itk.transformwrite(composed, str(tmp_path / f"{key}.hdf"))
+
+    # Splicing the sub-transforms in must leave the mapping unchanged.
+    forward = cast(itk.Transform, result["forward_transform"])
+    assert list(forward.TransformPoint([0.0, 0.0, 0.0])) == [3.0, 0.0, 0.0]
 
 
 def test_chain_propagates_fixed_and_moving_state_to_each_child() -> None:
@@ -101,12 +162,16 @@ def test_chain_propagates_fixed_and_moving_state_to_each_child() -> None:
 
     for stage in (stage1, stage2):
         assert stage.seen_fixed_image_pre is not None
-        assert stage.seen_moving_image is moving
+        assert stage.seen_moving_image is not None
         # Each stage must compute its own preprocessing (moving_image_pre is
         # not inherited from the chain, which has no meaningful preprocess()
         # of its own).
         assert stage.seen_moving_image_pre is None
         assert stage.preprocess_call_count == 1
+    # The first stage gets the caller's image; later stages get it pre-warped
+    # by the running result.
+    assert stage1.seen_moving_image is moving
+    assert stage2.seen_moving_image is not moving
 
 
 def test_chain_recomputes_fixed_image_pre_when_fixed_image_changes() -> None:

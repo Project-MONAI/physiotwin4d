@@ -9,7 +9,6 @@ from physiotwin4d.contour_tools import ContourTools
 from physiotwin4d.segment_chest_total_segmentator_with_contrast import (
     SegmentChestTotalSegmentatorWithContrast,
 )
-from physiotwin4d.test_tools import TestTools
 
 # nnUNetv2 (used by TotalSegmentator) spawns a multiprocessing.Pool. On Windows
 # the spawn start method re-imports this script in each child; without the
@@ -70,7 +69,6 @@ if __name__ == "__main__":
         outname = "slice_max"
 
     seg = SegmentChestTotalSegmentatorWithContrast()
-    seg.fast_mode = TestTools.running_as_test()
     if re_run_image_segmentation:
         result = seg.segment(max_image)
         labelmap_image = result["labelmap"]
@@ -162,5 +160,4 @@ if __name__ == "__main__":
     )
     pl.set_background("black")
     pl.camera_position = "xy"
-    if not TestTools.running_as_test():
-        pl.show()
+    pl.show()

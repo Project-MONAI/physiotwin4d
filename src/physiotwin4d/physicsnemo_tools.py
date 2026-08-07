@@ -405,8 +405,8 @@ class PhaseSampleDataset:
                 f"{path} has {values.shape[0]} points, expected {self._n_points}."
             )
 
+        self._cache[path] = values
         if self._cache_max_samples != 0:
-            self._cache[path] = values
             while len(self._cache) > self._cache_max_samples:
                 self._cache.popitem(last=False)
         return values

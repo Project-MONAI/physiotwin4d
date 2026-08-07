@@ -32,7 +32,7 @@ Examples:
     --patient-models lv.vtp rv.vtp myo.vtp \\
     --patient-image patient_ct.nii.gz \\
     --pca-json pca_model.json \\
-    --pca-number-of-modes 10 \\
+    --number-of-pca-components 10 \\
     --output-dir ./results
 
   # Enable labelmap-to-image refinement (requires template labelmap and label IDs)
@@ -110,10 +110,10 @@ Examples:
         help="Path to PCA JSON file for shape-based registration (optional)",
     )
     parser.add_argument(
-        "--pca-number-of-modes",
+        "--number-of-pca-components",
         type=int,
         default=0,
-        help="Number of PCA modes to use (default: 0, uses all if PCA enabled)",
+        help="Number of PCA components to use (default: 0, uses all if PCA enabled)",
     )
 
     # Registration configuration
@@ -237,7 +237,7 @@ Examples:
             workflow.set_use_pca_registration(
                 True,
                 pca_model=pca_model,
-                pca_number_of_modes=args.pca_number_of_modes,
+                number_of_pca_components=args.number_of_pca_components,
             )
 
         workflow.set_use_labelmap_to_labelmap_registration(

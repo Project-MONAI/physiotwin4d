@@ -48,10 +48,10 @@ if __name__ == "__main__":
     test_mode = TestTools.running_as_test()
     if test_mode:
         data_dir = repo_root / "data" / "test" / "KCL-Heart-Model"
-        pca_components = 5
+        number_of_pca_components = 5
     else:
         data_dir = repo_root / "data" / "KCL-Heart-Model"
-        pca_components = 10
+        number_of_pca_components = 10
 
     log_level = logging.INFO
 
@@ -87,7 +87,7 @@ if __name__ == "__main__":
     workflow = WorkflowCreateStatisticalModel(
         sample_meshes=sample_meshes,
         reference_mesh=reference_mesh,
-        pca_number_of_components=pca_components,
+        number_of_pca_components=number_of_pca_components,
         log_level=log_level,
     )
 
@@ -127,7 +127,7 @@ if __name__ == "__main__":
     components = pca_model.get("components", [])
     eigenvalues = pca_model.get("eigenvalues", [])
     mean_points = np.asarray(mean_surface.points)
-    mode_count = min(2, pca_components, len(components), len(eigenvalues))
+    mode_count = min(2, number_of_pca_components, len(components), len(eigenvalues))
 
     xvfb_started = False
     try:

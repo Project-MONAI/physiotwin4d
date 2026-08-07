@@ -15,8 +15,10 @@ Runs on the public DIR-Lab 4D CT data. A thin driver over the reusable
    filenames and written explicitly into the manifest (the workflow never parses
    filenames).
 
-2. Split the cases into train / validation / held-out test and train the
-   MeshGraphNet (``WorkflowTrainPhysicsNeMo`` driving ``TrainPhysicsNeMoMGN``).
+2. Split the cases into train and held-out test — plus an optional validation
+   set, empty by default, which is what makes the intermittent validation RMSE
+   read ``n/a`` — and train the MeshGraphNet (``WorkflowTrainPhysicsNeMo``
+   driving ``TrainPhysicsNeMoMGN``).
 
 3. Evaluate the held-out test cases against their ground-truth phases with
    :class:`physiotwin4d.WorkflowInferPhysicsNeMo` wrapped in
@@ -32,6 +34,15 @@ continuum-deformation inductive bias the MLP must infer from coordinates alone.
 Node features (per vertex):   [mean_shape_x, mean_shape_y, mean_shape_z, pca_c1 ... pca_cN, stage]
 Edge features (per edge):     [rel_x, rel_y, rel_z, distance]   (from the mean shape)
 Output (per vertex):          [dx, dy, dz]  (displacement in mm)
+
+Runtime
+-------
+Measured on the full 10-case DIR-Lab set with the Tutorial 6 lung template
+(179k points, 1.07M mesh-graph edges): one training step of ``batch_size`` 4
+takes ~430 ms and peaks near 43 GiB of GPU memory, giving ~9 s per epoch and
+roughly 4 hours for the 1500 epochs below. Lower ``batch_size``, or call
+``training_method.set_num_processor_checkpoint_segments(...)`` to trade compute
+for memory, on a smaller card.
 
 Extra Install Required
 ----------------------
@@ -111,17 +122,29 @@ def _write_target_mesh(
     return target_path
 
 
-def _write_case_manifest(case_dir: Path, manifests_dir: Path) -> Optional[Path]:
+def _write_case_manifest(
+    case_dir: Path, manifests_dir: Path, logger: logging.Logger
+) -> Optional[Path]:
     """Write a per-case manifest JSON; return its path (or None if incomplete).
 
     A case needs a reference SSM surface, a PCA coefficient file, and at least
-    two respiratory-phase surfaces.
+    two respiratory-phase surfaces. A case that is missing any of them is skipped
+    with the reason logged, so a half-finished Tutorial 8 run is distinguishable
+    from one that never ran.
     """
     case_id = case_dir.name
     ref_file = case_dir / f"{case_id}_ssm_surface.vtp"
     pca_file = case_dir / f"{case_id}_ssm_pca_coefficients.json"
     phase_files = sorted(case_dir.glob(f"{case_id}_T??_ssm_surface.vtp"))
-    if not ref_file.exists() or not pca_file.exists() or len(phase_files) < 2:
+    missing = []
+    if not ref_file.exists():
+        missing.append(f"reference surface {ref_file.name}")
+    if not pca_file.exists():
+        missing.append(f"PCA coefficients {pca_file.name}")
+    if len(phase_files) < 2:
+        missing.append(f"at least 2 phase surfaces (found {len(phase_files)})")
+    if missing:
+        logger.warning("Skipping %s: missing %s", case_id, "; ".join(missing))
         return None
 
     manifests_dir.mkdir(parents=True, exist_ok=True)
@@ -178,7 +201,9 @@ if __name__ == "__main__":
     num_layers = 2  # MLP layers inside each encoder / processor / decoder block
 
     # Explicit held-out splits; every other discovered case is used for training.
-    # Case1 is also the case held out of the Tutorial 2 ICON finetuning.
+    # Case1 is also the case held out of the Tutorial 2 ICON finetuning. Adding a
+    # case to val_cases spends it on the intermittent validation RMSE instead of
+    # training; empty means that RMSE is reported as "n/a".
     test_cases = ["Case1Pack"]
     val_cases: list[str] = []
     log_level = logging.INFO
@@ -198,17 +223,20 @@ if __name__ == "__main__":
             "Run tutorials/tutorial_06_lung_create_statistical_model.py first."
         )
 
-    # Step 1: build one manifest per valid case and partition into splits
+    # Step 1: build one manifest per valid case and partition into splits.
+    # DIR-Lab names case 8 "Case8Deploy" while every other case is "Case*Pack",
+    # so match on "Case*" to avoid silently dropping it.
     manifests: dict[str, Path] = {}
-    for case_dir in sorted(data_dir.glob("Case*Pack")):
-        manifest_path = _write_case_manifest(case_dir, manifests_dir)
+    for case_dir in sorted(p for p in data_dir.glob("Case*") if p.is_dir()):
+        manifest_path = _write_case_manifest(case_dir, manifests_dir, logger)
         if manifest_path is not None:
             manifests[case_dir.name] = manifest_path
 
     if len(manifests) < 3:
         raise RuntimeError(
             f"Found only {len(manifests)} valid case(s) under {data_dir}; need at "
-            "least 3 for a train / val / test split. Run "
+            "least 3 to hold one out and still train on a population. See the "
+            "skip reasons logged above, and run "
             "tutorials/tutorial_08_lung_fit_model_to_4d_patients.py first."
         )
 

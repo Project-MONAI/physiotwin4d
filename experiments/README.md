@@ -192,52 +192,30 @@ These experiments are **starting points for exploration**, not copy-paste soluti
 The **CLI commands and implementations in `src/physiotwin4d/cli/`** are the production-quality
 code you should use and extend for real-world digital twin projects.
 
-## Automated Testing
+## Testing
 
-A comprehensive test suite is available to validate all experiment scripts:
+Experiment scripts are **not** run as tests. They are exploratory research code:
+they assume interactive display, full-resolution parameters, and data layouts
+that only exist on the author's machine.
+
+The optional end-to-end test suite runs the `tutorials/` scripts instead:
 
 ```bash
-# Run all experiment tests (EXTREMELY SLOW - may take hours)
-# NOTE: Requires --run-experiments flag!
-pytest tests/test_experiments.py -v --run-experiments
-
-# Run a specific experiment subdirectory
-pytest tests/test_experiments.py::test_experiment_heart_gated_ct_to_usd -v -s --run-experiments
-
-# List all scripts that would be run (without executing)
-pytest tests/test_experiments.py::test_list_scripts_in_subdir -v -s --run-experiments
-
-# Validate experiment directory structure
-pytest tests/test_experiments.py::test_experiment_structure -v --run-experiments
+pytest tests/test_tutorials.py -v --run-tutorials
 ```
 
-**IMPORTANT:** Experiment tests require the `--run-experiments` flag. Without this flag, they are automatically skipped, even if you run `pytest tests/` or target the test file directly.
+Run experiment scripts manually, in the order their filename prefixes imply
+(`0-`, `1-`, `2-`, ...), from within their own subdirectory:
 
-### Test Features
+```bash
+cd experiments/Heart-GatedCT_To_USD
+py 0-download_and_convert_4d_to_3d.py
+py 1-register_images.py
+```
 
-- **Test-mode flag** - When run as tests (pytest with `--run-experiments`), the runner sets `PHYSIOTWIN_RUNNING_AS_TEST=1`. Scripts can read this (e.g. via `physiotwin4d.test_tools.TestTools.running_as_test()`) and use reduced parameters so test runs stay fast. See [tests/EXPERIMENT_TESTS_GUIDE.md](../tests/EXPERIMENT_TESTS_GUIDE.md#running-as-test-physiotwin_running_as_test).
-- **One test per subdirectory** - Each experiment subdirectory gets its own test function
-- **Alphanumeric ordering** - Scripts execute in alphanumeric order (e.g., `0-`, `1-`, `2-`)
-- **Long timeouts** - Each script has up to 1 hour execution time, tests have multi-hour timeouts
-- **Detailed output** - Progress reporting, execution summaries, and failure diagnostics
-- **Opt-in only** - Requires `--run-experiments` flag; automatically skipped otherwise
-- **Protected from CI/CD** - NEVER runs in automated workflows
-
-### Requirements
-
-These tests require:
-- All dependencies installed (see `pyproject.toml`)
-- GPU/CUDA support for most experiments
-- Large amounts of disk space and memory
-- External data downloads (see individual experiment scripts)
-
-### Important Notes
-
-**These tests are extremely long-running** - Plan for multiple hours of execution time
-
-**Not part of CI/CD** - These tests are excluded from all automated workflows
-
-**Resource intensive** - Requires GPU, significant memory, and disk space
+Each script requires all dependencies installed (see `pyproject.toml`),
+GPU/CUDA support in most cases, large amounts of disk space and memory, and
+external data downloads.
 
 ## Structure
 

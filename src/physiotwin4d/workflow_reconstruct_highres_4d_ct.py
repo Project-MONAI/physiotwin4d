@@ -64,7 +64,6 @@ class WorkflowReconstructHighres4DCT(PhysioTwin4DBase):
         reference_time_frame (int): Index of reference time frame in time series
         register_reference_time_frame_to_reference_image (bool): Whether to register
             the reference time frame to the reference image
-        prior_weight (float): Weight for temporal smoothing (0.0-1.0)
         upsample_to_fixed_resolution (bool): Whether to upsample reconstruction
         registrar (RegisterTimeSeriesImages): Internal registration object
         forward_transforms (list[itk.Transform]): one per frame; each warps its
@@ -152,7 +151,6 @@ class WorkflowReconstructHighres4DCT(PhysioTwin4DBase):
         )
 
         # Initialize parameters with defaults
-        self.prior_weight: float = 0.0
         self.upsample_to_fixed_resolution: bool = True
         self.modality: str = "ct"
         self.mask_dilation_mm: float = 0.0
@@ -169,22 +167,6 @@ class WorkflowReconstructHighres4DCT(PhysioTwin4DBase):
         self.inverse_transforms: Optional[list[itk.Transform]] = None
         self.losses: Optional[list[float]] = None
         self.reconstructed_images: Optional[list[itk.Image]] = None
-
-    def set_prior_weight(self, prior_weight: float) -> None:
-        """Set the weight for temporal smoothing with prior transforms.
-
-        Args:
-            prior_weight (float): Weight (0.0 to 1.0) for using the prior image's
-                transform to initialize the next registration. 0.0 means no prior
-                information is used (each registration starts from identity).
-                Higher values provide more temporal smoothness but may propagate errors.
-
-        Raises:
-            ValueError: If prior_weight not in [0.0, 1.0]
-        """
-        if not 0.0 <= prior_weight <= 1.0:
-            raise ValueError(f"prior_weight must be in [0.0, 1.0], got {prior_weight}")
-        self.prior_weight = prior_weight
 
     def set_modality(self, modality: str) -> None:
         """Set the imaging modality for registration optimization.
@@ -267,7 +249,6 @@ class WorkflowReconstructHighres4DCT(PhysioTwin4DBase):
             "Register reference time frame to reference image: "
             f"{self.register_reference_time_frame_to_reference_image}"
         )
-        self.log_info(f"Prior weight: {self.prior_weight}")
 
         # Perform registration
         result = self.registrar.register_time_series(
@@ -275,7 +256,6 @@ class WorkflowReconstructHighres4DCT(PhysioTwin4DBase):
             moving_masks=self.moving_masks,
             reference_frame=self.reference_time_frame,
             register_reference=self.register_reference_time_frame_to_reference_image,
-            prior_weight=self.prior_weight,
         )
 
         # Store results
@@ -378,7 +358,6 @@ class WorkflowReconstructHighres4DCT(PhysioTwin4DBase):
         registrar_type = type(self.registrar.registrar).__name__
         self.log_info(f"  Registration method: {registrar_type}")
         self.log_info(f"  Reference time frame: {self.reference_time_frame}")
-        self.log_info(f"  Prior weight: {self.prior_weight}")
         self.log_info(
             f"  Upsample to fixed resolution: {self.upsample_to_fixed_resolution}"
         )

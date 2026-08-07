@@ -18,7 +18,6 @@ import itk
 import numpy as np
 
 from .register_images_base import RegisterImagesBase
-from .transform_tools import TransformTools
 
 DEFAULT_FINETUNE_LEARNING_RATE = 2e-5
 
@@ -196,7 +195,6 @@ class RegisterImagesICON(RegisterImagesBase):
         moving_mask: Optional[itk.Image] = None,
         moving_labelmap: Optional[itk.Image] = None,
         moving_image_pre: Optional[itk.Image] = None,
-        initial_forward_transform: Optional[itk.Transform] = None,
     ) -> dict[str, Union[itk.Transform, float]]:
         """Register moving image to fixed image using ICON registration algorithm.
 
@@ -212,9 +210,6 @@ class RegisterImagesICON(RegisterImagesBase):
                 fixed_mask, enables mask-constrained registration
             moving_image_pre (itk.image, optional): Pre-processed moving image.
                 If None, preprocessing is performed automatically
-            initial_forward_transform (itk.Transform, optional): Initial transformation from moving
-                to fixed. If provided, it is used to transform the moving image before
-                registration.
 
         Returns:
             dict: Dictionary containing:
@@ -252,18 +247,10 @@ class RegisterImagesICON(RegisterImagesBase):
             >>> result = registrar.register(moving_image, moving_mask=heart_mask_moving)
         """
 
-        tfm_tools = TransformTools()
-
         if moving_image_pre is None:
             moving_image_pre = self.preprocess(moving_image, self.modality)
 
         new_moving_image_pre = moving_image_pre
-        if initial_forward_transform is not None:
-            new_moving_image_pre = tfm_tools.transform_image(
-                moving_image_pre,
-                initial_forward_transform,
-                self.fixed_image,
-            )
 
         # Prefer labelmap over binary mask when both sides have a labelmap.
         use_labelmaps = moving_labelmap is not None and self.fixed_labelmap is not None
@@ -300,22 +287,6 @@ class RegisterImagesICON(RegisterImagesBase):
             )
 
         loss = loss_artifacts[0]
-
-        if initial_forward_transform is not None:
-            forward_transform = tfm_tools.combine_displacement_field_transforms(
-                initial_forward_transform,
-                forward_transform,
-                self.fixed_image,
-                tfm1_weight=1.0,
-                tfm2_weight=1.0,
-                mode="compose",
-            )
-
-            dftfm = tfm_tools.convert_transform_to_displacement_field_transform(
-                forward_transform,
-                self.fixed_image,
-            )
-            inverse_transform = tfm_tools.invert_displacement_field_transform(dftfm)
 
         return {
             "forward_transform": forward_transform,

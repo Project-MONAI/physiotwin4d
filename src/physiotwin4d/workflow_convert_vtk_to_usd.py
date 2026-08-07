@@ -8,13 +8,14 @@ or colormap from a primvar with auto or specified intensity range).
 """
 
 import logging
+import re
 from pathlib import Path
-from typing import Any, Literal, Optional, Sequence, Union
+from typing import Any, Literal, Mapping, Optional, Sequence, Union
 
 import pyvista as pv
 import vtk
 
-from .convert_vtk_to_usd import ConvertVTKToUSD, _split_usd_extension
+from .convert_vtk_to_usd import ConvertVTKToUSD
 from .physiotwin4d_base import PhysioTwin4DBase
 from .usd_anatomy_tools import USDAnatomyTools
 from .usd_tools import USDTools
@@ -42,7 +43,8 @@ class WorkflowConvertVTKToUSD(PhysioTwin4DBase):
         time_codes: Optional[list[float]] = None,
         appearance: AppearanceKind = "solid",
         solid_color: tuple[float, float, float] = (0.8, 0.8, 0.8),
-        anatomy_type: str = "heart",
+        anatomy_type: Optional[str] = None,
+        object_names: Optional[Sequence[str]] = None,
         colormap_primvar: Optional[str] = None,
         colormap_name: str = "viridis",
         colormap_intensity_range: Optional[tuple[float, float]] = None,
@@ -74,8 +76,21 @@ class WorkflowConvertVTKToUSD(PhysioTwin4DBase):
                 static_merge is False. If None, uses sequential integers [0, 1, 2, ...].
             appearance: "solid" | "anatomy" | "colormap".
             solid_color: RGB in [0,1] when appearance == "solid".
-            anatomy_type: Anatomy material name when appearance == "anatomy"
-                (e.g. heart, lung, bone, soft_tissue).
+            anatomy_type: Anatomy material name applied to every mesh when
+                appearance == "anatomy" (e.g. heart, lung, bone, soft_tissue).
+                None (default) instead resolves a material per mesh prim from
+                that prim's name, so a stage whose objects are named after the
+                structures they hold gets per-structure materials (e.g.
+                ventricle_left vs. myocardium). A name matching no material
+                falls back to the object's ``field_data['AnatomyGroup']``
+                (so "rib_left_3" still reaches the bone material) and then to
+                the "other" material.
+            object_names: Prim names aligned to input_meshes, used when
+                static_merge is True. None (default) derives them from each
+                mesh's ``field_data['SegmentationLabelNames']`` when that holds
+                exactly one name (as written by
+                :class:`WorkflowConvertImageToVTK`), and falls back to
+                ``{usd_project_name}_{index}`` otherwise.
             colormap_primvar: Primvar name for coloring when appearance == "colormap"
                 (e.g. vtk_point_stress_c0). If None, a candidate is auto-picked when possible.
             colormap_name: Matplotlib colormap name when appearance == "colormap".
@@ -84,9 +99,13 @@ class WorkflowConvertVTKToUSD(PhysioTwin4DBase):
         """
         super().__init__(class_name=self.__class__.__name__, log_level=log_level)
         self.input_meshes = list(input_meshes)
-        self.usd_project_name, self._usd_extension = _split_usd_extension(
-            usd_project_name
-        )
+        suffix = Path(usd_project_name).suffix
+        if suffix.lower() in {".usd", ".usda", ".usdc"}:
+            self.usd_project_name = usd_project_name[: -len(suffix)]
+            self._usd_extension = suffix
+        else:
+            self.usd_project_name = usd_project_name
+            self._usd_extension = ".usd"
         self.output_directory = Path(output_directory)
         self.separate_by_connectivity = separate_by_connectivity
         self.separate_by_cell_type = separate_by_cell_type
@@ -97,6 +116,7 @@ class WorkflowConvertVTKToUSD(PhysioTwin4DBase):
         self.appearance = appearance
         self.solid_color = solid_color
         self.anatomy_type = anatomy_type
+        self.object_names = list(object_names) if object_names is not None else None
         self.colormap_primvar = colormap_primvar
         self.colormap_name = colormap_name
         self.colormap_intensity_range = colormap_intensity_range
@@ -105,6 +125,51 @@ class WorkflowConvertVTKToUSD(PhysioTwin4DBase):
             raise ValueError(
                 "separate_by_connectivity and separate_by_cell_type cannot both be True"
             )
+
+    def _read_object_annotations(self) -> list[tuple[Optional[str], Optional[str]]]:
+        """Return ``(structure name, anatomy group)`` per input mesh.
+
+        Both come from the annotation :class:`WorkflowConvertImageToVTK` writes
+        onto each surface: the name from ``field_data['SegmentationLabelNames']``
+        when it holds exactly one entry, the group from
+        ``field_data['AnatomyGroup']``. Either is ``None`` when absent.
+        """
+        annotations: list[tuple[Optional[str], Optional[str]]] = []
+        for mesh in self.input_meshes:
+            if not isinstance(mesh, pv.DataSet) and isinstance(mesh, vtk.vtkDataSet):
+                mesh = pv.wrap(mesh)
+            if not isinstance(mesh, pv.DataSet):
+                annotations.append((None, None))
+                continue
+            label_names = mesh.field_data.get("SegmentationLabelNames")
+            groups = mesh.field_data.get("AnatomyGroup")
+            name = (
+                str(label_names[0])
+                if label_names is not None and len(label_names) == 1
+                else None
+            )
+            group = str(groups[0]) if groups is not None and len(groups) else None
+            annotations.append((name, group))
+        return annotations
+
+    def _anatomy_candidates(
+        self, mesh_path: str, object_groups: Mapping[str, str]
+    ) -> list[str]:
+        """Return the anatomy names to try for *mesh_path*, best match first.
+
+        With ``anatomy_type`` set, that one name is the only candidate. Without
+        it, the prim's own name is tried first, then the anatomy group of the
+        object it came from — so ``"rib_left_3"``, which matches no material of
+        its own, still lands on the bone material through its group.
+        """
+        if self.anatomy_type is not None:
+            return [self.anatomy_type]
+        # Connectivity/cell-type splitting appends "_objectN" to the object
+        # name; strip it to recover the name object_groups is keyed by.
+        leaf = mesh_path.rsplit("/", 1)[-1]
+        object_name = re.sub(r"_object\d+$", "", leaf)
+        group = object_groups.get(object_name)
+        return [object_name] if group is None else [object_name, group]
 
     def process(self) -> dict[str, Any]:
         """
@@ -147,6 +212,33 @@ class WorkflowConvertVTKToUSD(PhysioTwin4DBase):
             else "none"
         )
 
+        # Object names only name prims in the static-merge layout; a time
+        # series writes one prim per part across all frames instead.
+        annotations = self._read_object_annotations()
+        object_names = None
+        if self.static_merge:
+            object_names = self.object_names
+            if object_names is None and any(name for name, _ in annotations):
+                object_names = [
+                    name or f"{self.usd_project_name}_{index}"
+                    for index, (name, _) in enumerate(annotations)
+                ]
+            if object_names is not None:
+                self.log_info("Naming objects: %s", ", ".join(object_names))
+
+        # Anatomy group per object name, used as the fallback when the name
+        # itself matches no material (e.g. "rib_left_3" -> the bone group).
+        # Keyed by the prim names ConvertVTKToUSD will actually emit, which fall
+        # back to "<project>_<index>" when no object_names were derived.
+        object_groups: dict[str, str] = {}
+        if self.static_merge:
+            group_keys = object_names or [
+                f"{self.usd_project_name}_{index}" for index in range(len(annotations))
+            ]
+            for object_name, (_, group) in zip(group_keys, annotations):
+                if group is not None:
+                    object_groups[object_name] = group
+
         converter = ConvertVTKToUSD(
             data_basename=self.usd_project_name,
             input_polydata=self.input_meshes,
@@ -156,6 +248,7 @@ class WorkflowConvertVTKToUSD(PhysioTwin4DBase):
             solid_color=self.solid_color,
             static_merge=self.static_merge,
             time_codes=time_codes,
+            object_names=object_names,
             log_level=self.log_level,
         )
         stage = converter.convert(str(output_usd))
@@ -191,9 +284,22 @@ class WorkflowConvertVTKToUSD(PhysioTwin4DBase):
         elif self.appearance == "anatomy":
             anatomy_tools = USDAnatomyTools(stage, log_level=self.log_level)
             for mesh_path in mesh_paths:
-                anatomy_tools.apply_anatomy_material_to_mesh(
-                    mesh_path, self.anatomy_type
+                candidates = self._anatomy_candidates(mesh_path, object_groups)
+                selected = next(
+                    (
+                        candidate
+                        for candidate in candidates
+                        if anatomy_tools.resolve_anatomy_type(candidate) is not None
+                    ),
+                    None,
                 )
+                if selected is None:
+                    self.log_warning(
+                        "No anatomy material matches %s; using 'other'",
+                        " or ".join(candidates),
+                    )
+                    selected = "other"
+                anatomy_tools.apply_anatomy_material_to_mesh(mesh_path, selected)
             stage.Save()
 
         elif self.appearance == "colormap":

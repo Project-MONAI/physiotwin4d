@@ -318,6 +318,54 @@ class ContourTools(PhysioTwin4DBase):
 
         return labelmap_image
 
+    @staticmethod
+    def sample_mesh_faces(mesh: pv.DataSet, max_spacing: float) -> np.ndarray:
+        """Return mesh points supplemented by samples across the triangle faces.
+
+        Rasterizing vertices alone leaves gaps between them on meshes that are
+        coarse relative to the voxel size, which makes a distance map built from
+        them ripple. Adding barycentric samples dense enough that consecutive
+        samples are closer than ``max_spacing`` closes those gaps.
+
+        Args:
+            mesh: Source mesh; its surface is triangulated if needed.
+            max_spacing: Target spacing between samples, in mm.
+
+        Returns:
+            (n, 3) array of sample points, starting with the mesh's own points.
+        """
+        points = np.asarray(mesh.points, dtype=np.float64)
+        surface = mesh.extract_surface() if not isinstance(mesh, pv.PolyData) else mesh
+        surface = surface.triangulate()
+        if surface.faces.size == 0:
+            return points
+        faces = surface.faces.reshape(-1, 4)[:, 1:]
+
+        vertices = np.asarray(surface.points, dtype=np.float64)
+        corners = vertices[faces]  # (n_faces, 3, 3)
+        edge_lengths = np.linalg.norm(
+            corners - np.roll(corners, 1, axis=1), axis=2
+        ).max(axis=1)
+
+        # Group faces by how finely they need to be subdivided so each division
+        # level is generated as one vectorized batch.
+        divisions = np.maximum(1, np.ceil(edge_lengths / max(max_spacing, 1e-6)))
+        divisions = np.minimum(divisions, 64).astype(np.int64)
+
+        samples = [points]
+        for level in np.unique(divisions):
+            if level < 2:
+                continue
+            selected = corners[divisions == level]
+            # Barycentric lattice with `level` divisions per edge.
+            steps = np.arange(level + 1, dtype=np.float64) / level
+            u, v = np.meshgrid(steps, steps, indexing="ij")
+            mask = (u + v) <= 1.0
+            weights = np.column_stack([1.0 - u[mask] - v[mask], u[mask], v[mask]])
+            samples.append(np.einsum("fca,kc->fka", selected, weights).reshape(-1, 3))
+
+        return np.concatenate(samples, axis=0)
+
     def create_distance_map(
         self,
         mesh: pv.DataSet | pv.UnstructuredGrid,
@@ -326,37 +374,62 @@ class ContourTools(PhysioTwin4DBase):
         negative_inside: bool = True,
         zero_inside: bool = False,
         norm_to_max_distance: float = 0.0,
+        sample_faces: bool = True,
     ) -> itk.Image:
-        self.log_info("Computing signed distance map...")
+        """Compute a distance map of a mesh on the reference image's grid.
 
-        # Convert mask to binary
-        points = mesh.points
+        Args:
+            mesh: Mesh whose surface the distances are measured to.
+            reference_image: Image defining the output grid.
+            squared_distance: Sign-preserving square of the result. Default: False
+            negative_inside: Keep the signed output. Default: True
+            zero_inside: Clip negative values to zero before anything else.
+                Default: False
+            norm_to_max_distance: If non-zero, divide by this value and clip to
+                [-1, 1]. Default: 0.0 (distances stay in mm)
+            sample_faces: Rasterize samples across the triangle faces as well as
+                the vertices, so that coarse meshes do not leave gaps in the
+                rasterized surface. Default: True
+
+        Returns:
+            ITK image of distances on the reference grid.
+        """
+        self.log_info("Computing signed distance map...")
 
         size = reference_image.GetLargestPossibleRegion().GetSize()
 
+        if sample_faces:
+            points = self.sample_mesh_faces(
+                mesh, 0.5 * float(min(reference_image.GetSpacing()))
+            )
+            self.log_debug(
+                "Distance map: %d face samples from %d mesh points",
+                len(points),
+                mesh.n_points,
+            )
+        else:
+            points = np.asarray(mesh.points, dtype=np.float64)
+
         # NumPy convention is (z, y, x); ITK GetSize() returns (x, y, z)
-        tmp_arr = np.zeros((size[2], size[1], size[0]), dtype=np.int32)
-        itk_point = itk.Point[itk.D, 3]()
-        point_count = 0
-        for point in points:
-            itk_point[0] = float(point[0])
-            itk_point[1] = float(point[1])
-            itk_point[2] = float(point[2])
-            indx = reference_image.TransformPhysicalPointToIndex(itk_point)
-            if (
-                indx[0] < 0
-                or indx[1] < 0
-                or indx[2] < 0
-                or indx[0] >= size[0]
-                or indx[1] >= size[1]
-                or indx[2] >= size[2]
-            ):
-                continue
-            tmp_arr[indx[2], indx[1], indx[0]] = 1
-            point_count += 1
+        tmp_arr = np.zeros((size[2], size[1], size[0]), dtype=np.uint8)
+
+        # Bulk equivalent of TransformPhysicalPointToIndex, which rounds half up.
+        index_to_world = itk.array_from_matrix(
+            reference_image.GetDirection()
+        ) @ np.diag(np.asarray(reference_image.GetSpacing()))
+        origin = np.asarray(reference_image.GetOrigin(), dtype=np.float64)
+        indices = np.floor(
+            (points - origin) @ np.linalg.inv(index_to_world).T + 0.5
+        ).astype(np.int64)
+        size_arr = np.array([size[0], size[1], size[2]], dtype=np.int64)
+        inside = np.all((indices >= 0) & (indices < size_arr), axis=1)
+        indices = indices[inside]
+        point_count = len(indices)
+        if point_count:
+            tmp_arr[indices[:, 2], indices[:, 1], indices[:, 0]] = 1
 
         self.log_info(
-            "Distance map: %d/%d surface points within reference image",
+            "Distance map: %d/%d surface samples within reference image",
             point_count,
             len(points),
         )
@@ -370,8 +443,17 @@ class ContourTools(PhysioTwin4DBase):
                 str(size),
                 str(reference_image.GetSpacing()),
             )
+        elif not inside.all():
+            # Distances near the dropped region are measured to whatever samples
+            # remain in the grid, so they are larger than the true distance.
+            self.log_warning(
+                "%d of %d surface samples fall outside the reference image; "
+                "distances near that boundary are overestimated.",
+                len(points) - point_count,
+                len(points),
+            )
 
-        tmp_binary_image = itk.GetImageFromArray(tmp_arr.astype(np.uint8))
+        tmp_binary_image = itk.GetImageFromArray(tmp_arr)
         tmp_binary_image.CopyInformation(reference_image)
         assert (
             tmp_binary_image.GetLargestPossibleRegion().GetSize()
@@ -545,17 +627,27 @@ class ContourTools(PhysioTwin4DBase):
         surface's annotation, enabling colour-by-anatomy rendering in
         Paraview, PyVista, etc.
 
+        It also gains a per-cell ``SegmentationLabelIds`` (int32) array, which
+        carries each cell's originating label ID so structure identity survives
+        the merge.  Downstream, :class:`ConvertVTKToUSD` splits on this array
+        when given ``mask_ids``, giving one prim (and one anatomy material) per
+        structure.  A surface whose ``field_data['SegmentationLabelIds']`` does
+        not hold exactly one ID has no per-cell attribution — that is the case
+        for the per-group surfaces of :class:`WorkflowConvertImageToVTK`, which
+        are contoured from a merged binary mask — so its cells are tagged ``0``.
+        Pass the per-label surfaces (``'label_surfaces'``) to get real IDs.
+
         Per-object ``field_data`` is *not* preserved: it is per-object, so a
-        single merged mesh cannot carry one value per input surface.  The keys
-        set by :meth:`WorkflowConvertImageToVTK._annotate` are therefore lost:
+        single merged mesh cannot carry one value per input surface.  The
+        remaining keys set by :meth:`WorkflowConvertImageToVTK._annotate` are
+        therefore lost:
 
         - ``AnatomyGroup`` — group name, e.g. ``'heart'``.
         - ``SegmentationLabelNames`` — structure names within the group.
-        - ``SegmentationLabelIds`` — corresponding integer label IDs.
         - ``AnatomyColor`` — RGB float color (survives indirectly as the
           per-cell ``Color`` array).
 
-        Use :meth:`save_surfaces` instead when structure identity must be
+        Use :meth:`save_surfaces` instead when structure *names* must be
         recoverable from the saved files.
 
         Args:
@@ -574,8 +666,20 @@ class ContourTools(PhysioTwin4DBase):
         output_dir = os.path.dirname(output_filename)
         if output_dir:
             os.makedirs(output_dir, exist_ok=True)
-        merged = cast(
-            pv.PolyData, pv.merge(list(surfaces.values()), merge_points=False)
-        )
+        # Shallow copies so tagging does not add an array to the caller's
+        # surfaces; the point/cell arrays themselves stay shared.
+        tagged: list[pv.PolyData] = []
+        for surface in surfaces.values():
+            label_ids = surface.field_data.get("SegmentationLabelIds")
+            if label_ids is not None and len(label_ids) == 1:
+                label_id = int(label_ids[0])
+            else:
+                label_id = 0
+            tagged_surface = surface.copy(deep=False)
+            tagged_surface.cell_data["SegmentationLabelIds"] = np.full(
+                tagged_surface.n_cells, label_id, dtype=np.int32
+            )
+            tagged.append(tagged_surface)
+        merged = cast(pv.PolyData, pv.merge(tagged, merge_points=False))
         merged.save(output_filename)
         return output_filename

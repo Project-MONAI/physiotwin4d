@@ -66,6 +66,22 @@ class TrainPhysicsNeMoMGN(TrainPhysicsNeMoBase):
             raise ValueError(f"num_layers must be >= 1, got {num_layers}")
         self.num_layers = num_layers
 
+    def set_num_processor_checkpoint_segments(self, num_segments: int) -> None:
+        """Set the gradient-checkpointing segment count for the processor.
+
+        Gradient checkpointing recomputes processor activations during the
+        backward pass instead of storing them, trading compute for GPU memory.
+        A large mesh graph makes that trade worthwhile: a 179k-point, 1.07M-edge
+        template peaks near 43 GiB at ``batch_size`` 4 without it.
+
+        Args:
+            num_segments: Number of checkpointed segments; ``0`` (the default)
+                disables checkpointing and stores every activation.
+        """
+        if num_segments < 0:
+            raise ValueError(f"num_segments must be >= 0, got {num_segments}")
+        self.num_processor_checkpoint_segments = num_segments
+
     def build_model(self, in_features: int, out_features: int) -> "torch.nn.Module":
         try:
             import torch_geometric  # noqa: F401 - needed by the graph seams

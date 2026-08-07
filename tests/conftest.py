@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 import itk
+import numpy as np
 import pytest
 
 from physiotwin4d.contour_tools import ContourTools
@@ -38,7 +39,6 @@ _pytest_config: Optional[pytest.Config] = None
 
 
 _RUN_BUCKET_FLAGS = (
-    "--run-experiments",
     "--run-tutorials",
     "--run-simpleware",
     "--run-slow",
@@ -57,12 +57,6 @@ def _run_bucket_enabled(config: pytest.Config, flag: str) -> bool:
 
 def pytest_addoption(parser: pytest.Parser) -> None:
     """Add custom command-line options for pytest."""
-    parser.addoption(
-        "--run-experiments",
-        action="store_true",
-        default=False,
-        help="Run experiment tests (extremely long-running notebook tests)",
-    )
     parser.addoption(
         "--run-tutorials",
         action="store_true",
@@ -126,10 +120,6 @@ def pytest_configure(config: pytest.Config) -> None:
 
     config.addinivalue_line(
         "markers",
-        "experiment: marks tests that run experiment notebooks (extremely slow, manual only)",
-    )
-    config.addinivalue_line(
-        "markers",
         "tutorial: marks tests that run tutorial scripts (data/GPU gated, manual only)",
     )
     config.addinivalue_line(
@@ -154,21 +144,12 @@ def pytest_collection_modifyitems(
     config: pytest.Config, items: list[pytest.Item]
 ) -> None:
     """
-    Automatically skip experiment and tutorial tests unless their opt-in flags
-    are passed.
+    Automatically skip bucketed tests unless their opt-in flags are passed.
 
-    This ensures that experiment tests are opt-in only and won't run
+    This ensures that long-running tests are opt-in only and won't run
     accidentally when running the normal test suite.
     """
     for item in items:
-        if "experiment" in item.keywords and not _run_bucket_enabled(
-            config, "--run-experiments"
-        ):
-            item.add_marker(
-                pytest.mark.skip(
-                    reason="Experiment tests require --run-experiments (or --run-all) to run"
-                )
-            )
         if "tutorial" in item.keywords and not _run_bucket_enabled(
             config, "--run-tutorials"
         ):
@@ -232,7 +213,6 @@ def pytest_runtest_logreport(report: pytest.TestReport) -> None:
             "nodeid": report.nodeid,
             "duration": report.duration,
             "outcome": report.outcome,
-            "is_experiment": "experiment" in report.keywords,
             "is_tutorial": "tutorial" in report.keywords,
         }
 
@@ -249,7 +229,7 @@ def pytest_terminal_summary(
     Print comprehensive test timing report after all tests complete.
 
     This hook is called at the end of the test session to display
-    timing statistics for all tests, including experiment tests.
+    timing statistics for all tests, including tutorial tests.
     """
     timings = config._test_timings  # type: ignore[attr-defined]
     tests = timings["tests"]
@@ -260,12 +240,9 @@ def pytest_terminal_summary(
     # Calculate session duration
     session_duration = datetime.now() - timings["start_time"]
 
-    # Separate regular, tutorial, and experiment tests
-    regular_tests = [
-        t for t in tests if not t["is_experiment"] and not t["is_tutorial"]
-    ]
+    # Separate regular and tutorial tests
+    regular_tests = [t for t in tests if not t["is_tutorial"]]
     tutorial_tests = [t for t in tests if t["is_tutorial"]]
-    experiment_tests = [t for t in tests if t["is_experiment"]]
 
     # Write the timing report
     terminalreporter.write_sep("=", "TEST TIMING REPORT", bold=True)
@@ -322,33 +299,6 @@ def pytest_terminal_summary(
             )
         terminalreporter.write_line("")
 
-    # Experiment tests section
-    if experiment_tests:
-        terminalreporter.write_sep("-", "Experiment Tests", bold=True)
-        terminalreporter.write_line(f"Count: {len(experiment_tests)}")
-
-        # Sort by duration (longest first)
-        sorted_experiments = sorted(
-            experiment_tests, key=lambda x: x["duration"], reverse=True
-        )
-
-        # Calculate total time
-        experiment_total = sum(t["duration"] for t in experiment_tests)
-        terminalreporter.write_line(
-            f"Total Time: {timedelta(seconds=int(experiment_total))}"
-        )
-        terminalreporter.write_line("")
-
-        # Show all experiment tests with timing
-        terminalreporter.write_line("Individual Test Times:")
-        for test in sorted_experiments:
-            outcome_symbol = "+" if test["outcome"] == "passed" else "x"
-            duration_str = _format_duration(test["duration"])
-            terminalreporter.write_line(
-                f"  {outcome_symbol} {duration_str:>10s}  {test['nodeid']}"
-            )
-        terminalreporter.write_line("")
-
     # Top 10 slowest tests overall
     if len(tests) > 10:
         terminalreporter.write_sep("-", "Top 10 Slowest Tests", bold=True)
@@ -357,12 +307,7 @@ def pytest_terminal_summary(
         for i, test in enumerate(sorted_all, 1):
             outcome_symbol = "+" if test["outcome"] == "passed" else "x"
             duration_str = _format_duration(test["duration"])
-            if test["is_experiment"]:
-                test_type = "[EXP]"
-            elif test["is_tutorial"]:
-                test_type = "[TUT]"
-            else:
-                test_type = "[REG]"
+            test_type = "[TUT]" if test["is_tutorial"] else "[REG]"
             terminalreporter.write_line(
                 f"  {i:2d}. {outcome_symbol} {duration_str:>10s} {test_type} {test['nodeid']}"
             )
@@ -662,3 +607,74 @@ def registrar_ICON() -> RegisterImagesICON:
 def transform_tools() -> TransformTools:
     """Create a TransformTools instance."""
     return TransformTools()
+
+
+class KnownShiftCase:
+    """A registration case whose correct answer is known exactly.
+
+    ``moving`` is built by resampling ``fixed`` through a translation of
+    ``shift_mm``, so ``moving(q) == fixed(q + shift_mm)``. Warping ``moving``
+    back onto the fixed grid therefore requires a ``forward_transform`` of
+    ``-shift_mm``, which gives an absolute accuracy target instead of the
+    "did it return something" checks that let a sign error go unnoticed.
+    """
+
+    def __init__(self, fixed_image: itk.Image, shift_mm: tuple[float, float, float]):
+        """Build the shifted pair.
+
+        Args:
+            fixed_image: Image used as the registration target.
+            shift_mm: Content displacement applied to build the moving image.
+                Use a different magnitude and sign per axis so an axis swap or a
+                sign flip cannot pass.
+        """
+        self.transform_tools = TransformTools()
+        self.fixed = fixed_image
+        self.shift_mm = shift_mm
+        self.expected_displacement = np.array([-v for v in shift_mm])
+
+        shift = itk.TranslationTransform[itk.D, 3].New()
+        shift.SetOffset(list(shift_mm))
+        self.moving = self.transform_tools.transform_image(
+            fixed_image, shift, fixed_image, interpolation_method="linear"
+        )
+
+        size = itk.size(fixed_image)
+        self._center = list(
+            fixed_image.TransformIndexToPhysicalPoint(
+                [int(size[i]) // 2 for i in range(3)]
+            )
+        )
+        # Score over the brightest 30% of the fixed image (tissue and blood
+        # pool); background air correlates trivially and would mask errors.
+        self._fixed_array = itk.array_from_image(fixed_image)
+        self._foreground = self._fixed_array >= np.percentile(self._fixed_array, 70)
+
+    def center_error_mm(self, forward_transform: itk.Transform) -> float:
+        """Distance, in mm, between the recovered and true displacement."""
+        displacement = np.array(
+            list(forward_transform.TransformPoint(self._center))
+        ) - np.array(self._center)
+        return float(np.linalg.norm(displacement - self.expected_displacement))
+
+    def foreground_ncc(self, forward_transform: itk.Transform) -> float:
+        """Normalized cross-correlation after warping moving onto the fixed grid."""
+        warped = self.transform_tools.transform_image(
+            self.moving, forward_transform, self.fixed, interpolation_method="linear"
+        )
+        moved = itk.array_from_image(warped)[self._foreground]
+        target = self._fixed_array[self._foreground]
+        moved = moved - moved.mean()
+        target = target - target.mean()
+        denominator = np.sqrt((moved**2).sum() * (target**2).sum())
+        return float((moved * target).sum() / denominator) if denominator else 0.0
+
+    def unregistered_ncc(self) -> float:
+        """Baseline score with no registration, for a floor to beat."""
+        return self.foreground_ncc(itk.TranslationTransform[itk.D, 3].New())
+
+
+@pytest.fixture(scope="session")
+def known_shift_case(test_images: list[Any]) -> KnownShiftCase:
+    """A moving/fixed pair separated by a known (6, -4, 3) mm shift."""
+    return KnownShiftCase(test_images[0], (6.0, -4.0, 3.0))

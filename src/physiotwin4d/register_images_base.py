@@ -236,7 +236,6 @@ class RegisterImagesBase(PhysioTwin4DBase):
         moving_mask: Optional[itk.Image] = None,
         moving_labelmap: Optional[itk.Image] = None,
         moving_image_pre: Optional[itk.Image] = None,
-        initial_forward_transform: Optional[itk.Transform] = None,
     ) -> dict[str, Union[itk.Transform, float]]:
         """Main registration method to align moving image to fixed image.
 
@@ -252,7 +251,6 @@ class RegisterImagesBase(PhysioTwin4DBase):
             moving_mask (itk.image, optional): Binary mask for moving image ROI
             moving_labelmap (itk.image, optional): Multi-label segmentation for the moving image
             moving_image_pre (itk.image, optional): Preprocessed moving image
-            initial_forward_transform (itk.Transform, optional): Initial transformation from moving to fixed
 
         Returns:
             dict: Dictionary containing:
@@ -274,7 +272,6 @@ class RegisterImagesBase(PhysioTwin4DBase):
         moving_mask: Optional[itk.Image] = None,
         moving_labelmap: Optional[itk.Image] = None,
         moving_image_pre: Optional[itk.Image] = None,
-        initial_forward_transform: Optional[itk.Transform] = None,
     ) -> dict[str, Union[itk.Transform, float]]:
         """Register a moving image to the fixed image.
 
@@ -282,12 +279,14 @@ class RegisterImagesBase(PhysioTwin4DBase):
         concrete subclasses. It should align the moving image to the fixed
         image using the specific algorithm implemented by the subclass.
 
+        To start from a known alignment, use :meth:`register_from` rather than
+        seeding the backend directly.
+
         Args:
             moving_image (itk.image): The 3D image to be registered to the fixed image
             moving_mask (itk.image, optional): Binary mask for moving image ROI
             moving_labelmap (itk.image, optional): Multi-label segmentation for the moving image
             moving_image_pre (itk.image, optional): Preprocessed moving image
-            initial_forward_transform (itk.Transform, optional): Initial transformation from moving to fixed
 
         Returns:
             dict: Dictionary containing transformation results:
@@ -347,7 +346,6 @@ class RegisterImagesBase(PhysioTwin4DBase):
             moving_mask=new_moving_mask,
             moving_labelmap=moving_labelmap,
             moving_image_pre=moving_image_pre,
-            initial_forward_transform=initial_forward_transform,
         )
 
         self.forward_transform = result["forward_transform"]
@@ -359,6 +357,190 @@ class RegisterImagesBase(PhysioTwin4DBase):
             "inverse_transform": self.inverse_transform,
             "loss": self.loss,
         }
+
+    def register_from(
+        self,
+        initial_forward_transform: itk.Transform,
+        moving_image: itk.Image,
+        moving_mask: Optional[itk.Image] = None,
+        moving_labelmap: Optional[itk.Image] = None,
+    ) -> dict[str, Union[itk.Transform, float]]:
+        """Register starting from a known alignment.
+
+        The moving data is warped onto the fixed grid by
+        ``initial_forward_transform`` first, :meth:`register` then measures only
+        the residual misalignment, and the two are composed. This is the single
+        supported way to seed a registration: doing it here rather than inside
+        each backend keeps the pre-warp, the composition and the inversion
+        identical for every algorithm.
+
+        The image, the mask and the labelmap are all pre-warped, so they stay in
+        the same frame as each other; the mask and labelmap use nearest-neighbor
+        interpolation to preserve their discrete values.
+
+        Args:
+            initial_forward_transform: Starting alignment, in the same
+                convention as the returned ``forward_transform`` -- it warps the
+                moving image onto the fixed grid.
+            moving_image: The 3D image to be registered to the fixed image.
+            moving_mask: Binary mask for the moving image ROI.
+            moving_labelmap: Multi-label segmentation for the moving image.
+
+        Returns:
+            dict: Same keys as :meth:`register`, with the transforms composed so
+            they map between the *original* moving image and the fixed image.
+
+        Raises:
+            ValueError: If the fixed image has not been set.
+        """
+        warped_image, warped_mask, warped_labelmap = self._prewarp_moving(
+            initial_forward_transform, moving_image, moving_mask, moving_labelmap
+        )
+        result = self.register(
+            warped_image,
+            moving_mask=warped_mask,
+            moving_labelmap=warped_labelmap,
+        )
+        composed = self._compose_with_initial(
+            initial_forward_transform, result, moving_image
+        )
+
+        # register() left the pre-warped image on self; the composed transforms
+        # are defined against the original, so restore it and drop any
+        # registered-image cache built for the pre-warped one.
+        self.moving_image = moving_image
+        self.moving_image_registered = None
+
+        self.forward_transform = composed["forward_transform"]
+        self.inverse_transform = composed["inverse_transform"]
+        self.loss = composed["loss"]
+        return composed
+
+    def _prewarp_moving(
+        self,
+        initial_forward_transform: itk.Transform,
+        moving_image: itk.Image,
+        moving_mask: Optional[itk.Image],
+        moving_labelmap: Optional[itk.Image],
+    ) -> tuple[itk.Image, Optional[itk.Image], Optional[itk.Image]]:
+        """Warp the moving image, mask and labelmap onto the fixed grid.
+
+        Args:
+            initial_forward_transform: Alignment to apply, in the image-warp
+                convention.
+            moving_image: Raw moving image.
+            moving_mask: Moving mask, or None.
+            moving_labelmap: Moving labelmap, or None.
+
+        Returns:
+            Tuple of the warped ``(image, mask, labelmap)``, the latter two None
+            when not supplied. The mask and labelmap are warped with
+            nearest-neighbor interpolation to keep their discrete values.
+
+        Raises:
+            ValueError: If the fixed image has not been set.
+        """
+        if self.fixed_image is None:
+            raise ValueError("Fixed image must be set before registration.")
+
+        transform_tools = TransformTools()
+        self.log_info("Pre-warping moving data with the initial transform...")
+
+        def _warp(image: Optional[itk.Image], nearest: bool) -> Optional[itk.Image]:
+            if image is None:
+                return None
+            return transform_tools.transform_image(
+                image,
+                initial_forward_transform,
+                self.fixed_image,
+                interpolation_method="nearest" if nearest else "linear",
+            )
+
+        return (
+            _warp(moving_image, nearest=False),
+            _warp(moving_mask, nearest=True),
+            _warp(moving_labelmap, nearest=True),
+        )
+
+    def _compose_with_initial(
+        self,
+        initial_forward_transform: itk.Transform,
+        result: dict[str, Union[itk.Transform, float]],
+        moving_image: itk.Image,
+    ) -> dict[str, Union[itk.Transform, float]]:
+        """Compose a residual registration result onto its initial transform.
+
+        Args:
+            initial_forward_transform: The alignment the moving data was
+                pre-warped by.
+            result: Result of registering the pre-warped data.
+            moving_image: Raw moving image, whose grid defines the domain the
+                initial transform is inverted over.
+
+        Returns:
+            The result dict with both transforms mapping between the *original*
+            moving image and the fixed image.
+        """
+        transform_tools = TransformTools()
+
+        # The registration measured the residual from the pre-warped position,
+        # so the total is the initial transform followed by that residual. An
+        # itk.CompositeTransform applies its transforms in reverse order of
+        # addition, so adding the initial first makes the residual apply first --
+        # which is what the image-warp direction needs: a fixed-grid sample is
+        # mapped by the residual, then by the initial transform, to land in the
+        # original moving image.
+        forward_transform = itk.CompositeTransform[itk.D, 3].New()
+        self._add_transform_flattened(forward_transform, initial_forward_transform)
+        self._add_transform_flattened(
+            forward_transform, cast(itk.Transform, result["forward_transform"])
+        )
+
+        # The inverse runs the other way -- a moving-grid sample is mapped by the
+        # initial transform's inverse into the pre-warped frame, then by the
+        # residual's inverse into the fixed image -- so the additions are
+        # reversed too.
+        initial_inverse = transform_tools.invert_transform(
+            initial_forward_transform, moving_image
+        )
+        inverse_transform = itk.CompositeTransform[itk.D, 3].New()
+        self._add_transform_flattened(
+            inverse_transform, cast(itk.Transform, result["inverse_transform"])
+        )
+        self._add_transform_flattened(inverse_transform, initial_inverse)
+
+        return {
+            "forward_transform": forward_transform,
+            "inverse_transform": inverse_transform,
+            "loss": result["loss"],
+        }
+
+    @staticmethod
+    def _add_transform_flattened(
+        composite: itk.CompositeTransform, transform: itk.Transform
+    ) -> None:
+        """Append a transform to a composite, splicing in nested composites.
+
+        itk.HDF5TransformIO refuses to write a CompositeTransform that holds
+        another CompositeTransform ("Composite Transform can only be 1st
+        transform in a file"), which every multi-stage registration would
+        otherwise produce: RegisterImagesGreedy already returns an affine+warp
+        composite, and composing a residual onto it would nest that composite.
+
+        Splicing the sub-transforms in at the position their composite occupied
+        leaves the mapping unchanged, since itk.CompositeTransform applies its
+        queue back to front either way.
+
+        The down_cast is required: ITK hands back base-typed ``itkTransformD33``
+        Python objects from ``GetInverseTransform()`` and ``GetNthTransform()``,
+        which carry none of CompositeTransform's methods.
+        """
+        transform = itk.down_cast(transform)
+        if isinstance(transform, itk.CompositeTransform[itk.D, 3]):
+            for i in range(transform.GetNumberOfTransforms()):
+                composite.AddTransform(transform.GetNthTransform(i))
+        else:
+            composite.AddTransform(transform)
 
     def _delegate_to(
         self,

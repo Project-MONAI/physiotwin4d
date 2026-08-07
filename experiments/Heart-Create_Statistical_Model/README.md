@@ -228,7 +228,8 @@ For ICON registration:
 - Check alignment quality from step 2 (ICP should produce good initial alignment)
 - Verify average surface looks reasonable before step 3
 - If Greedy affine fails, check input mesh quality and topology
-- If ICON deformable quality is poor, increase `icon_iterations` in the `register()` call
+- If ICON deformable quality is poor, increase the iteration count on the
+  registrar's ICON instance: `registrar.registrar_ICON.set_number_of_iterations(...)`
 
 ### Import Errors
 - Ensure all PhysioTwin4D dependencies are installed

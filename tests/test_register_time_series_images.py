@@ -145,7 +145,6 @@ class TestRegisterTimeSeriesImages:
             moving_images=moving_images,
             reference_frame=0,
             register_reference=True,
-            prior_weight=0.0,
         )
 
         # Verify result structure
@@ -207,16 +206,15 @@ class TestRegisterTimeSeriesImages:
         assert (results_dir / "basic_forward_transform_0.hdf").exists()
         assert (results_dir / "basic_time_series_registered_0.mha").exists()
 
-    def test_register_time_series_with_prior(
+    def test_register_time_series_from_middle_frame(
         self, test_images: list[Any], test_directories: dict[str, Path]
     ) -> None:
-        """Test time series registration with prior transform usage."""
+        """Test time series registration starting from a middle reference frame."""
         fixed_image = test_images[0]
         moving_images = test_images[1:4]
 
-        print("\nRegistering time series (with prior)...")
+        print("\nRegistering time series (middle reference frame)...")
         print(f"  Number of moving images: {len(moving_images)}")
-        print("  Using prior transform weight: 0.5")
 
         greedy = RegisterImagesGreedy()
         greedy.set_number_of_iterations([20, 10, 2])
@@ -228,7 +226,6 @@ class TestRegisterTimeSeriesImages:
             moving_images=moving_images,
             reference_frame=1,  # Start from middle
             register_reference=True,
-            prior_weight=0.5,
         )
 
         forward_transforms = result["forward_transforms"]
@@ -246,7 +243,7 @@ class TestRegisterTimeSeriesImages:
         for i, forward_transform in enumerate(forward_transforms):
             assert forward_transform is not None, f"forward_transform[{i}] is None"
 
-        print("Time series registration with prior complete")
+        print("Time series registration from the middle frame complete")
         print(f"  Losses: {[f'{loss:.6f}' for loss in losses]}")
 
         test_tools = TestTools(
@@ -259,14 +256,14 @@ class TestRegisterTimeSeriesImages:
         # bit-reproducible across runs, so we save artifacts without
         # asserting an exact baseline match.
         test_tools.write_result_transform(
-            forward_transforms[0], "prior_forward_transform_0.hdf"
+            forward_transforms[0], "middle_frame_forward_transform_0.hdf"
         )
         test_tools.write_result_image(
-            moving_image, "prior_time_series_registered_0.mha"
+            moving_image, "middle_frame_time_series_registered_0.mha"
         )
         results_dir = test_directories["output"] / self._class_name
-        assert (results_dir / "prior_forward_transform_0.hdf").exists()
-        assert (results_dir / "prior_time_series_registered_0.mha").exists()
+        assert (results_dir / "middle_frame_forward_transform_0.hdf").exists()
+        assert (results_dir / "middle_frame_time_series_registered_0.mha").exists()
 
     def test_register_time_series_identity_start(self, test_images: list[Any]) -> None:
         """Test time series registration with identity for starting image."""
@@ -285,7 +282,6 @@ class TestRegisterTimeSeriesImages:
             moving_images=moving_images,
             reference_frame=0,
             register_reference=False,  # Use identity
-            prior_weight=0.0,
         )
 
         # Starting image should have very low/zero loss
@@ -317,7 +313,6 @@ class TestRegisterTimeSeriesImages:
                 moving_images=moving_images,
                 reference_frame=starting_index,
                 register_reference=True,
-                prior_weight=0.0,
             )
 
             assert len(result["forward_transforms"]) == len(moving_images), (
@@ -360,31 +355,6 @@ class TestRegisterTimeSeriesImages:
 
         print("\nInvalid starting index correctly rejected")
 
-    def test_register_time_series_error_invalid_prior_portion(
-        self, test_images: list[Any]
-    ) -> None:
-        """Test that error is raised for invalid prior portion value."""
-        registrar = RegisterTimeSeriesImages(registration_method=RegisterImagesGreedy())
-        registrar.set_fixed_image(test_images[0])
-
-        moving_images = test_images[1:4]
-
-        # Test negative value
-        with pytest.raises(ValueError, match="must be in"):
-            registrar.register_time_series(
-                moving_images=moving_images,
-                prior_weight=-0.1,
-            )
-
-        # Test value > 1
-        with pytest.raises(ValueError, match="must be in"):
-            registrar.register_time_series(
-                moving_images=moving_images,
-                prior_weight=1.5,
-            )
-
-        print("\nInvalid prior portion correctly rejected")
-
     def test_transform_application_time_series(
         self, test_images: list[Any], test_directories: dict[str, Path]
     ) -> None:
@@ -404,7 +374,6 @@ class TestRegisterTimeSeriesImages:
             moving_images=moving_images,
             reference_frame=0,
             register_reference=True,
-            prior_weight=0.0,
         )
 
         forward_transforms = result["forward_transforms"]
@@ -457,7 +426,6 @@ class TestRegisterTimeSeriesImages:
             moving_images=moving_images,
             reference_frame=0,
             register_reference=True,
-            prior_weight=0.0,
         )
 
         assert len(result["forward_transforms"]) == len(moving_images)
@@ -505,7 +473,6 @@ class TestRegisterTimeSeriesImages:
             moving_images=moving_images,
             reference_frame=0,
             register_reference=True,
-            prior_weight=0.0,
         )
 
         assert len(result["forward_transforms"]) == len(moving_images)
@@ -531,7 +498,6 @@ class TestRegisterTimeSeriesImages:
             moving_images=moving_images,
             reference_frame=2,  # Middle image
             register_reference=True,
-            prior_weight=0.0,
         )
 
         forward_transforms = result["forward_transforms"]

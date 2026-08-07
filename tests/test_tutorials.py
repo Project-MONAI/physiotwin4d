@@ -202,25 +202,22 @@ class TestTutorial05HeartVTKToUSD:
     def test_run(
         self, test_directories: dict[str, Path], test_images: list[Any]
     ) -> None:
-        # The script reads this exact path and offers no input override, so
-        # bootstrap Tutorial 4 rather than pointing it at another surface.
-        vtk_file = (
-            _REPO_ROOT
-            / "tutorials"
-            / "output"
-            / "tutorial_04_heart"
-            / "patient_surfaces.vtp"
-        )
-        if not vtk_file.exists():
+        # The script reads this exact directory and offers no input override,
+        # so bootstrap Tutorial 4 rather than pointing it at other surfaces.
+        input_dir = _REPO_ROOT / "tutorials" / "output" / "tutorial_04_heart"
+        if not list(input_dir.glob("patient_*.vtp")):
             _run_tutorial_script("tutorial_04_heart_ct_to_vtk.py")
-            assert vtk_file.exists(), (
-                f"Tutorial 4 bootstrap did not create the expected surface: {vtk_file}"
+            assert list(input_dir.glob("patient_*.vtp")), (
+                f"Tutorial 4 bootstrap did not create surfaces in: {input_dir}"
             )
 
         out_dir = _REPO_ROOT / "tutorials" / "output" / "tutorial_05_heart"
         results = _run_tutorial_script("tutorial_05_heart_vtk_to_usd.py")
         assert results["usd_file"], "USD file path should not be empty"
         assert Path(results["usd_file"]).exists(), "USD file should exist"
+        assert len(results["structures"]) > 1, (
+            "Per-structure surfaces expected, so that each becomes its own prim"
+        )
 
         tt = TestTools(
             class_name=self._class_name,

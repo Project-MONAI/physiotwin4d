@@ -6,7 +6,6 @@ import numpy as np
 import pyvista as pv
 
 from physiotwin4d.contour_tools import ContourTools
-from physiotwin4d.test_tools import TestTools
 
 _HERE = Path(__file__).parent
 
@@ -111,8 +110,7 @@ for case_id in example_ids:
 
     # Link the camera views so they rotate together
     plotter.link_views()
-    if not TestTools.running_as_test():
-        plotter.show()
+    plotter.show()
 
 # %% [markdown]
 # ## Visualize Deformation Magnitude
@@ -166,5 +164,4 @@ for case_id in example_ids:
 
     plotter.show_axes()
     plotter.camera_position = "iso"
-    if not TestTools.running_as_test():
-        plotter.show()
+    plotter.show()

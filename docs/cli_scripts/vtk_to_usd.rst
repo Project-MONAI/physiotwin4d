@@ -36,7 +36,7 @@ Solid color:
        --appearance solid \
        --color 1 0 0
 
-Anatomy material:
+One anatomy material for every mesh:
 
 .. code-block:: bash
 
@@ -44,6 +44,18 @@ Anatomy material:
        --output heart_material.usd \
        --appearance anatomy \
        --anatomy-type heart
+
+A material per structure. Omitting ``--anatomy-type`` picks each object's
+material from its name, and with ``--static-merge`` the objects are named after
+the structures recorded in each file's ``SegmentationLabelNames`` field data —
+as written by the image-to-VTK workflow:
+
+.. code-block:: bash
+
+   physiotwin4d-convert-vtk-to-usd patient_highres_*.vtp \
+       --output heart_structures.usd \
+       --appearance anatomy \
+       --static-merge
 
 Colormap from a VTK point data array:
 

@@ -226,7 +226,7 @@ uv pip install -e ".[test,cuda13,physicsnemo]"
 pytest tests/ --run-gpu
 
 # Enable every --run-* bucket at once (slow, GPU, simpleware,
-# physicsnemo, experiments, tutorials)
+# physicsnemo, tutorials)
 pytest tests/ --run-all
 ```
 

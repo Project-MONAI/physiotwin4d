@@ -40,7 +40,7 @@ class WorkflowCreateStatisticalModel(PhysioTwin4DBase):
     Attributes:
         sample_meshes (list): List of sample mesh DataSets (.vtk/.vtu/.vtp geometry)
         reference_mesh (pv.DataSet): Reference mesh; its surface is used for alignment
-        pca_number_of_components (int): Number of PCA components to retain
+        number_of_pca_components (int): Number of PCA components to retain
         reference_spatial_resolution (float): Resolution for reference image from mesh
         reference_buffer_factor (float): Buffer around mesh for reference image
     """
@@ -49,7 +49,7 @@ class WorkflowCreateStatisticalModel(PhysioTwin4DBase):
         self,
         sample_meshes: list[pv.DataSet],
         reference_mesh: pv.DataSet,
-        pca_number_of_components: int = 7,
+        number_of_pca_components: int = 7,
         reference_spatial_resolution: float = 1.0,
         reference_buffer_factor: float = 0.25,
         solve_for_surface_pca: bool = True,
@@ -60,7 +60,7 @@ class WorkflowCreateStatisticalModel(PhysioTwin4DBase):
         Args:
             sample_meshes: List of sample mesh DataSets (PyVista PolyData or UnstructuredGrid).
             reference_mesh: Reference mesh; its surface is used to align all samples.
-            pca_number_of_components: Number of PCA components. Default 7.
+            number_of_pca_components: Number of PCA components. Default 7.
             reference_spatial_resolution: Isotropic resolution (mm) for reference image. Default 1.0.
             reference_buffer_factor: Buffer factor around mesh for reference image. Default 0.25.
             solve_for_surface_pca: Whether to reduce the reference mesh to a surface. Default True.
@@ -71,7 +71,7 @@ class WorkflowCreateStatisticalModel(PhysioTwin4DBase):
         )
         self.sample_meshes = list(sample_meshes)
         self.reference_mesh = reference_mesh
-        self.pca_number_of_components = pca_number_of_components
+        self.number_of_pca_components = number_of_pca_components
         self.reference_spatial_resolution = reference_spatial_resolution
         self.reference_buffer_factor = reference_buffer_factor
         self.solve_for_surface_pca = solve_for_surface_pca
@@ -91,9 +91,9 @@ class WorkflowCreateStatisticalModel(PhysioTwin4DBase):
         self.pca_mean_surface: Optional[pv.PolyData] = None
         self.pca_mean_mesh: Optional[pv.DataSet] = None
 
-    def set_pca_number_of_components(self, n: int) -> None:
+    def set_number_of_pca_components(self, n: int) -> None:
         """Set number of PCA components to retain."""
-        self.pca_number_of_components = n
+        self.number_of_pca_components = n
 
     def _step1_extract_surfaces(self) -> None:
         """Extract reference surface and all sample surfaces (notebook 1)."""
@@ -239,11 +239,11 @@ class WorkflowCreateStatisticalModel(PhysioTwin4DBase):
             raise ValueError(
                 f"At least 2 samples are required for PCA. Got {data_matrix.shape[0]} samples."
             )
-        n_comp = min(self.pca_number_of_components, data_matrix.shape[0] - 1)
-        if n_comp < self.pca_number_of_components:
+        n_comp = min(self.number_of_pca_components, data_matrix.shape[0] - 1)
+        if n_comp < self.number_of_pca_components:
             self.log_warning(
                 "Reducing PCA components from %d to %d (n_samples=%d)",
-                self.pca_number_of_components,
+                self.number_of_pca_components,
                 n_comp,
                 data_matrix.shape[0],
             )

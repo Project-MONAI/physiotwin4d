@@ -94,9 +94,18 @@ if __name__ == "__main__":
     )
 
     # Result saving
+    #
+    # Merging the per-structure surfaces, rather than the per-group ones, lets
+    # the combined file carry a per-cell SegmentationLabelIds array: structure
+    # identity survives the merge, so the file can still be split per structure
+    # downstream. Per-group surfaces are contoured from a merged binary mask
+    # and have no per-cell identity to record.
+    combined_input = (
+        result["label_surfaces"] if save_label_surfaces else result["surfaces"]
+    )
     surface_file = Path(
         ContourTools.save_combined_surfaces(
-            result["surfaces"],
+            combined_input,
             str(output_dir / "patient_surfaces.vtp"),
         )
     )

@@ -12,8 +12,6 @@ from pathlib import Path
 
 import pyvista as pv
 
-from physiotwin4d.test_tools import TestTools
-
 _HERE = Path(__file__).parent
 
 # %%
@@ -76,5 +74,4 @@ if len(vtk_files) > 0:
     plotter = pv.Plotter()
     plotter.add_mesh(first_surface, color="lightblue", show_edges=True)
     plotter.add_axes()
-    if not TestTools.running_as_test():
-        plotter.show()
+    plotter.show()

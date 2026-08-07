@@ -35,7 +35,7 @@ Example:
     ...     reference_image=reference_image,
     ...     mask_dilation_mm=20,
     ... )
-    >>> result = registrar.register(transform_type='Deformable', icon_iterations=50)
+    >>> result = registrar.register(transform_type='Deformable')
     >>>
     >>> # Access results
     >>> aligned_model = result['registered_model']
@@ -86,6 +86,7 @@ class RegisterModelsDistanceMaps(PhysioTwin4DBase):
         fixed_model (pv.PolyData): Target surface model
         reference_image (itk.Image): Reference image for coordinate frame
         mask_dilation_mm (float): Dilation amount in mm for binary registration masks
+        distance_squared_max (float): Maximum squared distance for distance map normalization
         transform_tools (TransformTools): Transform utility instance
         contour_tools (ContourTools): Model utility instance
         registrar_Greedy (RegisterImagesGreedy): Greedy registration instance
@@ -110,7 +111,7 @@ class RegisterModelsDistanceMaps(PhysioTwin4DBase):
         >>> result = registrar.register(transform_type='Affine')
         >>>
         >>> # Or run deformable (Greedy affine + ICON)
-        >>> result = registrar.register(transform_type='Deformable', icon_iterations=50)
+        >>> result = registrar.register(transform_type='Deformable')
         >>>
         >>> # Get aligned model and transforms
         >>> aligned_model = result['registered_model']
@@ -122,6 +123,7 @@ class RegisterModelsDistanceMaps(PhysioTwin4DBase):
         moving_model: pv.PolyData,
         fixed_model: pv.PolyData,
         reference_image: itk.Image,
+        distance_squared_max: float = 50.0,
         mask_dilation_mm: float = 20,
         log_level: int | str = logging.INFO,
     ):
@@ -132,6 +134,8 @@ class RegisterModelsDistanceMaps(PhysioTwin4DBase):
             fixed_model: PyVista target surface model
             reference_image: ITK image providing coordinate frame (origin, spacing, direction)
                 for mask generation. Typically the patient CT/MRI image.
+            distance_squared_max: Maximum squared distance, in squared millimeters,
+                that the distance maps are normalized against. Default: 50.0
             mask_dilation_mm: Dilation amount in millimeters for binary registration
                 mask generation. Default: 20mm
             log_level: Logging level (default: logging.INFO)
@@ -145,6 +149,7 @@ class RegisterModelsDistanceMaps(PhysioTwin4DBase):
         self.moving_model = moving_model
         self.fixed_model = fixed_model
         self.reference_image = reference_image
+        self.distance_squared_max = distance_squared_max
         self.mask_dilation_mm = mask_dilation_mm
 
         # Utilities
@@ -169,6 +174,23 @@ class RegisterModelsDistanceMaps(PhysioTwin4DBase):
         self.inverse_transform: Optional[itk.CompositeTransform] = None  # Fixed→moving
         self.registered_model: Optional[pv.PolyData] = None
 
+    def set_icon_weights_path(self, weights_path: str) -> None:
+        """Use a finetuned uniGradICON checkpoint for the deformable stage.
+
+        The distance maps this class registers are not CT intensities, so stock
+        uniGradICON weights are out of distribution for them.  Weights finetuned
+        on distance maps, e.g. by
+        ``tutorials/tutorial_02_lung_distancemap_finetune_icon.py``, are
+        supplied here.
+
+        Args:
+            weights_path: Path to an existing uniGradICON checkpoint.
+
+        Raises:
+            FileNotFoundError: If weights_path does not exist.
+        """
+        self.registrar_ICON.set_weights_path(weights_path)
+
     def _create_masks_from_models(self) -> None:
         """Generate distance maps and binary registration masks from moving and fixed models.
 
@@ -189,20 +211,23 @@ class RegisterModelsDistanceMaps(PhysioTwin4DBase):
             squared_distance=True,
             negative_inside=True,
             zero_inside=False,
-            norm_to_max_distance=50.0,
+            norm_to_max_distance=self.distance_squared_max,
         )
 
-        # Create fixed binary registration mask with dilation
-        self.log_info(
-            "Dilating fixed mask by %.1fmm for registration mask...",
-            self.mask_dilation_mm,
-        )
-        binary_mask = self.contour_tools.create_mask_from_mesh(
-            self.fixed_model, self.reference_image
-        )
-        self.fixed_mask_image = self.labelmap_tools.convert_labelmap_to_mask(
-            binary_mask, dilation_in_mm=self.mask_dilation_mm
-        )
+        if self.mask_dilation_mm > 0:
+            # Create fixed binary registration mask with dilation
+            self.log_info(
+                "Dilating fixed mask by %.1fmm for registration mask...",
+                self.mask_dilation_mm,
+            )
+            binary_mask = self.contour_tools.create_mask_from_mesh(
+                self.fixed_model, self.reference_image
+            )
+            self.fixed_mask_image = self.labelmap_tools.convert_labelmap_to_mask(
+                binary_mask, dilation_in_mm=self.mask_dilation_mm
+            )
+        else:
+            self.fixed_mask_image = None
 
         # Create moving distance map
         self.moving_distance_map_image = self.contour_tools.create_distance_map(
@@ -211,7 +236,7 @@ class RegisterModelsDistanceMaps(PhysioTwin4DBase):
             squared_distance=True,
             negative_inside=True,
             zero_inside=False,
-            norm_to_max_distance=50.0,
+            norm_to_max_distance=self.distance_squared_max,
         )
 
         # Emulate CT intensity range by multiplying by 1000
@@ -221,24 +246,26 @@ class RegisterModelsDistanceMaps(PhysioTwin4DBase):
         tmp_arr = itk.GetArrayViewFromImage(self.moving_distance_map_image)
         tmp_arr *= 1000
 
-        # Create moving binary registration mask with dilation
-        self.log_info(
-            "Dilating moving mask by %.1fmm for registration mask...",
-            self.mask_dilation_mm,
-        )
-        binary_mask = self.contour_tools.create_mask_from_mesh(
-            self.moving_model, self.reference_image
-        )
-        self.moving_mask_image = self.labelmap_tools.convert_labelmap_to_mask(
-            binary_mask, dilation_in_mm=self.mask_dilation_mm
-        )
+        if self.mask_dilation_mm > 0:
+            # Create moving binary registration mask with dilation
+            self.log_info(
+                "Dilating moving mask by %.1fmm for registration mask...",
+                self.mask_dilation_mm,
+            )
+            binary_mask = self.contour_tools.create_mask_from_mesh(
+                self.moving_model, self.reference_image
+            )
+            self.moving_mask_image = self.labelmap_tools.convert_labelmap_to_mask(
+                binary_mask, dilation_in_mm=self.mask_dilation_mm
+            )
+        else:
+            self.moving_mask_image = None
 
         self.log_info("Distance map and mask generation complete")
 
     def register(
         self,
         transform_type: str = "Deformable",
-        icon_iterations: int = 50,
     ) -> dict:
         """Perform mask-based registration of moving model to fixed model.
 
@@ -259,7 +286,6 @@ class RegisterModelsDistanceMaps(PhysioTwin4DBase):
 
         Args:
             transform_type: Registration transform type - 'None', 'Rigid', 'Affine', or 'Deformable'. Default: 'Deformable'
-            icon_iterations: Number of ICON optimization iterations for 'Deformable' mode. Default: 50
 
         Returns:
             Dictionary containing:
@@ -278,7 +304,7 @@ class RegisterModelsDistanceMaps(PhysioTwin4DBase):
             >>> result = registrar.register(transform_type='Affine')
             >>>
             >>> # Deformable registration (Greedy affine + ICON)
-            >>> result = registrar.register(transform_type='Deformable', icon_iterations=100)
+            >>> result = registrar.register(transform_type='Deformable')
         """
         if transform_type not in ["None", "Rigid", "Affine", "Deformable"]:
             raise ValueError(
@@ -319,10 +345,7 @@ class RegisterModelsDistanceMaps(PhysioTwin4DBase):
 
         # Step 3: ICON deformable stage (only for Deformable mode)
         if transform_type == "Deformable":
-            self.log_info(
-                "Performing ICON deformable registration (%d iterations)...",
-                icon_iterations,
-            )
+            self.log_info("Performing ICON deformable registration...")
 
             # Pre-align moving distance map and binary mask into the fixed grid using the Greedy affine result
             moving_distance_map_affine_transformed = (
@@ -340,8 +363,8 @@ class RegisterModelsDistanceMaps(PhysioTwin4DBase):
             # interpolation_method="nearest",
             # )
 
-            # Configure and run ICON
-            self.registrar_ICON.set_number_of_iterations(icon_iterations)
+            # Configure and run ICON. Iteration count and any other ICON tuning
+            # come from registrar_ICON itself, configured by the caller.
             self.registrar_ICON.set_fixed_image(self.fixed_distance_map_image)
             # self.registrar_ICON.set_fixed_mask(self.fixed_mask_image)
 
@@ -359,18 +382,20 @@ class RegisterModelsDistanceMaps(PhysioTwin4DBase):
             # (patient-space δ), then Greedy (patient→ICP-template).
             # Inverse (moving→fixed for point push-forward): apply Greedy first
             # (ICP-template→patient), then ICON (patient-space refinement).
+            # combine_displacement_field_transforms(a, b) evaluates b then a, so
+            # the stage that runs first is the second argument.
             self.forward_transform = (
                 self.transform_tools.combine_displacement_field_transforms(
-                    forward_transform_ICON,
                     forward_transform_Greedy,
+                    forward_transform_ICON,
                     reference_image=self.reference_image,
                     mode="compose",
                 )
             )
             self.inverse_transform = (
                 self.transform_tools.combine_displacement_field_transforms(
-                    inverse_transform_Greedy,
                     inverse_transform_ICON,
+                    inverse_transform_Greedy,
                     reference_image=self.reference_image,
                     mode="compose",
                 )

@@ -58,7 +58,7 @@ Include statistical shape model fitting:
        --patient-models lv.vtp rv.vtp myo.vtp \
        --patient-image patient_ct.nii.gz \
        --pca-json pca_model.json \
-       --pca-number-of-modes 10 \
+       --number-of-pca-components 10 \
        --output-dir ./results
 
 Command-Line Arguments
@@ -106,8 +106,8 @@ PCA Registration Options
 ``--pca-json PATH``
    Path to PCA JSON file for shape-based registration (optional)
 
-``--pca-number-of-modes NUM``
-   Number of PCA modes to use (default: 0, uses all if PCA enabled)
+``--number-of-pca-components NUM``
+   Number of PCA components to use (default: 0, uses all if PCA enabled)
 
 Registration Configuration
 ---------------------------
@@ -162,7 +162,7 @@ Example 2: PCA-Based Registration
        --patient-models lv.vtp rv.vtp \
        --patient-image patient_ct.nii.gz \
        --pca-json pca_model.json \
-       --pca-number-of-modes 10 \
+       --number-of-pca-components 10 \
        --output-dir results/pca
 
 Output Files

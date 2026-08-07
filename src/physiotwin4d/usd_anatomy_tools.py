@@ -844,6 +844,25 @@ class USDAnatomyTools(PhysioTwin4DBase):
                     return self.render_params[key]
         return None
 
+    def resolve_anatomy_type(self, anatomy_type: str) -> Optional[str]:
+        """Return the material name *anatomy_type* selects, or ``None``.
+
+        Lets callers test a group/organ name before applying it, instead of
+        catching the :exc:`ValueError` raised by
+        :meth:`apply_anatomy_material_to_mesh`. Matching is the same as that
+        method's (see :meth:`_resolve_render_params`), so ``"kidney_left"``
+        returns ``"Kidney"``.
+
+        Args:
+            anatomy_type: A group/organ name or registered render-params key.
+
+        Returns:
+            The matching material name (e.g. ``"Heart"``), or ``None`` when
+            nothing matches.
+        """
+        params = self._resolve_render_params(anatomy_type)
+        return str(params["name"]) if params is not None else None
+
     def get_anatomy_diffuse_color(
         self, anatomy_type: str
     ) -> tuple[float, float, float]:

@@ -16,11 +16,42 @@ import pytest
 from physiotwin4d.register_images_icon import RegisterImagesICON
 from physiotwin4d.transform_tools import TransformTools
 
+from .conftest import KnownShiftCase
+
 
 @pytest.mark.requires_gpu
 @pytest.mark.slow
 class TestRegisterImagesICON:
     """Test suite for ICON-based image registration."""
+
+    def test_recovers_known_shift(self, known_shift_case: KnownShiftCase) -> None:
+        """ICON must recover a known shift, in the right direction.
+
+        The companion of the Greedy check in test_register_images_greedy.py:
+        ICON returns ITK transforms in the LPS frame throughout, so this asserts
+        no equivalent RAS/LPS conversion is missing here.
+        """
+        registrar = RegisterImagesICON()
+        registrar.set_modality("ct")
+        registrar.set_number_of_iterations(5)
+        registrar.set_fixed_image(known_shift_case.fixed)
+
+        result = registrar.register(moving_image=known_shift_case.moving)
+        forward_transform = result["forward_transform"]
+
+        error_mm = known_shift_case.center_error_mm(forward_transform)
+        ncc = known_shift_case.foreground_ncc(forward_transform)
+        unregistered_ncc = known_shift_case.unregistered_ncc()
+
+        print("\nICON known-shift recovery:")
+        print(f"  error: {error_mm:.2f} mm")
+        print(f"  foreground NCC: {ncc:.4f} (unregistered {unregistered_ncc:.4f})")
+
+        assert error_mm < 2.0, f"ICON recovered the shift {error_mm:.2f} mm off"
+        assert ncc > unregistered_ncc, (
+            f"ICON left the images less aligned than they started "
+            f"({ncc:.4f} vs {unregistered_ncc:.4f})"
+        )
 
     def test_registrar_initialization(self, registrar_ICON: RegisterImagesICON) -> None:
         """Test that RegisterImagesICON initializes correctly."""
@@ -386,9 +417,9 @@ class TestRegisterImagesICON:
         registrar_ICON.set_fixed_image(fixed_image)
         registrar_ICON.set_number_of_iterations(2)
 
-        result = registrar_ICON.register(
-            moving_image=moving_image,
-            initial_forward_transform=initial_tfm_forward,
+        result = registrar_ICON.register_from(
+            initial_tfm_forward,
+            moving_image,
         )
 
         assert isinstance(result, dict), "Result should be a dictionary"

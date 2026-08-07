@@ -30,9 +30,6 @@ from pathlib import Path
 
 from physiotwin4d import ConvertVTKToUSD
 
-# Use as a test
-from physiotwin4d.test_tools import TestTools
-
 # Import USDTools for post-processing colormap
 from physiotwin4d.usd_tools import USDTools
 
@@ -40,11 +37,6 @@ from physiotwin4d.usd_tools import USDTools
 # ## 1. Discover and Organize Time-Series Files
 
 # %%
-# Set to True to use as a test.  Automatically done by
-#    TestTools.running_as_test() helper function.
-test_mode = TestTools.running_as_test()
-test_mode_step = 4
-
 # Define data directories (Alterra only). Anchored to the script's location
 # so the experiment runs from any working directory.
 script_dir = Path(__file__).resolve().parent
@@ -52,10 +44,7 @@ data_dir = script_dir.parent.parent / "data" / "CHOP-Valve4D"
 alterra_dir = data_dir / "Alterra"
 
 output_dir = script_dir / "results" / "valve4d-alterra"
-if test_mode:
-    output_usd = output_dir / "alterra_test.usd"
-else:
-    output_usd = output_dir / "alterra_full.usd"
+output_usd = output_dir / "alterra_full.usd"
 
 colormap_primvar_substrs = ["von_mises_stress"]
 colormap_name = "jet"  # matplotlib colormap name
@@ -136,10 +125,6 @@ for cell_type in mesh_info["cell_types"]:
 # %%
 alterra_files = [file_path for _, file_path in alterra_series]
 alterra_times = [float(time_step) for time_step, _ in alterra_series]
-
-if test_mode:
-    alterra_files = alterra_files[::test_mode_step]
-    alterra_times = alterra_times[::test_mode_step]
 
 print(f"\nConverting to: {output_usd}")
 print(f"Number of time steps: {len(alterra_times)}")

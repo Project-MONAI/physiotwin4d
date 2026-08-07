@@ -103,13 +103,6 @@ Examples:
             "(default: enabled; use --no-register-reference for an identity transform)"
         ),
     )
-    parser.add_argument(
-        "--prior-weight",
-        type=float,
-        default=0.0,
-        help="Weight for temporal smoothing with prior transforms [0.0-1.0] (default: 0.0)",
-    )
-
     # Registration iterations
     parser.add_argument(
         "--Greedy-iterations",
@@ -221,11 +214,6 @@ Examples:
         )
         return 1
 
-    # Validate prior weight
-    if not 0.0 <= args.prior_weight <= 1.0:
-        print(f"Error: Prior weight must be in [0.0, 1.0], got {args.prior_weight}")
-        return 1
-
     # Create output directory
     os.makedirs(args.output_dir, exist_ok=True)
 
@@ -296,7 +284,6 @@ Examples:
 
         # Configure registration parameters
         workflow.set_modality(args.modality)
-        workflow.set_prior_weight(args.prior_weight)
         workflow.set_mask_dilation(args.mask_dilation_mm)
 
         if fixed_mask is not None:

@@ -11,7 +11,7 @@ Tutorials
      <p class="pt4d-kicker">PhysioTwin4D tutorials</p>
      <h1>From a CT scan to an animated digital twin</h1>
      <p>
-       Ten numbered stages across 15 runnable Python scripts.
+       Ten numbered stages across 16 runnable Python scripts.
        Each one drives the real workflow classes end-to-end on downloadable
        data, shows what it produced, and ends with the handful of constants
        to change so it runs on your own scans.
@@ -219,6 +219,11 @@ Tutorial 2: Finetune ICON Registration
 Script
    ``tutorials/tutorial_02_lung_finetune_icon.py``
 
+   ``tutorials/tutorial_02_lung_distancemap_finetune_icon.py`` — the
+   distance-map variant, which finetunes on distance maps rather than image
+   intensities so the labelmap-to-labelmap stage of Tutorials 7 and 8 has
+   in-distribution weights.
+
 Workflow
    :class:`~physiotwin4d.WorkflowFinetuneICONRegistration`, then
    :class:`~physiotwin4d.RegisterImagesGreedy` and
@@ -269,11 +274,13 @@ Run
    .. code-block:: bash
 
       python tutorials/tutorial_02_lung_finetune_icon.py
+      python tutorials/tutorial_02_lung_distancemap_finetune_icon.py
 
 Outputs
    The finetuned checkpoint under
    ``tutorials/network_weights/icon_dirlab_4dct/``, plus
-   ``registration_summary.csv``, the registered images, the fixed and warped
+   ``registration_summary.csv``, the fixed-minus-registered difference images
+   (residual structure is what separates the methods), the fixed and warped
    labelmaps, and before/after screenshots in
    ``tutorials/output/tutorial_02_lung/``.
 
@@ -421,9 +428,10 @@ Run
       python tutorials/tutorial_04_lung_ct_to_vtk.py
 
 Outputs
-   ``patient_surfaces.vtp`` (all anatomy in one mesh), per-group and per-label
-   ``.vtp`` files, ``patient_labelmap.mha`` and two screenshots, under
-   ``tutorials/output/tutorial_04_{heart,lung}/``.
+   ``patient_surfaces.vtp`` (all anatomy in one mesh, with a per-cell
+   ``SegmentationLabelIds`` array so each cell still names the structure it came
+   from), per-group and per-label ``.vtp`` files, ``patient_labelmap.mha`` and
+   two screenshots, under ``tutorials/output/tutorial_04_{heart,lung}/``.
 
 Adapt to your data
    Change the input volume path, then choose the segmenter matching your scan:
@@ -444,7 +452,8 @@ Workflow
    :class:`~physiotwin4d.WorkflowConvertVTKToUSD`.
 
 Dataset
-   Tutorial 4's ``patient_surfaces.vtp`` — no image data, no download.
+   Tutorial 4's per-structure ``patient_*.vtp`` surfaces — no image data, no
+   download.
 
 Requirements
    CPU only, seconds to run. The cheapest tutorial in the set.
@@ -461,14 +470,21 @@ Inner API usage
    .. code-block:: python
 
       workflow = WorkflowConvertVTKToUSD(
-          input_meshes=[mesh],
+          input_meshes=meshes,
           usd_project_name=project_name,
           output_directory=output_dir,
           appearance="anatomy",
-          anatomy_type="heart",
+          static_merge=True,
           separate_by_connectivity=True,
       )
       results = workflow.process()
+
+   Each input surface keeps the structure name that
+   :class:`~physiotwin4d.WorkflowConvertImageToVTK` wrote into its
+   ``field_data['SegmentationLabelNames']``. That name becomes the USD prim
+   name and, with ``anatomy_type`` left unset, selects the prim's material —
+   so the left chambers, right chambers, myocardium and great vessels each get
+   their own look rather than one shared heart material.
 
 Run
    .. code-block:: bash
@@ -481,11 +497,13 @@ Outputs
 
 Adapt to your data
    ``input_meshes`` takes any list of PyVista meshes — pass one per time point,
-   in order, for an animated scene instead of a static one, and set
-   ``frames_per_second`` to control playback. ``appearance="anatomy"`` binds
-   per-organ materials through :class:`~physiotwin4d.USDAnatomyTools`; use
-   ``anatomy_type`` to pick the palette. For file-in, file-out conversion
-   without Python, see :doc:`cli_scripts/vtk_to_usd`.
+   in order, for an animated scene instead of a static one (drop
+   ``static_merge``), and set ``frames_per_second`` to control playback.
+   ``appearance="anatomy"`` binds per-organ materials through
+   :class:`~physiotwin4d.USDAnatomyTools`; set ``anatomy_type`` to force one
+   palette onto every object, or ``object_names`` to name the prims yourself.
+   For file-in, file-out conversion without Python, see
+   :doc:`cli_scripts/vtk_to_usd`.
 
 Tutorial 6: Create a PCA Shape Model
 ====================================
@@ -533,7 +551,7 @@ Inner API usage
       workflow = WorkflowCreateStatisticalModel(
           sample_meshes=sample_surfaces,
           reference_mesh=reference_surface,
-          pca_number_of_components=pca_components,
+          number_of_pca_components=number_of_pca_components,
       )
       result = workflow.process()
 
@@ -553,7 +571,7 @@ Adapt to your data
    The workflow wants a population of meshes plus one reference; point
    ``sample_meshes`` at your own cohort and let
    :class:`~physiotwin4d.WorkflowCreateMeanSurface` build the reference when no
-   natural template exists. ``pca_number_of_components`` trades fidelity
+   natural template exists. ``number_of_pca_components`` trades fidelity
    against cohort size — you need more subjects than modes. The saved
    ``pca_model.json`` is the portable artifact: Tutorials 7 and 8 and
    :doc:`cli_scripts/create_statistical_model` all speak it.

@@ -39,7 +39,7 @@ Examples:
     --sample-meshes-dir ./meshes \\
     --reference-mesh average_mesh.vtk \\
     --output-dir ./pca_model \\
-    --pca-components 20
+    --number-of-pca-components 20
         """,
     )
 
@@ -75,7 +75,7 @@ Examples:
     )
 
     parser.add_argument(
-        "--pca-components",
+        "--number-of-pca-components",
         type=int,
         default=7,
         help="Number of PCA components to retain (default: 7)",
@@ -142,7 +142,7 @@ Examples:
         workflow = WorkflowCreateStatisticalModel(
             sample_meshes=sample_meshes,
             reference_mesh=reference_mesh,
-            pca_number_of_components=args.pca_components,
+            number_of_pca_components=args.number_of_pca_components,
         )
     except (ValueError, RuntimeError) as e:
         print(f"Error initializing workflow: {e}")

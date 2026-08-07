@@ -337,5 +337,56 @@ class TestContourTools:
         print(f"Extracted contours from {len(test_labelmaps)} time points")
 
 
+class TestSaveCombinedSurfaces:
+    """Structure identity must survive merging into one file."""
+
+    @staticmethod
+    def _annotated_sphere(
+        center: tuple[float, float, float], label_id: int
+    ) -> pv.PolyData:
+        surface = pv.Sphere(radius=1.0, center=center)
+        surface.field_data["SegmentationLabelIds"] = np.array(
+            [label_id], dtype=np.int32
+        )
+        return surface
+
+    def test_per_cell_label_ids_from_single_label_surfaces(
+        self, tmp_path: Path
+    ) -> None:
+        """Each merged cell carries the label ID of the surface it came from."""
+        surfaces = {
+            "atrium_left": self._annotated_sphere((0.0, 0.0, 0.0), 141),
+            "ventricle_left": self._annotated_sphere((3.0, 0.0, 0.0), 142),
+        }
+
+        output_file = tmp_path / "combined.vtp"
+        ContourTools.save_combined_surfaces(surfaces, str(output_file))
+
+        merged = pv.read(str(output_file))
+        label_ids = merged.cell_data["SegmentationLabelIds"]
+        assert set(np.unique(label_ids)) == {141, 142}
+        for name, surface in surfaces.items():
+            expected = int(surface.field_data["SegmentationLabelIds"][0])
+            assert int(np.sum(label_ids == expected)) == surface.n_cells, (
+                f"Cell count for {name} did not survive the merge"
+            )
+        # Tagging must not leak back into the caller's surfaces.
+        for surface in surfaces.values():
+            assert "SegmentationLabelIds" not in surface.cell_data
+
+    def test_multi_label_surfaces_tagged_unknown(self, tmp_path: Path) -> None:
+        """Per-group surfaces list several labels, so no cell can be attributed."""
+        group_surface = pv.Sphere(radius=1.0)
+        group_surface.field_data["SegmentationLabelIds"] = np.array(
+            [141, 142], dtype=np.int32
+        )
+
+        output_file = tmp_path / "combined_group.vtp"
+        ContourTools.save_combined_surfaces({"heart": group_surface}, str(output_file))
+
+        merged = pv.read(str(output_file))
+        assert set(np.unique(merged.cell_data["SegmentationLabelIds"])) == {0}
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v", "-s"])

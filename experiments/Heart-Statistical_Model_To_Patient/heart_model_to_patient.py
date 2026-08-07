@@ -17,7 +17,6 @@ from physiotwin4d import (
     SegmentChestTotalSegmentator,
     WorkflowFitStatisticalModelToPatient,
 )
-from physiotwin4d.test_tools import TestTools
 
 # nnUNetv2 (used by TotalSegmentator) spawns a multiprocessing.Pool. On Windows
 # the spawn start method re-imports this script in each child; without the
@@ -137,7 +136,7 @@ if __name__ == "__main__":
         patient_image=patient_image,
     )
     registrar.set_use_pca_registration(
-        True, pca_model=pca_model, pca_number_of_modes=pca_n_modes
+        True, pca_model=pca_model, number_of_pca_components=pca_n_modes
     )
     registrar.set_use_labelmap_to_image_registration(
         True,
@@ -278,8 +277,7 @@ if __name__ == "__main__":
     plotter.add_title("Final Registration")
 
     plotter.link_views()
-    if not TestTools.running_as_test():
-        plotter.show()
+    plotter.show()
 
     # %% [markdown]
     # ## Visualize Deformation Magnitude
@@ -296,8 +294,7 @@ if __name__ == "__main__":
             scalar_bar_args={"title": "Deformation (mm)"},
         )
         plotter.add_title("Deformation Magnitude")
-        if not TestTools.running_as_test():
-            plotter.show()
+        plotter.show()
 
         # Print statistics
         deformation = registered_surface["DeformationMagnitude"]

@@ -32,8 +32,11 @@ PCA model: Tutorial 6 output (``output/tutorial_06_lung/pca_model.json``,
 ``pca_mean_surface.vtp``)
 ICON weights: Tutorial 2 output
 (``network_weights/icon_dirlab_4dct/icon_dirlab_4dct_model/checkpoints/
-network_weights_final.trch``), optional — the stock uniGradICON weights are used
-when it is absent.
+network_weights_final.trch``) for the phase-to-phase CT registration, and
+``network_weights/icon_dirlab_4dct_distancemap/
+icon_dirlab_4dct_distancemap_model/checkpoints/network_weights_final.trch`` for
+the distance-map stage of the SSM fit. Both optional — the stock uniGradICON
+weights are used when they are absent.
 
 Outputs (per case, under ``output/tutorial_08_lung/<case>/``)
 ------------------------------------------------------------
@@ -101,6 +104,21 @@ if __name__ == "__main__":
         / "network_weights_final.trch"
     )
 
+    # Distance-map weights finetuned on DIR-Lab by
+    # tutorial_02_lung_distancemap_finetune_icon.py, used by the
+    # labelmap-to-labelmap stage of the SSM fit.  mask_dilation_mm below must
+    # match the value that tutorial finetuned with, since it fixes the distance
+    # maps' saturation radius.
+    icon_distancemap_weights_path = (
+        tutorials_dir
+        / "network_weights"
+        / "icon_dirlab_4dct_distancemap"
+        / "icon_dirlab_4dct_distancemap_model"
+        / "checkpoints"
+        / "network_weights_final.trch"
+    )
+    fit_mask_dilation_mm = 40.0
+
     # Phase the SSM is fitted to; Tutorial 6 builds the lung PCA model from the
     # T70 surfaces, so the same phase is used here as the fitting reference.
     reference_phase = "T70"
@@ -135,6 +153,21 @@ if __name__ == "__main__":
             "uniGradICON weights. Run "
             "tutorials/tutorial_02_lung_finetune_icon.py to create them.",
             icon_weights_path,
+        )
+
+    use_finetuned_distancemap_weights = icon_distancemap_weights_path.exists()
+    if use_finetuned_distancemap_weights:
+        logger.info(
+            "Fitting the SSM with finetuned distance-map ICON weights: %s",
+            icon_distancemap_weights_path,
+        )
+    else:
+        logger.warning(
+            "Finetuned distance-map ICON weights not found at %s; fitting the SSM "
+            "with the stock uniGradICON weights. Run "
+            "tutorials/tutorial_02_lung_distancemap_finetune_icon.py to create "
+            "them.",
+            icon_distancemap_weights_path,
         )
 
     reference_files = sorted(data_dir.glob(f"Case*_{reference_phase}.mha"))
@@ -200,9 +233,14 @@ if __name__ == "__main__":
         fit_workflow.set_use_pca_registration(
             use_pca_registration=True,
             pca_model=pca_model,
-            pca_number_of_modes=6,
+            number_of_pca_components=6,
             use_surface=False,
         )
+        fit_workflow.set_mask_dilation_mm(mask_dilation_mm=fit_mask_dilation_mm)
+        if use_finetuned_distancemap_weights:
+            fit_workflow.set_labelmap_to_labelmap_icon_weights_path(
+                str(icon_distancemap_weights_path)
+            )
         fit_result = fit_workflow.process()
 
         pca_coefficients_file = case_output_dir / f"{case_id}_ssm_pca_coefficients.json"

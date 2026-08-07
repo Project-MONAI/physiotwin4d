@@ -14,6 +14,7 @@ Uses the vtk_to_usd library internally for core conversion functionality.
 from __future__ import annotations
 
 import logging
+from collections import Counter
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any, Literal, Optional, Union, cast
@@ -40,20 +41,6 @@ from .vtk_to_usd import (
     split_mesh_data_by_connectivity,
     validate_time_series_topology,
 )
-
-_USD_EXTENSIONS = {".usd", ".usda", ".usdc"}
-
-
-def _split_usd_extension(name: str) -> tuple[str, str]:
-    """Split a trailing USD extension off ``name``.
-
-    Returns ``(name_without_extension, extension)``. ``extension`` is ``".usd"``
-    when ``name`` has no recognized USD extension (``.usd``, ``.usda``, ``.usdc``).
-    """
-    suffix = Path(name).suffix
-    if suffix.lower() in _USD_EXTENSIONS:
-        return name[: -len(suffix)], suffix
-    return name, ".usd"
 
 
 class ConvertVTKToUSD(PhysioTwin4DBase):
@@ -98,6 +85,7 @@ class ConvertVTKToUSD(PhysioTwin4DBase):
         solid_color: tuple[float, float, float] = (0.8, 0.8, 0.8),
         static_merge: bool = False,
         time_codes: Optional[list[float]] = None,
+        object_names: Optional[Sequence[str]] = None,
         segmenter: Optional[SegmentAnatomyBase] = None,
         log_level: int | str = logging.INFO,
     ) -> None:
@@ -125,6 +113,12 @@ class ConvertVTKToUSD(PhysioTwin4DBase):
             time_codes: Explicit time codes aligned to input_polydata, used when
                         static_merge is False. If None, uses sequential integers
                         [0, 1, 2, ...].
+            object_names: Optional prim names aligned to input_polydata, used
+                        when static_merge is True. If None, objects are named
+                        ``{data_basename}_{index}``. Naming objects after the
+                        structure they hold (e.g. "heart_ventricle_left") makes
+                        the stage self-describing and lets downstream material
+                        assignment key off the prim name.
             segmenter: Optional SegmentAnatomyBase instance used to classify each
                        mask_ids label into an anatomy group (heart / lung / bone /
                        major_vessels / contrast / soft_tissue / other) so labeled
@@ -134,12 +128,18 @@ class ConvertVTKToUSD(PhysioTwin4DBase):
             log_level: Logging level
 
         Raises:
-            ValueError: If time_codes is not None and its length does not match
-                input_polydata, or its values are not non-decreasing.
+            ValueError: If time_codes or object_names is not None and its length
+                does not match input_polydata, or if time_codes values are not
+                non-decreasing.
         """
         super().__init__(class_name=self.__class__.__name__, log_level=log_level)
 
-        self.data_basename, _ = _split_usd_extension(data_basename)
+        suffix = Path(data_basename).suffix
+        self.data_basename = (
+            data_basename[: -len(suffix)]
+            if suffix.lower() in {".usd", ".usda", ".usdc"}
+            else data_basename
+        )
         self.input_polydata = list(input_polydata)
         self.mask_ids = mask_ids
         self.compute_normals = compute_normals
@@ -166,8 +166,28 @@ class ConvertVTKToUSD(PhysioTwin4DBase):
                     "time_codes must be in non-decreasing order; "
                     "got values that decrease between consecutive frames"
                 )
+        if object_names is not None:
+            if len(object_names) != len(self.input_polydata):
+                raise ValueError(
+                    f"object_names length ({len(object_names)}) must match "
+                    f"input_polydata length ({len(self.input_polydata)})"
+                )
+            # Each name becomes a prim path component, so it has to be a legal
+            # USD identifier and unique or prims silently collide.
+            invalid = [n for n in object_names if not Sdf.Path.IsValidIdentifier(n)]
+            counts = Counter(object_names)
+            duplicated = sorted(n for n, count in counts.items() if count > 1)
+            if invalid or duplicated:
+                raise ValueError(
+                    "object_names must be unique and valid USD prim names "
+                    "(letter or underscore followed by letters, digits or "
+                    f"underscores); invalid: {invalid}, duplicated: {duplicated}"
+                )
         self._is_static_merge: bool = static_merge
         self._time_codes: Optional[list[float]] = time_codes
+        self.object_names: Optional[list[str]] = (
+            list(object_names) if object_names is not None else None
+        )
         # Pre-converted MeshData for each time step; populated by from_files() so
         # _convert_unified() can reuse the topology-validation work instead of
         # calling _vtk_to_mesh_data() a second time.
@@ -734,7 +754,11 @@ class ConvertVTKToUSD(PhysioTwin4DBase):
         )
         for i, vtk_mesh in enumerate(self.input_polydata):
             mesh_data = self._vtk_to_mesh_data(vtk_mesh, i)
-            frame_name = f"{self.data_basename}_{i}"
+            frame_name = (
+                self.object_names[i]
+                if self.object_names is not None
+                else f"{self.data_basename}_{i}"
+            )
 
             if self.separate_by == "none":
                 parts = [(mesh_data, frame_name)]
@@ -935,12 +959,19 @@ class ConvertVTKToUSD(PhysioTwin4DBase):
         if isinstance(vtk_mesh, pv.UnstructuredGrid) and self.convert_to_surface:
             vtk_mesh = vtk_mesh.extract_surface(algorithm="dataset_surface")
 
-        # Get boundary labels
-        if "boundary_labels" not in vtk_mesh.cell_data:
-            self.logger.warning("No 'boundary_labels' array found - using unified mesh")
+        # Get per-cell label IDs. 'SegmentationLabelIds' is written by
+        # ContourTools.save_combined_surfaces when merging per-label surfaces;
+        # 'boundary_labels' comes from contouring a multi-label labelmap.
+        if "SegmentationLabelIds" in vtk_mesh.cell_data:
+            label_array = vtk_mesh.cell_data["SegmentationLabelIds"]
+        elif "boundary_labels" in vtk_mesh.cell_data:
+            label_array = vtk_mesh.cell_data["boundary_labels"]
+        else:
+            self.log_warning(
+                "No 'SegmentationLabelIds' or 'boundary_labels' array found "
+                "- using unified mesh"
+            )
             return {"default": self._vtk_to_mesh_data(vtk_mesh, time_idx)}
-
-        label_array = vtk_mesh.cell_data["boundary_labels"]
 
         # Create submeshes for each label
         labeled_meshes = {}

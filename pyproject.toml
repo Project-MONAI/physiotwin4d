@@ -327,6 +327,7 @@ module = [
     # listed by name; add a line here when adding or renaming a tutorial.
     "tutorial_01_heart_gated_ct_to_usd",
     "tutorial_01_lung_gated_ct_to_usd",
+    "tutorial_02_lung_distancemap_finetune_icon",
     "tutorial_02_lung_finetune_icon",
     "tutorial_03_heart_reconstruct_highres_4d_ct",
     "tutorial_03_lung_reconstruct_highres_4d_ct",
@@ -384,7 +385,6 @@ markers = [
     "requires_gpu: marks tests that require GPU/CUDA support (opt-in via --run-gpu)",
     "requires_simpleware: marks tests that require a local Synopsys Simpleware Medical installation (opt-in via --run-simpleware)",
     "requires_physicsnemo: marks tests that require the optional [physicsnemo] extra (opt-in via --run-physicsnemo)",
-    "experiment: marks tests that run experiment scripts (extremely slow, manual only)",
     "tutorial: marks tests that run tutorial scripts (data/GPU gated, manual only)",
     "xdist_group: marks tests to run in the same pytest-xdist worker (prevents parallel conflicts)"
 ]
@@ -395,6 +395,7 @@ source = ["src/physiotwin4d"]
 omit = [
     "*/tests/*",
     "*/test_*",
+    "*/experiments/*",
     "*/__pycache__/*",
     "*/venv/*",
     "*/build/*",

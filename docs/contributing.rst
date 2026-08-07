@@ -265,7 +265,7 @@ Run Tests
    # Run with coverage
    pytest tests/ --cov=src/physiotwin4d --cov-report=html
 
-   # Default invocation auto-skips slow/GPU/Simpleware/experiment/tutorial
+   # Default invocation auto-skips slow/GPU/Simpleware/tutorial
    pytest tests/
 
    # Opt into specific buckets

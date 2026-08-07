@@ -71,7 +71,7 @@ With Custom Parameters
        --sample-meshes-dir ./meshes \
        --reference-mesh average_mesh.vtk \
        --output-dir ./pca_output \
-       --pca-components 20
+       --number-of-pca-components 20
 
 Command-Line Arguments
 ======================
@@ -94,7 +94,7 @@ Required Arguments
 Optional Arguments
 ------------------
 
-``--pca-components N``
+``--number-of-pca-components N``
    Number of PCA components to retain (default: 7).
 
 See :class:`physiotwin4d.WorkflowCreateStatisticalModel` for the full API and

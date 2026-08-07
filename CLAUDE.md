@@ -127,15 +127,18 @@ came from.
 
 ## Testing
 
-- Fast tests (recommended for development — slow/GPU/Simpleware/experiment
-  /tutorial tests are auto-skipped unless their opt-in flag is passed)
+- Fast tests (recommended for development — slow/GPU/Simpleware/tutorial
+  tests are auto-skipped unless their opt-in flag is passed)
   py -m pytest tests/ -v
 - Baselines in `tests/baselines/` via Git LFS — run `git lfs pull` after cloning
-- `tests/conftest.py`: session-scoped fixtures chaining download → convert → segment → register
+- `tests/conftest.py`: session-scoped fixtures chaining
+  download → convert → segment → register
 - `src/physiotwin4d/test_tools.py`: baseline comparison utilities (`TestTools`, etc.)
 - Markers (all opt-in via `--run-<bucket>`): `slow`, `requires_gpu`,
-  `requires_simpleware`, `experiment`, `tutorial`. Data-dependent tests no
+  `requires_simpleware`, `tutorial`. Data-dependent tests no
   longer use a marker — they pull data through fixtures and run by default.
+- `experiments/` scripts are exploratory and are not run as tests; the
+  `tutorials/` scripts are the optional end-to-end suite
 - **Avoid `pytest --run-slow` (or `--run-all`) unless the user explicitly
   requests it.** Those runs take far too long for an interactive session.
   Default to the fast suite and let the user invoke the slow buckets.

@@ -14,7 +14,7 @@ wherever practical.
 - `tests/baselines/` — stored via Git LFS; fetch with `git lfs pull`
 - `src/physiotwin4d/test_tools.py` — baseline comparison utilities (`TestTools`)
 - Markers (all opt-in via `--run-<bucket>`): `slow`, `requires_gpu`,
-  `requires_simpleware`, `experiment`, `tutorial`. The `requires_data` marker
+  `requires_simpleware`, `tutorial`. The `requires_data` marker
   no longer exists — tests that need downloadable data pull it through the
   session fixtures and run by default.
 
@@ -29,7 +29,8 @@ python -m pytest tests/ -v                                        # fast, recomm
 python -m pytest tests/test_contour_tools.py -v                   # single file
 python -m pytest tests/test_contour_tools.py::TestContourTools -v # single class
 python -m pytest tests/ -v --run-slow                             # opt into slow tests
-python -m pytest tests/ -v --run-gpu --run-slow                   # typical local GPU profile (CI runner adds --run-simpleware --run-experiments --run-tutorials)
+# typical local GPU profile; CI adds --run-simpleware --run-tutorials
+python -m pytest tests/ -v --run-gpu --run-slow
 python -m pytest tests/ --create-baselines                        # create missing baselines
 ```
 
@@ -59,8 +60,8 @@ python -m pytest tests/ --create-baselines                        # create missi
 8. Prefer storing results in subdirectories under `./results/<test_name>`.
 9. Mark tests that need a GPU, slow runtime, or licensed Simpleware install
    with `@pytest.mark.requires_gpu`, `@pytest.mark.slow`, or
-   `@pytest.mark.requires_simpleware`. Mark experiment and tutorial tests
-   with `@pytest.mark.experiment` or `@pytest.mark.tutorial`. Tests that just
+   `@pytest.mark.requires_simpleware`. Mark tutorial tests with
+   `@pytest.mark.tutorial`. Tests that just
    need downloadable data need no marker.
 10. Do not mock segmentation or registration models — test real outputs.
 11. No emojis in test files (Windows cp1252 encoding has bitten this project).

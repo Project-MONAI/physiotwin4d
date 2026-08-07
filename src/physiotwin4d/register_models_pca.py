@@ -8,7 +8,9 @@ from typing import Optional
 import itk
 import numpy as np
 import pyvista as pv
+from scipy.ndimage import map_coordinates
 from scipy.optimize import minimize
+from scipy.spatial import cKDTree
 from typing_extensions import Self
 
 from .contour_tools import ContourTools
@@ -17,29 +19,44 @@ from .transform_tools import TransformTools
 
 
 class RegisterModelsPCA(PhysioTwin4DBase):
-    """Register PCA-based shape models to medical images using mean distance optimization.
+    """Register PCA-based shape models to images by minimizing a distance metric.
 
     This class implements a registration pipeline for fitting statistical
     shape models to patient-specific medical images:
 
     **PCA Deformable Registration**
         - Optimizes PCA coefficients
-        - Model equation: P = mean + Σ(b_i * std_i * pca_eigenvector_i)
-        - Maximizes mean distance at deformed model points P
+        - Model equation: P = template + Σ(b_i * std_i * pca_eigenvector_i)
+        - Minimizes the mean distance-to-target at the deformed model points P
 
     **Optimization Objective:**
-        Maximize the mean distance of the image sampled at model points using
-        ITK's LinearInterpolateImageFunction. This aligns the model with bright
-        regions in contrast-enhanced images (e.g., blood pool in cardiac CT).
+        ``fixed_distance_map`` is zero on the target surface and grows with
+        distance away from it (in mm), so the objective is *minimized*::
+
+            E(b) = (1 - w) * mean_i D(P_i(b))          # model -> target
+                 +       w * mean_j ||Q_j - P_nn(j)||  # target -> model
+                 + lambda * Σ b_i²                     # Mahalanobis prior
+
+        ``w`` is ``symmetric_weight`` and ``lambda`` is ``pca_prior_weight``.
+        Because the deformation is linear in ``b``, the gradient is analytic and
+        is supplied to the optimizer directly.
+
+    **Coordinate frames:**
+        The eigenvectors are directions in the statistical model's own training
+        frame, so they are only valid when added to a template in that same
+        frame. Any rigid/affine alignment to the target must be supplied as
+        ``post_pca_transform``, which is applied *after* the deformation, rather
+        than pre-applied to ``pca_template_model``.
 
     Attributes:
         pca_template_model (pv.DataSet): Mean shape model
         pca_eigenvectors (np.ndarray): PCA eigenvectors/components (modes × n_points*3)
         pca_std_deviations (np.ndarray): Standard deviations per mode (modes,)
-        fixed_distance_map (itk.Image): Patient image providing distance data
-        n_points (int): Number of points in the model
+        fixed_distance_map (itk.Image): Distance map of the target, in mm
+        fixed_model (pv.DataSet): Target model, when one was supplied. Required
+            for the symmetric (target-to-model) term.
         pca_number_of_modes (int): Number of PCA modes available
-        pca_coefficients (np.ndarray): Optimized PCA coefficients
+        registered_model_pca_coefficients (np.ndarray): Optimized PCA coefficients
         registered_model (pv.DataSet): Final registered and deformed model
         post_pca_transform (itk.Transform): Transform to apply after PCA registration
         forward_point_transform (itk.DisplacementFieldTransform): POINT transform
@@ -90,63 +107,99 @@ class RegisterModelsPCA(PhysioTwin4DBase):
         fixed_distance_map: Optional[itk.Image] = None,
         fixed_model: Optional[pv.DataSet] = None,
         reference_image: Optional[itk.Image] = None,
+        pca_prior_weight: float = 0.0,
+        symmetric_weight: float = 0.5,
         log_level: int | str = logging.INFO,
     ):
         """Initialize the PCA-based model-to-image registration.
 
         Args:
             pca_template_model: PyVista model containing the mean 3D shape model
-                (unstructured grid or polydata)
+                (unstructured grid or polydata). It must be in the same frame
+                the PCA modes were trained in; supply any alignment to the
+                target as post_pca_transform instead of pre-applying it here.
             pca_eigenvectors: Numpy array of PCA eigenvectors/components. Shape: (modes, n_points*3)
                 Each row is a flattened eigenmode with 3D displacements: [x1,y1,z1, x2,y2,z2, ...]
             pca_std_deviations: Numpy array of standard deviations per PCA mode. Shape: (modes,)
                 These are the square roots of pca_eigenvalues
-            pca_number_of_modes: Number of PCA modes to use. Default: -1 (use all)
+            pca_number_of_modes: Number of PCA modes to use. Default: 0 (use all)
             pca_template_model_point_subsample: Step size for subsampling model points. Default: 4
             post_pca_transform: Optional ITK transform to apply after PCA registration.
                 Default: None
-            fixed_distance_map: ITK image providing the distance map.
+            fixed_distance_map: ITK image providing the distance map, in mm.
                 Default: None
             fixed_model: PyVista model used to compute the distance map, if one isn't provided.
+                Also supplies the target points for the symmetric term.
             reference_image: ITK image providing coordinate frame for computing the distance map.
+            pca_prior_weight: Weight (in mm) of the Mahalanobis shape prior
+                ``lambda * sum(b_i**2)``. Because b is expressed in standard
+                deviations, this term is the squared Mahalanobis distance in
+                shape space and makes the fit a MAP estimate rather than a pure
+                data fit constrained only by the coefficient bounds.
+                Default: 0.0 (prior disabled).
+            symmetric_weight: Weight in [0, 1] of the target-to-model distance
+                term. 0.0 measures model-to-target only, which lets the model
+                satisfy the metric while covering just part of the target.
+                Requires fixed_model; ignored with a warning when only a
+                distance map is available. Default: 0.5
             log_level: Logging level (logging.DEBUG, logging.INFO, logging.WARNING).
                 Default: logging.INFO
 
         Raises:
-            ValueError: If pca_eigenvector dimensions don't match model points
+            ValueError: If pca_eigenvector dimensions don't match model points,
+                if the mode counts disagree, or if neither a distance map nor a
+                fixed model plus reference image is provided.
         """
         # Initialize base class with logging
         super().__init__(class_name="RegisterModelsPCA", log_level=log_level)
 
         # Store model data
         self.pca_template_model: pv.DataSet = pca_template_model
-        self.pca_eigenvectors: np.ndarray = pca_eigenvectors
-        self.pca_std_deviations: np.ndarray = pca_std_deviations
+        self.pca_eigenvectors: np.ndarray = np.asarray(
+            pca_eigenvectors, dtype=np.float64
+        )
+        self.pca_std_deviations: np.ndarray = np.asarray(
+            pca_std_deviations, dtype=np.float64
+        )
+
+        if self.pca_eigenvectors.ndim != 2:
+            raise ValueError(
+                f"pca_eigenvectors must be 2D (modes, n_points*3), got shape "
+                f"{self.pca_eigenvectors.shape}"
+            )
+        expected_size = pca_template_model.n_points * 3
+        if self.pca_eigenvectors.shape[1] != expected_size:
+            raise ValueError(
+                f"Component dimension mismatch: expected {expected_size} "
+                f"(3 × {pca_template_model.n_points} points), got "
+                f"{self.pca_eigenvectors.shape[1]}"
+            )
+        if self.pca_eigenvectors.shape[0] != self.pca_std_deviations.shape[0]:
+            raise ValueError(
+                f"Mode count mismatch: {self.pca_eigenvectors.shape[0]} eigenvectors "
+                f"but {self.pca_std_deviations.shape[0]} standard deviations"
+            )
 
         self.post_pca_transform = post_pca_transform
 
         self._contour_tools = ContourTools()
 
+        self.fixed_model: Optional[pv.DataSet] = fixed_model
         self.fixed_distance_map = fixed_distance_map
         if (
             self.fixed_distance_map is None
             and fixed_model is not None
             and reference_image is not None
         ):
-            self.fixed_model = fixed_model
-            self.fixed_distance_map = self._contour_tools.create_distance_map(
-                fixed_model,
-                reference_image,
-                squared_distance=False,
-                negative_inside=False,
-                zero_inside=True,
-                norm_to_max_distance=200.0,
+            self.fixed_distance_map = self._create_distance_map(
+                fixed_model, reference_image
             )
         elif self.fixed_distance_map is not None and (
             fixed_model is not None or reference_image is not None
         ):
             self.log_warning(
-                "Fixed model and reference image will be ignored because a distance map is provided."
+                "A distance map was provided, so the reference image is ignored; "
+                "the fixed model is retained only for the symmetric metric term."
             )
         elif self.fixed_distance_map is None and (
             fixed_model is None or reference_image is None
@@ -160,9 +213,15 @@ class RegisterModelsPCA(PhysioTwin4DBase):
 
         self.pca_number_of_modes: int = pca_number_of_modes
         if self.pca_number_of_modes <= 0:
-            self.pca_number_of_modes = len(pca_std_deviations)
+            self.pca_number_of_modes = len(self.pca_std_deviations)
 
         self.pca_template_model_point_subsample = pca_template_model_point_subsample
+        self.pca_prior_weight = pca_prior_weight
+        if not 0.0 <= symmetric_weight <= 1.0:
+            raise ValueError(
+                f"symmetric_weight must be in [0, 1]; got {symmetric_weight}"
+            )
+        self.symmetric_weight = symmetric_weight
 
         # outputs
         self.registered_model_pca_coefficients: Optional[np.ndarray] = None
@@ -172,17 +231,26 @@ class RegisterModelsPCA(PhysioTwin4DBase):
         self.forward_point_transform: Optional[itk.DisplacementFieldTransform] = None
         self.inverse_point_transform: Optional[itk.DisplacementFieldTransform] = None
 
-        # Image interpolator (created when needed)
-        self._fixed_distance_map_interpolator: Optional[
-            itk.LinearInterpolateImageFunction
-        ] = None
+        # Sampling caches, built lazily by _prepare_sampling()
+        self._sampling_ready: bool = False
+        self._analytic_gradient: bool = True
         self._fixed_distance_map_max_distance: float = 0.0
+        self._post_pca_affine_key: Optional[itk.Transform] = None
+        self._post_pca_affine: Optional[tuple[np.ndarray, np.ndarray]] = None
 
         self._metric_call_count: int = 0
 
-        # Pre-convert mean shape points to ITK format
-        self._pca_template_model_points_itk: Optional[list[itk.Point]] = None
-        self._create_itk_points()
+    def _create_distance_map(
+        self, fixed_model: pv.DataSet, reference_image: itk.Image
+    ) -> itk.Image:
+        """Build the unsigned, un-normalized (mm) distance map of the target."""
+        return self._contour_tools.create_distance_map(
+            fixed_model,
+            reference_image,
+            squared_distance=False,
+            negative_inside=False,
+            zero_inside=True,
+        )
 
     @classmethod
     def from_json(
@@ -195,6 +263,8 @@ class RegisterModelsPCA(PhysioTwin4DBase):
         fixed_distance_map: Optional[itk.Image] = None,
         fixed_model: Optional[pv.DataSet] = None,
         reference_image: Optional[itk.Image] = None,
+        pca_prior_weight: float = 0.0,
+        symmetric_weight: float = 0.5,
         log_level: int | str = logging.INFO,
     ) -> Self:
         """Create RegisterModelsPCA from PCA model JSON file.
@@ -217,6 +287,8 @@ class RegisterModelsPCA(PhysioTwin4DBase):
                 for registration. If None, must be set later before registration.
             fixed_model: Target surface mesh to register to. Default: None
             reference_image: Reference image defining coordinate space. Default: None
+            pca_prior_weight: Weight (mm) of the Mahalanobis shape prior. Default: 0.0
+            symmetric_weight: Weight of the target-to-model term. Default: 0.5
             log_level: Logging level (logging.DEBUG, logging.INFO, logging.WARNING).
                 Default: logging.INFO
 
@@ -288,6 +360,8 @@ class RegisterModelsPCA(PhysioTwin4DBase):
             fixed_distance_map=fixed_distance_map,
             fixed_model=fixed_model,
             reference_image=reference_image,
+            pca_prior_weight=pca_prior_weight,
+            symmetric_weight=symmetric_weight,
             log_level=log_level,
         )
 
@@ -302,6 +376,8 @@ class RegisterModelsPCA(PhysioTwin4DBase):
         fixed_distance_map: Optional[itk.Image] = None,
         fixed_model: Optional[pv.DataSet] = None,
         reference_image: Optional[itk.Image] = None,
+        pca_prior_weight: float = 0.0,
+        symmetric_weight: float = 0.5,
         log_level: int | str = logging.INFO,
     ) -> Self:
         """Create RegisterModelsPCA from a PCA model dictionary.
@@ -320,6 +396,8 @@ class RegisterModelsPCA(PhysioTwin4DBase):
             fixed_distance_map: ITK image providing the distance values for registration.
             fixed_model: Target surface mesh to register to.
             reference_image: Reference image defining coordinate space.
+            pca_prior_weight: Weight (mm) of the Mahalanobis shape prior. Default: 0.0
+            symmetric_weight: Weight of the target-to-model term. Default: 0.5
             log_level: Logging level.
 
         Returns:
@@ -334,12 +412,6 @@ class RegisterModelsPCA(PhysioTwin4DBase):
         if "components" not in pca_model:
             raise ValueError("'components' field not found in pca_model")
         pca_eigenvectors = np.array(pca_model["components"], dtype=np.float64)
-        expected_size = pca_template_model.n_points * 3
-        if pca_eigenvectors.shape[1] != expected_size:
-            raise ValueError(
-                f"Component dimension mismatch: expected {expected_size} "
-                f"(3 × {pca_template_model.n_points} points), got {pca_eigenvectors.shape[1]}"
-            )
         return cls(
             pca_template_model=pca_template_model,
             pca_eigenvectors=pca_eigenvectors,
@@ -350,38 +422,18 @@ class RegisterModelsPCA(PhysioTwin4DBase):
             fixed_distance_map=fixed_distance_map,
             fixed_model=fixed_model,
             reference_image=reference_image,
+            pca_prior_weight=pca_prior_weight,
+            symmetric_weight=symmetric_weight,
             log_level=log_level,
-        )
-
-    def _create_itk_points(self) -> None:
-        """Pre-convert mean shape points to ITK Point format for efficiency.
-
-        This method creates ITK Point objects once at initialization, avoiding
-        repeated conversions during optimization iterations.
-        """
-        self.log_info("Converting mean shape points to ITK format...")
-
-        self._pca_template_model_points_itk = []
-        for point in self.pca_template_model.points:
-            itk_point = itk.Point[itk.D, 3]()
-            itk_point[0] = float(point[0])
-            itk_point[1] = float(point[1])
-            itk_point[2] = float(point[2])
-            self._pca_template_model_points_itk.append(itk_point)
-
-        self.log_info(
-            f"  Converted {len(self._pca_template_model_points_itk)} points to ITK format"
         )
 
     def set_fixed_model(
         self, fixed_model: pv.UnstructuredGrid, reference_image: Optional[itk.Image]
     ) -> None:
-        """Set the fixed model for registration.
-
-        If this is set, the fixed distance map will be set to None.
+        """Set the fixed model for registration and rebuild its distance map.
 
         Args:
-            fixed_model: PyVista model used to compute the distance map, if one isn't provided.
+            fixed_model: PyVista model used to compute the distance map.
             reference_image: ITK image providing coordinate frame for computing the distance map.
         """
         if reference_image is None:
@@ -389,26 +441,20 @@ class RegisterModelsPCA(PhysioTwin4DBase):
                 "reference_image must not be None when setting a fixed model"
             )
 
-        self.fixed_distance_map = self._contour_tools.create_distance_map(
-            fixed_model,
-            reference_image,
-            squared_distance=False,
-            negative_inside=False,
-            zero_inside=True,
-            norm_to_max_distance=200.0,
+        self.fixed_model = fixed_model
+        self.fixed_distance_map = self._create_distance_map(
+            fixed_model, reference_image
         )
-        self._fixed_distance_map_interpolator = None
+        self._sampling_ready = False
 
     def set_fixed_distance_map(self, fixed_distance_map: Optional[itk.Image]) -> None:
-        """Set the reference image for registration.
-
-        If this is set, the fixed model will be set to None.
+        """Set the distance map used as the registration target.
 
         Args:
-            fixed_distance_map: ITK image providing distance data
+            fixed_distance_map: ITK image providing distance data, in mm
         """
         self.fixed_distance_map = fixed_distance_map
-        self._fixed_distance_map_interpolator = None
+        self._sampling_ready = False
 
     def set_pca_template_model(self, pca_template_model: pv.UnstructuredGrid) -> None:
         """Set the average model for registration.
@@ -418,132 +464,310 @@ class RegisterModelsPCA(PhysioTwin4DBase):
                 (unstructured grid or polydata)
         """
         self.pca_template_model = pca_template_model
-
-        self._pca_template_model_points_itk = None
-
-        self._create_itk_points()
+        self._sampling_ready = False
         self.log_info("  Average model set successfully!")
 
-    def _mean_distance_metric(
-        self,
-        params: np.ndarray,
-    ) -> float:
-        """Evaluate the optimization metric (mean intensity) at model points.
+    def _affine_of_transform(
+        self, transform: itk.Transform
+    ) -> Optional[tuple[np.ndarray, np.ndarray]]:
+        """Recover (matrix, offset) if ``transform`` acts affinely, else None.
 
-        This is the objective function to be MAXIMIZED during optimization.
-        Higher values indicate better alignment with bright regions.
+        Probing the transform rather than querying ``GetMatrix()`` works for any
+        ITK transform type and correctly rejects the non-affine ones (such as a
+        displacement field), for which no constant Jacobian exists.
+        """
+
+        def apply(vector: np.ndarray) -> np.ndarray:
+            point = itk.Point[itk.D, 3]()
+            point[0], point[1], point[2] = (float(v) for v in vector)
+            result = transform.TransformPoint(point)
+            return np.array([result[0], result[1], result[2]], dtype=np.float64)
+
+        # Probe inside the model's own extent: a displacement field evaluated
+        # outside its grid returns no displacement, so probing at the origin and
+        # the unit cube would report such a transform as the identity affine.
+        bounds = np.asarray(self.pca_template_model.bounds, dtype=np.float64)
+        low, high = bounds[0::2], bounds[1::2]
+        center = 0.5 * (low + high)
+        step = 0.25 * np.maximum(high - low, 1.0)
+
+        base = apply(center)
+        matrix = np.column_stack(
+            [
+                (apply(center + step[i] * basis) - base) / step[i]
+                for i, basis in enumerate(np.eye(3, dtype=np.float64))
+            ]
+        )
+        offset = base - matrix @ center
+        probe = center + step * np.array([0.37, -0.61, 0.83], dtype=np.float64)
+        scale = max(1.0, float(np.abs(base).max()), float(np.abs(matrix).max()))
+        if not np.allclose(apply(probe), matrix @ probe + offset, atol=1e-9 * scale):
+            return None
+        return matrix, offset
+
+    def _get_post_pca_affine(self) -> Optional[tuple[np.ndarray, np.ndarray]]:
+        """Return the cached (matrix, offset) of post_pca_transform, or None.
+
+        Keyed on the transform object so that reassigning post_pca_transform
+        invalidates the cache.
+        """
+        if self.post_pca_transform is None:
+            return None
+        if self._post_pca_affine_key is not self.post_pca_transform:
+            self._post_pca_affine_key = self.post_pca_transform
+            self._post_pca_affine = self._affine_of_transform(self.post_pca_transform)
+        return self._post_pca_affine
+
+    def _prepare_sampling(self) -> None:
+        """Build the cached arrays the objective and its gradient are made of.
+
+        Everything that does not depend on the PCA coefficients is computed once
+        here: the subsampled template points, the per-mode displacement vectors
+        already scaled by their standard deviation and mapped through the
+        post-PCA transform, the distance map and its gradient, and the
+        physical-to-index mapping used to sample them.
+        """
+        if self.fixed_distance_map is None:
+            self.log_error("Distance map is not set.")
+            raise ValueError("Distance map must be set before registering.")
+
+        template_points = np.asarray(self.pca_template_model.points, dtype=np.float64)
+        step = max(1, self.pca_template_model_point_subsample)
+        self._sample_slice = slice(None, None, step)
+        self._sample_points = template_points[self._sample_slice]
+
+        # (modes, m, 3) displacement per unit coefficient, in template space.
+        modes = self.pca_eigenvectors.reshape(self.pca_eigenvectors.shape[0], -1, 3)
+        self._sample_modes = (
+            modes[:, self._sample_slice, :] * self.pca_std_deviations[:, None, None]
+        )
+
+        # Fold the post-PCA transform into the mode directions so the gradient
+        # is expressed directly in world space. A non-affine post-PCA transform
+        # has no constant Jacobian, so the analytic gradient is disabled.
+        affine = self._get_post_pca_affine()
+        if self.post_pca_transform is not None and affine is None:
+            self.log_warning(
+                "post_pca_transform is not affine; falling back to a "
+                "finite-difference gradient."
+            )
+        self._sample_modes_world = (
+            self._sample_modes if affine is None else self._sample_modes @ affine[0].T
+        )
+        self._analytic_gradient = self.post_pca_transform is None or affine is not None
+
+        # Physical point -> continuous index: index = affine_inv @ (p - origin).
+        image = self.fixed_distance_map
+        direction = itk.array_from_matrix(image.GetDirection())
+        index_to_world = direction @ np.diag(np.asarray(image.GetSpacing()))
+        self._index_to_world = index_to_world
+        self._world_to_index = np.linalg.inv(index_to_world)
+        self._image_origin = np.asarray(image.GetOrigin(), dtype=np.float64)
+        size = image.GetLargestPossibleRegion().GetSize()
+        self._image_size = np.array([size[0], size[1], size[2]], dtype=np.float64)
+
+        # Array axes are (k, j, i), so index component a is array axis 2 - a.
+        # The forward differences are the exact derivative of the trilinear
+        # interpolant used to sample the map, which keeps the objective and its
+        # gradient consistent; a central difference would not.
+        self._distance_array = np.asarray(
+            itk.array_view_from_image(image), dtype=np.float64
+        )
+        self._fixed_distance_map_max_distance = float(self._distance_array.max())
+        self._distance_forward_diff = tuple(
+            np.diff(self._distance_array, axis=2 - axis)
+            if self._distance_array.shape[2 - axis] > 1
+            else None
+            for axis in range(3)
+        )
+
+        # Target points for the symmetric term.
+        self._target_points: Optional[np.ndarray] = None
+        if self.symmetric_weight > 0.0:
+            if self.fixed_model is None:
+                self.log_warning(
+                    "symmetric_weight is %.3g but no fixed_model is available; "
+                    "the target-to-model term is disabled.",
+                    self.symmetric_weight,
+                )
+            else:
+                self._target_points = np.asarray(
+                    self.fixed_model.points, dtype=np.float64
+                )[self._sample_slice]
+
+        self._sampling_ready = True
+        self.log_debug(
+            "Sampling prepared: %d model points, %s target points, max distance %.3f mm",
+            self._sample_points.shape[0],
+            "no" if self._target_points is None else str(len(self._target_points)),
+            self._fixed_distance_map_max_distance,
+        )
+
+    def _sample_distance(
+        self, points: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray, int]:
+        """Sample the distance map and its spatial gradient at world points.
+
+        Points outside the image are clamped to the grid and charged the extra
+        travel from the clamped location, which keeps the metric continuous and
+        gives the optimizer a gradient that pushes such points back inside --
+        unlike a constant out-of-bounds penalty, which is flat.
 
         Args:
-            pca_deformation: Nx3 numpy array of PCA deformation vectors to add to points.
-                If None, no deformation is applied.
+            points: (n, 3) array of world-space points
 
         Returns:
-            Mean distance value across all points
+            Tuple of (distances (n,), world-space gradients (n, 3), n_outside)
         """
-        pca_deformation = self._compute_pca_deformation(params)
+        index = (points - self._image_origin) @ self._world_to_index.T
+        clamped = np.clip(index, 0.0, self._image_size - 1.0)
+        outside = index - clamped
+        is_outside = np.any(outside != 0.0, axis=1)
+        n_outside = int(np.count_nonzero(is_outside))
 
-        # Create interpolator if not already cached (inline creation)
-        if self._fixed_distance_map_interpolator is None:
-            if self.fixed_distance_map is None:
-                self.log_error("Distance map is not set.")
-                raise ValueError("Distance map must be set before registering.")
-            ImageType = type(self.fixed_distance_map)
-            self._fixed_distance_map_interpolator = itk.LinearInterpolateImageFunction[
-                ImageType, itk.D
-            ].New()
-            self._fixed_distance_map_interpolator.SetInputImage(self.fixed_distance_map)
-            fixed_distance_map_array = itk.GetArrayFromImage(self.fixed_distance_map)
-            self._fixed_distance_map_max_distance = fixed_distance_map_array.max()
-            self.log_debug("Interpolator created")
-            self.log_debug(
-                "   Max distance = %s", self._fixed_distance_map_max_distance
-            )
-
-        self.log_debug("Evaluating params = %s", params)
-        self.log_debug("   Max displacement = %s", pca_deformation.max(axis=0))
-
-        # Sample distance at each point
-        n_valid_points = 0
-        n_invalid_points = 0
-        total_distance = 0.0
-        center = np.zeros(3)
-        point = itk.Point[itk.D, 3]()
-        assert self.fixed_distance_map is not None, "fixed_distance_map must be set"
-        assert self._pca_template_model_points_itk is not None, (
-            "ITK points must be initialized"
+        # map_coordinates indexes the array as (k, j, i).
+        array_coordinates = clamped[:, ::-1]
+        distances = map_coordinates(
+            self._distance_array, array_coordinates.T, order=1, mode="nearest"
         )
-        image_size = self.fixed_distance_map.GetBufferedRegion().GetSize()
-        for i, base_point in enumerate(self._pca_template_model_points_itk):
-            if i % self.pca_template_model_point_subsample != 0:
+
+        # d/dc_a of the trilinear interpolant is the forward difference along a,
+        # interpolated linearly across the other two axes within the same cell.
+        gradient_index = np.zeros_like(clamped)
+        for axis in range(3):
+            differences = self._distance_forward_diff[axis]
+            if differences is None:
                 continue
-
-            # Start with base point
-            point[0] = base_point[0]
-            point[1] = base_point[1]
-            point[2] = base_point[2]
-
-            # Add PCA deformation if provided
-            point[0] += pca_deformation[i, 0]
-            point[1] += pca_deformation[i, 1]
-            point[2] += pca_deformation[i, 2]
-
-            if self.post_pca_transform is not None:
-                point = self.post_pca_transform.TransformPoint(point)
-
-            # Check if point is inside image bounds
-
-            coord_index = (
-                self.fixed_distance_map.TransformPhysicalPointToContinuousIndex(point)
+            coordinates = array_coordinates.copy()
+            coordinates[:, 2 - axis] = np.clip(
+                np.floor(clamped[:, axis]), 0.0, self._image_size[axis] - 2.0
             )
-            if (
-                0 <= coord_index[0] < image_size[0]
-                and 0 <= coord_index[1] < image_size[1]
-                and 0 <= coord_index[2] < image_size[2]
-            ):
-                center[0] += point[0]
-                center[1] += point[1]
-                center[2] += point[2]
-                distance = (
-                    self._fixed_distance_map_interpolator.EvaluateAtContinuousIndex(
-                        coord_index
-                    )
-                )
-                total_distance += distance
-                n_valid_points += 1
-            else:
-                n_invalid_points += 1
-
-        if n_invalid_points >= 0.05 * n_valid_points:
-            self.log_warning(
-                "%d of %d mapped outside of image. Rejecting.",
-                n_invalid_points,
-                n_valid_points + n_invalid_points,
+            gradient_index[:, axis] = map_coordinates(
+                differences, coordinates.T, order=1, mode="nearest"
             )
-            return self._fixed_distance_map_max_distance
+        # A clamped axis cannot change the sampled value, so it carries no
+        # gradient from the map; the out-of-bounds term supplies it instead.
+        gradient_index[outside != 0.0] = 0.0
+        gradients = gradient_index @ self._world_to_index
 
-        # Compute mean distance
-        mean_distance = total_distance / n_valid_points
-        center /= n_valid_points
+        if n_outside:
+            outside_world = outside @ self._index_to_world.T
+            outside_distance = np.linalg.norm(outside_world, axis=1)
+            safe = np.where(outside_distance > 0.0, outside_distance, 1.0)
+            distances = distances + outside_distance
+            gradients = gradients + outside_world / safe[:, None]
 
-        log_level_int = (
-            self.log_level
-            if isinstance(self.log_level, int)
-            else logging.getLevelName(self.log_level)
+        return distances, gradients, n_outside
+
+    def _deform(self, pca_coefficients: np.ndarray) -> np.ndarray:
+        """Deform the subsampled template points into world space."""
+        n_modes = len(pca_coefficients)
+        points = self._sample_points + np.tensordot(
+            pca_coefficients, self._sample_modes[:n_modes], axes=(0, 0)
         )
-        if log_level_int <= logging.DEBUG or self._metric_call_count % 100 == 0:
-            self.log_info(
-                "   Metric %d: %s -> %f",
-                (self._metric_call_count + 1),
-                center,
-                mean_distance,
+        return self._apply_post_pca_transform(points)
+
+    def _objective_and_gradient(self, params: np.ndarray) -> tuple[float, np.ndarray]:
+        """Evaluate the registration objective and its gradient.
+
+        The objective is MINIMIZED: the distance map is zero on the target
+        surface and grows away from it.
+
+        Args:
+            params: PCA coefficients b, in units of standard deviations
+
+        Returns:
+            Tuple of (objective value in mm, gradient with respect to params)
+        """
+        if not self._sampling_ready:
+            self._prepare_sampling()
+
+        n_modes = len(params)
+        modes_world = self._sample_modes_world[:n_modes]
+        points = self._deform(params)
+
+        distances, gradients, n_outside = self._sample_distance(points)
+        forward_distance = float(distances.mean())
+        # d/db_j of mean_i D(p_i) = mean_i grad_D(p_i) . (sigma_j * v_ij)
+        forward_gradient = np.einsum("ia,jia->j", gradients, modes_world) / len(points)
+
+        weight = self.symmetric_weight if self._target_points is not None else 0.0
+        reverse_distance = 0.0
+        reverse_gradient = np.zeros(n_modes, dtype=np.float64)
+        if weight > 0.0:
+            assert self._target_points is not None, "target points must be set"
+            # Target -> model: each target point is charged its distance to the
+            # nearest deformed model point, so a model that covers only part of
+            # the target scores badly. The forward term alone cannot see this.
+            nearest, nearest_index = cKDTree(points).query(self._target_points)
+            nearest_distance = np.atleast_1d(np.asarray(nearest, dtype=np.float64))
+            reverse_distance = float(nearest_distance.mean())
+            safe = np.where(nearest_distance > 0.0, nearest_distance, 1.0)
+            direction = (points[nearest_index] - self._target_points) / safe[:, None]
+            # Accumulate each target's pull onto the model point it selected,
+            # then contract once against the modes.
+            pull = np.zeros_like(points)
+            np.add.at(pull, nearest_index, direction)
+            pull /= len(self._target_points)
+            reverse_gradient = np.einsum("ia,jia->j", pull, modes_world)
+
+        objective = (1.0 - weight) * forward_distance + weight * reverse_distance
+        gradient = (1.0 - weight) * forward_gradient + weight * reverse_gradient
+
+        prior = 0.0
+        if self.pca_prior_weight > 0.0:
+            prior = self.pca_prior_weight * float(np.dot(params, params))
+            objective += prior
+            gradient = gradient + 2.0 * self.pca_prior_weight * params
+
+        if n_outside > 0.25 * len(points):
+            self.log_warning(
+                "%d of %d model points mapped outside the distance map.",
+                n_outside,
+                len(points),
             )
+
+        if self.log_level <= logging.DEBUG or self._metric_call_count % 25 == 0:
             self.log_info(
-                "       Params %s",
-                params,
+                "   Metric %d: %.4f mm (model->target %.4f, target->model %.4f, "
+                "prior %.4f, outside %d)",
+                self._metric_call_count + 1,
+                objective,
+                forward_distance,
+                reverse_distance,
+                prior,
+                n_outside,
             )
+            self.log_debug("       Params %s", params)
         self._metric_call_count += 1
 
-        return mean_distance
+        return objective, gradient
+
+    def _mean_distance_metric(self, params: np.ndarray) -> float:
+        """Evaluate the registration objective at the given PCA coefficients.
+
+        Args:
+            params: PCA coefficients b, in units of standard deviations
+
+        Returns:
+            Objective value, in mm. Lower is better.
+        """
+        return self._objective_and_gradient(np.asarray(params, dtype=np.float64))[0]
+
+    def _apply_post_pca_transform(self, points: np.ndarray) -> np.ndarray:
+        """Apply post_pca_transform to an (n, 3) array of world points."""
+        affine = self._get_post_pca_affine()
+        if affine is not None:
+            return np.asarray(points @ affine[0].T + affine[1], dtype=np.float64)
+        if self.post_pca_transform is None:
+            return points
+        transformed = np.empty_like(points)
+        point = itk.Point[itk.D, 3]()
+        for i, source in enumerate(points):
+            point[0], point[1], point[2] = (float(v) for v in source)
+            result = self.post_pca_transform.TransformPoint(point)
+            transformed[i] = (result[0], result[1], result[2])
+        return transformed
 
     def _compute_pca_deformation(self, pca_coefficients: np.ndarray) -> np.ndarray:
         """Compute PCA deformation vectors for all points.
@@ -552,28 +776,18 @@ class RegisterModelsPCA(PhysioTwin4DBase):
             displacement = Σ(b_i * std_i * pca_eigenvector_i)
 
         Args:
-            pca_coefficients: Array of PCA coefficients b_i (one per mode)
-            pca_number_of_modes: Number of PCA modes to use. Default: use all available modes
+            pca_coefficients: Array of PCA coefficients b_i. Only as many modes
+                as there are coefficients contribute.
 
         Returns:
-            Nx3 array of deformation vectors (displacement from mean shape)
+            Nx3 array of deformation vectors (displacement from the template)
         """
-        # Initialize deformation to zero
-        deformation = np.zeros((self.pca_template_model.n_points, 3), dtype=np.float64)
-
-        # Add contribution from each PCA mode
-        for i in range(self.pca_number_of_modes):
-            pca_eigenvector_flat = self.pca_eigenvectors[i, :]
-
-            # Reshape to (N, 3)
-            pca_eigenvector_3d = pca_eigenvector_flat.reshape(-1, 3)
-
-            # Add weighted deformation: b_i * std_i * pca_eigenvector_i
-            deformation += (
-                pca_coefficients[i] * self.pca_std_deviations[i] * pca_eigenvector_3d
-            )
-
-        return deformation
+        n_modes = len(pca_coefficients)
+        scaled = pca_coefficients * self.pca_std_deviations[:n_modes]
+        deformation = np.asarray(
+            scaled @ self.pca_eigenvectors[:n_modes], dtype=np.float64
+        )
+        return deformation.reshape(-1, 3)
 
     def _optimize_pca_coefficients(
         self,
@@ -584,12 +798,12 @@ class RegisterModelsPCA(PhysioTwin4DBase):
     ) -> tuple[np.ndarray, float]:
         """Optimize PCA coefficients
 
-        This method optimizes PCA mode coefficients to deform the model to better match
-            low values in the distance map.
+        Minimizes the mean distance between the deformed model and the target,
+        supplying the analytic gradient of the objective to the optimizer.
 
         Args:
             pca_number_of_modes: Number of PCA modes to use in optimization. Using fewer
-                modes provides smoother deformations. Default: 10
+                modes provides smoother deformations. Default: 0 (use all)
             pca_coefficient_bounds: Bound on PCA coefficients in units of std deviations.
                 Default: 3.0 (±3 std deviations per mode)
             method: Optimization method for scipy.optimize.minimize.
@@ -600,18 +814,22 @@ class RegisterModelsPCA(PhysioTwin4DBase):
         Returns:
             Tuple of (pca_coefficients, mean_distance):
                 - pca_coefficients: Optimized PCA coefficients
-                - mean_distance: Final mean distance metric value
+                - mean_distance: Final objective value, in mm
 
         Raises:
             ValueError: If number of PCA modes to use exceeds available modes
         """
+        n_available = len(self.pca_eigenvectors)
         if pca_number_of_modes <= 0:
-            pca_number_of_modes = len(self.pca_eigenvectors)
-        if pca_number_of_modes > len(self.pca_eigenvectors):
+            pca_number_of_modes = n_available
+        if pca_number_of_modes > n_available:
             raise ValueError(
-                f"Number of PCA modes to use ({pca_number_of_modes}) exceeds available modes ({len(self.pca_std_deviations)})"
+                f"Number of PCA modes to use ({pca_number_of_modes}) exceeds "
+                f"available modes ({n_available})"
             )
         self.pca_number_of_modes = pca_number_of_modes
+
+        self._prepare_sampling()
 
         self.log_info(f"Number of PCA modes: {pca_number_of_modes}")
         self.log_info(
@@ -619,33 +837,42 @@ class RegisterModelsPCA(PhysioTwin4DBase):
         )
         self.log_info(f"Optimization method: {method}")
         self.log_info(f"Max iterations: {max_iterations}")
+        self.log_info(f"Shape prior weight: {self.pca_prior_weight}")
+        self.log_info(f"Symmetric weight: {self.symmetric_weight}")
 
-        bounds = []
-        for _ in range(pca_number_of_modes):
-            bounds.append((-pca_coefficient_bounds, pca_coefficient_bounds))
+        bounds = [
+            (-pca_coefficient_bounds, pca_coefficient_bounds)
+            for _ in range(pca_number_of_modes)
+        ]
 
-        log_level_int = (
-            self.log_level
-            if isinstance(self.log_level, int)
-            else logging.getLevelName(self.log_level)
-        )
-        disp = log_level_int <= logging.INFO
+        disp = self.log_level <= logging.INFO
+
+        # The metric is in mm, so the default gradient tolerance is meaningful.
+        # Without an analytic gradient the finite-difference step must be large
+        # enough to move sample points by a useful fraction of a voxel.
+        options: dict = {"maxiter": max_iterations, "disp": disp, "gtol": 1e-6}
+        if not self._analytic_gradient:
+            options["eps"] = 1e-2
 
         self.log_info("Running optimization...")
         result_pca = minimize(  # type: ignore[call-overload]
-            lambda params: self._mean_distance_metric(params),
-            np.zeros(self.pca_number_of_modes),
+            self._objective_and_gradient
+            if self._analytic_gradient
+            else self._mean_distance_metric,
+            np.zeros(pca_number_of_modes),
             method=method,
+            jac=self._analytic_gradient,
             bounds=bounds,
-            options={"maxiter": max_iterations, "disp": disp},
+            options=options,
         )
 
         optimized_pca_coefficients = result_pca.x
-        optimized_mean_distance = result_pca.fun
+        optimized_mean_distance = float(result_pca.fun)
 
         self.log_info("Optimization completed!")
         self.log_info(f"Optimized PCA coefficients: {optimized_pca_coefficients}")
-        self.log_info(f"Final mean intensity: {optimized_mean_distance:.2f}")
+        self.log_info(f"Metric evaluations: {self._metric_call_count}")
+        self.log_info(f"Final mean distance: {optimized_mean_distance:.4f} mm")
 
         return optimized_pca_coefficients, optimized_mean_distance
 
@@ -672,35 +899,12 @@ class RegisterModelsPCA(PhysioTwin4DBase):
                 self.registered_model_pca_coefficients,
             )
 
-        # Apply deformation and affine transform to each point
-        final_points = np.zeros((self.pca_template_model.n_points, 3), dtype=np.float64)
-
-        n_points = self.pca_template_model.n_points
-        progress_interval = max(1, n_points // 10)  # Report progress every 10%
-
-        point = itk.Point[itk.D, 3]()
-        for i in range(n_points):
-            # Report progress
-            if i % progress_interval == 0 or i == n_points - 1:
-                self.log_progress(i + 1, n_points, prefix="Transforming points")
-
-            # Start with mean shape point
-            point[0] = float(self.pca_template_model.points[i][0])
-            point[1] = float(self.pca_template_model.points[i][1])
-            point[2] = float(self.pca_template_model.points[i][2])
-
-            # Add PCA deformation
-            point[0] += self.registered_model_pca_deformation[i, 0]
-            point[1] += self.registered_model_pca_deformation[i, 1]
-            point[2] += self.registered_model_pca_deformation[i, 2]
-
-            if self.post_pca_transform is not None:
-                point = self.post_pca_transform.TransformPoint(point)
-
-            # Store result
-            final_points[i, 0] = point[0]
-            final_points[i, 1] = point[1]
-            final_points[i, 2] = point[2]
+        # Deform in the template frame, then map into target space.
+        deformed_points = (
+            np.asarray(self.pca_template_model.points, dtype=np.float64)
+            + self.registered_model_pca_deformation
+        )
+        final_points = self._apply_post_pca_transform(deformed_points)
 
         # Create new model with transformed points
         self.registered_model = self.pca_template_model.copy(deep=True)
@@ -717,30 +921,36 @@ class RegisterModelsPCA(PhysioTwin4DBase):
         point: itk.Point,
         include_post_pca_transform: bool = True,
     ) -> itk.Point:
-        """Transform an arbitrary point using nearest neighbor interpolation.
+        """Transform an arbitrary point through the PCA deformation field.
 
         Args:
             point: ITK point to transform (itk.Point[itk.D, 3])
+            include_post_pca_transform: Also apply post_pca_transform. Default: True
 
         Returns:
             Transformed ITK point
 
+        Raises:
+            ValueError: If compute_pca_transforms() has not been called yet
+
         Notes:
-            1) if the point is outside the image bounds, the point is not transformed.
-            2) if the forward point transform is set, it is applied.
-            3) if the post_pca_transform is set and enabled, it is applied.
-            4) if the forward point transform is not set, no errors are raised.
+            This samples the *approximated* deformation field built by
+            compute_pca_transforms(), which is splatted and blurred, so it does
+            not reproduce transform_template_model() exactly; the RMS of that
+            difference is logged when the field is built. Points outside the
+            field's reference image are not displaced.
 
         Example:
             >>> p = itk.Point[itk.D, 3]()
             >>> p[0], p[1], p[2] = 10.0, 20.0, 30.0
             >>> transformed_p = registrar.transform_point(p)
         """
-
-        if self.forward_point_transform is not None:
-            transformed_point = self.forward_point_transform.TransformPoint(point)
-        else:
-            transformed_point = point
+        if self.forward_point_transform is None:
+            self.log_error("Forward point transform is not set.")
+            raise ValueError(
+                "compute_pca_transforms() must be called before transform_point()"
+            )
+        transformed_point = self.forward_point_transform.TransformPoint(point)
 
         if include_post_pca_transform and self.post_pca_transform is not None:
             transformed_point = self.post_pca_transform.TransformPoint(
@@ -749,8 +959,20 @@ class RegisterModelsPCA(PhysioTwin4DBase):
 
         return transformed_point
 
-    def compute_pca_transforms(self, reference_image: itk.Image) -> dict:
+    def compute_pca_transforms(
+        self, reference_image: itk.Image, blur_sigma: float = 2.5
+    ) -> dict:
         """Compute PCA transforms.
+
+        The field is built by splatting the per-point PCA displacements onto the
+        reference grid and blurring them, so it only approximates the exact
+        per-point deformation. The RMS of that approximation error, and of the
+        forward/inverse round trip, are both logged.
+
+        Args:
+            reference_image: ITK image providing the coordinate frame for the field.
+            blur_sigma: Sigma for Gaussian blurring of the deformation field.
+                Default: 2.5
 
         Returns:
             Dictionary containing:
@@ -761,17 +983,19 @@ class RegisterModelsPCA(PhysioTwin4DBase):
 
         Note:
             These are point transforms, oriented opposite to image-registration
-            transforms; see docs/developer/transform_conventions.
+            transforms; see docs/developer/transform_conventions. Neither
+            includes post_pca_transform.
         """
         assert self.registered_model_pca_deformation is not None, (
             "PCA deformation must be computed"
         )
+        template_points = np.asarray(self.pca_template_model.points, dtype=np.float64)
         template_model_pca_deformation_field_image = (
             self._contour_tools.create_deformation_field(
-                np.array(self.pca_template_model.points),
+                template_points,
                 self.registered_model_pca_deformation,
                 reference_image=reference_image,
-                blur_sigma=2.5,
+                blur_sigma=blur_sigma,
                 ptype=itk.D,
             )
         )
@@ -787,10 +1011,49 @@ class RegisterModelsPCA(PhysioTwin4DBase):
                 self.forward_point_transform
             )
         )
+
+        self._log_transform_fidelity(template_points)
+
         return {
             "forward_point_transform": self.forward_point_transform,
             "inverse_point_transform": self.inverse_point_transform,
         }
+
+    def _log_transform_fidelity(self, template_points: np.ndarray) -> None:
+        """Report how well the field reproduces the deformation and inverts."""
+        assert self.forward_point_transform is not None, "forward transform must be set"
+        assert self.inverse_point_transform is not None, "inverse transform must be set"
+        assert self.registered_model_pca_deformation is not None, (
+            "PCA deformation must be computed"
+        )
+
+        # Two TransformPoint calls per point is costly on dense templates, and a
+        # strided subset reports the same RMS to within sampling noise.
+        stride = max(1, len(template_points) // 5000)
+        sampled = template_points[::stride]
+        deformation = self.registered_model_pca_deformation[::stride]
+
+        point = itk.Point[itk.D, 3]()
+        forward = np.empty_like(sampled)
+        round_trip = np.empty_like(sampled)
+        for i, source in enumerate(sampled):
+            point[0], point[1], point[2] = (float(v) for v in source)
+            mapped = self.forward_point_transform.TransformPoint(point)
+            forward[i] = (mapped[0], mapped[1], mapped[2])
+            back = self.inverse_point_transform.TransformPoint(mapped)
+            round_trip[i] = (back[0], back[1], back[2])
+
+        expected = sampled + deformation
+        field_rms = float(np.sqrt(np.mean(np.sum((forward - expected) ** 2, axis=1))))
+        inverse_rms = float(
+            np.sqrt(np.mean(np.sum((round_trip - sampled) ** 2, axis=1)))
+        )
+        self.log_info(
+            "Deformation field RMS error: %.4f mm (approximation of the "
+            "per-point deformation)",
+            field_rms,
+        )
+        self.log_info("Forward/inverse round-trip RMS error: %.4f mm", inverse_rms)
 
     def register(
         self,
@@ -799,40 +1062,40 @@ class RegisterModelsPCA(PhysioTwin4DBase):
         method: str = "L-BFGS-B",
         max_iterations: int = 100,
     ) -> dict:
-        """Optimize PCA coefficients to deform the model to better match
-        low values in the distance map.
+        """Optimize PCA coefficients to deform the model onto the target.
 
         Args:
             pca_number_of_modes: Number of PCA modes to use. Default: 0 (use all available modes)
-            pca_coefficient_bounds: PCA coefficient bounds (±std devs). Default: 3.0
+            pca_coefficient_bounds: PCA coefficient bounds (±std devs). Default: 3.5
             method: Optimization method for scipy.optimize.minimize.
                 Default: 'L-BFGS-B' (supports bounds)
             max_iterations: Maximum number of optimization iterations.
-                Default: 50
+                Default: 100
 
         Returns:
             Dictionary containing:
                 - 'registered_model': Final registered PyVista model
                 - 'pca_coefficients': Optimized PCA coefficients
-                - 'mean_distance': Final mean distance metric value
+                - 'mean_distance': Final objective value, in mm
 
         Raises:
-            ValueError: If reference image is not set
+            ValueError: If the distance map is not set
 
         Example:
             >>> result = registrar.register(pca_number_of_modes=10)
             >>> result['registered_model'].save('registered_heart.vtk')
         """
         if self.fixed_distance_map is None:
-            raise ValueError("Reference image must be set before registration")
+            raise ValueError("A distance map must be set before registration")
 
         if pca_number_of_modes <= 0:
             pca_number_of_modes = self.pca_number_of_modes
 
-        self.log_section("PCA-BASED MODEL-TO-IMAGE REGISTRATION", width=70)
+        self.log_section("PCA-BASED MODEL-TO-MODEL REGISTRATION", width=70)
         self.log_info(f"Number of points: {self.pca_template_model.n_points}")
         self.log_info(f"Modes to use: {pca_number_of_modes}")
 
+        self._metric_call_count = 0
         self.registered_model_pca_coefficients, self.registered_model_mean_distance = (
             self._optimize_pca_coefficients(
                 pca_number_of_modes=pca_number_of_modes,

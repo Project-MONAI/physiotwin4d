@@ -14,8 +14,9 @@ from .register_images_base import RegisterImagesBase
 
 
 class RegisterImagesChain(RegisterImagesBase):
-    """Run an ordered list of registrars in sequence, feeding each stage's
-    forward_transform as the next stage's initial_forward_transform.
+    """Run an ordered list of registrars in sequence, each stage refining the
+    previous stage's forward_transform via
+    :meth:`RegisterImagesBase.register_from`.
 
     Use this to combine independent registration backends into a multi-stage
     pipeline (e.g. a fast coarse registrar followed by a refinement stage).
@@ -67,12 +68,14 @@ class RegisterImagesChain(RegisterImagesBase):
         moving_mask: Optional[itk.Image] = None,
         moving_labelmap: Optional[itk.Image] = None,
         moving_image_pre: Optional[itk.Image] = None,
-        initial_forward_transform: Optional[itk.Transform] = None,
     ) -> dict[str, Union[itk.Transform, float]]:
         """Run each registrar in ``self.registrars`` in order.
 
-        Each stage's ``forward_transform`` becomes the next stage's
-        ``initial_forward_transform``.
+        The first stage registers the raw moving image; every later stage sees
+        the moving data pre-warped by the running result and contributes only a
+        refinement, which is composed back on -- the same mechanics as
+        :meth:`RegisterImagesBase.register_from`, run through the delegated
+        ``registration_method`` path so masks are not re-converted per stage.
 
         Note:
             ``moving_image_pre`` is ignored: each stage may need different
@@ -87,25 +90,40 @@ class RegisterImagesChain(RegisterImagesBase):
             moving_labelmap (itk.image, optional): Multi-label segmentation
                 for the moving image
             moving_image_pre (itk.image, optional): Ignored - see Note above
-            initial_forward_transform (itk.Transform, optional): Initial
-                transformation from moving to fixed, used to initialize the
-                first stage
 
         Returns:
             dict: The last stage's result dict (see :meth:`RegisterImagesBase.register`)
         """
-        current_initial = initial_forward_transform
+        current_forward: Optional[itk.Transform] = None
         result: dict[str, Union[itk.Transform, float]] = {}
         for registrar in self.registrars:
-            self._delegate_to(registrar, moving_image, moving_mask, moving_labelmap)
-            result = registrar.registration_method(
-                moving_image,
-                moving_mask=moving_mask,
-                moving_labelmap=moving_labelmap,
+            if current_forward is None:
+                stage_image, stage_mask, stage_labelmap = (
+                    moving_image,
+                    moving_mask,
+                    moving_labelmap,
+                )
+            else:
+                stage_image, stage_mask, stage_labelmap = self._prewarp_moving(
+                    current_forward, moving_image, moving_mask, moving_labelmap
+                )
+
+            self._delegate_to(registrar, stage_image, stage_mask, stage_labelmap)
+            stage_result = registrar.registration_method(
+                stage_image,
+                moving_mask=stage_mask,
+                moving_labelmap=stage_labelmap,
                 moving_image_pre=None,
-                initial_forward_transform=current_initial,
             )
-            self._capture_delegate_result(registrar, result)
-            current_initial = cast(itk.Transform, result["forward_transform"])
+            self._capture_delegate_result(registrar, stage_result)
+
+            result = (
+                stage_result
+                if current_forward is None
+                else self._compose_with_initial(
+                    current_forward, stage_result, moving_image
+                )
+            )
+            current_forward = cast(itk.Transform, result["forward_transform"])
 
         return result
