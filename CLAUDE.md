@@ -139,6 +139,9 @@ came from.
   longer use a marker — they pull data through fixtures and run by default.
 - `experiments/` scripts are exploratory and are not run as tests; the
   `tutorials/` scripts are the optional end-to-end suite
+- **Avoid `pytest --run-slow` (or `--run-all`) unless the user explicitly
+  requests it.** Those runs take far too long for an interactive session.
+  Default to the fast suite and let the user invoke the slow buckets.
 - Prefer images from `ROOT/data/test/slicer_heart_small` for tests
 - Prefer storing results in subdirs `./results/<test_name>`
 
