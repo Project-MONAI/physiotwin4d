@@ -162,9 +162,7 @@ def register_slices(
 
             # Try identity as initial transform
             print("     Trying init with identity.")
-            results_init_identity = reg_tool.register(
-                img, initial_forward_transform=None
-            )
+            results_init_identity = reg_tool.register(img)
             inverse_tranform_init_identity = results_init_identity["inverse_transform"]
             forward_transform_init_identity = results_init_identity["forward_transform"]
             loss_init_identity = results_init_identity["loss"]
@@ -173,8 +171,8 @@ def register_slices(
             if portion_of_prior_to_use > 0.0:
                 # Try with prior transform
                 print("     Trying with init prior.")
-                results_init_prior = reg_tool.register(
-                    img, initial_forward_transform=prior_forward_transform
+                results_init_prior = reg_tool.register_from(
+                    prior_forward_transform, img
                 )
                 inverse_transform_init_prior = results_init_prior["inverse_transform"]
                 forward_transform_init_prior = results_init_prior["forward_transform"]

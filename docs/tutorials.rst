@@ -11,7 +11,7 @@ Tutorials
      <p class="pt4d-kicker">PhysioTwin4D tutorials</p>
      <h1>From a CT scan to an animated digital twin</h1>
      <p>
-       Ten numbered stages across 15 runnable Python scripts.
+       Ten numbered stages across 16 runnable Python scripts.
        Each one drives the real workflow classes end-to-end on downloadable
        data, shows what it produced, and ends with the handful of constants
        to change so it runs on your own scans.
@@ -219,6 +219,11 @@ Tutorial 2: Finetune ICON Registration
 Script
    ``tutorials/tutorial_02_lung_finetune_icon.py``
 
+   ``tutorials/tutorial_02_lung_distancemap_finetune_icon.py`` — the
+   distance-map variant, which finetunes on distance maps rather than image
+   intensities so the labelmap-to-labelmap stage of Tutorials 7 and 8 has
+   in-distribution weights.
+
 Workflow
    :class:`~physiotwin4d.WorkflowFinetuneICONRegistration`, then
    :class:`~physiotwin4d.RegisterImagesGreedy` and
@@ -269,6 +274,7 @@ Run
    .. code-block:: bash
 
       python tutorials/tutorial_02_lung_finetune_icon.py
+      python tutorials/tutorial_02_lung_distancemap_finetune_icon.py
 
 Outputs
    The finetuned checkpoint under

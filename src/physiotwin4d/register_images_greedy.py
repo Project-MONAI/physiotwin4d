@@ -363,7 +363,7 @@ class RegisterImagesGreedy(RegisterImagesBase):
         if fixed_labelmap_sitk is not None and moving_labelmap_sitk is not None:
             cmd_aff += " -w 0.60"
         cmd_aff += " -i fixed moving"
-        kwargs_aff = {
+        kwargs_aff: dict[str, Any] = {
             "fixed": fixed_sitk,
             "moving": moving_sitk,
         }

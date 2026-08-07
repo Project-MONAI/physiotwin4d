@@ -131,7 +131,8 @@ came from.
   tests are auto-skipped unless their opt-in flag is passed)
   py -m pytest tests/ -v
 - Baselines in `tests/baselines/` via Git LFS — run `git lfs pull` after cloning
-- `tests/conftest.py`: session-scoped fixtures chaining download → convert → segment → register
+- `tests/conftest.py`: session-scoped fixtures chaining
+  download → convert → segment → register
 - `src/physiotwin4d/test_tools.py`: baseline comparison utilities (`TestTools`, etc.)
 - Markers (all opt-in via `--run-<bucket>`): `slow`, `requires_gpu`,
   `requires_simpleware`, `tutorial`. Data-dependent tests no

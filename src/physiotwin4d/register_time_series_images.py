@@ -23,18 +23,9 @@ from .transform_tools import TransformTools
 class RegisterTimeSeriesImages(RegisterImagesBase):
     """Register a time series of images to a fixed image.
 
-    This class extends RegisterImagesBase to provide sequential registration
-    of multiple images (time series) to a fixed image, using a
-    caller-supplied registration backend. It can propagate information from
-    prior registrations to initialize subsequent ones.
-
-    The registration proceeds in two passes from a reference frame:
-
-    1. Forward pass: from reference_frame to the end of the series
-    2. Backward pass: from reference_frame-1 to the beginning
-
-    This bidirectional approach helps maintain temporal coherence in the
-    registration results.
+    This class extends RegisterImagesBase to provide registration of multiple
+    images (time series) to a fixed image, using a caller-supplied registration
+    backend. Every frame is registered to the fixed image independently.
 
     Key features:
 
@@ -165,12 +156,8 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
         """Register a time series of images to the fixed image.
 
         This method registers an ordered sequence of images to a common fixed
-        frame. Registration proceeds bidirectionally from a reference frame:
-        forward to the end and backward to the beginning.
-
-        For each image after the reference image, the method can optionally use
-        the transform from the previous image to initialize the registration,
-        which can improve convergence and temporal coherence.
+        frame. The reference frame is registered first, then every other frame,
+        each independently of the others.
 
         Args:
             moving_images (list[itk.Image]): List of 3D images to register
@@ -180,9 +167,8 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
             moving_labelmaps (list[itk.Image], optional): Per-frame multi-label
                 segmentations, one for each moving image. If None, no labelmaps are
                 used. If provided, must have the same length as moving_images. Default: None
-            reference_frame (int, optional): Index of the reference image to register first.
-                Registration proceeds forward from this index to the end, then
-                backward from this index to the beginning. Default: 0
+            reference_frame (int, optional): Index of the reference image, which
+                is registered first. Default: 0
             register_reference (bool, optional): If True, register the
                 reference image to the fixed image. If False, use identity transform
                 for the reference image. Default: True
@@ -303,29 +289,25 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
         inverse_transforms[reference_frame] = inverse_transform
         losses[reference_frame] = loss
 
-        # Register forward and backward from reference frame
-        for step, start_idx, end_idx in [
-            (1, reference_frame + 1, num_images),  # Forward pass
-            (-1, reference_frame - 1, -1),  # Backward pass
-        ]:
-            for img_idx in range(start_idx, end_idx, step):
-                moving_image = moving_images[img_idx]
-                moving_mask = (
-                    moving_masks[img_idx] if moving_masks is not None else None
-                )
-                moving_labelmap = (
-                    moving_labelmaps[img_idx] if moving_labelmaps is not None else None
-                )
+        # Register every remaining frame; each is independent of the others.
+        for img_idx in range(num_images):
+            if img_idx == reference_frame:
+                continue
+            moving_image = moving_images[img_idx]
+            moving_mask = moving_masks[img_idx] if moving_masks is not None else None
+            moving_labelmap = (
+                moving_labelmaps[img_idx] if moving_labelmaps is not None else None
+            )
 
-                result = self.registrar.register(
-                    moving_image=moving_image,
-                    moving_mask=moving_mask,
-                    moving_labelmap=moving_labelmap,
-                )
+            result = self.registrar.register(
+                moving_image=moving_image,
+                moving_mask=moving_mask,
+                moving_labelmap=moving_labelmap,
+            )
 
-                forward_transforms[img_idx] = result["forward_transform"]
-                inverse_transforms[img_idx] = result["inverse_transform"]
-                losses[img_idx] = cast(float, result["loss"])
+            forward_transforms[img_idx] = result["forward_transform"]
+            inverse_transforms[img_idx] = result["inverse_transform"]
+            losses[img_idx] = cast(float, result["loss"])
 
         assert all(t is not None for t in forward_transforms)
         assert all(t is not None for t in inverse_transforms)

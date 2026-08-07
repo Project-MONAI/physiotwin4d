@@ -140,7 +140,10 @@ pytest tests/ --create-baselines
 
 ## Test Timing Reports
 
-All test runs automatically generate a comprehensive timing report at the end showing individual test durations, session time, and pass/fail/skip counts. The report separates regular tests from tutorial tests and highlights the slowest tests.
+All test runs automatically generate a comprehensive timing report at the end
+showing individual test durations, session time, and pass/fail/skip counts. The
+report separates regular tests from tutorial tests and highlights the slowest
+tests.
 
 ## Test Configuration
 

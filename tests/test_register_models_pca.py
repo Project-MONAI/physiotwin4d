@@ -327,3 +327,9 @@ def test_pca_transforms_round_trip() -> None:
 
     assert field_rms < 1.5
     assert round_trip_rms < 1.0
+
+    # An identity field would satisfy both bounds above, so require that the
+    # forward transform actually moves the points a comparable distance.
+    displacement_rms = np.sqrt(np.mean(np.sum((mapped - template_points) ** 2, axis=1)))
+    expected_rms = np.sqrt(np.mean(np.sum((expected - template_points) ** 2, axis=1)))
+    assert displacement_rms > 0.5 * expected_rms

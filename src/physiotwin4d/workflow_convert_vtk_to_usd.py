@@ -136,6 +136,8 @@ class WorkflowConvertVTKToUSD(PhysioTwin4DBase):
         """
         annotations: list[tuple[Optional[str], Optional[str]]] = []
         for mesh in self.input_meshes:
+            if not isinstance(mesh, pv.DataSet) and isinstance(mesh, vtk.vtkDataSet):
+                mesh = pv.wrap(mesh)
             if not isinstance(mesh, pv.DataSet):
                 annotations.append((None, None))
                 continue
@@ -226,9 +228,14 @@ class WorkflowConvertVTKToUSD(PhysioTwin4DBase):
 
         # Anatomy group per object name, used as the fallback when the name
         # itself matches no material (e.g. "rib_left_3" -> the bone group).
+        # Keyed by the prim names ConvertVTKToUSD will actually emit, which fall
+        # back to "<project>_<index>" when no object_names were derived.
         object_groups: dict[str, str] = {}
-        if object_names is not None:
-            for object_name, (_, group) in zip(object_names, annotations):
+        if self.static_merge:
+            group_keys = object_names or [
+                f"{self.usd_project_name}_{index}" for index in range(len(annotations))
+            ]
+            for object_name, (_, group) in zip(group_keys, annotations):
                 if group is not None:
                     object_groups[object_name] = group
 

@@ -82,6 +82,10 @@ class TransformTools(PhysioTwin4DBase):
         In ``add`` mode, returns a single displacement field transform with
         weighted summed vectors. In ``compose`` mode, returns a composite
         transform containing both weighted displacement field transforms.
+
+        ``compose`` follows ITK's CompositeTransform convention, where the
+        last-added transform is applied first: the result evaluates
+        ``tfm1(tfm2(x))``, so ``tfm2`` is the stage that runs first.
         """
         assert mode in ["add", "compose"], "Invalid mode"
 

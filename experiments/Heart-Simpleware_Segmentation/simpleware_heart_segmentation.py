@@ -23,6 +23,7 @@
 # %%
 import logging
 import os
+import sys
 import tkinter as tk
 from tkinter import filedialog
 
@@ -65,6 +66,10 @@ input_image_path = filedialog.askopenfilename(
     filetypes=[("NIfTI", "*.nii.gz"), ("MetaIO", "*.mhd"), ("All files", "*.*")],
 )
 root.destroy()
+
+if not input_image_path:
+    print("No image selected; nothing to segment.")
+    sys.exit(0)
 
 # Load the image
 try:

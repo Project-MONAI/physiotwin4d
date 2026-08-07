@@ -14,6 +14,7 @@ Uses the vtk_to_usd library internally for core conversion functionality.
 from __future__ import annotations
 
 import logging
+from collections import Counter
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any, Literal, Optional, Union, cast
@@ -165,11 +166,23 @@ class ConvertVTKToUSD(PhysioTwin4DBase):
                     "time_codes must be in non-decreasing order; "
                     "got values that decrease between consecutive frames"
                 )
-        if object_names is not None and len(object_names) != len(self.input_polydata):
-            raise ValueError(
-                f"object_names length ({len(object_names)}) must match "
-                f"input_polydata length ({len(self.input_polydata)})"
-            )
+        if object_names is not None:
+            if len(object_names) != len(self.input_polydata):
+                raise ValueError(
+                    f"object_names length ({len(object_names)}) must match "
+                    f"input_polydata length ({len(self.input_polydata)})"
+                )
+            # Each name becomes a prim path component, so it has to be a legal
+            # USD identifier and unique or prims silently collide.
+            invalid = [n for n in object_names if not Sdf.Path.IsValidIdentifier(n)]
+            counts = Counter(object_names)
+            duplicated = sorted(n for n, count in counts.items() if count > 1)
+            if invalid or duplicated:
+                raise ValueError(
+                    "object_names must be unique and valid USD prim names "
+                    "(letter or underscore followed by letters, digits or "
+                    f"underscores); invalid: {invalid}, duplicated: {duplicated}"
+                )
         self._is_static_merge: bool = static_merge
         self._time_codes: Optional[list[float]] = time_codes
         self.object_names: Optional[list[str]] = (
@@ -954,7 +967,7 @@ class ConvertVTKToUSD(PhysioTwin4DBase):
         elif "boundary_labels" in vtk_mesh.cell_data:
             label_array = vtk_mesh.cell_data["boundary_labels"]
         else:
-            self.logger.warning(
+            self.log_warning(
                 "No 'SegmentationLabelIds' or 'boundary_labels' array found "
                 "- using unified mesh"
             )

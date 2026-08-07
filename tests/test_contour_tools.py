@@ -341,7 +341,9 @@ class TestSaveCombinedSurfaces:
     """Structure identity must survive merging into one file."""
 
     @staticmethod
-    def _annotated_sphere(center: tuple[float, float, float], label_id: int) -> Any:
+    def _annotated_sphere(
+        center: tuple[float, float, float], label_id: int
+    ) -> pv.PolyData:
         surface = pv.Sphere(radius=1.0, center=center)
         surface.field_data["SegmentationLabelIds"] = np.array(
             [label_id], dtype=np.int32

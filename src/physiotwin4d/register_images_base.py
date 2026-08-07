@@ -405,6 +405,12 @@ class RegisterImagesBase(PhysioTwin4DBase):
             initial_forward_transform, result, moving_image
         )
 
+        # register() left the pre-warped image on self; the composed transforms
+        # are defined against the original, so restore it and drop any
+        # registered-image cache built for the pre-warped one.
+        self.moving_image = moving_image
+        self.moving_image_registered = None
+
         self.forward_transform = composed["forward_transform"]
         self.inverse_transform = composed["inverse_transform"]
         self.loss = composed["loss"]

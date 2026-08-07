@@ -23,6 +23,7 @@ Key Features:
 """
 
 import logging
+from pathlib import Path
 from typing import Any, Optional, cast
 
 import itk
@@ -311,7 +312,12 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
 
         Args:
             weights_path: Path to an existing uniGradICON checkpoint.
+
+        Raises:
+            FileNotFoundError: If weights_path does not exist.
         """
+        if not Path(weights_path).exists():
+            raise FileNotFoundError(f"ICON weights not found: {weights_path}")
         self.l2l_icon_weights_path = weights_path
 
     def set_use_pca_registration(
@@ -585,25 +591,32 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
                 algorithm="dataset_surface"
             )
 
+        # The PCA field is splatted at the *un-aligned* template's points, which
+        # generally fall outside the patient image, so grid it in the template's
+        # own frame; create_deformation_field drops samples that land off-grid.
+        # The ICP alignment is applied separately, after this field.
+        pca_field_reference_image = self.contour_tools.create_reference_image(
+            pca_template_model,
+            spatial_resolution=float(min(self.patient_image.GetSpacing())),
+        )
         pca_transforms = self.pca_registrar.compute_pca_transforms(
-            reference_image=self.patient_image,
+            reference_image=pca_field_reference_image,
         )
         self.pca_forward_point_transform = pca_transforms["forward_point_transform"]
         self.pca_inverse_point_transform = pca_transforms["inverse_point_transform"]
 
         if self.log_level == logging.DEBUG:
-            tfm_arr = itk.GetArrayFromImage(
-                self.pca_forward_point_transform.GetDisplacementField()
-            )
+            tfm_field = self.pca_forward_point_transform.GetDisplacementField()
+            tfm_arr = itk.GetArrayFromImage(tfm_field)
             tfm_x_arr = tfm_arr[:, :, :, 0]
             tfm_y_arr = tfm_arr[:, :, :, 1]
             tfm_z_arr = tfm_arr[:, :, :, 2]
             tfm_x_img = itk.GetImageFromArray(tfm_x_arr)
             tfm_y_img = itk.GetImageFromArray(tfm_y_arr)
             tfm_z_img = itk.GetImageFromArray(tfm_z_arr)
-            tfm_x_img.CopyInformation(self.patient_image)
-            tfm_y_img.CopyInformation(self.patient_image)
-            tfm_z_img.CopyInformation(self.patient_image)
+            tfm_x_img.CopyInformation(tfm_field)
+            tfm_y_img.CopyInformation(tfm_field)
+            tfm_z_img.CopyInformation(tfm_field)
             itk.imwrite(tfm_x_img, "pca_forward_point_transform_x.nii.gz")
             itk.imwrite(tfm_y_img, "pca_forward_point_transform_y.nii.gz")
             itk.imwrite(tfm_z_img, "pca_forward_point_transform_z.nii.gz")
@@ -695,9 +708,14 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
 
         # Create a padded patient image since often the surface of interest
         # is not fully contained within the original image, which causes trouble
-        # with distance map registration.
+        # with distance map registration. The margin is physical -- it has to
+        # hold the dilated masks -- so it is converted per axis rather than
+        # padding a fixed voxel count on grids of any spacing.
+        margin_mm = 2.5 * self.mask_dilation_mm
+        spacing = np.asarray(self.patient_image.GetSpacing(), dtype=np.float64)
+        pad_voxels = np.maximum(1, np.ceil(margin_mm / spacing)).astype(int).tolist()
         padded_patient_image = ImageTools().pad_image(
-            self.patient_image, pad_voxels=[50, 50, 50], background_value=-1000
+            self.patient_image, pad_voxels=pad_voxels, background_value=-1000
         )
         labelmap_registrar = RegisterModelsDistanceMaps(
             moving_model=self.pca_template_model_surface,

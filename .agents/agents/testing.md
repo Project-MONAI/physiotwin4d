@@ -29,7 +29,8 @@ python -m pytest tests/ -v                                        # fast, recomm
 python -m pytest tests/test_contour_tools.py -v                   # single file
 python -m pytest tests/test_contour_tools.py::TestContourTools -v # single class
 python -m pytest tests/ -v --run-slow                             # opt into slow tests
-python -m pytest tests/ -v --run-gpu --run-slow                   # typical local GPU profile (CI runner adds --run-simpleware --run-tutorials)
+# typical local GPU profile; CI adds --run-simpleware --run-tutorials
+python -m pytest tests/ -v --run-gpu --run-slow
 python -m pytest tests/ --create-baselines                        # create missing baselines
 ```
 

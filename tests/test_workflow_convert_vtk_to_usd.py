@@ -4,10 +4,10 @@ Synthetic meshes only - no segmentation or image data required.
 """
 
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 import pyvista as pv
-import pytest
 from pxr import Usd, UsdShade
 
 from physiotwin4d import WorkflowConvertVTKToUSD
@@ -16,7 +16,7 @@ from physiotwin4d import WorkflowConvertVTKToUSD
 def _labeled_sphere(
     center: tuple[float, float, float],
     label_name: str,
-    group: str | None = None,
+    group: Optional[str] = None,
 ) -> pv.PolyData:
     """Return a sphere annotated the way WorkflowConvertImageToVTK annotates one."""
     surface = pv.Sphere(radius=1.0, center=center, theta_resolution=8, phi_resolution=8)
@@ -167,7 +167,3 @@ class TestAnatomyAppearance:
         stage = Usd.Stage.Open(result["usd_file"])
         assert stage.GetPrimAtPath("/World/scan/scan_0_object1").IsValid()
         assert stage.GetPrimAtPath("/World/scan/scan_1_object1").IsValid()
-
-
-if __name__ == "__main__":
-    pytest.main([__file__, "-v", "-s"])

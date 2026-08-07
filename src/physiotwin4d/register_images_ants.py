@@ -539,20 +539,15 @@ class RegisterImagesANTS(RegisterImagesBase):
             consistent. The forward and inverse transforms are stored separately
             by ANTs.
 
-            IMPORTANT: the initial transform is applied by pre-warping the
-            moving image onto the fixed grid (the same approach as
-            RegisterImagesICON) rather than via ants.registration's
-            initial_transform argument, which mishandles matrix (affine/
-            translation) initials. This method composes the initial transform
-            with the registration result, so the returned transforms include
-            both the initial alignment and the registration refinement.
+            To seed the registration with a known alignment, use
+            RegisterImagesBase.register_from(), which handles the pre-warp and
+            the composition.
 
         Implementation details:
             - Uses ANTs registration with configurable transform types
             - Supports multi-resolution optimization
             - Handles masked and unmasked registration
             - Returns ITK-compatible displacement field transforms
-            - Initial transforms are converted from ITK to ANTs format automatically
 
         Example:
             >>> # Basic registration

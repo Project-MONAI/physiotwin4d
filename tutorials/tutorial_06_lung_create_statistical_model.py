@@ -167,7 +167,9 @@ if __name__ == "__main__":
     components = pca_model.get("components", [])
     eigenvalues = pca_model.get("eigenvalues", [])
     mean_points = np.asarray(mean_surface.points)
-    mode_count = number_of_pca_components
+    # PCA rank is capped by the sample count, so the model can hold fewer
+    # components than requested.
+    mode_count = min(number_of_pca_components, len(components), len(eigenvalues))
 
     mode_surface_files: list[Path] = []
     xvfb_started = False

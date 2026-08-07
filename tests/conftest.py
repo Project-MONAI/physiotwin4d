@@ -616,8 +616,7 @@ class KnownShiftCase:
     ``shift_mm``, so ``moving(q) == fixed(q + shift_mm)``. Warping ``moving``
     back onto the fixed grid therefore requires a ``forward_transform`` of
     ``-shift_mm``, which gives an absolute accuracy target instead of the
-    "did it return something" checks that let a Greedy RAS/LPS sign error go
-    unnoticed.
+    "did it return something" checks that let a sign error go unnoticed.
     """
 
     def __init__(self, fixed_image: itk.Image, shift_mm: tuple[float, float, float]):

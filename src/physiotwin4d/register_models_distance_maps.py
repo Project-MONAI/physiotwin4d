@@ -134,6 +134,8 @@ class RegisterModelsDistanceMaps(PhysioTwin4DBase):
             fixed_model: PyVista target surface model
             reference_image: ITK image providing coordinate frame (origin, spacing, direction)
                 for mask generation. Typically the patient CT/MRI image.
+            distance_squared_max: Maximum squared distance, in squared millimeters,
+                that the distance maps are normalized against. Default: 50.0
             mask_dilation_mm: Dilation amount in millimeters for binary registration
                 mask generation. Default: 20mm
             log_level: Logging level (default: logging.INFO)
@@ -227,15 +229,6 @@ class RegisterModelsDistanceMaps(PhysioTwin4DBase):
         else:
             self.fixed_mask_image = None
 
-        itk.imwrite(
-            self.fixed_mask_image, "debug_fixed_mask_image.nii.gz", compression=True
-        )
-        itk.imwrite(
-            self.fixed_distance_map_image,
-            "debug_fixed_distance_map_image.nii.gz",
-            compression=True,
-        )
-
         # Create moving distance map
         self.moving_distance_map_image = self.contour_tools.create_distance_map(
             self.moving_model,
@@ -267,15 +260,6 @@ class RegisterModelsDistanceMaps(PhysioTwin4DBase):
             )
         else:
             self.moving_mask_image = None
-
-        itk.imwrite(
-            self.moving_mask_image, "debug_moving_mask_image.nii.gz", compression=True
-        )
-        itk.imwrite(
-            self.moving_distance_map_image,
-            "debug_moving_distance_map_image.nii.gz",
-            compression=True,
-        )
 
         self.log_info("Distance map and mask generation complete")
 
@@ -398,18 +382,20 @@ class RegisterModelsDistanceMaps(PhysioTwin4DBase):
             # (patient-space δ), then Greedy (patient→ICP-template).
             # Inverse (moving→fixed for point push-forward): apply Greedy first
             # (ICP-template→patient), then ICON (patient-space refinement).
+            # combine_displacement_field_transforms(a, b) evaluates b then a, so
+            # the stage that runs first is the second argument.
             self.forward_transform = (
                 self.transform_tools.combine_displacement_field_transforms(
-                    forward_transform_ICON,
                     forward_transform_Greedy,
+                    forward_transform_ICON,
                     reference_image=self.reference_image,
                     mode="compose",
                 )
             )
             self.inverse_transform = (
                 self.transform_tools.combine_displacement_field_transforms(
-                    inverse_transform_Greedy,
                     inverse_transform_ICON,
+                    inverse_transform_Greedy,
                     reference_image=self.reference_image,
                     mode="compose",
                 )

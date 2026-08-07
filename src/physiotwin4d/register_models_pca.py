@@ -217,6 +217,10 @@ class RegisterModelsPCA(PhysioTwin4DBase):
 
         self.pca_template_model_point_subsample = pca_template_model_point_subsample
         self.pca_prior_weight = pca_prior_weight
+        if not 0.0 <= symmetric_weight <= 1.0:
+            raise ValueError(
+                f"symmetric_weight must be in [0, 1]; got {symmetric_weight}"
+            )
         self.symmetric_weight = symmetric_weight
 
         # outputs
@@ -479,12 +483,24 @@ class RegisterModelsPCA(PhysioTwin4DBase):
             result = transform.TransformPoint(point)
             return np.array([result[0], result[1], result[2]], dtype=np.float64)
 
-        offset = apply(np.zeros(3))
+        # Probe inside the model's own extent: a displacement field evaluated
+        # outside its grid returns no displacement, so probing at the origin and
+        # the unit cube would report such a transform as the identity affine.
+        bounds = np.asarray(self.pca_template_model.bounds, dtype=np.float64)
+        low, high = bounds[0::2], bounds[1::2]
+        center = 0.5 * (low + high)
+        step = 0.25 * np.maximum(high - low, 1.0)
+
+        base = apply(center)
         matrix = np.column_stack(
-            [apply(basis) - offset for basis in np.eye(3, dtype=np.float64)]
+            [
+                (apply(center + step[i] * basis) - base) / step[i]
+                for i, basis in enumerate(np.eye(3, dtype=np.float64))
+            ]
         )
-        probe = np.array([0.37, -0.61, 0.83], dtype=np.float64)
-        scale = max(1.0, float(np.abs(matrix).max()), float(np.abs(offset).max()))
+        offset = base - matrix @ center
+        probe = center + step * np.array([0.37, -0.61, 0.83], dtype=np.float64)
+        scale = max(1.0, float(np.abs(base).max()), float(np.abs(matrix).max()))
         if not np.allclose(apply(probe), matrix @ probe + offset, atol=1e-9 * scale):
             return None
         return matrix, offset
@@ -1011,20 +1027,26 @@ class RegisterModelsPCA(PhysioTwin4DBase):
             "PCA deformation must be computed"
         )
 
+        # Two TransformPoint calls per point is costly on dense templates, and a
+        # strided subset reports the same RMS to within sampling noise.
+        stride = max(1, len(template_points) // 5000)
+        sampled = template_points[::stride]
+        deformation = self.registered_model_pca_deformation[::stride]
+
         point = itk.Point[itk.D, 3]()
-        forward = np.empty_like(template_points)
-        round_trip = np.empty_like(template_points)
-        for i, source in enumerate(template_points):
+        forward = np.empty_like(sampled)
+        round_trip = np.empty_like(sampled)
+        for i, source in enumerate(sampled):
             point[0], point[1], point[2] = (float(v) for v in source)
             mapped = self.forward_point_transform.TransformPoint(point)
             forward[i] = (mapped[0], mapped[1], mapped[2])
             back = self.inverse_point_transform.TransformPoint(mapped)
             round_trip[i] = (back[0], back[1], back[2])
 
-        expected = template_points + self.registered_model_pca_deformation
+        expected = sampled + deformation
         field_rms = float(np.sqrt(np.mean(np.sum((forward - expected) ** 2, axis=1))))
         inverse_rms = float(
-            np.sqrt(np.mean(np.sum((round_trip - template_points) ** 2, axis=1)))
+            np.sqrt(np.mean(np.sum((round_trip - sampled) ** 2, axis=1)))
         )
         self.log_info(
             "Deformation field RMS error: %.4f mm (approximation of the "
