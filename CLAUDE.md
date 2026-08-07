@@ -136,9 +136,9 @@ came from.
 - Markers (all opt-in via `--run-<bucket>`): `slow`, `requires_gpu`,
   `requires_simpleware`, `experiment`, `tutorial`. Data-dependent tests no
   longer use a marker — they pull data through fixtures and run by default.
-- **Never run `pytest` with `--run-slow` (or `--run-all`).** Those runs take far
-  too long for an interactive session. Run the fast suite and let the user
-  invoke the slow buckets themselves.
+- **Avoid `pytest --run-slow` (or `--run-all`) unless the user explicitly
+  requests it.** Those runs take far too long for an interactive session.
+  Default to the fast suite and let the user invoke the slow buckets.
 - Prefer images from `ROOT/data/test/slicer_heart_small` for tests
 - Prefer storing results in subdirs `./results/<test_name>`
 
