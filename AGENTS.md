@@ -153,6 +153,9 @@ graphify update .               # refresh after code changes (AST-only, no API c
   Slow, GPU, Simpleware,
   experiment, and tutorial tests are auto-skipped unless their opt-in flag is
   passed.
+- Do not run pytest with `--run-slow` or `--run-all` unless the user explicitly
+  asks; those runs take far too long for an interactive session. Default to the
+  fast suite and leave the opt-in buckets for the user to invoke.
 - Query the graphify knowledge graph (`graphify query "<question>"`) to locate
   classes, methods, and signatures before searching manually.
 - Do not commit changes or make pull requests unless specifically told to do so.
