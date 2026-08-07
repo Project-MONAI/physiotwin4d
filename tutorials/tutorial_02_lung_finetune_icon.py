@@ -98,16 +98,12 @@ if __name__ == "__main__":
     if test_mode:
         data_dir = repo_root / "data" / "test" / "DirLab-4DCT"
         number_of_iterations_greedy: Optional[list[int]] = [1, 0]
-        number_of_iterations_icon = 1
+        number_of_iterations_icon = None  # [1]
         epochs = 1
     else:
         data_dir = repo_root / "data" / "DirLab-4DCT"
-        number_of_iterations_greedy = [60, 30, 20]
-        number_of_iterations_icon = 10
-        # 90 training frames at batch_size 4 is 22 optimizer steps per epoch, so
-        # 100 epochs is ~2200 steps at a 5e-5 learning rate.  Far fewer than
-        # that leaves the finetuned weights statistically indistinguishable
-        # from the stock weights they started from.
+        number_of_iterations_greedy = None  # [60, 30, 20]
+        number_of_iterations_icon = None  # [10]
         epochs = 100
 
     log_level = logging.INFO
@@ -392,10 +388,18 @@ if __name__ == "__main__":
     itk.imwrite(
         fixed_labelmap, str(output_dir / "fixed_labelmap.mha"), compression=True
     )
+    # Difference against the fixed image, not the resampled result: residual
+    # structure is what distinguishes the methods, and it is invisible in the
+    # registered images themselves.
+    fixed_arr = itk.GetArrayFromImage(fixed_image).astype(np.float32)
     for method_name, image in registered_images.items():
+        difference = itk.GetImageFromArray(
+            fixed_arr - itk.GetArrayFromImage(image).astype(np.float32)
+        )
+        difference.CopyInformation(fixed_image)
         itk.imwrite(
-            image,
-            str(output_dir / f"registered_{method_name}.mha"),
+            difference,
+            str(output_dir / f"difference_{method_name}.mha"),
             compression=True,
         )
     for method_name, labelmap in labelmaps.items():

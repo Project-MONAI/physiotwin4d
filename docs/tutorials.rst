@@ -279,7 +279,8 @@ Run
 Outputs
    The finetuned checkpoint under
    ``tutorials/network_weights/icon_dirlab_4dct/``, plus
-   ``registration_summary.csv``, the registered images, the fixed and warped
+   ``registration_summary.csv``, the fixed-minus-registered difference images
+   (residual structure is what separates the methods), the fixed and warped
    labelmaps, and before/after screenshots in
    ``tutorials/output/tutorial_02_lung/``.
 

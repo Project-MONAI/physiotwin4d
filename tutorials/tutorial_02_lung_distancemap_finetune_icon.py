@@ -493,10 +493,18 @@ if __name__ == "__main__":
     itk.imwrite(
         fixed_distance_map, str(output_dir / "fixed_distance_map.mha"), compression=True
     )
+    # Difference against the fixed distance map, not the resampled result:
+    # residual structure is what distinguishes the methods, and it is invisible
+    # in the registered distance maps themselves.
+    fixed_arr = itk.GetArrayFromImage(fixed_distance_map).astype(np.float32)
     for method_name, distance_map in registered_distance_maps.items():
+        difference = itk.GetImageFromArray(
+            fixed_arr - itk.GetArrayFromImage(distance_map).astype(np.float32)
+        )
+        difference.CopyInformation(fixed_distance_map)
         itk.imwrite(
-            distance_map,
-            str(output_dir / f"registered_distance_map_{method_name}.mha"),
+            difference,
+            str(output_dir / f"difference_distance_map_{method_name}.mha"),
             compression=True,
         )
     for method_name, labelmap in labelmaps.items():

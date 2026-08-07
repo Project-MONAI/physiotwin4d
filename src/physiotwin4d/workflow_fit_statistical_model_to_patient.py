@@ -617,9 +617,6 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
             tfm_x_img.CopyInformation(tfm_field)
             tfm_y_img.CopyInformation(tfm_field)
             tfm_z_img.CopyInformation(tfm_field)
-            itk.imwrite(tfm_x_img, "pca_forward_point_transform_x.nii.gz")
-            itk.imwrite(tfm_y_img, "pca_forward_point_transform_y.nii.gz")
-            itk.imwrite(tfm_z_img, "pca_forward_point_transform_z.nii.gz")
 
         if self.use_surface:
             # forward_point_transform excludes the post-PCA step and is defined
