@@ -67,7 +67,9 @@ if __name__ == "__main__":
     baselines_dir = repo_root / "tests" / "baselines"
 
     data_dir = repo_root / "data" / "DirLab-4DCT"
-    pca_components = 7
+
+    pca_number_of_modes = 6
+
     # Atlas iterations used to build the reference surface; 1 is a single
     # template-biased pass.
     mean_surface_iterations = 3
@@ -126,7 +128,7 @@ if __name__ == "__main__":
     workflow = WorkflowCreateStatisticalModel(
         sample_meshes=sample_surfaces,
         reference_mesh=reference_surface,
-        pca_number_of_components=pca_components,
+        pca_number_of_components=pca_number_of_modes,
         log_level=log_level,
     )
 
@@ -165,7 +167,7 @@ if __name__ == "__main__":
     components = pca_model.get("components", [])
     eigenvalues = pca_model.get("eigenvalues", [])
     mean_points = np.asarray(mean_surface.points)
-    mode_count = min(2, pca_components, len(components), len(eigenvalues))
+    mode_count = pca_number_of_modes
 
     mode_surface_files: list[Path] = []
     xvfb_started = False

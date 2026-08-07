@@ -57,10 +57,10 @@ Workflows that accept a ``registration_method`` (e.g.
 :class:`WorkflowConvertImageToUSD`, :class:`RegisterTimeSeriesImages`) take
 any :class:`RegisterImagesBase` instance, including a composite chain that
 runs multiple backends in sequence. :class:`RegisterImagesChain` runs an
-ordered list of registrars, feeding each stage's ``forward_transform`` as the
-next stage's ``initial_forward_transform``. :class:`RegisterImagesGreedyICON`
-is a named 2-stage convenience class for the common case of a fast Greedy
-registration followed by ICON refinement:
+ordered list of registrars, each stage refining the previous stage's
+``forward_transform`` through ``register_from()`` (see `Seeding a registration`_
+below). :class:`RegisterImagesGreedyICON` is a named 2-stage convenience class
+for the common case of a fast Greedy registration followed by ICON refinement:
 
 .. code-block:: python
 
@@ -75,6 +75,23 @@ registration followed by ICON refinement:
    registrar = RegisterImagesGreedyICON()
    registrar.greedy.set_number_of_iterations([30, 15, 7, 3])
    registrar.icon.set_number_of_iterations(20)
+
+Seeding a registration
+======================
+
+To start from an alignment you already have, call ``register_from()`` instead of
+``register()``:
+
+.. code-block:: python
+
+   result = registrar.register_from(known_forward_transform, moving_image)
+
+It warps the moving image, mask and labelmap onto the fixed grid by that
+transform, registers the residual, and composes the two, so the returned
+transforms still map between the *original* moving image and the fixed image.
+Every backend goes through this one implementation -- no registrar accepts an
+initial transform of its own, which is what keeps the pre-warp, the composition
+and the inversion identical for Greedy, ICON and ANTs.
 
 Development Notes
 =================

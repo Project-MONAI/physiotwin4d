@@ -255,9 +255,30 @@ class TransformTools(PhysioTwin4DBase):
         new_tfm.SetDisplacementField(field)
         return new_tfm
 
-    def invert_displacement_field_transform(self, tfm: itk.Transform) -> itk.Transform:
+    def invert_displacement_field_transform(
+        self,
+        tfm: itk.Transform,
+        max_iterations: int = 20,
+        max_error_tolerance: float = 0.05,
+        mean_error_tolerance: float = 0.0005,
+    ) -> itk.Transform:
         """
         Invert a displacement field transform.
+
+        Uses SimpleITK's fixed-point iterative inversion on the input field's
+        own grid. The defaults are tighter than SimpleITK's own (10 iterations,
+        0.1 mm max error) because the fields produced here are not smooth
+        everywhere and converge slowly near their support boundary.
+
+        Args:
+            tfm: Displacement field transform to invert.
+            max_iterations: Fixed-point iterations per voxel.
+            max_error_tolerance: Convergence threshold on the maximum error, in
+                the field's units.
+            mean_error_tolerance: Convergence threshold on the mean error.
+
+        Returns:
+            The inverted displacement field transform.
         """
         assert "DisplacementFieldTransform" in str(type(tfm)), (
             "Input transform must be a displacement field transform"
@@ -268,7 +289,12 @@ class TransformTools(PhysioTwin4DBase):
 
         field_sitk = image_tools.convert_itk_image_to_sitk(field_itk)
 
-        field_sitk_inv = sitk.InvertDisplacementField(field_sitk)
+        field_sitk_inv = sitk.InvertDisplacementField(
+            field_sitk,
+            maximumNumberOfIterations=max_iterations,
+            maxErrorToleranceThreshold=max_error_tolerance,
+            meanErrorToleranceThreshold=mean_error_tolerance,
+        )
 
         field_itk_inv = image_tools.convert_sitk_image_to_itk(field_sitk_inv)
 
@@ -276,6 +302,38 @@ class TransformTools(PhysioTwin4DBase):
         new_tfm.SetDisplacementField(field_itk_inv)
 
         return new_tfm
+
+    def invert_transform(
+        self, tfm: itk.Transform, reference_image: itk.Image
+    ) -> itk.Transform:
+        """Invert any transform, analytically when the type supports it.
+
+        Prefers ITK's analytic inverse (available for translation, rigid, affine
+        and composites of them) and falls back to rasterizing a displacement
+        field over ``reference_image`` and inverting that numerically.
+
+        The analytic inverse is preferred because the fallback is only defined on
+        ``reference_image``'s grid: outside it the field is zero, so the inverse
+        silently degrades to the identity there.
+
+        Args:
+            tfm (itk.Transform): Transform to invert.
+            reference_image (itk.Image): Grid used by the displacement-field
+                fallback.
+
+        Returns:
+            itk.Transform: The inverse transform.
+        """
+        try:
+            analytic = tfm.GetInverseTransform()
+        except Exception:  # pragma: no cover - transform type dependent
+            analytic = None
+        if analytic is not None:
+            return cast(itk.Transform, analytic)
+
+        return self.invert_displacement_field_transform(
+            self.convert_transform_to_displacement_field_transform(tfm, reference_image)
+        )
 
     def transform_pvcontour(
         self,

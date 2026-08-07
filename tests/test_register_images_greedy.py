@@ -15,6 +15,8 @@ import pytest
 from physiotwin4d.register_images_greedy import RegisterImagesGreedy
 from physiotwin4d.transform_tools import TransformTools
 
+from .conftest import KnownShiftCase
+
 
 @pytest.mark.slow
 class TestRegisterImagesGreedy:
@@ -182,6 +184,48 @@ class TestRegisterImagesGreedy:
         assert result["forward_transform"] is not None
 
         print("Greedy affine registration complete with masks")
+
+    @pytest.mark.parametrize("transform_type", ["Rigid", "Affine", "Deformable"])
+    def test_recovers_known_shift(
+        self,
+        known_shift_case: KnownShiftCase,
+        transform_type: str,
+    ) -> None:
+        """Greedy must recover a known shift, in the right direction.
+
+        Regression guard for the RAS/LPS conversion: Greedy reports its affine
+        in RAS while ITK is LPS, so omitting the basis change negates x and y.
+        Before the fix this recovered (+6, -4, -3) mm instead of (-6, +4, -3)
+        and scored *below* the unregistered pair; the sign error passed every
+        other test in this file, which only check that transforms exist.
+        """
+        registrar = RegisterImagesGreedy()
+        registrar.set_modality("ct")
+        registrar.set_transform_type(transform_type)
+        registrar.set_number_of_iterations([60, 30, 10])
+        registrar.set_fixed_image(known_shift_case.fixed)
+
+        result = registrar.register(moving_image=known_shift_case.moving)
+        forward_transform = result["forward_transform"]
+
+        error_mm = known_shift_case.center_error_mm(forward_transform)
+        ncc = known_shift_case.foreground_ncc(forward_transform)
+        unregistered_ncc = known_shift_case.unregistered_ncc()
+
+        print(f"\nGreedy {transform_type} known-shift recovery:")
+        print(f"  expected displacement: {known_shift_case.expected_displacement}")
+        print(f"  error: {error_mm:.2f} mm")
+        print(f"  foreground NCC: {ncc:.4f} (unregistered {unregistered_ncc:.4f})")
+
+        assert error_mm < 2.0, (
+            f"Greedy {transform_type} recovered the shift {error_mm:.2f} mm off; "
+            "a sign or axis error inverts the transform (see the RAS/LPS "
+            "conversion in RegisterImagesGreedy._matrix_to_itk_affine)"
+        )
+        assert ncc > unregistered_ncc, (
+            f"Greedy {transform_type} left the images less aligned than they "
+            f"started ({ncc:.4f} vs {unregistered_ncc:.4f})"
+        )
 
     def test_transform_application(
         self,

@@ -18,6 +18,8 @@ import pytest
 from physiotwin4d.register_images_ants import RegisterImagesANTS
 from physiotwin4d.transform_tools import TransformTools
 
+from .conftest import KnownShiftCase
+
 
 def _foreground_ncc(
     reference_arr: np.ndarray, warped_arr: np.ndarray, foreground: np.ndarray
@@ -294,6 +296,35 @@ class TestRegisterImagesANTS:
         print("Image preprocessing complete")
         print(f"  Preprocessed spacing: {preprocessed_spacing}")
 
+    def test_recovers_known_shift(self, known_shift_case: KnownShiftCase) -> None:
+        """ANTs must recover a known shift, in the right direction.
+
+        The companion of the Greedy check in test_register_images_greedy.py:
+        ANTs works in ITK's LPS frame throughout, so this asserts no equivalent
+        RAS/LPS conversion is missing here.
+        """
+        registrar = RegisterImagesANTS()
+        registrar.set_modality("ct")
+        registrar.set_transform_type("Affine")
+        registrar.set_fixed_image(known_shift_case.fixed)
+
+        result = registrar.register(moving_image=known_shift_case.moving)
+        forward_transform = result["forward_transform"]
+
+        error_mm = known_shift_case.center_error_mm(forward_transform)
+        ncc = known_shift_case.foreground_ncc(forward_transform)
+        unregistered_ncc = known_shift_case.unregistered_ncc()
+
+        print("\nANTs known-shift recovery:")
+        print(f"  error: {error_mm:.2f} mm")
+        print(f"  foreground NCC: {ncc:.4f} (unregistered {unregistered_ncc:.4f})")
+
+        assert error_mm < 2.0, f"ANTs recovered the shift {error_mm:.2f} mm off"
+        assert ncc > unregistered_ncc, (
+            f"ANTs left the images less aligned than they started "
+            f"({ncc:.4f} vs {unregistered_ncc:.4f})"
+        )
+
     def test_registration_with_initial_transform(
         self,
         registrar_ANTS: RegisterImagesANTS,
@@ -318,9 +349,9 @@ class TestRegisterImagesANTS:
         registrar_ANTS.set_modality("ct")
         registrar_ANTS.set_fixed_image(fixed_image)
 
-        result = registrar_ANTS.register(
-            moving_image=moving_image,
-            initial_forward_transform=initial_tfm_forward,
+        result = registrar_ANTS.register_from(
+            initial_tfm_forward,
+            moving_image,
         )
 
         assert isinstance(result, dict), "Result should be a dictionary"
@@ -335,7 +366,7 @@ class TestRegisterImagesANTS:
         test_images: list[Any],
         test_directories: dict[str, Path],
     ) -> None:
-        """Verify the initial_forward_transform composition path with metrics.
+        """Verify the register_from() composition path with metrics.
 
         Exercises the two initial-transform inputs the platform actually uses
         (identity and a prior deformable forward_transform, as in prior-based
@@ -396,18 +427,16 @@ class TestRegisterImagesANTS:
         registrar_identity = RegisterImagesANTS()
         registrar_identity.set_modality("ct")
         registrar_identity.set_fixed_image(fixed_image)
-        identity_result = registrar_identity.register(
-            moving_image=moving_image, initial_forward_transform=identity
-        )
+        identity_result = registrar_identity.register_from(identity, moving_image)
         ncc_identity = warp_score(identity_result["forward_transform"])
 
         # Prior deformable initial: the realistic time-series prior use case.
         registrar_prior = RegisterImagesANTS()
         registrar_prior.set_modality("ct")
         registrar_prior.set_fixed_image(fixed_image)
-        prior_result = registrar_prior.register(
-            moving_image=moving_image,
-            initial_forward_transform=baseline["forward_transform"],
+        prior_result = registrar_prior.register_from(
+            baseline["forward_transform"],
+            moving_image,
         )
         ncc_prior = warp_score(prior_result["forward_transform"])
 
@@ -475,9 +504,7 @@ class TestRegisterImagesANTS:
 
         registrar_ANTS.set_modality("ct")
         registrar_ANTS.set_fixed_image(fixed_image)
-        result = registrar_ANTS.register(
-            moving_image=moving_image, initial_forward_transform=translation
-        )
+        result = registrar_ANTS.register_from(translation, moving_image)
 
         transform_tools = TransformTools()
         warped = transform_tools.transform_image(

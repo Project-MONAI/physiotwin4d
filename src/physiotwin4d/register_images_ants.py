@@ -510,7 +510,6 @@ class RegisterImagesANTS(RegisterImagesBase):
         moving_mask: Optional[itk.Image] = None,
         moving_labelmap: Optional[itk.Image] = None,
         moving_image_pre: Optional[itk.Image] = None,
-        initial_forward_transform: Optional[itk.Transform] = None,
     ) -> dict[str, Union[itk.Transform, float]]:
         """Register moving image to fixed image using ANTs registration algorithm.
 
@@ -524,14 +523,6 @@ class RegisterImagesANTS(RegisterImagesBase):
                 region of interest in the moving image
             moving_image_pre (itk.Image, optional): Pre-processed moving image.
              If None, preprocessing is performed automatically
-            initial_forward_transform (itk.Transform, optional): Initial
-                forward transform (same convention as the returned
-                forward_transform: used to warp the moving image onto the fixed
-                grid). Can be any ITK transform type (Affine, Rigid,
-                DisplacementField, Composite, etc.). It is applied by pre-warping
-                the moving image onto the fixed grid before registration; the
-                returned transforms compose this initial alignment with the
-                registration refinement.
 
         Returns:
             dict: Dictionary containing:
@@ -573,9 +564,9 @@ class RegisterImagesANTS(RegisterImagesBase):
             >>> registrar.set_fixed_mask(heart_mask_fixed)
             >>> result = registrar.register(moving_image, moving_mask=heart_mask_moving)
             >>>
-            >>> # Registration with initial transform
+            >>> # Registration seeded with a known alignment
             >>> initial_tfm = itk.AffineTransform[itk.D, 3].New()
-            >>> result = registrar.register(moving_image, initial_forward_transform=initial_tfm)
+            >>> result = registrar.register_from(initial_tfm, moving_image)
         """
         if moving_image is not None:
             self.moving_image = moving_image
@@ -590,22 +581,6 @@ class RegisterImagesANTS(RegisterImagesBase):
 
         if self.fixed_image_pre is None:
             self.fixed_image_pre = self.preprocess(self.fixed_image, self.modality)
-
-        if initial_forward_transform is not None:
-            self.log_info("Pre-warping moving image with initial transform...")
-            transform_tools = TransformTools()
-            self.moving_image_pre = transform_tools.transform_image(
-                self.moving_image_pre,
-                initial_forward_transform,
-                self.fixed_image,
-            )
-            if self.moving_mask is not None:
-                self.moving_mask = transform_tools.transform_image(
-                    self.moving_mask,
-                    initial_forward_transform,
-                    self.fixed_image,
-                    interpolation_method="nearest",
-                )
 
         transform_type = None
         if self.transform_type == "Deformable":
@@ -706,46 +681,8 @@ class RegisterImagesANTS(RegisterImagesBase):
             reference_image=self.moving_image,
         )
 
-        # Important: ANTs does NOT include the initial_transform in the output transforms
-        # We need to manually compose them
-        if initial_forward_transform is not None:
-            self.log_info("Composing initial transform with registration result...")
-
-            # For forward_transform (Moving -> Fixed): Apply initial_forward_transform first, then registration
-            # Transform order: point -> initial_forward_transform -> forward_reg
-            forward_transform = itk.CompositeTransform[itk.D, 3].New()
-            forward_transform.AddTransform(initial_forward_transform)
-            # Add transforms from registration result (may be composite)
-            if isinstance(forward_reg, itk.CompositeTransform[itk.D, 3]):
-                for i in range(forward_reg.GetNumberOfTransforms()):
-                    forward_transform.AddTransform(forward_reg.GetNthTransform(i))
-            else:
-                forward_transform.AddTransform(forward_reg)
-
-            # For inverse_transform (Fixed -> Moving): Apply registration inverse first, then initial inverse
-            # Transform order: point -> inverse_reg -> initial_forward_transform^(-1)
-            inverse_transform = itk.CompositeTransform[itk.D, 3].New()
-            # Add registration inverse transforms
-            if isinstance(inverse_reg, itk.CompositeTransform[itk.D, 3]):
-                for i in range(inverse_reg.GetNumberOfTransforms()):
-                    inverse_transform.AddTransform(inverse_reg.GetNthTransform(i))
-            else:
-                inverse_transform.AddTransform(inverse_reg)
-            # Invert and add initial transform
-            # For displacement field transforms, we need to invert properly
-            transform_tools = TransformTools()
-            initial_inverse = transform_tools.invert_displacement_field_transform(
-                transform_tools.convert_transform_to_displacement_field_transform(
-                    initial_forward_transform, self.moving_image
-                )
-            )
-            inverse_transform.AddTransform(initial_inverse)
-
-            self.log_info("Transforms composed successfully")
-        else:
-            # No initial transform, use registration results directly
-            forward_transform = forward_reg
-            inverse_transform = inverse_reg
+        forward_transform = forward_reg
+        inverse_transform = inverse_reg
         moving_image_reg = registration_result["warpedmovout"]
         loss = ants.image_similarity(
             self._itk_to_ants_image(self.fixed_image),

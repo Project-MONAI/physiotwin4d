@@ -41,7 +41,6 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
     - Sequential registration of ordered image lists
     - Supports any RegisterImagesBase backend, including RegisterImagesChain
       / RegisterImagesGreedyICON for multi-stage registration
-    - Optional use of prior transforms to initialize next registration
     - Configurable starting point in the time series
     - Returns all transforms and loss values for the entire series
 
@@ -60,7 +59,6 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
         ...     moving_images=time_series_images,
         ...     reference_frame=5,  # Start from middle of cardiac cycle
         ...     register_reference=True,
-        ...     prior_weight=0.5,
         ... )
         >>>
         >>> forward_tfms = result['forward_transforms']  # warp moving images -> fixed grid
@@ -104,18 +102,6 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
         self.registrar: RegisterImagesBase = registration_method
 
         self.transform_tools: TransformTools = TransformTools()
-
-        self.smooth_prior_transform_sigma: float = 0.5
-
-    def set_smooth_prior_transform_sigma(
-        self, smooth_prior_transform_sigma: float
-    ) -> None:
-        """Set the sigma for smoothing the prior transform.
-
-        Args:
-            smooth_prior_transform_sigma (float): Sigma for smoothing the prior transform.
-        """
-        self.smooth_prior_transform_sigma = smooth_prior_transform_sigma
 
     def set_mask_dilation(self, mask_dilation_mm: float) -> None:
         """Set the dilation of the fixed and moving image masks.
@@ -175,7 +161,6 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
         moving_labelmaps: Optional[list[Optional[itk.Image]]] = None,
         reference_frame: int = 0,
         register_reference: bool = True,
-        prior_weight: float = 0.0,
     ) -> dict[str, list[itk.Transform] | list[float]]:
         """Register a time series of images to the fixed image.
 
@@ -201,12 +186,7 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
             register_reference (bool, optional): If True, register the
                 reference image to the fixed image. If False, use identity transform
                 for the reference image. Default: True
-            prior_weight (float, optional):
-                Weight (0.0 to 1.0) for using the prior image's transform to
-                initialize the next registration. 0.0 means no prior information
-                is used (each registration starts from identity). Higher values
-                provide more temporal smoothness but may propagate errors.
-                Default: 0.0
+
         Returns:
             dict: Dictionary containing results:
                 - "forward_transforms" (list[itk.Transform]): one per image;
@@ -222,13 +202,11 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
         Raises:
             ValueError: If fixed_image is not set
             ValueError: If reference_frame is out of range
-            ValueError: If prior_weight not in [0, 1]
             ValueError: If moving_masks length doesn't match moving_images length
 
         Note:
-            The method compares registration with identity initialization versus
-            prior transform initialization and selects the result with lower loss.
-            This helps prevent error propagation in the temporal sequence.
+            Every frame is registered independently, so an error in one frame
+            cannot propagate along the series.
 
             The fixed image mask can be set using set_fixed_mask() before
             calling this method.
@@ -245,7 +223,6 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
             ...     moving_labelmaps=labelmap_list,  # Optional
             ...     reference_frame=5,
             ...     register_reference=True,
-            ...     prior_weight=0.5,
             ... )
             >>>
             >>> # Access results using new intuitive names
@@ -272,9 +249,6 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
             raise ValueError(
                 f"reference_frame {reference_frame} out of range [0, {num_images - 1}]"
             )
-
-        if not 0.0 <= prior_weight <= 1.0:
-            raise ValueError("prior_weight must be in [0.0, 1.0]")
 
         if moving_masks is not None and len(moving_masks) != num_images:
             raise ValueError(
@@ -329,29 +303,11 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
         inverse_transforms[reference_frame] = inverse_transform
         losses[reference_frame] = loss
 
-        # Compute prior transform for reference frame if needed
-        prior_forward_ref = None
-        if prior_weight > 0.0:
-            prior_forward_ref = (
-                self.transform_tools.combine_displacement_field_transforms(
-                    identity_tfm,
-                    forward_transform,
-                    self.fixed_image,
-                    tfm1_weight=1.0,
-                    tfm2_weight=prior_weight,
-                    tfm1_blur_sigma=0.0,
-                    tfm2_blur_sigma=0.5,
-                    mode="add",
-                )
-            )
-
         # Register forward and backward from reference frame
         for step, start_idx, end_idx in [
             (1, reference_frame + 1, num_images),  # Forward pass
             (-1, reference_frame - 1, -1),  # Backward pass
         ]:
-            prior_forward = prior_forward_ref
-
             for img_idx in range(start_idx, end_idx, step):
                 moving_image = moving_images[img_idx]
                 moving_mask = (
@@ -361,65 +317,15 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
                     moving_labelmaps[img_idx] if moving_labelmaps is not None else None
                 )
 
-                # Try registration with identity initialization
-                result_init_identity = self.registrar.register(
+                result = self.registrar.register(
                     moving_image=moving_image,
                     moving_mask=moving_mask,
                     moving_labelmap=moving_labelmap,
                 )
-                forward_init_identity = result_init_identity["forward_transform"]
-                inverse_init_identity = result_init_identity["inverse_transform"]
-                loss_init_identity = result_init_identity["loss"]
 
-                # Select best result based on prior usage
-                if prior_weight > 0.0:
-                    # Try with prior transform initialization
-                    result_init_prior = self.registrar.register(
-                        moving_image=moving_image,
-                        moving_mask=moving_mask,
-                        moving_labelmap=moving_labelmap,
-                        initial_forward_transform=prior_forward,
-                    )
-                    forward_init_prior = result_init_prior["forward_transform"]
-                    inverse_init_prior = result_init_prior["inverse_transform"]
-                    loss_init_prior = result_init_prior["loss"]
-
-                    # Select result with lower loss
-                    if loss_init_identity < loss_init_prior:
-                        # Identity initialization was better
-                        prior_forward = identity_tfm
-                        forward_transform = forward_init_identity
-                        inverse_transform = inverse_init_identity
-                        loss = loss_init_identity
-                    else:
-                        # Prior initialization was better
-                        forward_transform = forward_init_prior
-                        inverse_transform = inverse_init_prior
-                        loss = loss_init_prior
-
-                    # Update prior for next iteration
-                    prior_forward = (
-                        self.transform_tools.combine_displacement_field_transforms(
-                            identity_tfm,
-                            forward_transform,
-                            self.fixed_image,
-                            tfm1_weight=1.0,
-                            tfm2_weight=prior_weight,
-                            tfm1_blur_sigma=0.0,
-                            tfm2_blur_sigma=self.smooth_prior_transform_sigma,
-                            mode="add",
-                        )
-                    )
-                else:
-                    # No prior usage, just use identity result
-                    forward_transform = forward_init_identity
-                    inverse_transform = inverse_init_identity
-                    loss = loss_init_identity
-
-                # Store results
-                forward_transforms[img_idx] = forward_transform
-                inverse_transforms[img_idx] = inverse_transform
-                losses[img_idx] = loss
+                forward_transforms[img_idx] = result["forward_transform"]
+                inverse_transforms[img_idx] = result["inverse_transform"]
+                losses[img_idx] = cast(float, result["loss"])
 
         assert all(t is not None for t in forward_transforms)
         assert all(t is not None for t in inverse_transforms)
@@ -567,7 +473,6 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
         moving_mask: Optional[itk.Image] = None,
         moving_labelmap: Optional[itk.Image] = None,
         moving_image_pre: Optional[itk.Image] = None,
-        initial_forward_transform: Optional[itk.Transform] = None,
     ) -> dict[str, Union[itk.Transform, float]]:
         """Registration method required by RegisterImagesBase.
 
@@ -581,7 +486,6 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
             moving_labelmap (itk.Image, optional): Multi-label segmentation
             moving_image_pre (itk.Image, optional): Ignored - the registrar
                 computes its own preprocessing from the raw moving_image
-            initial_forward_transform (itk.Transform, optional): Initial transform
 
         Returns:
             dict: Registration result with forward_transform, inverse_transform, and loss
@@ -592,7 +496,6 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
             moving_mask=moving_mask,
             moving_labelmap=moving_labelmap,
             moving_image_pre=None,
-            initial_forward_transform=initial_forward_transform,
         )
         self._capture_delegate_result(self.registrar, result)
         return {

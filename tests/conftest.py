@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 import itk
+import numpy as np
 import pytest
 
 from physiotwin4d.contour_tools import ContourTools
@@ -662,3 +663,75 @@ def registrar_ICON() -> RegisterImagesICON:
 def transform_tools() -> TransformTools:
     """Create a TransformTools instance."""
     return TransformTools()
+
+
+class KnownShiftCase:
+    """A registration case whose correct answer is known exactly.
+
+    ``moving`` is built by resampling ``fixed`` through a translation of
+    ``shift_mm``, so ``moving(q) == fixed(q + shift_mm)``. Warping ``moving``
+    back onto the fixed grid therefore requires a ``forward_transform`` of
+    ``-shift_mm``, which gives an absolute accuracy target instead of the
+    "did it return something" checks that let a Greedy RAS/LPS sign error go
+    unnoticed.
+    """
+
+    def __init__(self, fixed_image: itk.Image, shift_mm: tuple[float, float, float]):
+        """Build the shifted pair.
+
+        Args:
+            fixed_image: Image used as the registration target.
+            shift_mm: Content displacement applied to build the moving image.
+                Use a different magnitude and sign per axis so an axis swap or a
+                sign flip cannot pass.
+        """
+        self.transform_tools = TransformTools()
+        self.fixed = fixed_image
+        self.shift_mm = shift_mm
+        self.expected_displacement = np.array([-v for v in shift_mm])
+
+        shift = itk.TranslationTransform[itk.D, 3].New()
+        shift.SetOffset(list(shift_mm))
+        self.moving = self.transform_tools.transform_image(
+            fixed_image, shift, fixed_image, interpolation_method="linear"
+        )
+
+        size = itk.size(fixed_image)
+        self._center = list(
+            fixed_image.TransformIndexToPhysicalPoint(
+                [int(size[i]) // 2 for i in range(3)]
+            )
+        )
+        # Score over the brightest 30% of the fixed image (tissue and blood
+        # pool); background air correlates trivially and would mask errors.
+        self._fixed_array = itk.array_from_image(fixed_image)
+        self._foreground = self._fixed_array >= np.percentile(self._fixed_array, 70)
+
+    def center_error_mm(self, forward_transform: itk.Transform) -> float:
+        """Distance, in mm, between the recovered and true displacement."""
+        displacement = np.array(
+            list(forward_transform.TransformPoint(self._center))
+        ) - np.array(self._center)
+        return float(np.linalg.norm(displacement - self.expected_displacement))
+
+    def foreground_ncc(self, forward_transform: itk.Transform) -> float:
+        """Normalized cross-correlation after warping moving onto the fixed grid."""
+        warped = self.transform_tools.transform_image(
+            self.moving, forward_transform, self.fixed, interpolation_method="linear"
+        )
+        moved = itk.array_from_image(warped)[self._foreground]
+        target = self._fixed_array[self._foreground]
+        moved = moved - moved.mean()
+        target = target - target.mean()
+        denominator = np.sqrt((moved**2).sum() * (target**2).sum())
+        return float((moved * target).sum() / denominator) if denominator else 0.0
+
+    def unregistered_ncc(self) -> float:
+        """Baseline score with no registration, for a floor to beat."""
+        return self.foreground_ncc(itk.TranslationTransform[itk.D, 3].New())
+
+
+@pytest.fixture(scope="session")
+def known_shift_case(test_images: list[Any]) -> KnownShiftCase:
+    """A moving/fixed pair separated by a known (6, -4, 3) mm shift."""
+    return KnownShiftCase(test_images[0], (6.0, -4.0, 3.0))

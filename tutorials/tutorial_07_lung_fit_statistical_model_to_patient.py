@@ -57,6 +57,8 @@ if __name__ == "__main__":
     pca_json = tutorial_06_dir / "pca_model.json"
     pca_mean_file = tutorial_06_dir / "pca_mean_surface.vtp"
 
+    pca_number_of_modes = 5
+
     patient_image_file = repo_root / "data" / "Chest-CT" / "Chest-CT.mha"
 
     log_level = logging.INFO
@@ -122,9 +124,11 @@ if __name__ == "__main__":
         workflow.set_use_pca_registration(
             use_pca_registration=True,
             pca_model=pca_model,
-            pca_number_of_modes=6,
+            pca_number_of_modes=pca_number_of_modes,
             use_surface=False,
         )
+
+    workflow.set_mask_dilation_mm(mask_dilation_mm=40)
 
     # Workflow execution
     workflow_results = workflow.process()
@@ -150,6 +154,14 @@ if __name__ == "__main__":
     registered_surface = workflow_results["registered_template_model_surface"]
     registered_surface.save(
         str(output_dir / f"{project_name}_template_surface_registered.vtp")
+    )
+
+    registered_pca_surface = workflow.pca_template_model_surface
+    assert registered_pca_surface is not None, (
+        "pca_template_model_surface must be set after process()"
+    )
+    registered_pca_surface.save(
+        str(output_dir / f"{project_name}_pca_surface_registered.vtp")
     )
 
     # Testing

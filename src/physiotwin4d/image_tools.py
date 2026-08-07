@@ -6,7 +6,7 @@ and performing image processing operations.
 """
 
 import logging
-from typing import Any, Optional, Union, overload
+from typing import Any, Optional, Union, cast, overload
 
 import itk
 import numpy as np
@@ -267,6 +267,148 @@ class ImageTools(PhysioTwin4DBase):
         resampler.SetOutputDirection(image.GetDirection())
         resampler.Update()
         result = resampler.GetOutput()
+        result.DisconnectPipeline()
+        return result
+
+    @staticmethod
+    def _per_axis_values(
+        value: Union[float, int, list, tuple, NDArray[Any]],
+        dimension: int,
+        name: str,
+    ) -> list[float]:
+        """Broadcast a scalar to every axis, or validate a per-axis sequence.
+
+        Args:
+            value: Scalar applied to every axis, or one value per axis.
+            dimension: Number of image dimensions expected.
+            name: Parameter name, used in error messages.
+
+        Returns:
+            One value per axis.
+
+        Raises:
+            ValueError: If a sequence has the wrong length, or any value is
+                negative.
+        """
+        if np.isscalar(value):
+            values = [float(cast(float, value))] * dimension
+        else:
+            values = [float(v) for v in value]  # type: ignore[union-attr]
+            if len(values) != dimension:
+                raise ValueError(
+                    f"{name} needs a scalar or one value per image dimension "
+                    f"({dimension}), got {len(values)}."
+                )
+        if any(v < 0.0 for v in values):
+            raise ValueError(f"{name} must be >= 0, got {values}")
+        return values
+
+    def pad_image(
+        self,
+        image: itk.Image,
+        pad_portion: Optional[
+            Union[float, list[float], tuple[float, ...], NDArray[Any]]
+        ] = None,
+        pad_voxels: Optional[
+            Union[int, list[int], tuple[int, ...], NDArray[Any]]
+        ] = None,
+        background_value: float = 0.0,
+    ) -> itk.Image:
+        """Pad *image* on every side with a constant-valued margin.
+
+        The margin is given either as a portion of each axis' physical extent
+        (*pad_portion*) or directly in voxels (*pad_voxels*); exactly one of the
+        two must be supplied. Either accepts a scalar, applied to every axis, or
+        one value per image dimension. Both pad the lower and the upper end of
+        every axis, so ``pad_voxels=10`` grows all six faces of a 3-D image by
+        ten voxels. Spacing and direction are untouched.
+
+        The origin and size are updated together so the original voxels keep
+        their physical positions: the padded image's index ``(0, 0, 0)`` sits one
+        margin below the input's, and the input data occupies the interior.
+        (``itk.ConstantPadImageFilter`` alone reports the margin as a negative
+        start index instead, which most file formats drop on write — shifting the
+        data. The region-of-interest pass here folds that index back into the
+        origin.)
+
+        Args:
+            image: ITK image to pad.
+            pad_portion: Portion of an axis' physical extent (``size * spacing``)
+                to add at both ends, as a scalar for every axis or one value per
+                dimension: ``0.1`` grows an axis spanning 200 mm by 20 mm per
+                side. Rounded up to whole voxels. Mutually exclusive with
+                *pad_voxels*.
+            pad_voxels: Margin in voxels, as a scalar for every axis or one value
+                per dimension, applied at both ends of each axis. Mutually
+                exclusive with *pad_portion*.
+            background_value: Pixel value written into the new margin
+                (default: 0.0).
+
+        Returns:
+            Padded image with the same pixel type, spacing and direction.
+
+        Raises:
+            ValueError: If neither or both of *pad_portion* and *pad_voxels* are
+                given, if either is negative, or if a sequence does not have one
+                entry per image dimension.
+        """
+        if (pad_portion is None) == (pad_voxels is None):
+            raise ValueError(
+                "Specify exactly one of pad_portion or pad_voxels; got "
+                f"pad_portion={pad_portion}, pad_voxels={pad_voxels}."
+            )
+
+        size = [int(s) for s in image.GetLargestPossibleRegion().GetSize()]
+        if pad_portion is not None:
+            portions = self._per_axis_values(pad_portion, len(size), "pad_portion")
+            # extent_i = size_i * spacing_i, and pad_portion * extent_i of margin
+            # is that distance divided by spacing_i, so the spacing cancels.
+            margin = [int(np.ceil(p * s)) for p, s in zip(portions, size)]
+            self.log_info(
+                "Padding by %s voxels per side (%s of extent); size %s -> %s",
+                margin,
+                [f"{p * 100.0:.1f}%" for p in portions],
+                size,
+                [s + 2 * p for s, p in zip(size, margin)],
+            )
+        else:
+            assert pad_voxels is not None  # guaranteed by the check above
+            margin = [
+                int(v)
+                for v in self._per_axis_values(pad_voxels, len(size), "pad_voxels")
+            ]
+            self.log_info(
+                "Padding by %s voxels per side; size %s -> %s",
+                margin,
+                size,
+                [s + 2 * p for s, p in zip(size, margin)],
+            )
+
+        ImageType = type(image)
+        # SetConstant is typed to the pixel type, so an integer image rejects a
+        # Python float.
+        pixel_type = itk.template(image)[1][0]
+        constant = (
+            float(background_value)
+            if pixel_type in (itk.F, itk.D)
+            else int(round(background_value))
+        )
+
+        pad_filter = itk.ConstantPadImageFilter[ImageType, ImageType].New()
+        pad_filter.SetInput(image)
+        pad_filter.SetPadLowerBound(margin)
+        pad_filter.SetPadUpperBound(margin)
+        pad_filter.SetConstant(constant)
+        pad_filter.Update()
+        padded = pad_filter.GetOutput()
+
+        # Re-anchor the padded region at index 0, moving the margin into the
+        # origin so the physical position of the original data is preserved.
+        roi_filter = itk.RegionOfInterestImageFilter[ImageType, ImageType].New()
+        roi_filter.SetInput(padded)
+        roi_filter.SetRegionOfInterest(padded.GetLargestPossibleRegion())
+        roi_filter.Update()
+        result = roi_filter.GetOutput()
         result.DisconnectPipeline()
         return result
 

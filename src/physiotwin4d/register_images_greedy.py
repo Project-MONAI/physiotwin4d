@@ -237,13 +237,38 @@ class RegisterImagesGreedy(RegisterImagesBase):
         self.log_debug("Wrote Greedy affine init matrix to %s", path)
         return path
 
+    # RAS <-> LPS basis change: negate x and y, leave z. Its own inverse.
+    _RAS_TO_LPS = np.diag([-1.0, -1.0, 1.0])
+
     def _matrix_to_itk_affine(self, mat_4x4: NDArray[np.float64]) -> itk.Transform:
-        """Convert 4x4 affine matrix to ITK AffineTransform."""
+        """Convert Greedy's 4x4 RAS affine matrix to an ITK AffineTransform.
+
+        Greedy works in RAS (its logs print "Final RAS Transform" and its
+        ``.mat`` files are RAS), while ITK -- and every transform this project
+        stores or applies -- is LPS. The matrix therefore has to change basis on
+        the way across: ``M_lps = F M_ras F`` and ``t_lps = F t_ras`` with
+        ``F = diag(-1, -1, 1)``. Skipping this negates the x and y components of
+        every Greedy result, which for a near-identity registration is a
+        sub-millimetre error that is easy to miss and impossible to correct
+        downstream.
+
+        Only the affine needs this. Greedy's displacement fields come back as
+        images carrying the input's own LPS metadata, so
+        :meth:`_sitk_warp_to_itk_displacement_transform` passes them through
+        unchanged. See docs/developer/transform_conventions.
+
+        Args:
+            mat_4x4: 4x4 affine matrix in Greedy's RAS convention.
+
+        Returns:
+            The equivalent ITK affine transform, in LPS.
+        """
         mat_4x4 = np.asarray(mat_4x4, dtype=np.float64)
         if mat_4x4.shape != (4, 4):
             raise ValueError(f"Expected 4x4 matrix, got shape {mat_4x4.shape}")
-        M = mat_4x4[:3, :3]
-        t = mat_4x4[:3, 3]
+        flip = self._RAS_TO_LPS
+        M = flip @ mat_4x4[:3, :3] @ flip
+        t = flip @ mat_4x4[:3, 3]
         center = itk.Point[itk.D, 3]()
         for i in range(3):
             center[i] = 0.0
@@ -283,7 +308,6 @@ class RegisterImagesGreedy(RegisterImagesBase):
         moving_mask_sitk: Optional[Any] = None,
         fixed_labelmap_sitk: Optional[Any] = None,
         moving_labelmap_sitk: Optional[Any] = None,
-        initial_affine: Optional[NDArray[np.float64]] = None,
     ) -> tuple[NDArray[np.float64], float]:
         """Run Greedy affine or rigid registration. Returns (4x4 matrix, loss)."""
         Greedy3D = _try_import_greedy()
@@ -307,19 +331,8 @@ class RegisterImagesGreedy(RegisterImagesBase):
             cmd += " -gm fixed_mask -mm moving_mask"
             kwargs["fixed_mask"] = fixed_mask_sitk
             kwargs["moving_mask"] = moving_mask_sitk
-        # Greedy crashes (heap corruption) when an initial affine is passed as an
-        # in-memory matrix; write it to a temp file and pass the path instead.
-        initial_affine_file: Optional[str] = None
-        if initial_affine is not None:
-            initial_affine_file = self._write_affine_matrix_file(initial_affine)
-            cmd += f" -ia {initial_affine_file}"
-
         self.log_debug("Greedy affine/rigid command: %s", cmd)
-        try:
-            g.execute(cmd, **kwargs)
-        finally:
-            if initial_affine_file is not None:
-                os.remove(initial_affine_file)
+        g.execute(cmd, **kwargs)
         mat = np.array(g["aff_out"], dtype=np.float64)
         try:
             ml = g.metric_log()
@@ -339,36 +352,35 @@ class RegisterImagesGreedy(RegisterImagesBase):
         moving_mask_sitk: Optional[Any] = None,
         fixed_labelmap_sitk: Optional[Any] = None,
         moving_labelmap_sitk: Optional[Any] = None,
-        initial_affine: Optional[NDArray[np.float64]] = None,
     ) -> tuple[Optional[NDArray[np.float64]], Any, float]:
         """Run Greedy deformable registration. Returns (affine 4x4 or None, warp_sitk, loss)."""
         Greedy3D = _try_import_greedy()
         g = Greedy3D()
 
-        # Optional affine init (uses configured metric)
-        if initial_affine is None:
-            cmd_aff = "-d 3"
-            if fixed_labelmap_sitk is not None and moving_labelmap_sitk is not None:
-                cmd_aff += " -w 0.60"
-            cmd_aff += " -i fixed moving"
-            kwargs_aff = {
-                "fixed": fixed_sitk,
-                "moving": moving_sitk,
-            }
-            if fixed_labelmap_sitk is not None and moving_labelmap_sitk is not None:
-                cmd_aff += " -w 0.40 -i fixed_labelmap moving_labelmap"
-                kwargs_aff["fixed_labelmap"] = fixed_labelmap_sitk
-                kwargs_aff["moving_labelmap"] = moving_labelmap_sitk
-            cmd_aff += f" -a -dof 12 -n {iterations_str} -m {metric_str} -o aff_init"
-            kwargs_aff["aff_init"] = None
-            if fixed_mask_sitk is not None and moving_mask_sitk is not None:
-                cmd_aff += " -gm fixed_mask -mm moving_mask"
-                kwargs_aff["fixed_mask"] = fixed_mask_sitk
-                kwargs_aff["moving_mask"] = moving_mask_sitk
-            self.log_debug("Greedy deformable affine-init command: %s", cmd_aff)
-            g.execute(cmd_aff, **kwargs_aff)
-            initial_affine = np.array(g["aff_init"], dtype=np.float64)
-            self.log_info("Greedy deformable affine init complete")
+        # Greedy seeds its own deformable stage with an affine pass, using the
+        # configured metric.
+        cmd_aff = "-d 3"
+        if fixed_labelmap_sitk is not None and moving_labelmap_sitk is not None:
+            cmd_aff += " -w 0.60"
+        cmd_aff += " -i fixed moving"
+        kwargs_aff = {
+            "fixed": fixed_sitk,
+            "moving": moving_sitk,
+        }
+        if fixed_labelmap_sitk is not None and moving_labelmap_sitk is not None:
+            cmd_aff += " -w 0.40 -i fixed_labelmap moving_labelmap"
+            kwargs_aff["fixed_labelmap"] = fixed_labelmap_sitk
+            kwargs_aff["moving_labelmap"] = moving_labelmap_sitk
+        cmd_aff += f" -a -dof 12 -n {iterations_str} -m {metric_str} -o aff_init"
+        kwargs_aff["aff_init"] = None
+        if fixed_mask_sitk is not None and moving_mask_sitk is not None:
+            cmd_aff += " -gm fixed_mask -mm moving_mask"
+            kwargs_aff["fixed_mask"] = fixed_mask_sitk
+            kwargs_aff["moving_mask"] = moving_mask_sitk
+        self.log_debug("Greedy deformable affine-init command: %s", cmd_aff)
+        g.execute(cmd_aff, **kwargs_aff)
+        initial_affine = np.array(g["aff_init"], dtype=np.float64)
+        self.log_info("Greedy deformable affine init complete")
 
         # Greedy crashes (heap corruption) when the affine init is passed as an
         # in-memory matrix via -it; write it to a temp file and pass the path.
@@ -415,13 +427,11 @@ class RegisterImagesGreedy(RegisterImagesBase):
         moving_mask: Optional[itk.Image] = None,
         moving_labelmap: Optional[itk.Image] = None,
         moving_image_pre: Optional[itk.Image] = None,
-        initial_forward_transform: Optional[itk.Transform] = None,
     ) -> dict[str, Union[itk.Transform, float]]:
         """Register moving image to fixed image using Greedy.
 
         Converts ITK images to SimpleITK, runs Greedy (affine and/or deformable),
-        then converts outputs back to ITK transforms. Composes with
-        initial_forward_transform when provided.
+        then converts outputs back to ITK transforms.
 
         Returns a dict with "forward_transform", "inverse_transform", and
         "loss". As with the other image-registration backends,
@@ -487,24 +497,6 @@ class RegisterImagesGreedy(RegisterImagesBase):
         iterations_str = self._greedy_iterations_str()
         metric_str = self._greedy_metric()
 
-        # Optional initial transform: convert ITK -> 4x4 for Greedy
-        initial_affine: Optional[NDArray[np.float64]] = None
-        if initial_forward_transform is not None:
-            # If it's affine-like, extract 4x4; else convert to displacement and skip for Greedy init
-            if hasattr(initial_forward_transform, "GetMatrix"):
-                M = np.eye(4, dtype=np.float64)
-                M[:3, :3] = np.asarray(initial_forward_transform.GetMatrix()).reshape(
-                    3, 3
-                )
-                if hasattr(initial_forward_transform, "GetTranslation"):
-                    M[:3, 3] = np.asarray(initial_forward_transform.GetTranslation())
-                if hasattr(initial_forward_transform, "GetCenter"):
-                    c = np.asarray(initial_forward_transform.GetCenter())
-                    M[:3, 3] += c - M[:3, :3] @ c
-                initial_affine = M
-            # Non-affine initial: we could convert to disp field and pass; for simplicity we skip Greedy init
-            # and compose at the end (same as ANTs).
-
         forward_transform: itk.Transform
         inverse_transform: itk.Transform
         loss_val: float
@@ -520,7 +512,6 @@ class RegisterImagesGreedy(RegisterImagesBase):
                 iterations_str=iterations_str,
                 metric_str=metric_str,
                 dof=6,
-                initial_affine=initial_affine,
             )
             forward_transform = self._matrix_to_itk_affine(mat)
             inverse_affine = itk.AffineTransform[itk.D, 3].New()
@@ -537,7 +528,6 @@ class RegisterImagesGreedy(RegisterImagesBase):
                 iterations_str=iterations_str,
                 metric_str=metric_str,
                 dof=12,
-                initial_affine=initial_affine,
             )
             forward_transform = self._matrix_to_itk_affine(mat)
             inverse_affine = itk.AffineTransform[itk.D, 3].New()
@@ -554,7 +544,6 @@ class RegisterImagesGreedy(RegisterImagesBase):
                 moving_labelmap_sitk=moving_labelmap_sitk,
                 iterations_str=iterations_str,
                 metric_str=metric_str,
-                initial_affine=initial_affine,
             )
             aff_tfm = (
                 self._matrix_to_itk_affine(aff_mat) if aff_mat is not None else None
@@ -595,26 +584,6 @@ class RegisterImagesGreedy(RegisterImagesBase):
             inverse_composite.AddTransform(inv_disp)
             if aff_tfm is not None:
                 inverse_composite.AddTransform(inv_aff)
-            inverse_transform = inverse_composite
-
-        # Compose with user-provided initial transform (same semantics as ANTs)
-        if initial_forward_transform is not None:
-            transform_tools = TransformTools()
-            forward_composite = itk.CompositeTransform[itk.D, 3].New()
-            forward_composite.AddTransform(initial_forward_transform)
-            forward_composite.AddTransform(forward_transform)
-            initial_disp = (
-                transform_tools.convert_transform_to_displacement_field_transform(
-                    initial_forward_transform, self.moving_image
-                )
-            )
-            inv_initial = transform_tools.invert_displacement_field_transform(
-                initial_disp
-            )
-            inverse_composite = itk.CompositeTransform[itk.D, 3].New()
-            inverse_composite.AddTransform(inverse_transform)
-            inverse_composite.AddTransform(inv_initial)
-            forward_transform = forward_composite
             inverse_transform = inverse_composite
 
         return {

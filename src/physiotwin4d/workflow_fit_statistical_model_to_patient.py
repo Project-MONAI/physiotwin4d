@@ -480,12 +480,17 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
     def register_model_to_model_pca(self) -> dict:
         """Perform PCA-based registration after ICP alignment.
 
-        Uses RegisterModelsPCA class for intensity-based PCA registration.
-        This method requires PCA data to be set via set_pca_data().
+        Uses RegisterModelsPCA to optimize shape coefficients against a distance
+        map of the patient. The statistical model's modes are defined in the
+        un-aligned template frame, so the registrar is given the raw template
+        and the ICP alignment is passed as its ``post_pca_transform``.
 
         Returns:
             dict: Dictionary containing:
-                - 'forward_point_transform': Rigid transform from PCA registration
+                - 'forward_point_transform': DisplacementFieldTransform mapping
+                  un-aligned template points to their PCA-deformed positions.
+                  It excludes the ICP alignment, which is applied separately.
+                - 'inverse_point_transform': its inverse
                 - 'pca_coefficients': PCA shape coefficients
                 - 'registered_template_model_surface': PCA-registered model surface
 
@@ -514,13 +519,18 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
                 "inverse_point_transform": self.pca_inverse_point_transform,
             }
 
+        # PCA modes are directions in the statistical model's own training
+        # frame, so they must be added to the un-aligned template and the ICP
+        # alignment applied afterwards. Deforming the ICP-aligned template
+        # instead would yield A*mean + sum(b*sigma*v) rather than
+        # A*(mean + sum(b*sigma*v)), mis-rotating and mis-scaling every mode.
         pca_template_model: Optional[pv.DataSet]
         if self.use_surface:
-            pca_template_model = self.icp_template_model_surface
+            pca_template_model = self.template_model_surface
             fixed_model = self.patient_model_surface
             fixed_distance_map = None
         else:
-            pca_template_model = self.icp_template_model
+            pca_template_model = self.template_model
             fixed_model = self.combined_patient_model
             if self.patient_labelmap is not None:
                 fixed_distance_map = self.labelmap_tools.create_distance_map(
@@ -539,6 +549,7 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
             pca_template_model=pca_template_model,
             pca_model=self.pca_model,
             pca_number_of_modes=self.pca_number_of_modes,
+            post_pca_transform=self.icp_forward_point_transform,
             fixed_model=fixed_model,
             fixed_distance_map=fixed_distance_map,
             reference_image=self.patient_image,
@@ -580,10 +591,19 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
             itk.imwrite(tfm_z_img, "pca_forward_point_transform_z.nii.gz")
 
         if self.use_surface:
-            assert self.icp_template_model is not None, "ICP template model must be set"
-            self.pca_template_model = self._transform_model_dataset(
-                self.icp_template_model,
+            # forward_point_transform excludes the post-PCA step and is defined
+            # in the un-aligned template frame, so warp the raw volumetric
+            # template with it and then apply the ICP alignment.
+            assert self.icp_forward_point_transform is not None, (
+                "ICP forward transform must be set"
+            )
+            deformed_template_model = self._transform_model_dataset(
+                self.template_model,
                 self.pca_forward_point_transform,
+            )
+            self.pca_template_model = self._transform_model_dataset(
+                deformed_template_model,
+                self.icp_forward_point_transform,
             )
         else:
             self.pca_template_model = registered_model
@@ -593,10 +613,22 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
         self.registered_template_model = self.pca_template_model
         self.registered_template_model_surface = self.pca_template_model_surface
 
-        if self.icp_template_labelmap is not None:
+        if self.template_labelmap is not None:
+            # Resampling pulls back: a patient-grid sample is mapped by the ICP
+            # inverse into the deformed-template frame and then by the PCA
+            # inverse onto the un-deformed template. itk.CompositeTransform
+            # applies its transforms in reverse order of addition, so the ICP
+            # inverse is added last. Resampling the raw template labelmap in one
+            # step also avoids a second round of nearest-neighbor sampling.
+            assert self.icp_inverse_point_transform is not None, (
+                "ICP inverse transform must be set"
+            )
+            pca_image_transform = itk.CompositeTransform[itk.D, 3].New()
+            pca_image_transform.AddTransform(self.pca_inverse_point_transform)
+            pca_image_transform.AddTransform(self.icp_inverse_point_transform)
             self.pca_template_labelmap = self.transform_tools.transform_image(
-                self.icp_template_labelmap,
-                self.pca_inverse_point_transform,
+                self.template_labelmap,
+                pca_image_transform,
                 self.patient_image,
                 interpolation_method="nearest",
             )
@@ -642,11 +674,19 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
         assert self.pca_template_model_surface is not None, (
             "PCA template model surface must be set"
         )
+
+        # Create a padded patient image since often the surface of interest
+        # is not fully contained within the original image, which causes trouble
+        # with distance map registration.
+        padded_patient_image = ImageTools().pad_image(
+            self.patient_image, pad_voxels=[50, 50, 50], background_value=-1000
+        )
         labelmap_registrar = RegisterModelsDistanceMaps(
             moving_model=self.pca_template_model_surface,
             fixed_model=self.patient_model_surface,
-            reference_image=self.patient_image,
+            reference_image=padded_patient_image,
             mask_dilation_mm=self.mask_dilation_mm,
+            distance_squared_max=(1.25 * self.mask_dilation_mm) ** 2,
         )
 
         # Run deformable registration
@@ -772,10 +812,10 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
             self.registrar_ICON.set_fixed_image(self.patient_image)
             self.registrar_ICON.set_fixed_mask(patient_mask)
 
-            # Perform Icon registration
-            result = self.registrar_ICON.register(
-                initial_forward_transform=self.l2i_forward_transform,
-                moving_image=template_labelmap,
+            # Perform Icon registration, refining the alignment found so far
+            result = self.registrar_ICON.register_from(
+                self.l2i_forward_transform,
+                template_labelmap,
                 moving_mask=template_mask,
             )
             self.l2i_inverse_transform = result["inverse_transform"]
@@ -847,9 +887,10 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
             transformed_model = base_model.copy(deep=True)
 
         transform_steps: list[tuple[str, itk.Transform]] = []
-        if self.icp_forward_point_transform is not None:
-            transform_steps.append(("ICP", self.icp_forward_point_transform))
         if self.pca_coefficients is not None:
+            # PCA registration runs in the un-aligned template frame and carries
+            # the ICP alignment in its post-PCA transform, so ICP must not be
+            # applied again here.
             assert self.pca_registrar is not None, "PCA registrar must be set"
             pca_transform = (
                 self.pca_forward_point_transform
@@ -861,6 +902,8 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
                 transform_steps.append(
                     ("PCA post-transform", self.pca_registrar.post_pca_transform)
                 )
+        elif self.icp_forward_point_transform is not None:
+            transform_steps.append(("ICP", self.icp_forward_point_transform))
         if self.use_l2l_registration and self.l2l_inverse_transform is not None:
             transform_steps.append(("Labelmap-to-labelmap", self.l2l_inverse_transform))
         if self.use_l2i_registration and self.l2i_inverse_transform is not None:
@@ -908,9 +951,7 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
         Returns:
             dict with registered_template_model and registered_template_model_surface
         """
-        self.log_section(
-            "STARTING COMPLETE MODEL-TO-IMAGE-AND-MODEL REGISTRATION WORKFLOW", width=70
-        )
+        self.log_section("STARTING COMPLETE MODEL REGISTRATION WORKFLOW", width=70)
 
         self.use_ICON_registration_refinement = use_ICON_registration_refinement
 
