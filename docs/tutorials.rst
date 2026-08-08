@@ -11,7 +11,7 @@ Tutorials
      <p class="pt4d-kicker">PhysioTwin4D tutorials</p>
      <h1>From a CT scan to an animated digital twin</h1>
      <p>
-       Ten numbered stages across 16 runnable Python scripts.
+       Ten numbered stages across 17 runnable Python scripts.
        Each one drives the real workflow classes end-to-end on downloadable
        data, shows what it produced, and ends with the handful of constants
        to change so it runs on your own scans.
@@ -152,7 +152,7 @@ Script
 
 Workflow
    :class:`~physiotwin4d.WorkflowConvertImageToUSD`, driving
-   :class:`~physiotwin4d.RegisterImagesICON` and a
+   :class:`~physiotwin4d.RegisterImagesGreedy` and a
    :class:`~physiotwin4d.SegmentAnatomyBase` subclass.
 
 Dataset
@@ -161,9 +161,8 @@ Dataset
    registration reference.
 
 Requirements
-   GPU strongly recommended — ICON registers every phase against the
-   reference. Swap in :class:`~physiotwin4d.RegisterImagesGreedy` or
-   :class:`~physiotwin4d.RegisterImagesANTS` for CPU-only environments.
+   Greedy registers every phase against the reference on the CPU; a GPU is
+   still needed for segmentation.
 
 Preview
    .. figure:: assets/tutorial_01_heart_4d.gif
@@ -219,10 +218,20 @@ Tutorial 2: Finetune ICON Registration
 Script
    ``tutorials/tutorial_02_lung_finetune_icon.py``
 
-   ``tutorials/tutorial_02_lung_distancemap_finetune_icon.py`` — the
+   ``tutorials/tutorial_02_lung_distancemap_finetune_icon.py`` — the lung
    distance-map variant, which finetunes on distance maps rather than image
    intensities so the labelmap-to-labelmap stage of Tutorials 7 and 8 has
    in-distribution weights.
+
+   ``tutorials/tutorial_02_duke_heart_distancemap_finetune_icon.py`` — the same
+   for the heart, on Duke-Heart-4DLabelmaps. The heart needs its own run because
+   it registers with a much tighter mask than the lungs, so its distance maps
+   saturate over a shorter radius and do not share an intensity distribution
+   with lung ones. The per-organ values live in
+   ``tutorials/parameters_lung_ct_dirlab.py`` and
+   ``tutorials/parameters_heart_ct_kcl.py``. This is a ``duke_heart`` tutorial:
+   Duke-Heart-4DLabelmaps is not publicly available yet, so it cannot be run —
+   see ``data/Duke-Heart-4DLabelmaps/README.md``.
 
 Workflow
    :class:`~physiotwin4d.WorkflowFinetuneICONRegistration`, then
@@ -301,20 +310,15 @@ Script
 
 Workflow
    :class:`~physiotwin4d.WorkflowReconstructHighres4DCT` with
-   :class:`~physiotwin4d.RegisterImagesGreedyICON`.
+   :class:`~physiotwin4d.RegisterImagesGreedy`.
 
 Dataset
    Slicer-Heart-CT for the heart; DIR-Lab for the lung, which reconstructs
    against its T70 (end-exhale) phase — the same reference Tutorial 8 fits to.
-   The lung variant registers with **Tutorial 2's finetuned ICON weights** when
-   they exist, and logs a warning and falls back to the stock uniGradICON
-   weights when they do not.
 
 Requirements
-   GPU recommended. One coarse-to-fine registration per phase, greedy schedule
-   ``[30, 15, 7, 3]``. The lung variant enables mass preservation for
-   non-contrast CT; the heart variant does not and uses the stock uniGradICON
-   weights.
+   CPU is enough. One coarse-to-fine registration per phase, greedy schedule
+   ``[30, 15, 7, 3]``.
 
 Preview
    .. figure:: assets/Tutorial_03_heart_original.gif
@@ -338,11 +342,8 @@ Preview
 Inner API usage
    .. code-block:: python
 
-      registration_method = RegisterImagesGreedyICON()
-      registration_method.greedy.set_number_of_iterations([30, 15, 7, 3])
-      registration_method.icon.set_mass_preservation(True)
-      if icon_weights_path.exists():          # Tutorial 2 output, optional
-          registration_method.icon.set_weights_path(str(icon_weights_path))
+      registration_method = RegisterImagesGreedy()
+      registration_method.set_number_of_iterations([30, 15, 7, 3])
 
       workflow = WorkflowReconstructHighres4DCT(
           time_series_images=time_series,
@@ -366,10 +367,7 @@ Outputs
 
 Adapt to your data
    Set ``case_glob`` and ``data_dir`` to your series and pick the reference
-   with ``reference_time_frame``. Point ``icon_weights_path`` at weights you
-   finetuned on your own cohort with Tutorial 2, or leave it missing to
-   register with the stock uniGradICON weights. If you have a separate
-   breath-hold or
+   with ``reference_time_frame``. If you have a separate breath-hold or
    contrast-enhanced volume, pass it as ``reference_image`` instead of one of
    the phases — that is what the workflow is really designed for. Tune
    ``number_of_iterations_greedy`` down for a fast smoke test. The saved
@@ -657,9 +655,9 @@ Workflow
    the fitted surface through every other phase.
 
 Dataset
-   DIR-Lab, plus Tutorial 6 (lung)'s model. Tutorial 2's finetuned ICON weights
-   are used when present; without them the tutorial warns and registers with the
-   stock uniGradICON weights.
+   DIR-Lab, plus Tutorial 6 (lung)'s model. Tutorial 2's finetuned distance-map
+   ICON weights are used by the model fit when present; without them the
+   tutorial warns and fits with the stock uniGradICON weights.
 
 Requirements
    GPU required, and the heaviest registration workload in the set: one

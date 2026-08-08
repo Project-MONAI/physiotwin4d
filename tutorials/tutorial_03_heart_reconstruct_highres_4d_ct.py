@@ -23,7 +23,7 @@ from pathlib import Path
 import itk
 
 from physiotwin4d import (
-    RegisterImagesGreedyICON,
+    RegisterImagesGreedy,
     TestTools,
     WorkflowReconstructHighres4DCT,
 )
@@ -57,9 +57,8 @@ if __name__ == "__main__":
 
     log_level = logging.INFO
 
-    registration_method = RegisterImagesGreedyICON(log_level=log_level)
-    registration_method.greedy.set_number_of_iterations(number_of_iterations_greedy)
-    registration_method.icon.set_mass_preservation(False)  # For contrast-enhanced CT
+    registration_method = RegisterImagesGreedy(log_level=log_level)
+    registration_method.set_number_of_iterations(number_of_iterations_greedy)
 
     # Directory setup and data reading
 

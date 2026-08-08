@@ -79,6 +79,8 @@ import itk
 import numpy as np
 import pyvista as pv
 
+from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
+
 from physiotwin4d import (
     ContourTools,
     PhysioTwin4DBase,
@@ -117,14 +119,10 @@ if __name__ == "__main__":
     weights_dir = tutorials_dir / "network_weights"
     finetune_name = "icon_dirlab_4dct_distancemap"
 
-    # Distance-map normalization.  WorkflowFitStatisticalModelToPatient passes
-    # (1.25 * mask_dilation_mm) ** 2 as RegisterModelsDistanceMaps'
-    # distance_squared_max, so the value below fixes the saturation radius of
-    # every distance map the finetuned weights will ever see.  The lung fitting
-    # tutorials set the same mask_dilation_mm; changing one without the other
-    # trains on a different image distribution than it infers on.
-    mask_dilation_mm = 40.0
-    distance_squared_max = (1.25 * mask_dilation_mm) ** 2
+    # Distance-map normalization, shared with every lung tutorial that later
+    # registers these maps, so this run trains on the same image distribution
+    # they infer on.
+    distance_squared_max = LUNG_CT_DIRLAB.distancemap_squared_max
 
     run_finetuning = True
 
@@ -135,14 +133,13 @@ if __name__ == "__main__":
     test_mode = TestTools.running_as_test()
     if test_mode:
         data_dir = repo_root / "data" / "test" / "DirLab-4DCT"
-        number_of_iterations_greedy: Optional[list[int]] = [1, 0]
-        number_of_iterations_icon = 1
+        number_of_iterations_icon: Optional[int] = 1
         epochs = 1
     else:
         data_dir = repo_root / "data" / "DirLab-4DCT"
-        number_of_iterations_greedy = [60, 30, 20]
         number_of_iterations_icon = 10
         epochs = 200
+    number_of_iterations_greedy = LUNG_CT_DIRLAB.greedy_iterations(test_mode)
 
     log_level = logging.INFO
     reporter = PhysioTwin4DBase(class_name=class_name, log_level=log_level)
@@ -169,9 +166,19 @@ if __name__ == "__main__":
         )
 
     # Segmentation and distance-map generation
+    segmenter = SegmentNVSegmentCTMRI(log_level=log_level)
     segmentation_workflow = WorkflowConvertImageToVTK(
-        segmentation_method=SegmentNVSegmentCTMRI(log_level=log_level),
+        segmentation_method=segmenter,
         log_level=log_level,
+    )
+    # WorkflowConvertImageToVTK returns the segmenter's whole-body labelmap
+    # regardless of anatomy_groups -- that argument only selects which surfaces
+    # are extracted.  uniGradICON's Dice loss one-hots every class the two
+    # labelmaps share, on its 175^3 grid at batch 4, so handing it ~95
+    # whole-body classes costs tens of gigabytes per step; the lung labels alone
+    # cost a twentieth of that and are the only ones the distance maps describe.
+    lung_label_ids = np.array(
+        sorted(segmenter.taxonomy.labels_in_group("lung")), dtype=np.uint16
     )
     contour_tools = ContourTools(log_level=log_level)
     transform_tools = TransformTools()
@@ -199,9 +206,13 @@ if __name__ == "__main__":
         contour_tools.save_combined_surfaces(
             segmentation_result["label_surfaces"], str(surface_file)
         )
-        itk.imwrite(
-            segmentation_result["labelmap"], str(labelmap_file), compression=True
+        whole_body_labelmap = segmentation_result["labelmap"]
+        whole_body_arr = itk.GetArrayViewFromImage(whole_body_labelmap)
+        lung_labelmap = itk.GetImageFromArray(
+            np.where(np.isin(whole_body_arr, lung_label_ids), whole_body_arr, 0)
         )
+        lung_labelmap.CopyInformation(whole_body_labelmap)
+        itk.imwrite(lung_labelmap, str(labelmap_file), compression=True)
         surface = cast(pv.PolyData, pv.read(str(surface_file)))
         # Rasterize the lung surface into ICON's distance-map representation,
         # mirroring ``RegisterModelsDistanceMaps._create_masks_from_models`` so
@@ -437,8 +448,7 @@ if __name__ == "__main__":
             chain = RegisterImagesGreedyICON(log_level=log_level)
             chain.greedy.set_transform_type("Deformable")
             chain.greedy.set_metric("CC")
-            if number_of_iterations_greedy is not None:
-                chain.greedy.set_number_of_iterations(number_of_iterations_greedy)
+            chain.greedy.set_number_of_iterations(number_of_iterations_greedy)
             chain.icon.set_number_of_iterations(number_of_iterations_icon)
             chain.icon.set_mass_preservation(False)
             chain.icon.set_weights_path(str(method_weights))
@@ -448,8 +458,7 @@ if __name__ == "__main__":
             registrar.set_transform_type("Deformable")
             # CC is what RegisterModelsDistanceMaps uses on distance maps.
             registrar.set_metric("CC")
-            if number_of_iterations_greedy is not None:
-                registrar.set_number_of_iterations(number_of_iterations_greedy)
+            registrar.set_number_of_iterations(number_of_iterations_greedy)
         else:
             registrar = RegisterImagesICON(log_level=log_level)
             # None, not 0: icon_registration rejects 0 and takes None to mean

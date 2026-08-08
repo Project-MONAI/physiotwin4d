@@ -12,6 +12,7 @@ import pytest
 from pxr import Usd, UsdGeom
 
 from physiotwin4d.register_images_base import RegisterImagesBase
+from physiotwin4d.register_images_greedy import RegisterImagesGreedy
 from physiotwin4d.register_images_icon import RegisterImagesICON
 from physiotwin4d.segment_chest_total_segmentator_with_contrast import (
     SegmentChestTotalSegmentatorWithContrast,
@@ -27,7 +28,7 @@ def _small_image() -> itk.Image:
 def test_default_segmentation_and_registration_methods(tmp_path: Path) -> None:
     """Omitting segmentation_method/registration_method defaults to
     SegmentChestTotalSegmentatorWithContrast (contrast_threshold=500) and
-    RegisterImagesICON, matching this workflow's documented defaults."""
+    RegisterImagesGreedy, matching this workflow's documented defaults."""
     reference_image = _small_image()
     workflow = WorkflowConvertImageToUSD(
         time_series_images=[reference_image],
@@ -39,7 +40,7 @@ def test_default_segmentation_and_registration_methods(tmp_path: Path) -> None:
 
     assert isinstance(workflow.segmenter, SegmentChestTotalSegmentatorWithContrast)
     assert workflow.segmenter.contrast_threshold == 500
-    assert isinstance(workflow.registrar, RegisterImagesICON)
+    assert isinstance(workflow.registrar, RegisterImagesGreedy)
 
 
 def test_segmentation_method_rejects_wrong_type(tmp_path: Path) -> None:
@@ -117,8 +118,8 @@ def test_workflow_convert_image_to_usd_default_operation(
 
     assert isinstance(workflow.segmenter, SegmentChestTotalSegmentatorWithContrast)
     assert workflow.segmenter.contrast_threshold == 500
-    assert isinstance(workflow.registrar, RegisterImagesICON)
-    workflow.registrar.set_number_of_iterations(2)
+    assert isinstance(workflow.registrar, RegisterImagesGreedy)
+    workflow.registrar.set_number_of_iterations([2])
 
     result_filenames = workflow.process()
 

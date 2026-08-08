@@ -20,7 +20,7 @@ from .convert_vtk_to_usd import ConvertVTKToUSD
 from .image_tools import ImageTools
 from .physiotwin4d_base import PhysioTwin4DBase
 from .register_images_base import RegisterImagesBase
-from .register_images_icon import RegisterImagesICON
+from .register_images_greedy import RegisterImagesGreedy
 from .segment_anatomy_base import SegmentAnatomyBase
 from .segment_chest_total_segmentator_with_contrast import (
     SegmentChestTotalSegmentatorWithContrast,
@@ -41,7 +41,7 @@ class WorkflowConvertImageToUSD(PhysioTwin4DBase):
     instance. Configure backend-specific parameters (iteration counts,
     trim_branches, mass preservation, etc.) on the instance before passing
     it in. Defaults to :class:`SegmentChestTotalSegmentatorWithContrast` /
-    :class:`RegisterImagesICON` when omitted.
+    :class:`RegisterImagesGreedy` when omitted.
     """
 
     def __init__(
@@ -70,7 +70,7 @@ class WorkflowConvertImageToUSD(PhysioTwin4DBase):
                 backend instance. Defaults to a new
                 :class:`SegmentChestTotalSegmentatorWithContrast` when None.
             registration_method (Optional[RegisterImagesBase]): Registration
-                backend instance. Defaults to a new :class:`RegisterImagesICON`
+                backend instance. Defaults to a new :class:`RegisterImagesGreedy`
                 when None. A caller-supplied instance is mutated (fixed
                 image/mask/modality) during :meth:`process` - pass a fresh
                 instance per run unless intentionally reusing state.
@@ -115,8 +115,7 @@ class WorkflowConvertImageToUSD(PhysioTwin4DBase):
         self.segmenter: SegmentAnatomyBase = segmentation_method
 
         if registration_method is None:
-            registration_method = RegisterImagesICON(log_level=log_level)
-            registration_method.set_mass_preservation(False)
+            registration_method = RegisterImagesGreedy(log_level=log_level)
         elif not isinstance(registration_method, RegisterImagesBase):
             raise TypeError(
                 "registration_method must be a RegisterImagesBase instance or None"

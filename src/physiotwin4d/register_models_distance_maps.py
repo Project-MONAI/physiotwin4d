@@ -135,7 +135,9 @@ class RegisterModelsDistanceMaps(PhysioTwin4DBase):
             reference_image: ITK image providing coordinate frame (origin, spacing, direction)
                 for mask generation. Typically the patient CT/MRI image.
             distance_squared_max: Maximum squared distance, in squared millimeters,
-                that the distance maps are normalized against. Default: 50.0
+                that the distance maps are normalized against. It fixes their
+                intensity distribution, so it must match the value the ICON
+                weights in use were finetuned at. Default: 50.0
             mask_dilation_mm: Dilation amount in millimeters for binary registration
                 mask generation. Default: 20mm
             log_level: Logging level (default: logging.INFO)

@@ -8,7 +8,7 @@ import itk
 import pytest
 
 from physiotwin4d.register_images_base import RegisterImagesBase
-from physiotwin4d.register_images_greedy_icon import RegisterImagesGreedyICON
+from physiotwin4d.register_images_greedy import RegisterImagesGreedy
 from physiotwin4d.register_images_icon import RegisterImagesICON
 from physiotwin4d.workflow_reconstruct_highres_4d_ct import (
     WorkflowReconstructHighres4DCT,
@@ -20,14 +20,13 @@ def _small_image() -> itk.Image:
     return itk.image_from_array(np.zeros((3, 3, 3), dtype=np.float32))
 
 
-def test_default_registration_method_is_greedy_icon() -> None:
-    """Omitting registration_method defaults to RegisterImagesGreedyICON,
-    matching this workflow's historical 'Greedy_ICON' string default."""
+def test_default_registration_method_is_greedy() -> None:
+    """Omitting registration_method defaults to RegisterImagesGreedy."""
     workflow = WorkflowReconstructHighres4DCT(
         time_series_images=[_small_image(), _small_image()],
         reference_image=_small_image(),
     )
-    assert isinstance(workflow.registrar.registrar, RegisterImagesGreedyICON)
+    assert isinstance(workflow.registrar.registrar, RegisterImagesGreedy)
 
 
 def test_registration_method_rejects_wrong_type() -> None:

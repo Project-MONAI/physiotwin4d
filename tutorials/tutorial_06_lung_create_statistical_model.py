@@ -39,6 +39,7 @@ from typing import Any
 import itk
 import numpy as np
 import pyvista as pv
+from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
 
 from physiotwin4d import (
     ContourTools,
@@ -68,7 +69,9 @@ if __name__ == "__main__":
 
     data_dir = repo_root / "data" / "DirLab-4DCT"
 
-    number_of_pca_components = 5
+    number_of_pca_components = LUNG_CT_DIRLAB.pca_components(
+        TestTools.running_as_test()
+    )
 
     # Atlas iterations used to build the reference surface; 1 is a single
     # template-biased pass.

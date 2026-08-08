@@ -55,8 +55,7 @@ class WorkflowReconstructHighres4DCT(PhysioTwin4DBase):
     ``registration_method`` accepts a pre-configured
     :class:`RegisterImagesBase` instance. Configure backend-specific
     parameters (iteration counts, etc.) on the instance before passing it
-    in. Defaults to a new :class:`RegisterImagesGreedyICON` (Greedy followed
-    by ICON refinement) when omitted.
+    in. Defaults to a new :class:`RegisterImagesGreedy` when omitted.
 
     Attributes:
         time_series_images (list[itk.Image]): Ordered list of time-series images
