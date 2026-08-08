@@ -16,7 +16,7 @@ from typing import Optional, Union, cast
 import itk
 
 from .register_images_base import RegisterImagesBase
-from .register_images_greedy_icon import RegisterImagesGreedyICON
+from .register_images_greedy import RegisterImagesGreedy
 from .transform_tools import TransformTools
 
 
@@ -73,8 +73,7 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
 
         Args:
             registration_method: Registration backend instance to use.
-                Defaults to a new RegisterImagesGreedyICON when None, with
-                its greedy stage configured to use an Affine transform.
+                Defaults to a new RegisterImagesGreedy when None.
             log_level: Logging level (default: logging.INFO)
 
         Raises:
@@ -84,8 +83,7 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
         super().__init__(log_level=log_level)
 
         if registration_method is None:
-            registration_method = RegisterImagesGreedyICON(log_level=log_level)
-            registration_method.greedy.set_transform_type("Affine")
+            registration_method = RegisterImagesGreedy(log_level=log_level)
         elif not isinstance(registration_method, RegisterImagesBase):
             raise TypeError(
                 "registration_method must be a RegisterImagesBase instance or None"

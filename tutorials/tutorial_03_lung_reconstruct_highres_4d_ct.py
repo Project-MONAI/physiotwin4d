@@ -12,9 +12,6 @@ Data Required
 -------------
 Full data: ``data/DirLab-4DCT/Case1Pack_T??.mha``
 Test data: ``data/test/DirLab-4DCT/Case1Pack_T??.mha``
-ICON weights: Tutorial 2 output
-(``tutorials/network_weights/icon_dirlab_4dct/.../network_weights_final.trch``),
-optional — the stock uniGradICON weights are used when it is absent.
 
 Outputs (under ``tutorials/output/tutorial_03_lung/``)
 -----------------------------------------------------
@@ -32,7 +29,7 @@ from pathlib import Path
 import itk
 
 from physiotwin4d import (
-    RegisterImagesGreedyICON,
+    RegisterImagesGreedy,
     TestTools,
     WorkflowReconstructHighres4DCT,
 )
@@ -58,17 +55,6 @@ if __name__ == "__main__":
     # data/DirLab-4DCT/fix_downloaded_data.py.
     case_glob = "Case1Pack_T??.mha"
 
-    # Weights finetuned on DIR-Lab by Tutorial 2; see
-    # WorkflowFinetuneICONRegistration.expected_weights_path().
-    icon_weights_path = (
-        tutorials_dir
-        / "network_weights"
-        / "icon_dirlab_4dct"
-        / "icon_dirlab_4dct_model"
-        / "checkpoints"
-        / "network_weights_final.trch"
-    )
-
     test_mode = TestTools.running_as_test()
     if test_mode:
         data_dir = repo_root / "data" / "test" / "DirLab-4DCT"
@@ -79,29 +65,12 @@ if __name__ == "__main__":
 
     log_level = logging.INFO
 
-    logging.basicConfig(level=log_level)
-    logger = logging.getLogger(class_name)
-
     # Directory setup and data reading
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Registration: Greedy for the coarse motion, then ICON for the deformable
-    # refinement. The Tutorial 2 weights are used when they exist; without them
-    # the tutorial still runs, on the stock uniGradICON weights.
-    registration_method = RegisterImagesGreedyICON(log_level=log_level)
-    registration_method.greedy.set_number_of_iterations(number_of_iterations_greedy)
-    registration_method.icon.set_mass_preservation(True)  # For non-contrast CT
-    if icon_weights_path.exists():
-        registration_method.icon.set_weights_path(str(icon_weights_path))
-        logger.info("Registering with finetuned ICON weights: %s", icon_weights_path)
-    else:
-        logger.warning(
-            "Finetuned ICON weights not found at %s; registering with the stock "
-            "uniGradICON weights. Run "
-            "tutorials/tutorial_02_lung_finetune_icon.py to create them.",
-            icon_weights_path,
-        )
+    registration_method = RegisterImagesGreedy(log_level=log_level)
+    registration_method.set_number_of_iterations(number_of_iterations_greedy)
 
     phase_files = sorted(data_dir.glob(case_glob))
     if not phase_files:

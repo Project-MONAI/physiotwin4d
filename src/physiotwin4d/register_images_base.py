@@ -19,6 +19,7 @@ import logging
 from typing import Any, Optional, Union, cast
 
 import itk
+import numpy as np
 
 from .labelmap_tools import LabelmapTools
 from .physiotwin4d_base import PhysioTwin4DBase
@@ -108,6 +109,7 @@ class RegisterImagesBase(PhysioTwin4DBase):
         self.moving_labelmap: Optional[itk.Image] = None
 
         self.mask_dilation_mm: float = 5.0
+        self.prewarp_background_value: Optional[float] = None
 
         self.fast_mode: bool = False
 
@@ -131,6 +133,39 @@ class RegisterImagesBase(PhysioTwin4DBase):
             >>> registrar.set_modality('mri')
         """
         self.modality = modality
+
+    def set_prewarp_background_value(self, background_value: float) -> None:
+        """Override the value a seeded registration's pre-warp writes off-grid.
+
+        Args:
+            background_value: Intensity written where the fixed grid samples
+                outside the moving image. Leave unset to derive it from the
+                modality; see :meth:`_prewarp_background_value`.
+        """
+        self.prewarp_background_value = background_value
+
+    def _prewarp_background_value(self, moving_image: itk.Image) -> float:
+        """Return the intensity that means "no tissue" for the moving image.
+
+        Pre-warping onto the fixed grid samples outside the moving image
+        wherever the two extents disagree. ITK's default fill of 0 is wrong for
+        an intensity image: in CT it is water, so the filled region reads as
+        soft tissue rather than air and any downstream similarity metric treats
+        it as structure to match. -1000 HU is also uniGradICON's ``ct_window``
+        lower bound, so it normalizes to exactly the same value as true air.
+
+        Args:
+            moving_image: Image being pre-warped.
+
+        Returns:
+            The explicit override when set, -1000.0 for CT, otherwise the
+            moving image's own minimum intensity.
+        """
+        if self.prewarp_background_value is not None:
+            return self.prewarp_background_value
+        if self.modality == "ct":
+            return -1000.0
+        return float(np.min(itk.GetArrayViewFromImage(moving_image)))
 
     def set_fixed_image(self, fixed_image: itk.Image) -> None:
         """Set the fixed/target image for registration.
@@ -435,7 +470,10 @@ class RegisterImagesBase(PhysioTwin4DBase):
         Returns:
             Tuple of the warped ``(image, mask, labelmap)``, the latter two None
             when not supplied. The mask and labelmap are warped with
-            nearest-neighbor interpolation to keep their discrete values.
+            nearest-neighbor interpolation to keep their discrete values, and
+            filled with 0 off-grid; the image is filled with
+            :meth:`_prewarp_background_value` instead, since 0 is a tissue
+            intensity rather than an absence of tissue.
 
         Raises:
             ValueError: If the fixed image has not been set.
@@ -444,7 +482,11 @@ class RegisterImagesBase(PhysioTwin4DBase):
             raise ValueError("Fixed image must be set before registration.")
 
         transform_tools = TransformTools()
-        self.log_info("Pre-warping moving data with the initial transform...")
+        background_value = self._prewarp_background_value(moving_image)
+        self.log_info(
+            "Pre-warping moving data with the initial transform (background %.1f)...",
+            background_value,
+        )
 
         def _warp(image: Optional[itk.Image], nearest: bool) -> Optional[itk.Image]:
             if image is None:
@@ -454,6 +496,7 @@ class RegisterImagesBase(PhysioTwin4DBase):
                 initial_forward_transform,
                 self.fixed_image,
                 interpolation_method="nearest" if nearest else "linear",
+                background_value=0.0 if nearest else background_value,
             )
 
         return (
@@ -479,7 +522,10 @@ class RegisterImagesBase(PhysioTwin4DBase):
 
         Returns:
             The result dict with both transforms mapping between the *original*
-            moving image and the fixed image.
+            moving image and the fixed image. ``loss`` is passed through
+            unchanged, so it is the residual stage's loss measured against the
+            already pre-warped data -- not a loss for the composed transform,
+            and not comparable to the loss of a stage that started from scratch.
         """
         transform_tools = TransformTools()
 

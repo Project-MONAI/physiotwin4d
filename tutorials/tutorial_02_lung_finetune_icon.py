@@ -4,7 +4,7 @@ Tutorial 2: Finetune uniGradICON on DIR-Lab 4D CT
 Purpose
 -------
 Finetune uniGradICON on every DIR-Lab 4D CT case except Case 1, then register
-``Case1Pack_T00.mha`` (moving) to ``Case1Pack_T50.mha`` (fixed) four ways:
+``Case1Pack_T00.mha`` (moving) to ``Case1Pack_T50.mha`` (fixed) several ways:
 ``RegisterImagesGreedy`` alone, deformable, with its default iteration
 schedule; ``RegisterImagesICON`` with the stock uniGradICON weights and with
 the finetuned weights; and ``RegisterImagesGreedyICON`` -- the same Greedy
@@ -27,15 +27,46 @@ and labelmap resampled onto the fixed grid without registration supply the
 Reported per method: the mean, standard deviation, 95th percentile and maximum
 landmark error in millimeters; the mean, 5th percentile, median, 95th
 percentile, minimum and maximum of the per-class Dice scores; the number of
-mislabeled voxels; and the wall-clock registration time.
+mislabeled voxels; and the wall-clock registration time.  The ``loss`` column is
+*not* comparable across rows: each backend reports its own metric, and a chain
+reports only its last stage's loss, measured against data the earlier stage
+already warped.
+
+Why the chain does not win here
+-------------------------------
+On this pair ``RegisterImagesGreedyICON`` scores no better than Greedy alone, and
+the extra rows exist to show why rather than to hide it.
+
+Compare a chain row against ``greedy_icon_stage0`` -- that row is the chain's own
+Greedy stage scored on its own transform, and it is the right comparator because
+Greedy is not bit-reproducible run to run (its scatter is a few thousandths of a
+millimeter, the same size as the effect being measured).  ``icon_residual_*`` is
+how far the ICON stage moved the landmarks and ``tre_delta_*`` how much their
+error changed as a result.
+
+What that shows: the ICON residual is small, and its per-landmark size is
+essentially uncorrelated with how much it helps or hurts -- it is a random
+perturbation of an already-better transform, not a correction.  Raising ICON's
+test-time optimization steps shrinks the residual and the damage together, so the
+chain converges toward simply reproducing its Greedy stage, at several times the
+runtime.  The reason is resolution: ICON's residual deformation lives on
+uniGradICON's fixed 175^3 network grid, which over this roughly 250mm field of
+view is about 1.4mm between nodes -- coarser than the error Greedy has already
+reached.  A refinement stage that cannot resolve the error it is asked to remove
+has nothing to contribute, and the chain applies its residual unconditionally.
+
+Ruled out as causes: the two stages are configured identically; the transform
+composition was verified; every row is scored with the same landmarks in the same
+direction; and the pre-warp between stages leaves under a percent of the fixed
+grid without moving data, none of it near a landmark.
 
 Finetuning artifacts (dataset JSON, YAML config, checkpoint tree) are written
 under ``tutorials/network_weights/icon_dirlab_4dct``.  The final checkpoint is
 ``tutorials/network_weights/icon_dirlab_4dct/icon_dirlab_4dct_model/checkpoints/
 network_weights_final.trch``, the path returned by
-``WorkflowFinetuneICONRegistration.expected_weights_path()``.  That directory is
-deleted at the start of every run, so each run finetunes from scratch; see the
-comment above the ``shutil.rmtree`` call for how to reuse a previous run.
+``WorkflowFinetuneICONRegistration.expected_weights_path()``.  ``run_finetuning``
+is off by default so runs reuse that checkpoint; turning it on deletes the
+directory and finetunes from scratch.
 
 Data Required
 -------------
@@ -92,6 +123,8 @@ if __name__ == "__main__":
     weights_dir = tutorials_dir / "network_weights"
     finetune_name = "icon_dirlab_4dct"
 
+    # Set True to finetune from scratch.  That deletes experiment_dir below,
+    # including any checkpoint a previous run left there.
     run_finetuning = True
 
     test_mode = TestTools.running_as_test()
@@ -302,6 +335,8 @@ if __name__ == "__main__":
         moving_image,
         ReferenceImage=fixed_image,
         UseReferenceImage=True,
+        # Air, not ITK's default 0, which in CT is water.
+        DefaultPixelValue=-1000.0,
     )
     unregistered_labelmap = itk.resample_image_filter(
         moving_labelmap,
@@ -309,6 +344,33 @@ if __name__ == "__main__":
         ReferenceImage=fixed_image,
         UseReferenceImage=True,
     )
+
+    # Diagnostic columns describing what the ICON stage of the chain added on
+    # top of its Greedy stage.  They are empty on rows where they do not apply,
+    # but csv.DictWriter takes its field names from the first row, so every row
+    # has to carry the keys.
+    empty_chain_diagnostics: dict[str, Any] = {
+        "icon_residual_mean": None,
+        "icon_residual_p95": None,
+        "icon_residual_max": None,
+        "tre_delta_mean": None,
+        "tre_delta_max": None,
+        "tre_delta_residual_corr": None,
+    }
+
+    def warp_moving(transform: itk.Transform) -> tuple[itk.Image, itk.Image]:
+        """Warp the moving image and labelmap onto the fixed grid."""
+        return (
+            transform_tools.transform_image(
+                moving_image, transform, fixed_image, background_value=-1000.0
+            ),
+            transform_tools.transform_image(
+                moving_labelmap,
+                transform,
+                fixed_image,
+                interpolation_method="nearest",
+            ),
+        )
 
     registered_images: dict[str, itk.Image] = {"unregistered": unregistered_image}
     labelmaps: dict[str, itk.Image] = {"unregistered": unregistered_labelmap}
@@ -322,29 +384,42 @@ if __name__ == "__main__":
                 np.linalg.norm(fixed_landmarks - moving_landmarks, axis=1)
             ),
             **overlap_metrics(unregistered_labelmap),
+            **empty_chain_diagnostics,
         }
     ]
-    for method_name, method_weights in (
-        ("greedy", None),
-        ("icon_stock", None),
-        ("icon_finetuned", weights_path),
-        ("greedy_icon_finetuned", weights_path),
-    ):
+
+    # Freezing Greedy and sweeping only the ICON stage's test-time optimization
+    # steps makes the residual the sole difference between the chain rows, which
+    # bounds how much test-time optimization could recover.
+    icon_step_sweep: list[Optional[int]] = [None, 10, 50]
+    methods: list[tuple[str, Optional[Path], Optional[int]]] = [
+        ("greedy", None, None),
+        ("icon_stock", None, number_of_iterations_icon),
+        ("icon_finetuned", weights_path, number_of_iterations_icon),
+    ]
+    methods += [
+        (f"greedy_icon_finetuned_steps_{steps}", weights_path, steps)
+        for steps in icon_step_sweep
+    ]
+
+    greedy_stage_transform: Optional[itk.Transform] = None
+    for method_name, method_weights, icon_steps in methods:
         registrar: RegisterImagesBase
+        chain: Optional[RegisterImagesGreedyICON] = None
         if method_name == "greedy":
             registrar = RegisterImagesGreedy(log_level=log_level)
             registrar.set_transform_type("Deformable")
             if number_of_iterations_greedy is not None:
                 registrar.set_number_of_iterations(number_of_iterations_greedy)
-        elif method_name == "greedy_icon_finetuned":
+        elif method_name.startswith("greedy_icon"):
             # Both stages are configured exactly as the standalone "greedy" and
-            # "icon_finetuned" rows above, so this row differs from
+            # "icon_finetuned" rows above, so these rows differ from
             # "icon_finetuned" only by the Greedy transform ICON starts from.
             chain = RegisterImagesGreedyICON(log_level=log_level)
             chain.greedy.set_transform_type("Deformable")
             if number_of_iterations_greedy is not None:
                 chain.greedy.set_number_of_iterations(number_of_iterations_greedy)
-            chain.icon.set_number_of_iterations(number_of_iterations_icon)
+            chain.icon.set_number_of_iterations(icon_steps)
             chain.icon.set_mass_preservation(True)  # For non-contrast CT
             chain.icon.set_weights_path(str(method_weights))
             registrar = chain
@@ -353,7 +428,7 @@ if __name__ == "__main__":
             # None, not 0: icon_registration rejects 0 and takes None to mean
             # "no test-time finetuning steps", so the comparison reflects what
             # each set of weights predicts rather than per-pair optimization.
-            registrar.set_number_of_iterations(number_of_iterations_icon)
+            registrar.set_number_of_iterations(icon_steps)
             registrar.set_mass_preservation(True)  # For non-contrast CT
             if method_weights is not None:
                 registrar.set_weights_path(str(method_weights))
@@ -364,25 +439,128 @@ if __name__ == "__main__":
         result = registrar.register(moving_image)
         elapsed_s = time.perf_counter() - start_time
 
-        registered_images[method_name] = transform_tools.transform_image(
-            moving_image, result["forward_transform"], fixed_image
-        )
-        labelmaps[method_name] = transform_tools.transform_image(
-            moving_labelmap,
-            result["forward_transform"],
-            fixed_image,
-            interpolation_method="nearest",
+        composed_errors = landmark_errors(result["forward_transform"])
+        chain_diagnostics = dict(empty_chain_diagnostics)
+        if chain is not None:
+            # RegisterImagesChain mirrors each stage's own result onto the
+            # sub-registrar before composing, so chain.greedy.forward_transform
+            # is the stage-only Greedy result and chain.icon.forward_transform
+            # is the residual ICON added on top of it.  Both are exact
+            # transforms, scored the same way as every other row.
+            greedy_stage_errors = landmark_errors(chain.greedy.forward_transform)
+            icon_stage_transform: itk.Transform = chain.icon.forward_transform
+            residual_mm = np.array(
+                [
+                    np.linalg.norm(
+                        np.asarray(icon_stage_transform.TransformPoint(tuple(point)))
+                        - point
+                    )
+                    for point in fixed_landmarks
+                ]
+            )
+            delta_mm = composed_errors - greedy_stage_errors
+            chain_diagnostics = {
+                "icon_residual_mean": float(residual_mm.mean()),
+                "icon_residual_p95": float(np.percentile(residual_mm, 95)),
+                "icon_residual_max": float(residual_mm.max()),
+                "tre_delta_mean": float(delta_mm.mean()),
+                "tre_delta_max": float(delta_mm.max()),
+                "tre_delta_residual_corr": float(
+                    np.corrcoef(delta_mm, residual_mm)[0, 1]
+                ),
+            }
+
+            # The Greedy stage is identical across the sweep, so score it once.
+            if greedy_stage_transform is None:
+                greedy_stage_transform = chain.greedy.forward_transform
+                stage_image, stage_labelmap = warp_moving(greedy_stage_transform)
+                registered_images["greedy_icon_stage0"] = stage_image
+                labelmaps["greedy_icon_stage0"] = stage_labelmap
+                rows.append(
+                    {
+                        "method": "greedy_icon_stage0",
+                        "weights": "-",
+                        "registration_time_s": None,
+                        "loss": None,
+                        **landmark_metrics(greedy_stage_errors),
+                        **overlap_metrics(stage_labelmap),
+                        **empty_chain_diagnostics,
+                    }
+                )
+
+        registered_images[method_name], labelmaps[method_name] = warp_moving(
+            result["forward_transform"]
         )
         rows.append(
             {
                 "method": method_name,
                 "weights": str(method_weights) if method_weights else "-",
                 "registration_time_s": elapsed_s,
+                # Not comparable across rows: each backend reports its own
+                # metric, and a chain reports only its last stage's loss,
+                # measured against data the earlier stage already warped.
                 "loss": float(result["loss"]),
-                **landmark_metrics(landmark_errors(result["forward_transform"])),
+                **landmark_metrics(composed_errors),
                 **overlap_metrics(labelmaps[method_name]),
+                **chain_diagnostics,
             }
         )
+
+    # How much of the fixed grid the pre-warp has no moving data for.  Those
+    # voxels used to be filled with ITK's default 0 -- water in CT -- which the
+    # ICON stage then saw as tissue where the moving image had nothing.
+    if greedy_stage_transform is not None:
+        coverage_input = itk.image_from_array(
+            np.ones(list(itk.size(moving_image))[::-1], dtype=np.float32)
+        )
+        coverage_input.CopyInformation(moving_image)
+        coverage = transform_tools.transform_image(
+            coverage_input, greedy_stage_transform, fixed_image, background_value=0.0
+        )
+        itk.imwrite(
+            coverage, str(output_dir / "prewarp_coverage.mha"), compression=True
+        )
+        coverage_arr = itk.GetArrayFromImage(coverage)
+        uncovered = coverage_arr < 0.999
+        fixed_hu = itk.GetArrayFromImage(fixed_image)
+        uncovered_in_air = uncovered & (fixed_hu < -500.0)
+        reporter.log_info(
+            "Pre-warp coverage: %d/%d fixed voxels uncovered (%.4f%%), "
+            "%d of them where the fixed image is air",
+            int(uncovered.sum()),
+            uncovered.size,
+            100.0 * uncovered.sum() / uncovered.size,
+            int(uncovered_in_air.sum()),
+        )
+        if uncovered.any():
+            k_counts = uncovered.sum(axis=(1, 2))
+            reporter.log_info(
+                "Uncovered voxels per slice along k: min %d, max %d, "
+                "first slice %d, last slice %d",
+                int(k_counts.min()),
+                int(k_counts.max()),
+                int(k_counts[0]),
+                int(k_counts[-1]),
+            )
+            # Landmarks within 10mm of missing data are the ones a bad fill
+            # value could plausibly have moved.
+            spacing = np.asarray(fixed_image.GetSpacing(), dtype=np.float64)
+            radius = np.maximum(1, np.ceil(10.0 / spacing)).astype(int)
+            near_count = 0
+            for point in fixed_landmarks:
+                index = fixed_image.TransformPhysicalPointToIndex(tuple(point))
+                lo = [max(0, int(index[d]) - int(radius[d])) for d in range(3)]
+                hi = [
+                    min(uncovered.shape[2 - d], int(index[d]) + int(radius[d]) + 1)
+                    for d in range(3)
+                ]
+                if uncovered[lo[2] : hi[2], lo[1] : hi[1], lo[0] : hi[0]].any():
+                    near_count += 1
+            reporter.log_info(
+                "Landmarks within 10mm of uncovered data: %d/%d",
+                near_count,
+                len(fixed_landmarks),
+            )
 
     # Result saving
     itk.imwrite(

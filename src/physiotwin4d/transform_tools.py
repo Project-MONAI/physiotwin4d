@@ -12,7 +12,7 @@ are used to track anatomical motion over time.
 """
 
 import logging
-from typing import Type, cast
+from typing import Type, Union, cast
 
 import itk
 import numpy as np
@@ -449,6 +449,7 @@ class TransformTools(PhysioTwin4DBase):
         tfm: itk.Transform,
         reference_image: itk.image,
         interpolation_method: str = "linear",
+        background_value: float = 0.0,
     ) -> itk.image:
         """
         Transform an ITK image using a specified transform and interpolation.
@@ -467,6 +468,11 @@ class TransformTools(PhysioTwin4DBase):
                 - "linear": Linear interpolation (default, good for CT/MR)
                 - "nearest": Nearest neighbor (preserves discrete values)
                 - "sinc": Sinc interpolation (highest quality, slower)
+            background_value (float): Value written where the reference grid
+                samples outside the input image. Default 0.0, which is right for
+                labelmaps and masks; intensity images need the value that means
+                "no tissue" in their own units -- for CT that is -1000 HU (air),
+                not 0 HU (water).
 
         Returns:
             itk.image: The transformed image resampled to reference grid
@@ -511,12 +517,22 @@ class TransformTools(PhysioTwin4DBase):
             tfm, reference_image
         )
 
+        # ITK's wrapping types DefaultPixelValue to the image's pixel type, and
+        # rejects a Python float for an integer image.
+        dtype = itk.GetArrayViewFromImage(img).dtype
+        default_pixel_value: Union[int, float] = (
+            int(round(background_value))
+            if np.issubdtype(dtype, np.integer)
+            else float(background_value)
+        )
+
         img_reg = itk.resample_image_filter(
             Input=img,
             Transform=dftfm,
             Interpolator=interpolator,
             ReferenceImage=reference_image,
             UseReferenceImage=True,
+            DefaultPixelValue=default_pixel_value,
         )
         return img_reg
 

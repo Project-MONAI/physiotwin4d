@@ -30,6 +30,7 @@ from typing import Any, Optional, cast
 
 import itk
 import pyvista as pv
+from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
 
 from physiotwin4d import (
     ContourTools,
@@ -61,14 +62,15 @@ if __name__ == "__main__":
     pca_json = tutorial_06_dir / "pca_model.json"
     pca_mean_file = tutorial_06_dir / "pca_mean_surface.vtp"
 
-    number_of_pca_components = 5
+    number_of_pca_components = LUNG_CT_DIRLAB.pca_components(
+        TestTools.running_as_test()
+    )
 
     patient_image_file = repo_root / "data" / "Chest-CT" / "Chest-CT.mha"
 
-    # Distance-map weights finetuned on DIR-Lab by Tutorial 2; see
-    # WorkflowFinetuneICONRegistration.expected_weights_path().  The
-    # mask_dilation_mm set below must match the one that tutorial finetuned
-    # with, since it fixes the distance maps' saturation radius.
+    # Distance-map weights finetuned on DIR-Lab by
+    # tutorial_02_lung_distancemap_finetune_icon.py; see
+    # WorkflowFinetuneICONRegistration.expected_weights_path().
     icon_weights_path = (
         tutorials_dir
         / "network_weights"
@@ -145,7 +147,8 @@ if __name__ == "__main__":
             use_surface=False,
         )
 
-    workflow.set_mask_dilation_mm(mask_dilation_mm=40)
+    workflow.set_mask_dilation_mm(LUNG_CT_DIRLAB.mask_dilation_mm)
+    workflow.set_distancemap_squared_max(LUNG_CT_DIRLAB.distancemap_squared_max)
 
     # The labelmap-to-labelmap stage registers distance maps, not intensities,
     # so it uses the distance-map-finetuned weights when they exist; without

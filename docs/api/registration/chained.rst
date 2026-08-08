@@ -9,8 +9,8 @@ Chained Image Registration
 Coarse-to-fine registration composes two registrars: a fast, robust method
 recovers the large motion, then a deformable method refines it.
 ``RegisterImagesChain`` is the general composition;
-``RegisterImagesGreedyICON`` is the Greedy-then-ICON pairing the tutorials use
-for 4D CT.
+``RegisterImagesGreedyICON`` is the Greedy-then-ICON pairing, used by Tutorial 2
+and by the distance-map stage of the statistical-model fit.
 
 Both implement :class:`RegisterImagesBase`, so they drop into any workflow that
 takes a ``registration_method``.

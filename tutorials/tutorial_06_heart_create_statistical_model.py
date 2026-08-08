@@ -22,6 +22,7 @@ from typing import Any, cast
 
 import numpy as np
 import pyvista as pv
+from parameters_heart_ct_kcl import HEART_CT_KCL
 
 from physiotwin4d import (
     TestTools,
@@ -48,10 +49,9 @@ if __name__ == "__main__":
     test_mode = TestTools.running_as_test()
     if test_mode:
         data_dir = repo_root / "data" / "test" / "KCL-Heart-Model"
-        number_of_pca_components = 5
     else:
         data_dir = repo_root / "data" / "KCL-Heart-Model"
-        number_of_pca_components = 10
+    number_of_pca_components = HEART_CT_KCL.pca_components(test_mode)
 
     log_level = logging.INFO
 
