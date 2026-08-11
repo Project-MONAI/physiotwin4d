@@ -345,9 +345,11 @@ class TestTutorial09LungTrainPhysicsNeMoMGN:
         assert (model_dir / "mgn_stage_model.pt").exists(), "Checkpoint should exist"
         assert results["cases"], "At least one held-out case should be evaluated"
 
+        # The model goes to the shared weights directory; the manifests, the
+        # evaluation and the screenshots stay under the tutorial's output.
         tt = TestTools(
             class_name=self._class_name,
-            results_dir=model_dir,
+            results_dir=_REPO_ROOT / "tutorials" / "output" / "tutorial_09_lung_mgn",
             baselines_dir=test_directories["baselines"] / self._class_name,
         )
         _compare_screenshots(results["screenshots"], tt)
@@ -364,7 +366,10 @@ class TestTutorial10LungInferPhysicsNeMoMGN:
     def test_run(self, test_directories: dict[str, Path]) -> None:
         _require_physicsnemo_and_tutorial_08()
 
-        model_dir = _REPO_ROOT / "tutorials" / "output" / "tutorial_09_lung_mgn"
+        # ParametersLungCTDirLab.mgn_weights_dir, where Tutorial 9 trains to.
+        model_dir = (
+            _REPO_ROOT / "tutorials" / "network_weights" / "physicsnemo_mgn_lung_motion"
+        )
         if not (model_dir / "mgn_stage_model.pt").exists():
             _run_tutorial_script("tutorial_09_lung_train_physicsnemo_mgn.py")
             assert (model_dir / "mgn_stage_model.pt").exists(), (
@@ -377,7 +382,9 @@ class TestTutorial10LungInferPhysicsNeMoMGN:
         )
         assert Path(results["usd_file"]).exists(), "USD file should exist"
 
-        out_dir = model_dir / "tutorial_10_lung_mgn" / "Case1Pack"
+        out_dir = (
+            _REPO_ROOT / "tutorials" / "output" / "tutorial_10_lung_mgn" / "Case1Pack"
+        )
         tt = TestTools(
             class_name=self._class_name,
             results_dir=out_dir,

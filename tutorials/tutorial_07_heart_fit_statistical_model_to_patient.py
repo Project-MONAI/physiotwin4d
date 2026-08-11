@@ -52,17 +52,13 @@ if __name__ == "__main__":
     baselines_dir = repo_root / "tests" / "baselines"
 
     # PCA model + mean surface produced by Tutorial 6.
-    pca_json = tutorials_dir / "output" / "tutorial_06_heart" / "pca_model.json"
-    pca_mean_file = (
-        tutorials_dir / "output" / "tutorial_06_heart" / "pca_mean_surface.vtp"
-    )
+    pca_json = HEART_CT_KCL.pca_json_file
+    pca_mean_file = HEART_CT_KCL.pca_mean_file
 
     test_mode = TestTools.running_as_test()
-    if test_mode:
-        data_dir = repo_root / "data" / "test" / "DirLab-4DCT"
-    else:
-        data_dir = repo_root / "data" / "DirLab-4DCT"
-    patient_image_file = data_dir / "Case1Pack_T70.mha"
+    data_dir = HEART_CT_KCL.hold_out_directory(test_mode)
+    # The case Tutorial 6 leaves out of the model, so this fit is out of sample.
+    patient_image_file = data_dir / f"{HEART_CT_KCL.hold_out_case}_T70.mha"
 
     # Distance-map weights finetuned by
     # tutorial_02_duke_heart_distancemap_finetune_icon.py.  The heart has its own
@@ -133,7 +129,10 @@ if __name__ == "__main__":
         )
 
         contour_tools = ContourTools()
-        heart_surface = contour_tools.extract_contours(labelmap_image=heart_labelmap)
+        heart_surface = contour_tools.extract_contours(
+            labelmap_image=heart_labelmap,
+            surface_reduction_rate=HEART_CT_KCL.surface_reduction_rate,
+        )
         heart_surface.save(output_dir / f"{project_name}_heart_surface.vtp")
 
     else:
@@ -165,6 +164,7 @@ if __name__ == "__main__":
         workflow.set_use_pca_registration(
             use_pca_registration=True,
             pca_model=pca_model,
+            number_of_pca_components=HEART_CT_KCL.pca_components(test_mode),
             use_surface=False,
         )
 

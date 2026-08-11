@@ -49,10 +49,31 @@ class UsdMeshConverter:
         self.stage = stage
         self.settings = settings
         self.material_mgr = material_mgr
-        # Most recent triangulation face-map from create_mesh(). Reused by
-        # create_time_varying_mesh() when writing per-time-step cell primvars,
-        # since topology (and thus the map) is invariant across time samples.
-        self._last_triangulation_face_map: Optional[np.ndarray] = None
+
+    def _resolve_topology(
+        self, mesh_data: MeshData
+    ) -> tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]:
+        """Return the face counts, indices and triangulation map to author.
+
+        Triangulation only happens when it was asked for and the mesh holds
+        faces that are not triangles; the map is ``None`` otherwise.
+
+        Args:
+            mesh_data: Mesh whose topology is being written.
+
+        Returns:
+            ``(face_vertex_counts, face_vertex_indices,
+            triangulation_face_map)``, the last mapping each triangulated face
+            back to its source face.
+        """
+        face_counts = mesh_data.face_vertex_counts
+        face_indices = mesh_data.face_vertex_indices
+        if self.settings.triangulate_meshes and not all(
+            count == 3 for count in face_counts
+        ):
+            logger.debug("Triangulating mesh faces")
+            return triangulate_face(face_counts, face_indices)
+        return face_counts, face_indices, None
 
     def create_mesh(
         self,
@@ -81,26 +102,16 @@ class UsdMeshConverter:
         usd_points = lps_points_to_usd(mesh_data.points)
 
         # Handle triangulation if requested
-        face_counts = mesh_data.face_vertex_counts
-        face_indices = mesh_data.face_vertex_indices
-
-        triangulation_face_map: Optional[np.ndarray] = None
-        if self.settings.triangulate_meshes:
-            # Check if any faces are not triangles
-            if not all(count == 3 for count in face_counts):
-                logger.debug("Triangulating mesh faces")
-                (
-                    face_counts,
-                    face_indices,
-                    triangulation_face_map,
-                ) = triangulate_face(face_counts, face_indices)
-        self._last_triangulation_face_map = triangulation_face_map
+        face_counts, face_indices, triangulation_face_map = self._resolve_topology(
+            mesh_data
+        )
 
         # Convert to Vt arrays
         face_counts_vt = Vt.IntArray(face_counts.tolist())
         face_indices_vt = Vt.IntArray(face_indices.tolist())
 
-        # Set topology (static - doesn't change with time)
+        # Set topology as the default value. create_time_varying_mesh() adds
+        # time samples on top of this when a series changes topology.
         mesh.CreateFaceVertexCountsAttr(face_counts_vt)
         mesh.CreateFaceVertexIndicesAttr(face_indices_vt)
 
@@ -335,7 +346,14 @@ class UsdMeshConverter:
     ) -> UsdGeom.Mesh:
         """Create a mesh with time-varying attributes.
 
-        Assumes constant topology (same number of points/faces).
+        A series whose frames share one topology, as a surface propagated
+        through a deformation does, authors that topology once and time-samples
+        only the point positions, so viewers interpolate between samples.  A
+        series whose frames were built independently, and so agree on neither
+        point count nor triangulation, additionally time-samples
+        ``faceVertexCounts`` and ``faceVertexIndices``; USD holds those samples
+        rather than interpolating them, so such a mesh snaps from frame to
+        frame.
 
         Args:
             mesh_data_sequence: List of MeshData for each time step
@@ -360,15 +378,40 @@ class UsdMeshConverter:
             f"with {len(time_codes)} time steps"
         )
 
+        topologies = [self._resolve_topology(md) for md in mesh_data_sequence]
+        first_counts, first_indices, _ = topologies[0]
+        topology_varies = any(
+            not np.array_equal(counts, first_counts)
+            or not np.array_equal(indices, first_indices)
+            for counts, indices, _ in topologies[1:]
+        )
+
         # Create mesh with first time step
         first_mesh_data = mesh_data_sequence[0]
         mesh = self.create_mesh(
             first_mesh_data, mesh_path, time_codes[0], bind_material=bind_material
         )
 
+        if topology_varies:
+            logger.warning(
+                "Topology changes across the %d frames of %s; authoring it per "
+                "time sample, which viewers hold rather than interpolate",
+                len(time_codes),
+                mesh_path,
+            )
+            # A time sample wins over the default at every time, so the first
+            # frame has to be sampled too or it would resolve to the last one.
+            counts_attr = mesh.GetFaceVertexCountsAttr()
+            indices_attr = mesh.GetFaceVertexIndicesAttr()
+            for (counts, indices, _), time_code in zip(
+                topologies, time_codes, strict=False
+            ):
+                counts_attr.Set(Vt.IntArray(counts.tolist()), time_code)
+                indices_attr.Set(Vt.IntArray(indices.tolist()), time_code)
+
         # Add time samples for subsequent steps
-        for mesh_data, time_code in zip(
-            mesh_data_sequence[1:], time_codes[1:], strict=False
+        for frame_index, (mesh_data, time_code) in enumerate(
+            zip(mesh_data_sequence[1:], time_codes[1:], strict=False), start=1
         ):
             # Update points
             usd_points = lps_points_to_usd(mesh_data.points)
@@ -387,8 +430,8 @@ class UsdMeshConverter:
             if mesh_data.colors is not None:
                 self._add_vertex_colors(mesh, mesh_data.colors, time_code)
 
-            # Update generic arrays (reuse the triangulation map computed
-            # for the first time sample; topology is invariant across time).
+            # Update generic arrays, expanding uniform ones with this frame's
+            # own triangulation map.
             if (
                 self.settings.preserve_point_arrays
                 or self.settings.preserve_cell_arrays
@@ -397,7 +440,7 @@ class UsdMeshConverter:
                     mesh,
                     mesh_data,
                     time_code,
-                    self._last_triangulation_face_map,
+                    topologies[frame_index][2],
                 )
 
         logger.info(f"Created time-varying mesh with {len(time_codes)} time samples")

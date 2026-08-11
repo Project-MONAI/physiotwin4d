@@ -34,14 +34,21 @@ current working directory.
 | 3 | [tutorial_03_lung_reconstruct_highres_4d_ct.py](tutorial_03_lung_reconstruct_highres_4d_ct.py) | `WorkflowReconstructHighres4DCT` | DirLab-4DCT (manual) |
 | 4 | [tutorial_04_heart_ct_to_vtk.py](tutorial_04_heart_ct_to_vtk.py) | `WorkflowConvertImageToVTK` | Slicer-Heart-CT (prepare first) |
 | 4 | [tutorial_04_lung_ct_to_vtk.py](tutorial_04_lung_ct_to_vtk.py) | `WorkflowConvertImageToVTK` | Lung gated 4D CT (prepare first) |
+| 4 | [duke heart labelmap variant](tutorial_04_duke_heart_labelmap_to_vtk.py) | `ContourTools.extract_label_surfaces`, `ContourTools.extract_tetrahedra` | Duke-Heart-4DLabelmaps (not yet available) |
 | 5 | [tutorial_05_heart_vtk_to_usd.py](tutorial_05_heart_vtk_to_usd.py) | `WorkflowConvertVTKToUSD` | Output of tutorial 4 |
+| 5 | [duke heart variant](tutorial_05_duke_heart_vtk_to_usd.py) | `ConvertVTKToUSD`, `USDAnatomyTools` | Output of tutorial 4 (duke heart labelmap) |
 | 6 | [tutorial_06_heart_create_statistical_model.py](tutorial_06_heart_create_statistical_model.py) | `WorkflowCreateStatisticalModel` | KCL-Heart-Model |
 | 6 | [tutorial_06_lung_create_statistical_model.py](tutorial_06_lung_create_statistical_model.py) | `WorkflowCreateStatisticalModel` | Lung surfaces from Tutorial 4 (lung) |
+| 6 | [duke heart variant](tutorial_06_duke_heart_create_statistical_model.py) | `WorkflowCreateMeanSurface`, `WorkflowCreateStatisticalModel` | Reference-frame heart surfaces from Tutorial 4 (duke heart labelmap) |
 | 7 | [tutorial_07_heart_fit_statistical_model_to_patient.py](tutorial_07_heart_fit_statistical_model_to_patient.py) | `WorkflowFitStatisticalModelToPatient` | KCL-Heart-Model plus Tutorial 6 output |
 | 7 | [tutorial_07_lung_fit_statistical_model_to_patient.py](tutorial_07_lung_fit_statistical_model_to_patient.py) | `WorkflowFitStatisticalModelToPatient` | Chest-CT plus Tutorial 6 (lung) output |
+| 7 | [duke heart variant](tutorial_07_duke_heart_fit_statistical_model_to_patient.py) | `WorkflowFitStatisticalModelToPatient` | Duke-Heart-4DLabelmaps plus Tutorial 6 (duke heart) output |
 | 8 | [tutorial_08_lung_fit_model_to_4d_patients.py](tutorial_08_lung_fit_model_to_4d_patients.py) | `WorkflowFitStatisticalModelToPatient`, `WorkflowReconstructHighres4DCT` | DirLab-4DCT plus Tutorial 6 (lung) and Tutorial 2 output |
+| 8 | [duke heart variant](tutorial_08_duke_heart_fit_model_to_4d_patients.py) | `WorkflowFitStatisticalModelToPatient`, `RegisterModelsDistanceMaps` | Duke-Heart-4DLabelmaps plus Tutorial 6 (duke heart) and Tutorial 2 output |
 | 9 | [tutorial_09_lung_train_physicsnemo_mgn.py](tutorial_09_lung_train_physicsnemo_mgn.py) | `WorkflowTrainPhysicsNeMo`, `WorkflowInferPhysicsNeMo`, `WorkflowInferMovement` (requires `[physicsnemo]` extra + `torch-geometric`) | Tutorial 8 (lung) output |
+| 9 | [duke heart variant](tutorial_09_duke_heart_train_physicsnemo_mgn.py) | `WorkflowTrainPhysicsNeMo`, `WorkflowInferPhysicsNeMo`, `WorkflowInferMovement` (requires `[physicsnemo]` extra + `torch-geometric`) | Tutorial 8 (duke heart) output |
 | 10 | [tutorial_10_lung_infer_physicsnemo_mgn.py](tutorial_10_lung_infer_physicsnemo_mgn.py) | `WorkflowInferPhysicsNeMo`, `WorkflowInferMovement`, `WorkflowConvertVTKToUSD` (requires `[physicsnemo]` extra + `torch-geometric`) | Tutorial 8 and 9 (lung) output |
+| 10 | [duke heart variant](tutorial_10_duke_heart_infer_physicsnemo.py) | `WorkflowInferPhysicsNeMo`, `WorkflowInferMovement`, `WorkflowConvertVTKToUSD` (requires `[physicsnemo]` extra + `torch-geometric`) | Tutorial 8 and 9 (duke heart) output |
 
 The [tutorials page](https://project-monai.github.io/physiotwin4d/tutorials.html)
 covers the same set with previews of what each one produces and per-tutorial

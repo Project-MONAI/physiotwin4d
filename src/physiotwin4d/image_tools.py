@@ -270,6 +270,65 @@ class ImageTools(PhysioTwin4DBase):
         result.DisconnectPipeline()
         return result
 
+    def resample_image_by_scale(
+        self, image: itk.Image, scale: float, interpolate: bool = True
+    ) -> itk.Image:
+        """Resample a 3-D *image* to *scale* times its voxel count per axis.
+
+        The physical extent is preserved: spacing is rescaled to compensate for
+        the new voxel count, and the origin shifts by half the spacing change so
+        the resampled voxel centers stay inside the original extent.
+
+        Args:
+            image: 3-D ITK image to resample.
+            scale: Per-axis voxel-count multiplier.  Values below ``1.0``
+                coarsen, values above ``1.0`` upsample.
+            interpolate: Use linear interpolation.  ``False`` selects nearest
+                neighbor, which is what labelmaps need.
+
+        Returns:
+            Resampled image, covering the same physical extent as *image*.
+
+        Raises:
+            ValueError: If *image* is not 3-D, or *scale* is not positive.
+        """
+        if image.GetImageDimension() != 3:
+            raise ValueError(
+                f"resample_image_by_scale requires a 3-D image; "
+                f"got {image.GetImageDimension()}-D"
+            )
+        if scale <= 0.0:
+            raise ValueError(f"scale must be positive; got {scale}")
+
+        spacing = np.asarray(image.GetSpacing(), dtype=np.float64)
+        size = np.asarray(image.GetLargestPossibleRegion().GetSize(), dtype=np.int64)
+        new_size = np.maximum(1, np.ceil(size * scale)).astype(np.int64)
+        new_spacing = spacing * size / new_size
+
+        ImageType = type(image)
+        if interpolate:
+            interpolator = itk.LinearInterpolateImageFunction[ImageType, itk.D].New()
+        else:
+            interpolator = itk.NearestNeighborInterpolateImageFunction[
+                ImageType, itk.D
+            ].New()
+
+        direction = itk.array_from_matrix(image.GetDirection())
+        resampler = itk.ResampleImageFilter[ImageType, ImageType].New()
+        resampler.SetInput(image)
+        resampler.SetInterpolator(interpolator)
+        resampler.SetOutputSpacing([float(v) for v in new_spacing])
+        resampler.SetSize([int(n) for n in new_size])
+        resampler.SetOutputOrigin(
+            np.asarray(image.GetOrigin(), dtype=np.float64)
+            + direction @ ((new_spacing - spacing) / 2.0)
+        )
+        resampler.SetOutputDirection(image.GetDirection())
+        resampler.Update()
+        result = resampler.GetOutput()
+        result.DisconnectPipeline()
+        return result
+
     @staticmethod
     def _per_axis_values(
         value: Union[float, int, list, tuple, NDArray[Any]],

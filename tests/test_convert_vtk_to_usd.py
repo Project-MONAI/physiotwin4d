@@ -355,16 +355,21 @@ class TestConvertVTKToUSD:
         assert stage is not None, "USD stage not created"
         assert output_file.exists(), "USD file not created"
 
-        # Check for time-varying meshes (separate mesh prims)
-        parent_path = "/HeartVarying/default"
-        parent_prim = stage.GetPrimAtPath(parent_path)
-
-        # Should have child meshes for each time step
-        children = parent_prim.GetChildren() if parent_prim.IsValid() else []
+        # Each frame carries its own topology, so neither one is indexed by the
+        # other's faces.
+        mesh = UsdGeom.Mesh(stage.GetPrimAtPath("/World/HeartVarying/Mesh"))
+        assert mesh.GetPrim().IsValid(), "Mesh prim not found"
+        indices_attr = mesh.GetFaceVertexIndicesAttr()
+        assert indices_attr.GetTimeSamples() == [0.0, 1.0]
+        for time_code in (0.0, 1.0):
+            points = mesh.GetPointsAttr().Get(time_code)
+            indices = indices_attr.Get(time_code)
+            assert max(indices) < len(points), (
+                f"Face indices at t={time_code} address points that frame "
+                f"does not have ({max(indices)} >= {len(points)})"
+            )
 
         print("Time-varying topology handled")
-        print(f"  Parent prim: {parent_path}")
-        print(f"  Child prims: {len(children)}")
         print(f"  Output: {output_file}")
 
     def test_batch_conversion(
@@ -476,6 +481,48 @@ class TestSyntheticConversion:
             assert samples == [], (
                 f"{prim_path} should have no time samples but got {samples}"
             )
+
+    # ------------------------------------------------------------------
+    # Frames that share no triangulation must each author their own topology
+    # ------------------------------------------------------------------
+
+    def test_varying_topology_time_samples_faces(self, tmp_path: Path) -> None:
+        """Independently built frames must not be indexed by frame 0's faces."""
+        frames = [
+            pv.Sphere(theta_resolution=8 + index, phi_resolution=8)
+            for index in range(3)
+        ]
+        converter = ConvertVTKToUSD(data_basename="P", input_polydata=frames)
+        stage = converter.convert(str(tmp_path / "out.usd"))
+
+        mesh = UsdGeom.Mesh(stage.GetPrimAtPath("/World/P/Mesh"))
+        counts_attr = mesh.GetFaceVertexCountsAttr()
+        indices_attr = mesh.GetFaceVertexIndicesAttr()
+        assert counts_attr.GetTimeSamples() == [0.0, 1.0, 2.0]
+        assert indices_attr.GetTimeSamples() == [0.0, 1.0, 2.0]
+
+        for time_code in (0.0, 1.0, 2.0):
+            points = mesh.GetPointsAttr().Get(time_code)
+            indices = indices_attr.Get(time_code)
+            counts = counts_attr.Get(time_code)
+            assert max(indices) < len(points), (
+                f"Face indices at t={time_code} address points that frame "
+                f"does not have ({max(indices)} >= {len(points)})"
+            )
+            assert sum(counts) == len(indices)
+
+    def test_constant_topology_leaves_faces_untimed(self, tmp_path: Path) -> None:
+        """A deformed series keeps one topology, so viewers can interpolate."""
+        base = _make_poly()
+        moved = base.copy()
+        moved.points[:, 2] += 1.0
+        converter = ConvertVTKToUSD(data_basename="P", input_polydata=[base, moved])
+        stage = converter.convert(str(tmp_path / "out.usd"))
+
+        mesh = UsdGeom.Mesh(stage.GetPrimAtPath("/World/P/Mesh"))
+        assert mesh.GetFaceVertexCountsAttr().GetTimeSamples() == []
+        assert mesh.GetFaceVertexIndicesAttr().GetTimeSamples() == []
+        assert mesh.GetPointsAttr().GetTimeSamples() == [0.0, 1.0]
 
     def test_mask_ids_split_on_segmentation_label_ids(self, tmp_path: Path) -> None:
         """A merged surface file splits on the array save_combined_surfaces writes."""

@@ -21,6 +21,7 @@ from pathlib import Path
 
 import itk
 import pyvista as pv
+from parameters_heart_ct_kcl import HEART_CT_KCL
 
 from physiotwin4d import (
     ContourTools,
@@ -102,10 +103,10 @@ if __name__ == "__main__":
 
     # Workflow execution
     #
-    # surface_target_reduction decimates each exported VTP surface.
+    # surface_reduction_rate decimates each exported VTP surface.
     result = workflow.process(
         input_image=ct_image,
-        surface_target_reduction=0.5,
+        surface_reduction_rate=HEART_CT_KCL.surface_reduction_rate,
         extract_label_surfaces=save_label_surfaces,
     )
 

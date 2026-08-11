@@ -71,6 +71,7 @@ import logging
 from pathlib import Path
 
 import itk
+from parameters_heart_ct_kcl import HEART_CT_KCL
 
 from physiotwin4d import (
     RegisterImagesGreedy,
@@ -140,6 +141,7 @@ if __name__ == "__main__":
         usd_project_name="cardiac_model",
         registration_method=registration_method,
         segmentation_method=segmentation_method,
+        surface_reduction_rate=HEART_CT_KCL.surface_reduction_rate,
         log_level=log_level,
         save_assets=True,
     )

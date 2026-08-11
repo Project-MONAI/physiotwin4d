@@ -22,6 +22,8 @@ from pathlib import Path
 import itk
 import pyvista as pv
 
+from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
+
 from physiotwin4d import (
     ContourTools,
     SegmentChestTotalSegmentator,
@@ -86,10 +88,10 @@ if __name__ == "__main__":
 
     # Workflow execution
     #
-    # surface_target_reduction decimates each exported VTP surface.
+    # surface_reduction_rate decimates each exported VTP surface.
     result = workflow.process(
         input_image=ct_image,
-        surface_target_reduction=0.5,
+        surface_reduction_rate=LUNG_CT_DIRLAB.surface_reduction_rate,
         extract_label_surfaces=save_label_surfaces,
     )
 

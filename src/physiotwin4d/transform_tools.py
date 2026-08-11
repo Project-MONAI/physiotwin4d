@@ -518,13 +518,23 @@ class TransformTools(PhysioTwin4DBase):
         )
 
         # ITK's wrapping types DefaultPixelValue to the image's pixel type, and
-        # rejects a Python float for an integer image.
+        # rejects a Python float for a discrete image.
         dtype = itk.GetArrayViewFromImage(img).dtype
-        default_pixel_value: Union[int, float] = (
-            int(round(background_value))
-            if np.issubdtype(dtype, np.integer)
-            else float(background_value)
-        )
+        default_pixel_value: Union[int, float]
+        if np.issubdtype(dtype, np.integer) or np.issubdtype(dtype, np.bool_):
+            default_pixel_value = int(round(background_value))
+            low, high = (
+                (0, 1)
+                if np.issubdtype(dtype, np.bool_)
+                else (int(np.iinfo(dtype).min), int(np.iinfo(dtype).max))
+            )
+            if not low <= default_pixel_value <= high:
+                raise ValueError(
+                    f"background_value {background_value} is outside the range "
+                    f"[{low}, {high}] of the image's {dtype} pixel type"
+                )
+        else:
+            default_pixel_value = float(background_value)
 
         img_reg = itk.resample_image_filter(
             Input=img,

@@ -87,9 +87,10 @@ if __name__ == "__main__":
     baselines_dir = repo_root / "tests" / "baselines"
 
     # PCA model + mean surface produced by Tutorial 6 (lung).
-    tutorial_06_dir = tutorials_dir / "output" / "tutorial_06_lung"
-    pca_model_file = tutorial_06_dir / "pca_model.json"
-    pca_mean_file = tutorial_06_dir / "pca_mean_surface.vtp"
+    pca_model_file = LUNG_CT_DIRLAB.pca_json_file
+    pca_mean_file = LUNG_CT_DIRLAB.pca_mean_file
+    # Tutorial 6 caches one segmentation per case beside its model.
+    tutorial_06_dir = pca_model_file.parent
 
     # Distance-map weights finetuned on DIR-Lab by
     # tutorial_02_lung_distancemap_finetune_icon.py, used by the
@@ -186,6 +187,7 @@ if __name__ == "__main__":
             segmentation_result = segmentation_workflow.process(
                 input_image=reference_image,
                 anatomy_groups=["lung"],
+                surface_reduction_rate=LUNG_CT_DIRLAB.surface_reduction_rate,
                 extract_label_surfaces=True,
             )
             contour_tools.save_combined_surfaces(

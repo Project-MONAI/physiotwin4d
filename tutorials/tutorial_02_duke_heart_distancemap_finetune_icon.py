@@ -12,11 +12,11 @@ uniGradICON weights are out of distribution for those images.
 The heart needs its own run rather than reusing the lung weights.  A distance
 map's appearance is set by the radius it saturates at, and the heart is
 registered with a far tighter mask than the lungs
-(``ParametersHeartCTKCL.mask_dilation_mm`` versus
+(``ParametersDukeHeartLabelmaps.mask_dilation_mm`` versus
 ``ParametersLungCTDirLab.mask_dilation_mm``), so the two organs' distance maps
 do not share an intensity distribution.  Every value that fixes that
-distribution comes from ``parameters_heart_ct_kcl.py``, so this run trains on
-exactly what Tutorial 7 (heart) later infers on.
+distribution comes from ``parameters_duke_heart_labelmaps.py``, so this run
+trains on exactly what Tutorial 7 (Duke Heart) later infers on.
 
 Duke-Heart-4DLabelmaps ships segmented labelmaps, not CT, which is all this
 tutorial needs.  Each labelmap serves twice: with the chamber-interior labels
@@ -25,10 +25,12 @@ supplies uniGradICON's Dice loss.  Those labelmaps were produced by
 ``SegmentHeartSimplewareTrimmedBranches``, whose ventricle and atrium labels
 cover the cavities rather than the walls, so measuring distance to them would
 measure distance to the inside of the heart; the ids to drop come from
-``parameters_heart_ct_kcl.py`` alongside every other value this data needs.
+``parameters_duke_heart_labelmaps.py`` alongside every other value this data
+needs.
 
-The first patient is held out and two of its gated phases are registered three
-ways -- Greedy on the distance maps, stock ICON, and the finetuned ICON -- and
+``ParametersDukeHeartLabelmaps.hold_out_case`` is held out -- the same case
+Tutorials 6 and 7 keep out of the shape model -- and two of its gated phases are
+registered three ways -- Greedy on the distance maps, stock ICON, and the finetuned ICON -- and
 scored by target registration error over the anatomical landmarks Slicer markups
 files supply for every frame, plus per-class Dice.
 
@@ -52,7 +54,7 @@ from typing import Any, Optional
 
 import itk
 import numpy as np
-from parameters_heart_ct_kcl import HEART_CT_KCL
+from parameters_duke_heart_labelmaps import DUKE_HEART
 
 from physiotwin4d import (
     ContourTools,
@@ -90,22 +92,21 @@ if __name__ == "__main__":
     # Distance-map normalization, shared with every heart tutorial that later
     # registers these maps, so this run trains on the same image distribution
     # they infer on.
-    distance_squared_max = HEART_CT_KCL.distancemap_squared_max
+    distance_squared_max = DUKE_HEART.distancemap_squared_max
 
     # Set True to finetune from scratch.  That deletes experiment_dir below,
     # including any checkpoint a previous run left there.
     run_finetuning = True
 
     test_mode = TestTools.running_as_test()
+    data_dir = DUKE_HEART.hold_out_directory(test_mode)
     if test_mode:
-        data_dir = repo_root / "data" / "test" / "Duke-Heart-4DLabelmaps"
         number_of_iterations_icon: Optional[int] = 1
         epochs = 1
     else:
-        data_dir = repo_root / "data" / "Duke-Heart-4DLabelmaps"
         number_of_iterations_icon = 10
         epochs = 100
-    number_of_iterations_greedy = HEART_CT_KCL.greedy_iterations(test_mode)
+    number_of_iterations_greedy = DUKE_HEART.greedy_iterations(test_mode)
 
     log_level = logging.INFO
     reporter = PhysioTwin4DBase(class_name=class_name, log_level=log_level)
@@ -115,9 +116,9 @@ if __name__ == "__main__":
     contour_tools = ContourTools(log_level=log_level)
     transform_tools = TransformTools()
 
-    # This data was segmented with Simpleware ASCardio, so the chamber labels
-    # to drop are that labelmap's, not TotalSegmentator's.
-    interior_object_ids = HEART_CT_KCL.interior_object_ids_simpleware
+    # Labels left out of the surface a distance map is measured to; see the
+    # parameters module.
+    interior_object_ids = DUKE_HEART.interior_object_ids
 
     # Cohort discovery
     case_dirs = sorted(path for path in data_dir.glob("pm*") if path.is_dir())
@@ -146,7 +147,11 @@ if __name__ == "__main__":
         [-1000, 1000] window uniGradICON's CT preprocessing expects.
         """
         stem = labelmap_file.name[: -len("_labelmap.nii.gz")]
-        distance_map_file = derived_dir / f"{stem}_distance_map.mha"
+        # Frame stems repeat across cases, so the case directory name is part of
+        # the cache key; without it one case's map would be read for another's.
+        distance_map_file = (
+            derived_dir / f"{labelmap_file.parent.name}_{stem}_distance_map.mha"
+        )
         if distance_map_file.exists():
             return distance_map_file
 
@@ -177,9 +182,13 @@ if __name__ == "__main__":
         itk.imwrite(distance_map, str(distance_map_file), compression=True)
         return distance_map_file
 
-    # Held-out patient: the first case, excluded from finetuning entirely.
-    held_out_dir = case_dirs[0]
-    training_dirs = case_dirs[1:]
+    # Held-out patient, excluded from finetuning entirely: the case Tutorials 6
+    # and 7 also keep out, so one patient is unseen by everything downstream.
+    held_out_dir = next(
+        (path for path in case_dirs if path.name == DUKE_HEART.hold_out_case),
+        case_dirs[0],
+    )
+    training_dirs = [path for path in case_dirs if path != held_out_dir]
 
     held_out_frames = frames_for_case(held_out_dir)
     if len(held_out_frames) < 2:
@@ -209,6 +218,11 @@ if __name__ == "__main__":
             [str(distance_map_for(frame)) for frame in frames]
         )
         subject_labelmap_files.append([str(frame) for frame in frames])
+    if not subject_ids:
+        raise FileNotFoundError(
+            f"No training case under {data_dir} has the 2+ frames paired "
+            "finetuning needs; every case but the held-out one was skipped."
+        )
     reporter.log_info(
         "Finetuning cohort: %d cases, %d frames (held out %s)",
         len(subject_ids),
@@ -277,11 +291,20 @@ if __name__ == "__main__":
         """Read a frame's Slicer markups file as ``{label: LPS point}``.
 
         The markups files declare ``coordinateSystem: LPS``, the frame this
-        project works in, so the control points are used as written.
+        project works in, so the control points are used as written.  A file
+        written in Slicer's RAS default would flip X and Y, so the declaration
+        is checked rather than assumed.
         """
         landmark_file = companion(labelmap_file, "_landmark.mrk.json")
         with landmark_file.open(encoding="utf-8") as f:
             markups = json.load(f)["markups"]
+        for markup in markups:
+            coordinate_system = markup.get("coordinateSystem")
+            if coordinate_system != "LPS":
+                raise ValueError(
+                    f"{landmark_file.name} declares coordinateSystem "
+                    f"{coordinate_system!r}; this tutorial reads LPS markups."
+                )
         return {
             point["label"]: np.asarray(point["position"], dtype=np.float64)
             for markup in markups

@@ -98,7 +98,10 @@ class ConvertVTKToUSD(PhysioTwin4DBase):
             input_polydata: Sequence of PyVista/VTK meshes (one per time step, or
                 one per static object when static_merge is True)
             mask_ids: Optional mapping of label IDs to anatomical region names.
-                     If provided, meshes will be split by labeled regions.
+                     If provided, meshes are split by labeled region, one prim
+                     per region, and the static_merge layout is not used: with
+                     a single mesh that yields one static prim per structure,
+                     with several it yields one time-varying prim per structure.
             compute_normals: Whether to compute vertex normals
             convert_to_surface: If True, extract surface from volumetric meshes
             frames_per_second: Time codes per second (default 24.0).
@@ -153,6 +156,13 @@ class ConvertVTKToUSD(PhysioTwin4DBase):
         self.colormap: str = "plasma"
         self.intensity_range: Optional[tuple[float, float]] = None
 
+        if static_merge and mask_ids and len(self.input_polydata) > 1:
+            raise ValueError(
+                "static_merge with mask_ids is only defined for a single mesh: "
+                "several static objects each holding the same labels would "
+                "collide on one prim path per label. Merge them first, or drop "
+                "static_merge to treat them as frames."
+            )
         if not static_merge and time_codes is not None:
             if len(time_codes) != len(self.input_polydata):
                 raise ValueError(
@@ -649,12 +659,14 @@ class ConvertVTKToUSD(PhysioTwin4DBase):
         material_mgr = MaterialManager(stage)
         mesh_converter = UsdMeshConverter(stage, self.settings, material_mgr)
 
-        # Process meshes
-        if self._is_static_merge:
-            self._convert_static_merge(stage, root_path, material_mgr, mesh_converter)
-        elif self.mask_ids:
+        # Process meshes. Labels win over the static layout: a per-cell label
+        # array names the structures outright, which the static layout's one
+        # prim per input mesh cannot.
+        if self.mask_ids:
             # Split by anatomical regions
             self._convert_with_labels(stage, root_path, material_mgr, mesh_converter)
+        elif self._is_static_merge:
+            self._convert_static_merge(stage, root_path, material_mgr, mesh_converter)
         else:
             # Single mesh (or time series) conversion
             self._convert_unified(stage, root_path, material_mgr, mesh_converter)

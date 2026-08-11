@@ -17,7 +17,7 @@ Typical usage::
     ct = itk.imread("chest_ct.nii.gz")
     segmenter = SegmentChestTotalSegmentatorWithContrast()
     workflow = WorkflowConvertImageToVTK(segmentation_method=segmenter)
-    result = workflow.process(ct, surface_target_reduction=0.5)
+    result = workflow.process(ct, surface_reduction_rate=0.5)
 
     # Combined single-file output (default)
     ContourTools.save_combined_surfaces(result["surfaces"], "./out/patient.vtp")
@@ -222,7 +222,7 @@ class WorkflowConvertImageToVTK(PhysioTwin4DBase):
         self,
         input_image: Any,
         anatomy_groups: Optional[list[str]] = None,
-        surface_target_reduction: float = 0.0,
+        surface_reduction_rate: float = 0.0,
         extract_label_surfaces: bool = False,
     ) -> dict[str, Any]:
         """Segment the CT image and extract per-anatomy-group VTK surfaces.
@@ -233,8 +233,8 @@ class WorkflowConvertImageToVTK(PhysioTwin4DBase):
                 processes all non-empty groups.  Valid names are given by
                 :attr:`anatomy_groups`, derived from the active segmenter's
                 taxonomy.
-            surface_target_reduction: Fraction in ``[0, 1)`` of surface
-                triangles to remove via ``decimate_pro(surface_target_reduction,
+            surface_reduction_rate: Fraction in ``[0, 1)`` of surface
+                triangles to remove via ``decimate_pro(surface_reduction_rate,
                 preserve_topology=True)``.  ``0.0`` (default) skips decimation.
                 Applied to both group and (when requested) label surfaces.
             extract_label_surfaces: When ``True``, also extract one surface per
@@ -313,9 +313,9 @@ class WorkflowConvertImageToVTK(PhysioTwin4DBase):
                 continue
 
             export_surface = base_surface
-            if surface_target_reduction > 0.0:
+            if surface_reduction_rate > 0.0:
                 export_surface = export_surface.decimate_pro(
-                    surface_target_reduction, preserve_topology=True
+                    surface_reduction_rate, preserve_topology=True
                 )
             self._annotate(export_surface, group, label_names, label_ids, color)
             surfaces[group] = export_surface
@@ -328,9 +328,9 @@ class WorkflowConvertImageToVTK(PhysioTwin4DBase):
                     )
                     if label_surface is None:
                         continue
-                    if surface_target_reduction > 0.0:
+                    if surface_reduction_rate > 0.0:
                         label_surface = label_surface.decimate_pro(
-                            surface_target_reduction, preserve_topology=True
+                            surface_reduction_rate, preserve_topology=True
                         )
                     self._annotate(
                         label_surface, group, [label_name], [label_id], color

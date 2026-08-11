@@ -4,7 +4,8 @@ Tutorial 6 (Heart): Create a PCA Statistical Shape Model
 Purpose
 -------
 Build a PCA statistical shape model from a reference mesh and a small population
-of sample meshes. Tutorial 7 can reuse the saved ``pca_model.json``.
+of sample meshes, less ``ParametersHeartCTKCL.hold_out_case``, which Tutorial 7
+fits the model to. Tutorial 7 reuses the saved ``pca_model.json``.
 
 Data Required
 -------------
@@ -47,10 +48,7 @@ if __name__ == "__main__":
     baselines_dir = repo_root / "tests" / "baselines"
 
     test_mode = TestTools.running_as_test()
-    if test_mode:
-        data_dir = repo_root / "data" / "test" / "KCL-Heart-Model"
-    else:
-        data_dir = repo_root / "data" / "KCL-Heart-Model"
+    data_dir = HEART_CT_KCL.input_directory(test_mode)
     number_of_pca_components = HEART_CT_KCL.pca_components(test_mode)
 
     log_level = logging.INFO
@@ -73,6 +71,12 @@ if __name__ == "__main__":
         sample_files = [
             path for path in sample_files if path.name != reference_file.name
         ]
+    # Tutorial 7 fits this model to the held-out case, so the model must not
+    # have seen it.  The KCL meshes carry no DIR-Lab case, so this drops nothing
+    # today; adding one cannot slip it in.
+    sample_files = [
+        path for path in sample_files if HEART_CT_KCL.hold_out_case not in path.name
+    ]
     if len(sample_files) < 3:
         raise FileNotFoundError(
             f"Need at least 3 sample meshes under {sample_dir} or {data_dir}.\n"
@@ -98,11 +102,12 @@ if __name__ == "__main__":
     pca_model: dict[str, Any] = result["pca_model"]
     mean_surface: pv.PolyData = result["pca_mean_surface"]
 
-    model_file = output_dir / "pca_model.json"
+    model_file = HEART_CT_KCL.pca_json_file
+    model_file.parent.mkdir(parents=True, exist_ok=True)
     with model_file.open("w", encoding="utf-8") as f:
         json.dump(pca_model, f, indent=2)
 
-    mean_surface_file = output_dir / "pca_mean_surface.vtp"
+    mean_surface_file = HEART_CT_KCL.pca_mean_file
     mean_surface.save(str(mean_surface_file))
 
     # Testing

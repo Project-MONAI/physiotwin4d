@@ -80,6 +80,9 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
         patient_labelmap (itk.Image): Multi-label labelmap for patient model
         patient_mask (itk.Image): Binary mask for patient registration region
         mask_dilation_mm (float): Dilation for binary mask generation
+        distancemap_squared_max (Optional[float]): Saturation radius of the
+            labelmap-to-labelmap distance maps, in squared millimeters. None
+            means derive it from mask_dilation_mm as (1.25 * mask_dilation_mm)**2
         transform_tools (TransformTools): Transform utilities
         registrar_ICON (RegisterImagesICON): ICON registration instance
         registrar_Greedy (RegisterImagesGreedy): Greedy registration instance

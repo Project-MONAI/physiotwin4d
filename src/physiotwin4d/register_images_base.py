@@ -667,12 +667,19 @@ class RegisterImagesBase(PhysioTwin4DBase):
     def get_registered_image(self) -> itk.Image:
         """Get the registered image.
 
+        The moving image is an intensity image, so voxels of the fixed grid that
+        fall outside it are filled with :meth:`_prewarp_background_value` rather
+        than 0, which is a tissue intensity rather than an absence of tissue.
+
         Returns:
             itk.Image: The registered image
         """
         if self.moving_image_registered is None:
             TfmTools = TransformTools()
             self.moving_image_registered = TfmTools.transform_image(
-                self.moving_image, self.forward_transform, self.fixed_image
+                self.moving_image,
+                self.forward_transform,
+                self.fixed_image,
+                background_value=self._prewarp_background_value(self.moving_image),
             )
         return self.moving_image_registered

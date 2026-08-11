@@ -1,32 +1,37 @@
 """
-Tutorial 6 (Lung): Create a PCA Statistical Shape Model
+Tutorial 6 (Duke Heart): Create a PCA Statistical Shape Model
 
 Purpose
 -------
-Build a PCA statistical shape model of the lungs from the DIR-Lab population,
-less ``ParametersLungCTDirLab.hold_out_case``, which Tutorial 7 fits it to.
-Each case's T70 phase is segmented, an unbiased mean surface is built with
-``WorkflowCreateMeanSurface``, and the population is decomposed into shape
-modes. Tutorials 7 and 8 reuse the saved ``pca_model.json``.
+Build a PCA statistical shape model of the heart from the Duke-Heart-4DLabelmaps
+population, starting from the surfaces Tutorial 4 (Duke Heart) wrote.  Only each
+case's reference frame is read (``*_ref_*``), so the model spans patients rather
+than cardiac phases.  An unbiased mean surface is built with
+``WorkflowCreateMeanSurface``, and the population is decomposed into shape modes.
+``ParametersDukeHeartLabelmaps.hold_out_case`` is left out of the population, so
+that Tutorial 7 fitting the model to that case measures generalization rather
+than reconstruction.  Tutorial 7 reuses the saved ``pca_model.json``.
+
+The heart here is the whole heart minus its chamber cavities, the same structure
+Tutorial 2 measures its distance maps to.
 
 Data Required
 -------------
-Full data: ``data/DirLab-4DCT/Case*T70.mha``
-DirLab-4DCT is not auto-downloaded — see ``data/DirLab-4DCT/README.md``.
+``tutorials/output/tutorial_04_duke_heart_labelmap/pm????/
+*_ref_heart_minus_interior_chambers.vtp``
+(run ``tutorial_04_duke_heart_labelmap_to_vtk.py`` first)
 
-Outputs (under ``tutorials/output/tutorial_06_lung/``)
------------------------------------------------------
-- ``<case>_T70.vtp`` / ``<case>_T70_labelmap.nii.gz`` - per-case segmentations,
-  cached and reused by Tutorial 8
+Outputs (under ``tutorials/output/tutorial_06_duke_heart/``)
+-----------------------------------------------------------
 - ``reference_mean_surface.vtp`` - the unbiased atlas surface
 - ``pca_model.json`` and ``pca_mean_surface.vtp`` - the shape model
 - ``pca_mode_<k>_{minus,plus}_2sigma.vtp`` and ``pca_mode_<k>.png``
 
 Runtime
 -------
-One GPU segmentation per case, then ``mean_surface_iterations`` deformable
-registrations per case to build the atlas. This is the slowest of Tutorials
-1-7; every intermediate is cached on disk, so a re-run is cheap.
+An ICP and a deformable registration per case per atlas iteration, then one more
+of each per case for the model.  The atlas surface is cached on disk, so a
+re-run only redoes the model.
 """
 
 # Imports
@@ -35,47 +40,40 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
-import itk
 import numpy as np
 import pyvista as pv
-from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
+from parameters_duke_heart_labelmaps import DUKE_HEART
 
 from physiotwin4d import (
     ContourTools,
-    SegmentNVSegmentCTMRI,
     TestTools,
-    WorkflowConvertImageToVTK,
     WorkflowCreateMeanSurface,
     WorkflowCreateStatisticalModel,
 )
 
 # Only run if this script is not imported as a module
-
-# nnUNetv2 (used by TotalSegmentator inside several workflows) spawns a
-# multiprocessing.Pool. On Windows the spawn start method re-imports this
-# script in each child; without the __name__ == "__main__" guard around
-# top-level work, that re-import fires the segmenter again and Python's
-# spawn-cascade detector raises RuntimeError.
 if __name__ == "__main__":
     # Data directory specification
     repo_root = Path(__file__).resolve().parent.parent
     tutorials_dir = Path(__file__).resolve().parent
 
-    class_name = "tutorial_06_lung_create_statistical_model"
+    class_name = "tutorial_06_duke_heart_create_statistical_model"
 
-    output_dir = tutorials_dir / "output" / "tutorial_06_lung"
+    output_dir = tutorials_dir / "output" / "tutorial_06_duke_heart"
     baselines_dir = repo_root / "tests" / "baselines"
 
     test_mode = TestTools.running_as_test()
-    data_dir = LUNG_CT_DIRLAB.input_directory(test_mode)
-
-    number_of_pca_components = LUNG_CT_DIRLAB.pca_components(test_mode)
+    input_dir = DUKE_HEART.input_directory(test_mode)
+    number_of_pca_components = DUKE_HEART.pca_components(test_mode)
 
     # Atlas iterations used to build the reference surface; 1 is a single
     # template-biased pass.
-    mean_surface_iterations = 3
+    mean_surface_iterations = 1 if test_mode else 3
+
+    # Points kept per surface; see the parameters module.
+    model_points = DUKE_HEART.model_points
 
     log_level = logging.INFO
 
@@ -83,41 +81,32 @@ if __name__ == "__main__":
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Create lung surface files
-    segmentation_method = SegmentNVSegmentCTMRI(log_level=log_level)
-    workflow_method = WorkflowConvertImageToVTK(
-        segmentation_method=segmentation_method, log_level=log_level
-    )
-
     contour_tools = ContourTools(log_level=log_level)
 
-    # Tutorial 7 fits this model to the held-out study, so the model must not
-    # have seen it.  That study lives in another dataset, so this drops nothing
-    # today; moving it in here cannot slip it in.
-    sample_image_files = [
+    # One reference-frame surface per case, less the held-out one: Tutorial 7
+    # fits this model to that case, so the model must not have seen it.
+    sample_files = [
         path
-        for path in sorted(data_dir.glob("Case*T70.mha"))
-        if path.name != LUNG_CT_DIRLAB.hold_out_case
+        for path in sorted(input_dir.glob("*_ref_heart_minus_interior_chambers.vtp"))
+        if not path.name.startswith(DUKE_HEART.hold_out_case)
     ]
-    sample_surfaces = []
-    for sample_image_file in sample_image_files:
-        sample_surface_file = output_dir / f"{sample_image_file.stem}.vtp"
-        if not sample_surface_file.exists():
-            sample_image = itk.imread(str(sample_image_file))
-            result = workflow_method.process(
-                input_image=sample_image,
-                anatomy_groups=["lung"],
-                extract_label_surfaces=True,
-            )
-            surfaces = result["label_surfaces"]
-            contour_tools.save_combined_surfaces(surfaces, str(sample_surface_file))
+    if test_mode:
+        sample_files = sample_files[:3]
+    if len(sample_files) < 3:
+        raise FileNotFoundError(
+            f"Need at least 3 reference-frame heart surfaces under {input_dir}; "
+            f"found {len(sample_files)}.\n"
+            "Run tutorial_04_duke_heart_labelmap_to_vtk.py first."
+        )
 
-            sample_labelmap = result["labelmap"]
-            sample_labelmap_file = (
-                output_dir / f"{sample_image_file.stem}_labelmap.nii.gz"
+    sample_surfaces: list[pv.DataSet] = []
+    for sample_file in sample_files:
+        surface = cast(pv.PolyData, pv.read(str(sample_file)))
+        sample_surfaces.append(
+            contour_tools.remesh_and_smooth_surface(
+                surface, 1.0 - model_points / surface.n_points, 0
             )
-            itk.imwrite(sample_labelmap, str(sample_labelmap_file), compression=True)
-        sample_surfaces.append(pv.read(str(sample_surface_file)))
+        )
 
     # The reference surface defines the topology every PCA input is expressed
     # in, so picking one case makes the model inherit that case's shape. Use the
@@ -126,7 +115,9 @@ if __name__ == "__main__":
     reference_surface_file = output_dir / "reference_mean_surface.vtp"
     if not reference_surface_file.exists():
         mean_workflow = WorkflowCreateMeanSurface(
-            surfaces=sample_surfaces, log_level=log_level
+            surfaces=sample_surfaces,
+            template_surface=sample_surfaces[4],
+            log_level=log_level,
         )
         mean_workflow.set_number_of_iterations(mean_surface_iterations)
         mean_result = mean_workflow.process()
@@ -147,13 +138,13 @@ if __name__ == "__main__":
 
     # Result saving
     pca_model: dict[str, Any] = result["pca_model"]
-    model_file = LUNG_CT_DIRLAB.pca_json_file
+    model_file = DUKE_HEART.pca_json_file
     model_file.parent.mkdir(parents=True, exist_ok=True)
     with model_file.open("w", encoding="utf-8") as f:
         json.dump(pca_model, f, indent=2)
 
     mean_surface = result["pca_mean_surface"]
-    mean_surface_file = LUNG_CT_DIRLAB.pca_mean_file
+    mean_surface_file = DUKE_HEART.pca_mean_file
     mean_surface.save(str(mean_surface_file))
 
     # Testing

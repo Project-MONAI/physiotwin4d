@@ -34,10 +34,11 @@ docs/assets/*.mp4
 # Network weights
 network_weights
 
-# Track the MGN heart model weights (other network_weights stay ignored)
+# Track the MGN heart and lung model weights (other network_weights stay ignored)
 !tutorials/network_weights/
 tutorials/network_weights/*
 !tutorials/network_weights/physicsnemo_mgn_heart/
+!tutorials/network_weights/physicsnemo_mgn_lung_motion/
 
 # Data files
 *.gz

@@ -55,6 +55,7 @@ class WorkflowConvertImageToUSD(PhysioTwin4DBase):
         dynamic_labelmap_ids: Optional[list[int]] = None,
         mask_dilation_radius: int = 10,
         frames_per_second: float = 1.0,
+        surface_reduction_rate: float = 0.0,
         log_level: int | str = logging.INFO,
         save_assets: bool = True,
     ) -> None:
@@ -82,6 +83,9 @@ class WorkflowConvertImageToUSD(PhysioTwin4DBase):
                 the dynamic/static registration masks. Defaults to 10.
             frames_per_second: Frames per second for animated USD time series.
                 Defaults to 24.0, matching the underlying VTK-to-USD converter.
+            surface_reduction_rate: Fraction in ``[0, 1)`` of triangles to
+                remove from every extracted surface.  ``0.0`` (default) skips
+                decimation.
             log_level: Logging level (default: logging.INFO)
             save_assets: Write registered images, transforms, and labelmaps
                 output_directory when True
@@ -99,6 +103,7 @@ class WorkflowConvertImageToUSD(PhysioTwin4DBase):
         self.dynamic_labelmap_ids = dynamic_labelmap_ids if dynamic_labelmap_ids else []
         self.output_directory = output_directory
         self.frames_per_second = frames_per_second
+        self.surface_reduction_rate = surface_reduction_rate
         self.save_assets = save_assets
 
         self.registration_results: list[
@@ -355,7 +360,9 @@ class WorkflowConvertImageToUSD(PhysioTwin4DBase):
         labelmap = self.reference_segmentation_results["labelmap"]
 
         # Generate all anatomy contours
-        all_contours = self.contour_tools.extract_contours(labelmap)
+        all_contours = self.contour_tools.extract_contours(
+            labelmap, surface_reduction_rate=self.surface_reduction_rate
+        )
         self.reference_contours = {
             "all": all_contours,
         }
@@ -369,7 +376,9 @@ class WorkflowConvertImageToUSD(PhysioTwin4DBase):
             )
             dynamic_labelmap = itk.GetImageFromArray(dynamic_labelmap_arr)
             dynamic_labelmap.CopyInformation(labelmap)
-            dynamic_contours = self.contour_tools.extract_contours(dynamic_labelmap)
+            dynamic_contours = self.contour_tools.extract_contours(
+                dynamic_labelmap, surface_reduction_rate=self.surface_reduction_rate
+            )
 
             static_labelmap_arr = itk.GetArrayFromImage(labelmap)
             static_labelmap_arr = np.where(
@@ -379,7 +388,9 @@ class WorkflowConvertImageToUSD(PhysioTwin4DBase):
             )
             static_labelmap = itk.GetImageFromArray(static_labelmap_arr)
             static_labelmap.CopyInformation(labelmap)
-            static_contours = self.contour_tools.extract_contours(static_labelmap)
+            static_contours = self.contour_tools.extract_contours(
+                static_labelmap, surface_reduction_rate=self.surface_reduction_rate
+            )
 
             # Store reference contours
             self.reference_contours["dynamic"] = dynamic_contours

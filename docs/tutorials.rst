@@ -132,13 +132,15 @@ pipeline on top.
 
 1. **Tutorial 1** — after downloading Slicer-Heart-CT.
 2. **Tutorial 2** — after obtaining DIR-Lab. It writes the finetuned ICON
-   weights that Tutorials 3 (lung) and 8 use.
-3. **Tutorial 3** — after Tutorial 2, whose weights it registers with.
+   weights Tutorial 8 uses when present; optional if stock weights are
+   acceptable.
+3. **Tutorial 3** — after obtaining its dataset; it registers with Greedy and
+   needs no finetuned weights.
 4. **Tutorial 4** — after downloading Slicer-Heart-CT.
 5. **Tutorial 5** — after Tutorial 4, whose surfaces it converts.
 6. **Tutorial 6** — heart needs KCL-Heart-Model, lung needs DIR-Lab.
 7. **Tutorial 7** — after Tutorial 6; the lung variant also needs Chest-CT.
-8. **Tutorial 8** — after Tutorials 2 and 6 (lung).
+8. **Tutorial 8** — after Tutorial 6 (lung); Tutorial 2 optional.
 9. **Tutorial 9** — after Tutorial 8, whose fitted meshes it trains on.
 10. **Tutorial 10** — after Tutorial 9, whose checkpoint it loads.
 
@@ -415,7 +417,7 @@ Inner API usage
       )
       result = workflow.process(
           input_image=ct_image,
-          surface_target_reduction=0.5,
+          surface_reduction_rate=HEART_CT_KCL.surface_reduction_rate,
           extract_label_surfaces=save_label_surfaces,
       )
 
@@ -435,7 +437,8 @@ Adapt to your data
    Change the input volume path, then choose the segmenter matching your scan:
    contrast versus non-contrast CT, or
    :class:`~physiotwin4d.SegmentNVSegmentCTMRI` for CT **and** MRI. Raise
-   ``surface_target_reduction`` toward ``1.0`` for lighter meshes. Every
+   ``surface_reduction_rate`` in the tutorial's parameter module toward ``1.0``
+   for lighter meshes. Every
    segmenter declares its own labels through
    :class:`~physiotwin4d.AnatomyTaxonomy`, so downstream grouping and USD
    materials follow automatically — see :doc:`api/segmentation/index`.
@@ -764,10 +767,11 @@ Run
       python tutorials/tutorial_09_lung_train_physicsnemo_mgn.py
 
 Outputs
-   ``mgn_stage_model.pt``, its metadata and loss/RMSE logs, the per-case
-   manifests, and the held-out evaluation under ``eval_mgn/`` — in the
-   directory training used: ``tutorials/output/tutorial_09_lung_mgn/``
-   normally, or a fresh sibling when resuming.
+   ``mgn_stage_model.pt``, its metadata and loss/RMSE logs, in the shared
+   weights directory Tutorial 10 reads
+   (``tutorials/network_weights/physicsnemo_mgn_lung_motion/``, a fresh sibling
+   of it when resuming). The per-case manifests and the held-out evaluation
+   under ``eval_mgn/`` stay in ``tutorials/output/tutorial_09_lung_mgn/``.
 
 Adapt to your data
    The contract is the manifest, not the tutorial. Each JSON names a reference
@@ -827,7 +831,7 @@ Run
 Outputs
    The predicted surface, its error statistics against the ground-truth phase
    in millimetres, and a USD scene, under
-   ``tutorials/output/tutorial_09_lung_mgn/tutorial_10_lung_mgn/<case>/``.
+   ``tutorials/output/tutorial_10_lung_mgn/<case>/``.
 
 Adapt to your data
    Change ``case_id`` and ``stage_fraction`` to predict a different subject, or

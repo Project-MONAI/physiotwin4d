@@ -85,6 +85,7 @@ dependencies = [
     "pyvista[all]>=0.47.0",
     "usd-core>=23.11",
     "trimesh>=4.0.0",
+    "pyacvd>=0.4.0",
 
     # Utilities
     "ipykernel>=6.0.0",
@@ -289,6 +290,8 @@ module = [
     "physicsnemo.*",
     "pxr",
     "pxr.*",
+    "pyacvd",
+    "pyacvd.*",
     "pyvista",
     "pyvista.*",
     "simpleware",
@@ -325,6 +328,7 @@ module = [
     # pre-commit mypy environment and ships no py.typed marker when installed.
     # mypy per-module patterns match whole components only, so each tutorial is
     # listed by name; add a line here when adding or renaming a tutorial.
+    "parameters_duke_heart_labelmaps",
     "parameters_heart_ct_kcl",
     "parameters_lung_ct_dirlab",
     "tutorial_01_heart_gated_ct_to_usd",
@@ -334,11 +338,15 @@ module = [
     "tutorial_02_lung_finetune_icon",
     "tutorial_03_heart_reconstruct_highres_4d_ct",
     "tutorial_03_lung_reconstruct_highres_4d_ct",
+    "tutorial_04_duke_heart_labelmap_to_vtk",
     "tutorial_04_heart_ct_to_vtk",
     "tutorial_04_lung_ct_to_vtk",
+    "tutorial_05_duke_heart_vtk_to_usd",
     "tutorial_05_heart_vtk_to_usd",
+    "tutorial_06_duke_heart_create_statistical_model",
     "tutorial_06_heart_create_statistical_model",
     "tutorial_06_lung_create_statistical_model",
+    "tutorial_07_duke_heart_fit_statistical_model_to_patient",
     "tutorial_07_heart_fit_statistical_model_to_patient",
     "tutorial_07_lung_fit_statistical_model_to_patient",
     "tutorial_08_lung_fit_model_to_4d_patients",

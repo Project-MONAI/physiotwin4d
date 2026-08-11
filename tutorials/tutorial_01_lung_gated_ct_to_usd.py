@@ -69,6 +69,7 @@ import logging
 from pathlib import Path
 
 import itk
+from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
 
 from physiotwin4d import (
     RegisterImagesGreedy,
@@ -140,6 +141,7 @@ if __name__ == "__main__":
         usd_project_name="lung_model",
         registration_method=registration_method,
         segmentation_method=segmentation_method,
+        surface_reduction_rate=LUNG_CT_DIRLAB.surface_reduction_rate,
         log_level=log_level,
         frames_per_second=1,
         save_assets=True,

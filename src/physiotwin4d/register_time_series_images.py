@@ -385,9 +385,14 @@ class RegisterTimeSeriesImages(RegisterImagesBase):
                 # Use fixed image as reference
                 reference_image = moving_image
 
-            # Transform the moving image to the reference space
+            # Transform the moving image to the reference space.  The fixed
+            # image is an intensity image, so voxels sampled outside it take the
+            # modality's "no tissue" value, not 0.
             reconstructed = self.transform_tools.transform_image(
-                self.fixed_image, inverse_transform, reference_image
+                self.fixed_image,
+                inverse_transform,
+                reference_image,
+                background_value=self._prewarp_background_value(self.fixed_image),
             )
             reconstructed_images.append(reconstructed)
 
