@@ -26,7 +26,7 @@ one topology and does interpolate.
 
 Data Required
 -------------
-``tutorials/output/tutorial_04_duke_heart_labelmap/pm????/*_surfaces.vtp``
+``tutorials/output/tutorial_04_duke_heart_labelmap/pm????_*_surfaces.vtp``
 (run ``tutorial_04_duke_heart_labelmap_to_vtk.py`` first)
 """
 
@@ -66,13 +66,15 @@ if __name__ == "__main__":
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    case_dirs = [input_dir / "pm0004"]
-    # sorted(
-    # path for path in input_dir.glob("pm[0-9][0-9][0-9][0-9]") if path.is_dir()
-    # )
-    if not case_dirs:
+    # Tutorial 4 writes every case's frames into one directory, and every frame
+    # stem starts with its case id, so the cases are the distinct prefixes.
+    # Sorting by name puts each case's frames in gating order.
+    frame_files: dict[str, list[Path]] = {}
+    for vtp_file in sorted(input_dir.glob("pm[0-9][0-9][0-9][0-9]_*_surfaces.vtp")):
+        frame_files.setdefault(vtp_file.name.split("_")[0], []).append(vtp_file)
+    if not frame_files:
         raise FileNotFoundError(
-            f"No pm???? case directories found under {input_dir}.\n"
+            f"No pm????_*_surfaces.vtp frame surfaces found under {input_dir}.\n"
             "Run tutorial_04_duke_heart_labelmap_to_vtk.py first."
         )
 
@@ -81,16 +83,11 @@ if __name__ == "__main__":
     last_time_codes: list[float] = []
     all_structures: set[str] = set()
     label_names = segmenter.taxonomy.all_labels()
-    for case_dir in case_dirs:
-        # One file per frame, already holding every structure; sorting by name
-        # puts the frames in gating order.
+    for case_id, case_files in frame_files.items():
+        # One file per frame, already holding every structure.
         frame_meshes = [
-            cast(pv.PolyData, pv.read(str(vtp_file)))
-            for vtp_file in sorted(case_dir.glob("*_surfaces.vtp"))
+            cast(pv.PolyData, pv.read(str(vtp_file))) for vtp_file in case_files
         ]
-        if not frame_meshes:
-            reporter.log_warning("%s: no per-frame surface files", case_dir.name)
-            continue
 
         # The merged files carry label ids but not names, which come from the
         # taxonomy of the segmenter that produced the labelmaps.
@@ -101,13 +98,13 @@ if __name__ == "__main__":
         }
         all_structures.update(mask_ids.values())
         reporter.log_section(
-            f"{case_dir.name}: {len(frame_meshes)} frames, {len(mask_ids)} structures"
+            f"{case_id}: {len(frame_meshes)} frames, {len(mask_ids)} structures"
         )
 
         # One frame per time code and one cardiac cycle per second of playback.
         workflow = WorkflowConvertVTKToUSD(
             input_meshes=frame_meshes,
-            usd_project_name=case_dir.name,
+            usd_project_name=case_id,
             output_directory=output_dir,
             separate_by_connectivity=False,
             appearance="anatomy",

@@ -231,6 +231,9 @@ if __name__ == "__main__":
     surface_count = 0
     whole_heart_surface: Optional[pv.PolyData] = None
 
+    # Every case writes into this one directory: the frame stems already start
+    # with their case id, so the names stay unique and the readers downstream
+    # group on that prefix rather than on a directory.
     case_output_dir = output_dir
     case_output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -263,11 +266,20 @@ if __name__ == "__main__":
             whole_heart_mask = mask_from(
                 labelmap_image, np.isin(labels, whole_heart_ids)
             )
-            whole_heart = contour_tools.extract_label_surfaces(
+            # The mask carries one label, so its surface is the only entry; an
+            # empty mapping means the frame held no heart to contour.
+            whole_heart_surfaces = contour_tools.extract_label_surfaces(
                 whole_heart_mask,
                 isotropic_spacing_mm=surface_spacing_mm,
                 smoothing_iterations=smoothing_iterations,
-            )[1]
+            )
+            if 1 not in whole_heart_surfaces:
+                reporter.log_warning(
+                    "%s: no whole-heart surface; skipping the frame",
+                    labelmap_file.name,
+                )
+                continue
+            whole_heart = whole_heart_surfaces[1]
             contour_tools.apply_anatomy_color(whole_heart, [whole_heart_name, "heart"])
             annotate(whole_heart, whole_heart_ids, whole_heart_name, labelmap_file.name)
             surface_count += 1

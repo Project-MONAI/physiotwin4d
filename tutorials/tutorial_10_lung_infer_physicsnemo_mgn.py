@@ -85,7 +85,7 @@ if __name__ == "__main__":
     # sibling of this directory, which is what would be evaluated instead.
     model_dir = LUNG_CT_DIRLAB.mgn_weights_dir
     # Intermittent-checkpoint epoch to load; None uses the final weights.
-    epoch: Optional[int] = None
+    epoch: Optional[int] = 200
 
     # Case to predict: the case Tutorial 9 held out of training.
     case_id = LUNG_CT_DIRLAB.mgn_hold_out_case
@@ -103,7 +103,10 @@ if __name__ == "__main__":
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    checkpoint_file = model_dir / "mgn_stage_model.pt"
+    if epoch is not None:
+        checkpoint_file = model_dir / f"mgn_stage_model_epoch_{epoch:05d}.pt"
+    else:
+        checkpoint_file = model_dir / "mgn_stage_model.pt"
     if not checkpoint_file.exists():
         raise FileNotFoundError(
             f"Tutorial 9 checkpoint not found: {checkpoint_file}\n"

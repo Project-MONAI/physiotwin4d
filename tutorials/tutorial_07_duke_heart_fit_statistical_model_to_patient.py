@@ -36,7 +36,7 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 import itk
 import numpy as np
@@ -111,10 +111,15 @@ if __name__ == "__main__":
         )
     pca_mean = cast(pv.DataSet, pv.read(str(pca_mean_file)))
 
-    pca_model: Optional[dict[str, Any]] = None
-    if pca_json.exists():
-        with pca_json.open(encoding="utf-8") as f:
-            pca_model = json.load(f)
+    # The fit is a PCA fit: without the model there is nothing to fit, and the
+    # workflow's PCA outputs read below would never be set.
+    if not pca_json.exists():
+        raise FileNotFoundError(
+            f"Tutorial 6 PCA model not found: {pca_json}\n"
+            "Run tutorials/tutorial_06_duke_heart_create_statistical_model.py first."
+        )
+    with pca_json.open(encoding="utf-8") as f:
+        pca_model: dict[str, Any] = json.load(f)
 
     patient_labelmap_files = sorted(
         (data_dir / patient_case).glob("*_ref_labelmap.nii.gz")
@@ -162,13 +167,12 @@ if __name__ == "__main__":
     )
     workflow.set_mask_dilation_mm(DUKE_HEART.mask_dilation_mm)
     workflow.set_distancemap_squared_max(DUKE_HEART.distancemap_squared_max)
-    if pca_model is not None:
-        workflow.set_use_pca_registration(
-            use_pca_registration=True,
-            pca_model=pca_model,
-            number_of_pca_components=number_of_pca_components,
-            use_surface=False,
-        )
+    workflow.set_use_pca_registration(
+        use_pca_registration=True,
+        pca_model=pca_model,
+        number_of_pca_components=number_of_pca_components,
+        use_surface=False,
+    )
 
     # The labelmap-to-labelmap stage registers distance maps, not intensities,
     # so it uses the distance-map-finetuned weights when they exist; without

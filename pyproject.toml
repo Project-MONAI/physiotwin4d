@@ -349,8 +349,11 @@ module = [
     "tutorial_07_duke_heart_fit_statistical_model_to_patient",
     "tutorial_07_heart_fit_statistical_model_to_patient",
     "tutorial_07_lung_fit_statistical_model_to_patient",
+    "tutorial_08_duke_heart_fit_model_to_4d_patients",
     "tutorial_08_lung_fit_model_to_4d_patients",
+    "tutorial_09_duke_heart_train_physicsnemo_mgn",
     "tutorial_09_lung_train_physicsnemo_mgn",
+    "tutorial_10_duke_heart_infer_physicsnemo",
     "tutorial_10_lung_infer_physicsnemo_mgn",
 ]
 disable_error_code = ["import-not-found", "import-untyped"]

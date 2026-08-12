@@ -87,7 +87,12 @@ class WorkflowInferPhysicsNeMo(PhysioTwin4DBase):
 
         self.model_directory = Path(model_directory)
         tag = self.inference_method.model_tag
-        checkpoint_file = self.model_directory / f"{tag}_stage_model.pt"
+        if epoch is not None:
+            checkpoint_file = (
+                self.model_directory / f"{tag}_stage_model_epoch_{epoch:05d}.pt"
+            )
+        else:
+            checkpoint_file = self.model_directory / f"{tag}_stage_model.pt"
         if not checkpoint_file.exists():
             raise FileNotFoundError(f"Model checkpoint not found: {checkpoint_file}")
 

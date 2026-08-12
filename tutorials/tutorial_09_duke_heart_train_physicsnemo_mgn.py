@@ -67,8 +67,15 @@ sibling when resuming (see ``resume_from``), which is what ``tutorial_results``
 reports as ``model_directory``:
 
   * ``mgn_stage_model.pt``  - trained MeshGraphNet checkpoint
-  * ``pca_mean_surface.vtp``, ``pca_model.json`` - PCA assets copied beside it,
-    so the directory is self-contained for inference
+  * ``mgn_stage_model_epoch_#####.pt`` - intermittent checkpoints
+  * ``pca_mean_surface.vtp``, ``pca_mean_template.vtp``, ``pca_model.json``,
+    ``shared_edge_index.pt``, ``shared_edge_features.pt`` and the metadata JSON
+    - everything inference needs beside the weights
+
+Everything but the checkpoints is written before the first epoch, so
+``tutorial_10_duke_heart_infer_physicsnemo.py`` can be pointed at this
+directory with its ``epoch`` set to an intermittent checkpoint while training
+is still running.
 """
 
 # Imports

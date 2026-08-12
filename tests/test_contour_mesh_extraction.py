@@ -263,6 +263,10 @@ class TestExtractWatertightSurface:
         )
         assert surface.volume > 0.0, "enclosed volume must be positive"
 
+    def test_empty_surface_is_not_watertight(self, contour_tools: ContourTools) -> None:
+        """A surface with no face fails the test rather than passing it vacuously."""
+        assert not contour_tools.is_watertight(pv.PolyData())
+
     def test_decimation_reduces_triangle_count(
         self, contour_tools: ContourTools, heart_labelmap: itk.Image
     ) -> None:
@@ -318,6 +322,12 @@ class TestExtractTetrahedra:
         coarse_volume = float(np.sum(coarse.compute_cell_sizes(volume=True)["Volume"]))
         assert coarse_volume == pytest.approx(full_volume, rel=0.1)
         assert coarse.n_cells == pytest.approx(full.n_cells * 0.125, rel=0.3)
+
+    def test_empty_mask_yields_an_empty_mesh(self, contour_tools: ContourTools) -> None:
+        """A mask with nothing in it has no bounding box to mesh."""
+        empty = itk.GetImageFromArray(np.zeros((4, 4, 4), dtype=np.uint8))
+
+        assert contour_tools.extract_tetrahedra(empty).n_cells == 0
 
     def test_elements_are_isotropic(self, contour_tools: ContourTools) -> None:
         """The requested element size is what the mesh is built on.

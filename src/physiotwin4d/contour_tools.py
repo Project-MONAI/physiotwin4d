@@ -298,8 +298,10 @@ class ContourTools(PhysioTwin4DBase):
             smoothing_iterations: Taubin smoothing iterations (0 disables).
 
         Returns:
-            Label id → that label's closed, outward-oriented surface.  Empty if
-            the labelmap holds no non-zero label.
+            Label id → that label's closed, outward-oriented surface.  A label
+            too small to survive the isotropic grid is left out, so the mapping
+            is empty when the labelmap holds no non-zero label and may be
+            missing labels that it does hold.
         """
         labels = itk.GetArrayViewFromImage(labelmap_image)
         label_ids = [int(value) for value in np.unique(labels) if value != 0]
@@ -369,6 +371,16 @@ class ContourTools(PhysioTwin4DBase):
         for label_id in label_ids:
             cell_ids: list[int] = np.flatnonzero(merged_ids == label_id).tolist()
             surface = self.extract_surface(merged.extract_cells(cell_ids)).triangulate()
+            if surface.n_cells == 0:
+                # A label smaller than the isotropic grid loses its vote to its
+                # neighbors, so no voxel is assigned to it and its field never
+                # crosses zero.  It has no surface to return.
+                self.log_warning(
+                    "Label %d is too small for a %.3g mm grid; it has no surface",
+                    label_id,
+                    iso,
+                )
+                continue
             # The bookkeeping arrays of the merge and the split; the label is
             # the key of the returned mapping, so it is not data on the mesh.
             for array_name in ("LabelId", "vtkOriginalCellIds", "vtkOriginalPointIds"):
@@ -490,8 +502,14 @@ class ContourTools(PhysioTwin4DBase):
 
     @staticmethod
     def is_watertight(surface: pv.PolyData) -> bool:
-        """Report whether every edge of *surface* is shared by exactly two faces."""
+        """Report whether every edge of *surface* is shared by exactly two faces.
+
+        A surface with no faces has no edge that fails the test, so it is
+        reported as not watertight rather than vacuously watertight.
+        """
         faces = surface.triangulate().faces.reshape(-1, 4)[:, 1:]
+        if len(faces) == 0:
+            return False
         edges = np.sort(
             np.vstack([faces[:, [0, 1]], faces[:, [1, 2]], faces[:, [2, 0]]]), axis=1
         )
@@ -524,10 +542,13 @@ class ContourTools(PhysioTwin4DBase):
                 specific first.  ``None`` leaves the mesh uncolored.
 
         Returns:
-            The structure's tetrahedral mesh, empty if *element_size_mm* is too
-            coarse to keep any of the mask.
+            The structure's tetrahedral mesh, empty if the mask is empty or
+            *element_size_mm* is too coarse to keep any of it.
         """
         mask_arr = itk.GetArrayViewFromImage(mask_image) != 0
+        if not mask_arr.any():
+            self.log_warning("Mask holds no voxel to mesh; its mesh is empty")
+            return pv.UnstructuredGrid()
         # mask_arr axes are reversed relative to the ITK image, so the per-axis
         # extents come back as (z, y, x) and are flipped to (x, y, z).
         starts, stops = [], []

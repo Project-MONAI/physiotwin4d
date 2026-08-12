@@ -11,7 +11,9 @@ Tutorials
      <p class="pt4d-kicker">PhysioTwin4D tutorials</p>
      <h1>From a CT scan to an animated digital twin</h1>
      <p>
-       Ten numbered stages across 17 runnable Python scripts.
+       Ten numbered stages across 24 Python scripts, 16 of them runnable today:
+       the eight <code>duke_heart</code> variants wait on a dataset that is not
+       public yet.
        Each one drives the real workflow classes end-to-end on downloadable
        data, shows what it produced, and ends with the handful of constants
        to change so it runs on your own scans.
@@ -230,10 +232,10 @@ Script
    it registers with a much tighter mask than the lungs, so its distance maps
    saturate over a shorter radius and do not share an intensity distribution
    with lung ones. The per-organ values live in
-   ``tutorials/parameters_lung_ct_dirlab.py`` and
-   ``tutorials/parameters_heart_ct_kcl.py``. This is a ``duke_heart`` tutorial:
-   Duke-Heart-4DLabelmaps is not publicly available yet, so it cannot be run —
-   see ``data/Duke-Heart-4DLabelmaps/README.md``.
+   ``tutorials/parameters_lung_ct_dirlab.py`` for the lung variant and
+   ``tutorials/parameters_duke_heart_labelmaps.py`` for this one. This is a
+   ``duke_heart`` tutorial: Duke-Heart-4DLabelmaps is not publicly available
+   yet, so it cannot be run — see ``data/Duke-Heart-4DLabelmaps/README.md``.
 
 Workflow
    :class:`~physiotwin4d.WorkflowFinetuneICONRegistration`, then

@@ -189,6 +189,11 @@ class WorkflowTrainPhysicsNeMo(PhysioTwin4DBase):
             stats["target_scale"],
         )
 
+        # Everything inference needs except the weights, written before the
+        # first epoch so a run in progress can be evaluated from one of its
+        # intermittent checkpoints.
+        self._save_shared_assets(subjects, stats, output_dir, epochs)
+
         model, losses, rmse_log = self.training_method.train(
             train_dataset,
             val_dataset,
@@ -200,7 +205,7 @@ class WorkflowTrainPhysicsNeMo(PhysioTwin4DBase):
             self._template_coords,
             resume_from=self.resume_from,
         )
-        self._save_model(model, subjects, stats, losses, rmse_log, output_dir, epochs)
+        self._save_model(model, subjects, stats, losses, rmse_log, output_dir)
 
         self.log_section("PHYSICSNEMO %s TRAINING COMPLETE", model_tag.upper())
         return {
@@ -400,34 +405,26 @@ class WorkflowTrainPhysicsNeMo(PhysioTwin4DBase):
         )
         return train_dataset, val_dataset
 
-    def _save_model(
+    def _save_shared_assets(
         self,
-        model: Any,
         subjects: dict[str, dict],
         stats: dict,
-        losses: list[float],
-        rmse_log: list[dict],
         output_dir: Path,
         epochs: int,
     ) -> None:
-        """Persist the checkpoint, metadata, logs and shared PCA assets."""
-        import torch
+        """Write the metadata and PCA assets inference needs beside the weights.
 
+        None of this depends on the trained weights, so it is written before
+        training starts:
+        :class:`physiotwin4d.WorkflowInferPhysicsNeMo` reads the template mesh
+        and — through the inference method — the shared graph tensors from the
+        model directory, and cannot load an intermittent epoch checkpoint until
+        they are there.  The training method writes its own artifacts once its
+        inputs are set up, at the top of its training loop.
+        """
         method = self.training_method
         in_features = 3 + int(stats["pca_mean"].shape[0]) + 1
-        tag = method.model_tag
-        checkpoint_file = output_dir / f"{tag}_stage_model.pt"
-        metadata_file = output_dir / f"{tag}_stage_model_metadata.json"
-
-        train_ids = sorted(s for s, d in subjects.items() if d["split"] == "train")
-        val_ids = sorted(s for s, d in subjects.items() if d["split"] == "val")
-
-        checkpoint = method.build_checkpoint(model, stats)
-        checkpoint["target_array"] = next(iter(subjects.values()))["target_array"]
-        checkpoint["train_subject_ids"] = train_ids
-        checkpoint["val_subject_ids"] = val_ids
-        checkpoint["resumed_from"] = str(self.resume_from) if self.resume_from else None
-        torch.save(checkpoint, checkpoint_file)
+        metadata_file = output_dir / f"{method.model_tag}_stage_model_metadata.json"
 
         n_pca = int(stats["pca_mean"].shape[0])
         n_target = int(stats["n_target"])
@@ -458,6 +455,40 @@ class WorkflowTrainPhysicsNeMo(PhysioTwin4DBase):
         metadata.update(method.checkpoint_fields())
         metadata_file.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
 
+        # Copy PCA assets so the model directory is self-contained for inference.
+        shutil.copy2(self.pca_mean_mesh, output_dir / self.pca_mean_mesh.name)
+        suffix = ".vtp" if isinstance(self._template_mesh, pv.PolyData) else ".vtu"
+        self._template_mesh.save(str(output_dir / f"pca_mean_template{suffix}"))
+        if self._pca_model_path is not None:
+            shutil.copy2(self._pca_model_path, output_dir / "pca_model.json")
+
+        self.metadata_file = metadata_file
+
+    def _save_model(
+        self,
+        model: Any,
+        subjects: dict[str, dict],
+        stats: dict,
+        losses: list[float],
+        rmse_log: list[dict],
+        output_dir: Path,
+    ) -> None:
+        """Persist the final checkpoint and the training logs."""
+        import torch
+
+        tag = self.training_method.model_tag
+        checkpoint_file = output_dir / f"{tag}_stage_model.pt"
+
+        train_ids = sorted(s for s, d in subjects.items() if d["split"] == "train")
+        val_ids = sorted(s for s, d in subjects.items() if d["split"] == "val")
+
+        checkpoint = self.training_method.build_checkpoint(model, stats)
+        checkpoint["target_array"] = next(iter(subjects.values()))["target_array"]
+        checkpoint["train_subject_ids"] = train_ids
+        checkpoint["val_subject_ids"] = val_ids
+        checkpoint["resumed_from"] = str(self.resume_from) if self.resume_from else None
+        torch.save(checkpoint, checkpoint_file)
+
         (output_dir / "training_losses.json").write_text(
             json.dumps(losses, indent=2), encoding="utf-8"
         )
@@ -471,17 +502,7 @@ class WorkflowTrainPhysicsNeMo(PhysioTwin4DBase):
             writer.writeheader()
             writer.writerows(rmse_log)
 
-        # Copy PCA assets so the model directory is self-contained for inference.
-        shutil.copy2(self.pca_mean_mesh, output_dir / self.pca_mean_mesh.name)
-        suffix = ".vtp" if isinstance(self._template_mesh, pv.PolyData) else ".vtu"
-        self._template_mesh.save(str(output_dir / f"pca_mean_template{suffix}"))
-        if self._pca_model_path is not None:
-            shutil.copy2(self._pca_model_path, output_dir / "pca_model.json")
-
-        method.save_artifacts(output_dir)
-
         self.checkpoint_file = checkpoint_file
-        self.metadata_file = metadata_file
         self.training_loss = losses
         self.val_rmse_log = rmse_log
         self.log_info("Model saved to %s", checkpoint_file)

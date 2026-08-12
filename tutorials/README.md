@@ -100,8 +100,8 @@ variants for the anatomy you care about: every tutorial consumes the output of
 its own anatomy's earlier tutorials, never the other's.
 
 1. **Tutorial 1** converts one gated 4D CT into an animated USD - the heart variant uses Slicer-Heart-CT, the lung variant DirLab-4DCT. Prepare the dataset for your anatomy per `data/README.md`, then start here.
-2. **Tutorial 2** requires DirLab-4DCT (download it per `data/README.md`) and finetunes the ICON weights Tutorials 3 (lung) and 8 use when they are present — both fall back to the stock uniGradICON weights otherwise.
-3. **Tutorial 3** registers with those weights; the heart variant uses Slicer-Heart-CT, the lung variant DirLab-4DCT.
+2. **Tutorial 2** requires DirLab-4DCT (download it per `data/README.md`) and finetunes the ICON weights Tutorial 8 uses when they are present — it falls back to the stock uniGradICON weights otherwise.
+3. **Tutorial 3** registers with Greedy and needs no finetuned weights; the heart variant uses Slicer-Heart-CT, the lung variant DirLab-4DCT.
 4. **Tutorial 4** segments a CT into VTK surfaces; the heart variant uses Slicer-Heart-CT, the lung variant DirLab-4DCT.
 5. **Tutorial 5** (heart only) uses the VTK surfaces produced by Tutorial 4 (heart) - run Tutorial 4 first.
 6. **Tutorial 6** creates the PCA statistical model; the heart variant from KCL-Heart-Model, the lung variant from the DirLab-4DCT `Case*T70.mha` phases, which it segments itself. Both write `pca_model.json` and `pca_mean_surface.vtp` under their own output directory.
@@ -113,6 +113,12 @@ Tutorial 6 lung model, in order:
 8. **Tutorial 8** fits the lung PCA model to each case's reference phase and propagates the fitted SSM surface through every respiratory phase (output feeds Tutorial 9). It uses the Tutorial 2 ICON weights when they exist.
 9. **Tutorial 9** trains a PhysicsNeMo MeshGraphNet to predict the per-vertex motion at any stage. PhysicsNeMo is an optional extra: install with `pip install "physiotwin4d[physicsnemo]"` (requires Python >= 3.11); the MeshGraphNet also needs `torch-geometric`. A `TrainPhysicsNeMoMLP` method exists as a drop-in alternative, without its own tutorial.
 10. **Tutorial 10** loads that checkpoint and predicts one case's surface at a requested stage, scoring it against the acquired phase and exporting USD. The case, checkpoint epoch, and stage are constants near the top of the script; for command-line runs with path arguments, use the installed `physiotwin4d-infer-physicsnemo` CLI.
+
+The `duke_heart` variants form their own chain on Duke-Heart-4DLabelmaps,
+which no step above shares: Tutorial 4 (duke heart) -> 5 -> 6 -> 7 -> 8 -> 9 ->
+10, each reading the previous one's output, with Tutorial 2 (heart distancemap
+variant) supplying optional finetuned weights to Tutorials 7 and 8. That
+dataset is not publicly available yet, so this chain cannot be run today.
 
 ## For Contributors
 

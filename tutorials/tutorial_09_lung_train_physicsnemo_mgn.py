@@ -70,6 +70,14 @@ The model lands in ``ParametersLungCTDirLab.mgn_weights_dir``
 (``network_weights/physicsnemo_mgn_lung_motion/``), where Tutorial 10 reads it:
 
   * ``mgn_stage_model.pt``      - trained MeshGraphNet checkpoint
+  * ``mgn_stage_model_epoch_#####.pt`` - intermittent checkpoints
+  * ``pca_mean_surface.vtp``, ``pca_mean_template.vtp``, ``pca_model.json``,
+    ``shared_edge_index.pt``, ``shared_edge_features.pt`` and the metadata JSON
+    - everything inference needs beside the weights
+
+Everything but the checkpoints is written before the first epoch, so Tutorial 10
+can be run against an intermittent checkpoint (its ``epoch`` constant) while
+this training run is still going.
 
 Resuming (see ``resume_from``) writes the model to a fresh ``..._1`` sibling of
 that directory instead, which is what ``tutorial_results`` reports as

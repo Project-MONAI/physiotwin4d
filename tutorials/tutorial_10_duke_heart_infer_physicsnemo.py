@@ -130,7 +130,9 @@ if __name__ == "__main__":
     # Step 1: pick the test frame - the one 70% of the way through the case's
     # ordered gated frames - and read its stage and ground-truth surface.
     stages = [_cardiac_stage_from_filename(f) for f in phase_files]
-    test_index = int(stage_fraction * len(stages))
+    # Clamped, so a stage_fraction of 1.0 picks the last frame rather than one
+    # past it.
+    test_index = min(int(stage_fraction * len(stages)), len(stages) - 1)
     test_stage = stages[test_index]
     ground_truth_file = phase_files[test_index]
     logger.info(

@@ -17,7 +17,7 @@ Tutorial 2 measures its distance maps to.
 
 Data Required
 -------------
-``tutorials/output/tutorial_04_duke_heart_labelmap/pm????/
+``tutorials/output/tutorial_04_duke_heart_labelmap/
 *_ref_heart_minus_interior_chambers.vtp``
 (run ``tutorial_04_duke_heart_labelmap_to_vtk.py`` first)
 
@@ -116,7 +116,7 @@ if __name__ == "__main__":
     if not reference_surface_file.exists():
         mean_workflow = WorkflowCreateMeanSurface(
             surfaces=sample_surfaces,
-            template_surface=sample_surfaces[4],
+            template_surface=sample_surfaces[len(sample_surfaces) // 2],
             log_level=log_level,
         )
         mean_workflow.set_number_of_iterations(mean_surface_iterations)

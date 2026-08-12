@@ -526,7 +526,9 @@ class TestResampleImageByScale:
 
         out = image_tools.resample_image_by_scale(itk_image, 0.5, interpolate=False)
 
-        assert set(np.unique(itk.array_from_image(out))) <= {0.0, 7.0}
+        values = set(np.unique(itk.array_from_image(out)))
+        assert values <= {0.0, 7.0}
+        assert 7.0 in values, "coarsening must keep the block, not sample past it"
 
     @pytest.mark.parametrize("scale", [0.0, -1.0])
     def test_non_positive_scale_raises(
