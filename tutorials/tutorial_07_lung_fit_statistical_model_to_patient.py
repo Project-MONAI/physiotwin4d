@@ -30,6 +30,7 @@ from typing import Any, Optional, cast
 
 import itk
 import pyvista as pv
+from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
 
 from physiotwin4d import (
     ContourTools,
@@ -57,18 +58,20 @@ if __name__ == "__main__":
     baselines_dir = repo_root / "tests" / "baselines"
 
     # PCA model + mean surface produced by Tutorial 6 (lung).
-    tutorial_06_dir = tutorials_dir / "output" / "tutorial_06_lung"
-    pca_json = tutorial_06_dir / "pca_model.json"
-    pca_mean_file = tutorial_06_dir / "pca_mean_surface.vtp"
+    pca_json = LUNG_CT_DIRLAB.pca_json_file
+    pca_mean_file = LUNG_CT_DIRLAB.pca_mean_file
 
-    number_of_pca_components = 5
+    test_mode = TestTools.running_as_test()
+    number_of_pca_components = LUNG_CT_DIRLAB.pca_components(test_mode)
 
-    patient_image_file = repo_root / "data" / "Chest-CT" / "Chest-CT.mha"
+    # The study Tutorial 6 leaves out of the model, so this fit is out of sample.
+    patient_image_file = (
+        LUNG_CT_DIRLAB.hold_out_directory(test_mode) / LUNG_CT_DIRLAB.hold_out_case
+    )
 
-    # Distance-map weights finetuned on DIR-Lab by Tutorial 2; see
-    # WorkflowFinetuneICONRegistration.expected_weights_path().  The
-    # mask_dilation_mm set below must match the one that tutorial finetuned
-    # with, since it fixes the distance maps' saturation radius.
+    # Distance-map weights finetuned on DIR-Lab by
+    # tutorial_02_lung_distancemap_finetune_icon.py; see
+    # WorkflowFinetuneICONRegistration.expected_weights_path().
     icon_weights_path = (
         tutorials_dir
         / "network_weights"
@@ -117,6 +120,7 @@ if __name__ == "__main__":
         segmentation_result = segmentation_workflow.process(
             input_image=patient_image,
             anatomy_groups=["lung"],
+            surface_reduction_rate=LUNG_CT_DIRLAB.surface_reduction_rate,
             extract_label_surfaces=True,
         )
         contour_tools.save_combined_surfaces(
@@ -145,7 +149,8 @@ if __name__ == "__main__":
             use_surface=False,
         )
 
-    workflow.set_mask_dilation_mm(mask_dilation_mm=40)
+    workflow.set_mask_dilation_mm(LUNG_CT_DIRLAB.mask_dilation_mm)
+    workflow.set_distancemap_squared_max(LUNG_CT_DIRLAB.distancemap_squared_max)
 
     # The labelmap-to-labelmap stage registers distance maps, not intensities,
     # so it uses the distance-map-finetuned weights when they exist; without

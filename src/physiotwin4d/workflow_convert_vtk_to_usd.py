@@ -12,11 +12,13 @@ import re
 from pathlib import Path
 from typing import Any, Literal, Mapping, Optional, Sequence, Union
 
+import numpy as np
 import pyvista as pv
 import vtk
 
 from .convert_vtk_to_usd import ConvertVTKToUSD
 from .physiotwin4d_base import PhysioTwin4DBase
+from .segment_anatomy_base import SegmentAnatomyBase
 from .usd_anatomy_tools import USDAnatomyTools
 from .usd_tools import USDTools
 
@@ -45,6 +47,8 @@ class WorkflowConvertVTKToUSD(PhysioTwin4DBase):
         solid_color: tuple[float, float, float] = (0.8, 0.8, 0.8),
         anatomy_type: Optional[str] = None,
         object_names: Optional[Sequence[str]] = None,
+        label_names: Optional[Mapping[int, str]] = None,
+        segmenter: Optional[SegmentAnatomyBase] = None,
         colormap_primvar: Optional[str] = None,
         colormap_name: str = "viridis",
         colormap_intensity_range: Optional[tuple[float, float]] = None,
@@ -91,6 +95,25 @@ class WorkflowConvertVTKToUSD(PhysioTwin4DBase):
                 exactly one name (as written by
                 :class:`WorkflowConvertImageToVTK`), and falls back to
                 ``{usd_project_name}_{index}`` otherwise.
+            label_names: Mapping of label id → structure name. Each input mesh
+                is then split on its per-cell ``SegmentationLabelIds`` (or
+                ``boundary_labels``) array, so every structure becomes its own
+                prim at ``/World/{usd_project_name}/{group}/{structure}``:
+                time-varying across frames, or static from a single mesh. This
+                is the only way structure identity survives a time series;
+                without it, parts are named by connectivity-component order,
+                which is positional per frame. None (default) reads the ids off
+                the meshes themselves when they carry the per-cell array, and
+                names them from *segmenter*'s taxonomy — so passing a mesh
+                merged by :meth:`ContourTools.save_combined_surfaces` splits by
+                structure without further arguments. ``static_merge`` accepts
+                only one labeled mesh: several would collide on one prim path
+                per label.
+            segmenter: Segmenter whose taxonomy groups the labels of
+                *label_names* by anatomy type. Also selects each structure's
+                material when appearance == "anatomy", through
+                :meth:`USDAnatomyTools.enhance_meshes`, which falls back to the
+                containing group for a structure with no material of its own.
             colormap_primvar: Primvar name for coloring when appearance == "colormap"
                 (e.g. vtk_point_stress_c0). If None, a candidate is auto-picked when possible.
             colormap_name: Matplotlib colormap name when appearance == "colormap".
@@ -117,6 +140,8 @@ class WorkflowConvertVTKToUSD(PhysioTwin4DBase):
         self.solid_color = solid_color
         self.anatomy_type = anatomy_type
         self.object_names = list(object_names) if object_names is not None else None
+        self.label_names = dict(label_names) if label_names is not None else None
+        self.segmenter = segmenter
         self.colormap_primvar = colormap_primvar
         self.colormap_name = colormap_name
         self.colormap_intensity_range = colormap_intensity_range
@@ -125,6 +150,85 @@ class WorkflowConvertVTKToUSD(PhysioTwin4DBase):
             raise ValueError(
                 "separate_by_connectivity and separate_by_cell_type cannot both be True"
             )
+
+    @staticmethod
+    def _as_pyvista(
+        mesh: Union[pv.DataSet, vtk.vtkDataSet],
+    ) -> Optional[pv.DataSet]:
+        """Return *mesh* as a PyVista dataset, or ``None`` if it is not one."""
+        if not isinstance(mesh, pv.DataSet) and isinstance(mesh, vtk.vtkDataSet):
+            mesh = pv.wrap(mesh)
+        return mesh if isinstance(mesh, pv.DataSet) else None
+
+    def _resolve_label_names(self) -> Optional[dict[int, str]]:
+        """Return the label ids to split every input mesh on, or ``None``.
+
+        An explicit ``label_names`` is used as given. Otherwise the meshes are
+        searched for the per-cell label array that
+        :meth:`ContourTools.save_combined_surfaces` writes on a merge, and that
+        contouring a multi-label labelmap leaves behind. That array is
+        preferred wherever it exists because it survives merging, which the
+        per-object ``field_data`` naming does not — so a combined surface file
+        splits back into its structures instead of collapsing onto one prim.
+
+        Ids are named from *segmenter*'s taxonomy first, then from the
+        ``field_data`` of any input holding exactly one structure, and finally
+        as ``label_{id}``. Ids that no source can name are not worth splitting
+        on, so a set where none resolve falls back to per-object naming.
+
+        Returns:
+            The id → name mapping, or ``None`` when no mesh carries the array
+            or none of its ids can be named, in which case prims are named per
+            object as before.
+        """
+        if self.label_names is not None:
+            return self.label_names
+
+        label_ids: set[int] = set()
+        field_names: dict[int, str] = {}
+        for mesh in self.input_meshes:
+            pv_mesh = self._as_pyvista(mesh)
+            if pv_mesh is None:
+                continue
+            for array_name in ("SegmentationLabelIds", "boundary_labels"):
+                if array_name in pv_mesh.cell_data:
+                    label_ids.update(
+                        int(value) for value in np.unique(pv_mesh.cell_data[array_name])
+                    )
+                    break
+            ids = pv_mesh.field_data.get("SegmentationLabelIds")
+            names = pv_mesh.field_data.get("SegmentationLabelNames")
+            if ids is not None and names is not None and len(ids) == len(names) == 1:
+                field_names[int(ids[0])] = str(names[0])
+
+        # 0 tags the cells save_combined_surfaces could not attribute to one
+        # structure, so it names nothing.
+        label_ids.discard(0)
+        if not label_ids:
+            return None
+
+        taxonomy_names = (
+            self.segmenter.taxonomy.all_labels() if self.segmenter is not None else {}
+        )
+        named = {
+            label_id: taxonomy_names.get(label_id) or field_names.get(label_id)
+            for label_id in sorted(label_ids)
+        }
+        if not any(named.values()):
+            # Ids nobody can name would only produce "label_37" prims, which
+            # carry less meaning than the object names they would replace.
+            self.log_debug(
+                "Per-cell labels %s match no name; naming per object instead",
+                sorted(label_ids),
+            )
+            return None
+        resolved = {
+            label_id: name or f"label_{label_id}" for label_id, name in named.items()
+        }
+        self.log_info(
+            "Splitting on the per-cell label array: %s", ", ".join(resolved.values())
+        )
+        return resolved
 
     def _read_object_annotations(self) -> list[tuple[Optional[str], Optional[str]]]:
         """Return ``(structure name, anatomy group)`` per input mesh.
@@ -136,11 +240,11 @@ class WorkflowConvertVTKToUSD(PhysioTwin4DBase):
         """
         annotations: list[tuple[Optional[str], Optional[str]]] = []
         for mesh in self.input_meshes:
-            if not isinstance(mesh, pv.DataSet) and isinstance(mesh, vtk.vtkDataSet):
-                mesh = pv.wrap(mesh)
-            if not isinstance(mesh, pv.DataSet):
+            pv_mesh = self._as_pyvista(mesh)
+            if pv_mesh is None:
                 annotations.append((None, None))
                 continue
+            mesh = pv_mesh
             label_names = mesh.field_data.get("SegmentationLabelNames")
             groups = mesh.field_data.get("AnatomyGroup")
             name = (
@@ -212,11 +316,16 @@ class WorkflowConvertVTKToUSD(PhysioTwin4DBase):
             else "none"
         )
 
+        # Per-cell labels, when the meshes carry them, name the prims instead:
+        # one per structure, in both the static and the time-series layout.
+        label_names = self._resolve_label_names()
+        name_objects = self.static_merge and label_names is None
+
         # Object names only name prims in the static-merge layout; a time
         # series writes one prim per part across all frames instead.
         annotations = self._read_object_annotations()
         object_names = None
-        if self.static_merge:
+        if name_objects:
             object_names = self.object_names
             if object_names is None and any(name for name, _ in annotations):
                 object_names = [
@@ -231,7 +340,7 @@ class WorkflowConvertVTKToUSD(PhysioTwin4DBase):
         # Keyed by the prim names ConvertVTKToUSD will actually emit, which fall
         # back to "<project>_<index>" when no object_names were derived.
         object_groups: dict[str, str] = {}
-        if self.static_merge:
+        if name_objects:
             group_keys = object_names or [
                 f"{self.usd_project_name}_{index}" for index in range(len(annotations))
             ]
@@ -242,6 +351,8 @@ class WorkflowConvertVTKToUSD(PhysioTwin4DBase):
         converter = ConvertVTKToUSD(
             data_basename=self.usd_project_name,
             input_polydata=self.input_meshes,
+            mask_ids=label_names,
+            segmenter=self.segmenter,
             convert_to_surface=self.extract_surface,
             separate_by=separate_by,
             frames_per_second=self.frames_per_second,
@@ -280,6 +391,19 @@ class WorkflowConvertVTKToUSD(PhysioTwin4DBase):
                     time_codes=appearance_time_codes,
                     bind_vertex_color_material=True,
                 )
+
+        elif (
+            self.appearance == "anatomy"
+            and label_names is not None
+            and self.segmenter is not None
+        ):
+            # The label layout names each prim after its structure, and the
+            # segmenter's taxonomy supplies the group to fall back on when the
+            # structure has no material of its own.
+            USDAnatomyTools(stage, log_level=self.log_level).enhance_meshes(
+                self.segmenter
+            )
+            stage.Save()
 
         elif self.appearance == "anatomy":
             anatomy_tools = USDAnatomyTools(stage, log_level=self.log_level)

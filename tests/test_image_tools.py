@@ -484,5 +484,61 @@ class TestFlipImage:
         assert result_arr.sum() == 0
 
 
+class TestResampleImageByScale:
+    """Unit tests for ImageTools.resample_image_by_scale."""
+
+    @pytest.fixture
+    def image_tools(self) -> ImageTools:
+        return ImageTools()
+
+    @pytest.mark.parametrize("scale", [0.5, 0.25, 2.0])
+    def test_physical_extent_is_preserved(
+        self, image_tools: ImageTools, scale: float
+    ) -> None:
+        """Voxel count scales while the physical extent stays put."""
+        itk_image = _make_synthetic_itk_image((8, 6, 4))
+        itk_image.SetSpacing([1.0, 2.0, 3.0])
+
+        out = image_tools.resample_image_by_scale(itk_image, scale)
+
+        size = np.asarray(itk_image.GetLargestPossibleRegion().GetSize())
+        new_size = np.asarray(out.GetLargestPossibleRegion().GetSize())
+        assert np.array_equal(new_size, np.ceil(size * scale).astype(int))
+        assert np.allclose(
+            new_size * np.asarray(out.GetSpacing()),
+            size * np.asarray(itk_image.GetSpacing()),
+        ), "resampling must not change the physical extent"
+
+    def test_direction_is_unchanged(self, image_tools: ImageTools) -> None:
+        """A left-handed direction survives resampling untouched."""
+        direction = np.diag([1.0, 1.0, -1.0])
+        itk_image = _make_synthetic_itk_image((8, 6, 4), direction=direction)
+
+        out = image_tools.resample_image_by_scale(itk_image, 0.5)
+
+        assert np.allclose(itk.array_from_matrix(out.GetDirection()), direction)
+
+    def test_nearest_neighbor_keeps_input_values(self, image_tools: ImageTools) -> None:
+        """Nearest-neighbor resampling introduces no new intensities."""
+        arr = np.zeros((4, 4, 4), dtype=np.float32)
+        arr[1:3, 1:3, 1:3] = 7.0
+        itk_image = _make_synthetic_itk_image((4, 4, 4), arr=arr)
+
+        out = image_tools.resample_image_by_scale(itk_image, 0.5, interpolate=False)
+
+        values = set(np.unique(itk.array_from_image(out)))
+        assert values <= {0.0, 7.0}
+        assert 7.0 in values, "coarsening must keep the block, not sample past it"
+
+    @pytest.mark.parametrize("scale", [0.0, -1.0])
+    def test_non_positive_scale_raises(
+        self, image_tools: ImageTools, scale: float
+    ) -> None:
+        """A scale of zero or less is rejected."""
+        itk_image = _make_synthetic_itk_image((4, 4, 4))
+        with pytest.raises(ValueError, match="scale must be positive"):
+            image_tools.resample_image_by_scale(itk_image, scale)
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v", "-s"])

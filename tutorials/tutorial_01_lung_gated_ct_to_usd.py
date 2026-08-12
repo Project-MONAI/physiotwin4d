@@ -30,14 +30,11 @@ Outputs (under ``tutorials/output/tutorial_01_lung/``)
 Strengths
 ---------
 - Single call (``WorkflowConvertImageToUSD.process()``) runs the full pipeline.
-- Supports both GPU-accelerated ICON registration and CPU-capable Greedy registration.
+- Registers on the CPU with ``RegisterImagesGreedy``; no GPU needed for this stage.
 - Output is Omniverse-ready with anatomical materials (USDAnatomyTools).
 
 Weaknesses / Limitations
 ------------------------
-- Requires a GPU for ICON registration (``registration_method=RegisterImagesICON()``);
-  use ``registration_method=RegisterImagesGreedy()`` for CPU-only environments
-  (about 10x slower).
 - Segmentation quality depends on TotalSegmentator's training distribution;
   unusual pathologies or pediatric anatomy may degrade results.
 - Large 4D datasets (>20 phases, high resolution) can require 32 GB+ RAM.
@@ -49,7 +46,7 @@ Classes Used
     contour extraction -> USD export.
 - SegmentChestTotalSegmentator (segment_chest_total_segmentator.py):
     Deep-learning segmentation of 117 anatomical structures (used internally).
-- RegisterImagesICON (register_images_icon.py):
+- RegisterImagesGreedy (register_images_greedy.py):
     Frame-to-frame image registration (used internally).
 - ContourTools (contour_tools.py):
     Extracts and transforms surface meshes from segmentation masks (used internally).
@@ -72,9 +69,10 @@ import logging
 from pathlib import Path
 
 import itk
+from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
 
 from physiotwin4d import (
-    RegisterImagesICON,
+    RegisterImagesGreedy,
     SegmentChestTotalSegmentator,
     TestTools,
     WorkflowConvertImageToUSD,
@@ -102,16 +100,16 @@ if __name__ == "__main__":
     # data/DirLab-4DCT/fix_downloaded_data.py.
     test_mode = TestTools.running_as_test()
     if test_mode:
-        number_of_registration_iterations = 1
+        number_of_iterations_greedy = [1, 0]
         frame_files = sorted(data_dir.glob("Case1Pack_T??.mha"))[0:2]
     else:
-        number_of_registration_iterations = 10
+        number_of_iterations_greedy = [30, 15, 7, 3]
         frame_files = sorted(data_dir.glob("Case1Pack_T??.mha"))
 
     log_level = logging.INFO
 
-    registration_method = RegisterImagesICON(log_level=log_level)
-    registration_method.set_number_of_iterations(number_of_registration_iterations)
+    registration_method = RegisterImagesGreedy(log_level=log_level)
+    registration_method.set_number_of_iterations(number_of_iterations_greedy)
 
     segmentation_method = SegmentChestTotalSegmentator(log_level=log_level)
     segmentation_method.set_has_academic_license(True)
@@ -143,6 +141,7 @@ if __name__ == "__main__":
         usd_project_name="lung_model",
         registration_method=registration_method,
         segmentation_method=segmentation_method,
+        surface_reduction_rate=LUNG_CT_DIRLAB.surface_reduction_rate,
         log_level=log_level,
         frames_per_second=1,
         save_assets=True,

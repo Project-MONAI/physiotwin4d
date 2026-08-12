@@ -11,7 +11,9 @@ Tutorials
      <p class="pt4d-kicker">PhysioTwin4D tutorials</p>
      <h1>From a CT scan to an animated digital twin</h1>
      <p>
-       Ten numbered stages across 16 runnable Python scripts.
+       Ten numbered stages across 24 Python scripts, 16 of them runnable today:
+       the eight <code>duke_heart</code> variants wait on a dataset that is not
+       public yet.
        Each one drives the real workflow classes end-to-end on downloadable
        data, shows what it produced, and ends with the handful of constants
        to change so it runs on your own scans.
@@ -132,13 +134,15 @@ pipeline on top.
 
 1. **Tutorial 1** — after downloading Slicer-Heart-CT.
 2. **Tutorial 2** — after obtaining DIR-Lab. It writes the finetuned ICON
-   weights that Tutorials 3 (lung) and 8 use.
-3. **Tutorial 3** — after Tutorial 2, whose weights it registers with.
+   weights Tutorial 8 uses when present; optional if stock weights are
+   acceptable.
+3. **Tutorial 3** — after obtaining its dataset; it registers with Greedy and
+   needs no finetuned weights.
 4. **Tutorial 4** — after downloading Slicer-Heart-CT.
 5. **Tutorial 5** — after Tutorial 4, whose surfaces it converts.
 6. **Tutorial 6** — heart needs KCL-Heart-Model, lung needs DIR-Lab.
 7. **Tutorial 7** — after Tutorial 6; the lung variant also needs Chest-CT.
-8. **Tutorial 8** — after Tutorials 2 and 6 (lung).
+8. **Tutorial 8** — after Tutorial 6 (lung); Tutorial 2 optional.
 9. **Tutorial 9** — after Tutorial 8, whose fitted meshes it trains on.
 10. **Tutorial 10** — after Tutorial 9, whose checkpoint it loads.
 
@@ -152,7 +156,7 @@ Script
 
 Workflow
    :class:`~physiotwin4d.WorkflowConvertImageToUSD`, driving
-   :class:`~physiotwin4d.RegisterImagesICON` and a
+   :class:`~physiotwin4d.RegisterImagesGreedy` and a
    :class:`~physiotwin4d.SegmentAnatomyBase` subclass.
 
 Dataset
@@ -161,9 +165,8 @@ Dataset
    registration reference.
 
 Requirements
-   GPU strongly recommended — ICON registers every phase against the
-   reference. Swap in :class:`~physiotwin4d.RegisterImagesGreedy` or
-   :class:`~physiotwin4d.RegisterImagesANTS` for CPU-only environments.
+   Greedy registers every phase against the reference on the CPU; a GPU is
+   still needed for segmentation.
 
 Preview
    .. figure:: assets/tutorial_01_heart_4d.gif
@@ -219,10 +222,20 @@ Tutorial 2: Finetune ICON Registration
 Script
    ``tutorials/tutorial_02_lung_finetune_icon.py``
 
-   ``tutorials/tutorial_02_lung_distancemap_finetune_icon.py`` — the
+   ``tutorials/tutorial_02_lung_distancemap_finetune_icon.py`` — the lung
    distance-map variant, which finetunes on distance maps rather than image
    intensities so the labelmap-to-labelmap stage of Tutorials 7 and 8 has
    in-distribution weights.
+
+   ``tutorials/tutorial_02_duke_heart_distancemap_finetune_icon.py`` — the same
+   for the heart, on Duke-Heart-4DLabelmaps. The heart needs its own run because
+   it registers with a much tighter mask than the lungs, so its distance maps
+   saturate over a shorter radius and do not share an intensity distribution
+   with lung ones. The per-organ values live in
+   ``tutorials/parameters_lung_ct_dirlab.py`` for the lung variant and
+   ``tutorials/parameters_duke_heart_labelmaps.py`` for this one. This is a
+   ``duke_heart`` tutorial: Duke-Heart-4DLabelmaps is not publicly available
+   yet, so it cannot be run — see ``data/Duke-Heart-4DLabelmaps/README.md``.
 
 Workflow
    :class:`~physiotwin4d.WorkflowFinetuneICONRegistration`, then
@@ -301,20 +314,15 @@ Script
 
 Workflow
    :class:`~physiotwin4d.WorkflowReconstructHighres4DCT` with
-   :class:`~physiotwin4d.RegisterImagesGreedyICON`.
+   :class:`~physiotwin4d.RegisterImagesGreedy`.
 
 Dataset
    Slicer-Heart-CT for the heart; DIR-Lab for the lung, which reconstructs
    against its T70 (end-exhale) phase — the same reference Tutorial 8 fits to.
-   The lung variant registers with **Tutorial 2's finetuned ICON weights** when
-   they exist, and logs a warning and falls back to the stock uniGradICON
-   weights when they do not.
 
 Requirements
-   GPU recommended. One coarse-to-fine registration per phase, greedy schedule
-   ``[30, 15, 7, 3]``. The lung variant enables mass preservation for
-   non-contrast CT; the heart variant does not and uses the stock uniGradICON
-   weights.
+   CPU is enough. One coarse-to-fine registration per phase, greedy schedule
+   ``[30, 15, 7, 3]``.
 
 Preview
    .. figure:: assets/Tutorial_03_heart_original.gif
@@ -338,11 +346,8 @@ Preview
 Inner API usage
    .. code-block:: python
 
-      registration_method = RegisterImagesGreedyICON()
-      registration_method.greedy.set_number_of_iterations([30, 15, 7, 3])
-      registration_method.icon.set_mass_preservation(True)
-      if icon_weights_path.exists():          # Tutorial 2 output, optional
-          registration_method.icon.set_weights_path(str(icon_weights_path))
+      registration_method = RegisterImagesGreedy()
+      registration_method.set_number_of_iterations([30, 15, 7, 3])
 
       workflow = WorkflowReconstructHighres4DCT(
           time_series_images=time_series,
@@ -366,10 +371,7 @@ Outputs
 
 Adapt to your data
    Set ``case_glob`` and ``data_dir`` to your series and pick the reference
-   with ``reference_time_frame``. Point ``icon_weights_path`` at weights you
-   finetuned on your own cohort with Tutorial 2, or leave it missing to
-   register with the stock uniGradICON weights. If you have a separate
-   breath-hold or
+   with ``reference_time_frame``. If you have a separate breath-hold or
    contrast-enhanced volume, pass it as ``reference_image`` instead of one of
    the phases — that is what the workflow is really designed for. Tune
    ``number_of_iterations_greedy`` down for a fast smoke test. The saved
@@ -417,7 +419,7 @@ Inner API usage
       )
       result = workflow.process(
           input_image=ct_image,
-          surface_target_reduction=0.5,
+          surface_reduction_rate=HEART_CT_KCL.surface_reduction_rate,
           extract_label_surfaces=save_label_surfaces,
       )
 
@@ -437,7 +439,8 @@ Adapt to your data
    Change the input volume path, then choose the segmenter matching your scan:
    contrast versus non-contrast CT, or
    :class:`~physiotwin4d.SegmentNVSegmentCTMRI` for CT **and** MRI. Raise
-   ``surface_target_reduction`` toward ``1.0`` for lighter meshes. Every
+   ``surface_reduction_rate`` in the tutorial's parameter module toward ``1.0``
+   for lighter meshes. Every
    segmenter declares its own labels through
    :class:`~physiotwin4d.AnatomyTaxonomy`, so downstream grouping and USD
    materials follow automatically — see :doc:`api/segmentation/index`.
@@ -657,9 +660,9 @@ Workflow
    the fitted surface through every other phase.
 
 Dataset
-   DIR-Lab, plus Tutorial 6 (lung)'s model. Tutorial 2's finetuned ICON weights
-   are used when present; without them the tutorial warns and registers with the
-   stock uniGradICON weights.
+   DIR-Lab, plus Tutorial 6 (lung)'s model. Tutorial 2's finetuned distance-map
+   ICON weights are used by the model fit when present; without them the
+   tutorial warns and fits with the stock uniGradICON weights.
 
 Requirements
    GPU required, and the heaviest registration workload in the set: one
@@ -766,10 +769,11 @@ Run
       python tutorials/tutorial_09_lung_train_physicsnemo_mgn.py
 
 Outputs
-   ``mgn_stage_model.pt``, its metadata and loss/RMSE logs, the per-case
-   manifests, and the held-out evaluation under ``eval_mgn/`` — in the
-   directory training used: ``tutorials/output/tutorial_09_lung_mgn/``
-   normally, or a fresh sibling when resuming.
+   ``mgn_stage_model.pt``, its metadata and loss/RMSE logs, in the shared
+   weights directory Tutorial 10 reads
+   (``tutorials/network_weights/physicsnemo_mgn_lung_motion/``, a fresh sibling
+   of it when resuming). The per-case manifests and the held-out evaluation
+   under ``eval_mgn/`` stay in ``tutorials/output/tutorial_09_lung_mgn/``.
 
 Adapt to your data
    The contract is the manifest, not the tutorial. Each JSON names a reference
@@ -829,7 +833,7 @@ Run
 Outputs
    The predicted surface, its error statistics against the ground-truth phase
    in millimetres, and a USD scene, under
-   ``tutorials/output/tutorial_09_lung_mgn/tutorial_10_lung_mgn/<case>/``.
+   ``tutorials/output/tutorial_10_lung_mgn/<case>/``.
 
 Adapt to your data
    Change ``case_id`` and ``stage_fraction`` to predict a different subject, or

@@ -14,9 +14,8 @@ statistical-shape-model (SSM) surface per respiratory phase:
    the fitted SSM surface, sharing the model's fixed topology.
 
 2. Propagate the fitted surface to every respiratory phase. Each phase is
-   registered to the reference phase with ``RegisterImagesGreedyICON``
-   (``WorkflowReconstructHighres4DCT``), using the DIR-Lab weights finetuned by
-   ``tutorial_02_lung_finetune_icon.py``. The forward transform for each phase
+   registered to the reference phase with ``RegisterImagesGreedy``
+   (``WorkflowReconstructHighres4DCT``). The forward transform for each phase
    warps the fitted SSM surface (``TransformTools.transform_pvcontour``, with
    deformation magnitude attached), producing one ``*_T{PP}_ssm_surface.vtp``
    per phase.
@@ -31,12 +30,10 @@ data: ``data/DirLab-4DCT/Case*_T??.mha``
 PCA model: Tutorial 6 output (``output/tutorial_06_lung/pca_model.json``,
 ``pca_mean_surface.vtp``)
 ICON weights: Tutorial 2 output
-(``network_weights/icon_dirlab_4dct/icon_dirlab_4dct_model/checkpoints/
-network_weights_final.trch``) for the phase-to-phase CT registration, and
-``network_weights/icon_dirlab_4dct_distancemap/
-icon_dirlab_4dct_distancemap_model/checkpoints/network_weights_final.trch`` for
-the distance-map stage of the SSM fit. Both optional — the stock uniGradICON
-weights are used when they are absent.
+(``network_weights/icon_dirlab_4dct_distancemap/
+icon_dirlab_4dct_distancemap_model/checkpoints/network_weights_final.trch``) for
+the distance-map stage of the SSM fit. Optional — the stock uniGradICON weights
+are used when it is absent.
 
 Outputs (per case, under ``output/tutorial_08_lung/<case>/``)
 ------------------------------------------------------------
@@ -57,10 +54,11 @@ from typing import Any, cast
 
 import itk
 import pyvista as pv
+from parameters_lung_ct_dirlab import LUNG_CT_DIRLAB
 
 from physiotwin4d import (
     ContourTools,
-    RegisterImagesGreedyICON,
+    RegisterImagesGreedy,
     SegmentNVSegmentCTMRI,
     TestTools,
     TransformTools,
@@ -89,26 +87,14 @@ if __name__ == "__main__":
     baselines_dir = repo_root / "tests" / "baselines"
 
     # PCA model + mean surface produced by Tutorial 6 (lung).
-    tutorial_06_dir = tutorials_dir / "output" / "tutorial_06_lung"
-    pca_model_file = tutorial_06_dir / "pca_model.json"
-    pca_mean_file = tutorial_06_dir / "pca_mean_surface.vtp"
-
-    # Weights finetuned on DIR-Lab by Tutorial 2; see
-    # WorkflowFinetuneICONRegistration.expected_weights_path().
-    icon_weights_path = (
-        tutorials_dir
-        / "network_weights"
-        / "icon_dirlab_4dct"
-        / "icon_dirlab_4dct_model"
-        / "checkpoints"
-        / "network_weights_final.trch"
-    )
+    pca_model_file = LUNG_CT_DIRLAB.pca_json_file
+    pca_mean_file = LUNG_CT_DIRLAB.pca_mean_file
+    # Tutorial 6 caches one segmentation per case beside its model.
+    tutorial_06_dir = pca_model_file.parent
 
     # Distance-map weights finetuned on DIR-Lab by
     # tutorial_02_lung_distancemap_finetune_icon.py, used by the
-    # labelmap-to-labelmap stage of the SSM fit.  mask_dilation_mm below must
-    # match the value that tutorial finetuned with, since it fixes the distance
-    # maps' saturation radius.
+    # labelmap-to-labelmap stage of the SSM fit.
     icon_distancemap_weights_path = (
         tutorials_dir
         / "network_weights"
@@ -117,7 +103,10 @@ if __name__ == "__main__":
         / "checkpoints"
         / "network_weights_final.trch"
     )
-    fit_mask_dilation_mm = 40.0
+
+    number_of_pca_components = LUNG_CT_DIRLAB.pca_components(
+        TestTools.running_as_test()
+    )
 
     # Phase the SSM is fitted to; Tutorial 6 builds the lung PCA model from the
     # T70 surfaces, so the same phase is used here as the fitting reference.
@@ -142,19 +131,8 @@ if __name__ == "__main__":
     with pca_model_file.open(encoding="utf-8") as f:
         pca_model = json.load(f)
 
-    # The Tutorial 2 weights are used when they exist; without them the tutorial
-    # still runs, on the stock uniGradICON weights.
-    use_finetuned_icon_weights = icon_weights_path.exists()
-    if use_finetuned_icon_weights:
-        logger.info("Registering with finetuned ICON weights: %s", icon_weights_path)
-    else:
-        logger.warning(
-            "Finetuned ICON weights not found at %s; registering with the stock "
-            "uniGradICON weights. Run "
-            "tutorials/tutorial_02_lung_finetune_icon.py to create them.",
-            icon_weights_path,
-        )
-
+    # The Tutorial 2 distance-map weights are used when they exist; without them
+    # the tutorial still runs, on the stock uniGradICON weights.
     use_finetuned_distancemap_weights = icon_distancemap_weights_path.exists()
     if use_finetuned_distancemap_weights:
         logger.info(
@@ -209,6 +187,7 @@ if __name__ == "__main__":
             segmentation_result = segmentation_workflow.process(
                 input_image=reference_image,
                 anatomy_groups=["lung"],
+                surface_reduction_rate=LUNG_CT_DIRLAB.surface_reduction_rate,
                 extract_label_surfaces=True,
             )
             contour_tools.save_combined_surfaces(
@@ -233,10 +212,11 @@ if __name__ == "__main__":
         fit_workflow.set_use_pca_registration(
             use_pca_registration=True,
             pca_model=pca_model,
-            number_of_pca_components=6,
+            number_of_pca_components=number_of_pca_components,
             use_surface=False,
         )
-        fit_workflow.set_mask_dilation_mm(mask_dilation_mm=fit_mask_dilation_mm)
+        fit_workflow.set_mask_dilation_mm(LUNG_CT_DIRLAB.mask_dilation_mm)
+        fit_workflow.set_distancemap_squared_max(LUNG_CT_DIRLAB.distancemap_squared_max)
         if use_finetuned_distancemap_weights:
             fit_workflow.set_labelmap_to_labelmap_icon_weights_path(
                 str(icon_distancemap_weights_path)
@@ -269,10 +249,7 @@ if __name__ == "__main__":
         phase_ids = [path.stem.split("_")[1] for path in phase_files]
         time_series = [itk.imread(str(path)) for path in phase_files]
 
-        registration_method = RegisterImagesGreedyICON(log_level=log_level)
-        if use_finetuned_icon_weights:
-            registration_method.icon.set_weights_path(str(icon_weights_path))
-        registration_method.icon.set_mass_preservation(True)  # For non-contrast CT
+        registration_method = RegisterImagesGreedy(log_level=log_level)
 
         reg_workflow = WorkflowReconstructHighres4DCT(
             time_series_images=time_series,

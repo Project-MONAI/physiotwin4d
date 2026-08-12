@@ -1276,7 +1276,11 @@ class USDTools(PhysioTwin4DBase):
         self, stage_or_path: Usd.Stage | str, parent_path: str = "/World/Meshes"
     ) -> list[str]:
         """
-        List paths of all mesh prims under a parent path.
+        List paths of all mesh prims at any depth under a parent path.
+
+        Descends the whole subtree, so meshes written under an intermediate
+        Xform - as :class:`ConvertVTKToUSD` writes labeled structures, at
+        ``/World/{basename}/{anatomy_group}/{structure}`` - are found too.
 
         Args:
             stage_or_path: USD Stage or path to USD file
@@ -1293,11 +1297,11 @@ class USDTools(PhysioTwin4DBase):
         parent = stage.GetPrimAtPath(parent_path)
         if not parent.IsValid():
             return []
-        result = []
-        for prim in parent.GetAllChildren():
-            if prim.IsA(UsdGeom.Mesh):
-                result.append(str(prim.GetPath()))
-        return result
+        return [
+            str(prim.GetPath())
+            for prim in Usd.PrimRange(parent)
+            if prim.IsA(UsdGeom.Mesh)
+        ]
 
     def repair_mesh_primvar_element_sizes(
         self,

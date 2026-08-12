@@ -4,7 +4,7 @@ This module provides the WorkflowReconstructHighres4DCT class for reconstructing
 a high-resolution 4D CT time series from lower-resolution time-series images and
 a single high-resolution reference image.
 
-The workflow uses Greedy+ICON combined registration to:
+The workflow uses a caller-supplied RegisterImagesBase backend to:
 1. Register each time-series image to the high-resolution reference
 2. Apply inverse transforms to reconstruct high-resolution time series
 3. Optionally upsample to the reference image resolution
@@ -16,7 +16,7 @@ This is particularly useful for cardiac CT where you have:
 
 Key Features:
     - Sequential time-series registration using RegisterTimeSeriesImages
-    - Combined Greedy+ICON registration for optimal results
+    - Any RegisterImagesBase backend, defaulting to RegisterImagesGreedy
     - Bidirectional registration from reference frame
     - Optional temporal smoothing with prior transforms
     - High-resolution reconstruction with optional upsampling
@@ -38,7 +38,7 @@ class WorkflowReconstructHighres4DCT(PhysioTwin4DBase):
 
     This class implements a workflow for reconstructing high-resolution dynamic
     CT images by registering low-resolution time-series images to a high-resolution
-    reference image using combined Greedy+ICON registration.
+    reference image using a caller-supplied registration backend.
 
     **Registration Pipeline:**
         1. **Time Series Registration**: Register each time-series image to the
@@ -55,8 +55,7 @@ class WorkflowReconstructHighres4DCT(PhysioTwin4DBase):
     ``registration_method`` accepts a pre-configured
     :class:`RegisterImagesBase` instance. Configure backend-specific
     parameters (iteration counts, etc.) on the instance before passing it
-    in. Defaults to a new :class:`RegisterImagesGreedyICON` (Greedy followed
-    by ICON refinement) when omitted.
+    in. Defaults to a new :class:`RegisterImagesGreedy` when omitted.
 
     Attributes:
         time_series_images (list[itk.Image]): Ordered list of time-series images
@@ -110,7 +109,7 @@ class WorkflowReconstructHighres4DCT(PhysioTwin4DBase):
                 an identity transform for that frame. Default: True
             registration_method (Optional[RegisterImagesBase]): Registration
                 backend instance. Defaults to a new
-                :class:`RegisterImagesGreedyICON` when None.
+                :class:`RegisterImagesGreedy` when None.
             log_level: Logging level (logging.DEBUG, logging.INFO, etc.).
                 Default: logging.INFO
 

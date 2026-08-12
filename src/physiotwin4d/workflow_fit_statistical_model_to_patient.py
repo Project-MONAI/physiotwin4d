@@ -80,6 +80,9 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
         patient_labelmap (itk.Image): Multi-label labelmap for patient model
         patient_mask (itk.Image): Binary mask for patient registration region
         mask_dilation_mm (float): Dilation for binary mask generation
+        distancemap_squared_max (Optional[float]): Saturation radius of the
+            labelmap-to-labelmap distance maps, in squared millimeters. None
+            means derive it from mask_dilation_mm as (1.25 * mask_dilation_mm)**2
         transform_tools (TransformTools): Transform utilities
         registrar_ICON (RegisterImagesICON): ICON registration instance
         registrar_Greedy (RegisterImagesGreedy): Greedy registration instance
@@ -245,6 +248,7 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
 
         # Parameters for labelmap and mask generation
         self.mask_dilation_mm: float = 10.0  # For binary registration mask generation
+        self.distancemap_squared_max: Optional[float] = None
 
         # Optional finetuned ICON checkpoint for the labelmap-to-labelmap stage
         self.l2l_icon_weights_path: Optional[str] = None
@@ -299,6 +303,27 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
                 mask generation. Default: 10mm
         """
         self.mask_dilation_mm = mask_dilation_mm
+
+    def set_distancemap_squared_max(self, distancemap_squared_max: float) -> None:
+        """Set the saturation radius of the labelmap-to-labelmap distance maps.
+
+        The radius fixes those images' intensity distribution, so it has to
+        match the value the ICON weights in use were finetuned at -- see
+        ``tutorials/parameters_lung_ct_dirlab.py`` and
+        ``tutorials/parameters_heart_ct_kcl.py``, which carry one value per
+        organ.  Left unset, it is derived from ``mask_dilation_mm``.
+
+        Args:
+            distancemap_squared_max: Maximum squared distance, in squared
+                millimeters, the distance maps are normalized against.
+        """
+        self.distancemap_squared_max = distancemap_squared_max
+
+    def _distancemap_squared_max(self) -> float:
+        """Return the configured saturation radius, or one sized to the mask."""
+        if self.distancemap_squared_max is not None:
+            return self.distancemap_squared_max
+        return (1.25 * self.mask_dilation_mm) ** 2
 
     def set_labelmap_to_labelmap_icon_weights_path(self, weights_path: str) -> None:
         """Set a finetuned ICON checkpoint for the labelmap-to-labelmap stage.
@@ -719,7 +744,7 @@ class WorkflowFitStatisticalModelToPatient(PhysioTwin4DBase):
             fixed_model=self.patient_model_surface,
             reference_image=padded_patient_image,
             mask_dilation_mm=self.mask_dilation_mm,
-            distance_squared_max=(1.25 * self.mask_dilation_mm) ** 2,
+            distance_squared_max=self._distancemap_squared_max(),
         )
         if self.l2l_icon_weights_path is not None:
             labelmap_registrar.set_icon_weights_path(self.l2l_icon_weights_path)

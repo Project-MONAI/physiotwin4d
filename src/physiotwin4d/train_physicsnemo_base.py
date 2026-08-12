@@ -116,7 +116,12 @@ class TrainPhysicsNeMoBase(PhysioTwin4DBase):
         raise NotImplementedError
 
     def save_artifacts(self, output_dir: Path) -> None:
-        """Save any architecture-specific artifacts (MGN graph tensors)."""
+        """Save any architecture-specific artifacts (MGN graph tensors).
+
+        Called by :meth:`train` as soon as :meth:`setup_inputs` has run, so the
+        artifacts are in place for inference from the first intermittent
+        checkpoint rather than only after the last epoch.
+        """
         raise NotImplementedError
 
     # ─────────────────────────── Training loop ─────────────────────────────
@@ -165,6 +170,10 @@ class TrainPhysicsNeMoBase(PhysioTwin4DBase):
             self.log_info("Loaded model weights from %s", resume_from)
 
         self.setup_inputs(device, template_mesh, template_coords)
+        # Written now rather than after the last epoch: inference against an
+        # intermittent checkpoint needs them, and that is the point of writing
+        # those checkpoints while a long run is still going.
+        self.save_artifacts(output_dir)
 
         if sys.platform != "win32":
             try:

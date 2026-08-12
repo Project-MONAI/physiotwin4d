@@ -28,6 +28,17 @@ class RegisterImagesChain(RegisterImagesBase):
     See :class:`RegisterImagesGreedyICON` for a named 2-stage convenience
     subclass (Greedy followed by ICON refinement).
 
+    Chaining is not free accuracy. Every stage's result is applied
+    unconditionally, so a refinement stage helps only when its own accuracy
+    floor is below the error the previous stage has already reached. A stage
+    whose deformation model is coarser than that error cannot resolve what is
+    left and acts as a low-pass perturbation, giving a slightly worse answer for
+    strictly more runtime. Compare each stage against the one before it on a
+    held-out metric rather than assuming the chain wins.
+
+    ``result["loss"]`` is the *last* stage's loss, measured against data the
+    earlier stages already warped; it is not comparable to a single-stage loss.
+
     Example:
         >>> chain = RegisterImagesChain([RegisterImagesGreedy(), RegisterImagesICON()])
         >>> chain.set_fixed_image(fixed_image)

@@ -110,7 +110,7 @@ Examples
         ),
     )
     parser.add_argument(
-        "--surface-target-reduction",
+        "--surface-reduction-rate",
         type=float,
         default=0.0,
         help=(
@@ -177,7 +177,7 @@ Examples
         result = workflow.process(
             input_image=input_image,
             anatomy_groups=args.anatomy_groups,
-            surface_target_reduction=args.surface_target_reduction,
+            surface_reduction_rate=args.surface_reduction_rate,
             extract_label_surfaces=(args.output_mode == "label"),
         )
     except (ValueError, RuntimeError, OSError) as exc:

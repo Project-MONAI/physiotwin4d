@@ -23,6 +23,7 @@ from typing import Any, Optional, cast
 
 import itk
 import pyvista as pv
+from parameters_heart_ct_kcl import HEART_CT_KCL
 
 from physiotwin4d import (
     ContourTools,
@@ -51,17 +52,27 @@ if __name__ == "__main__":
     baselines_dir = repo_root / "tests" / "baselines"
 
     # PCA model + mean surface produced by Tutorial 6.
-    pca_json = tutorials_dir / "output" / "tutorial_06_heart" / "pca_model.json"
-    pca_mean_file = (
-        tutorials_dir / "output" / "tutorial_06_heart" / "pca_mean_surface.vtp"
-    )
+    pca_json = HEART_CT_KCL.pca_json_file
+    pca_mean_file = HEART_CT_KCL.pca_mean_file
 
     test_mode = TestTools.running_as_test()
-    if test_mode:
-        data_dir = repo_root / "data" / "test" / "DirLab-4DCT"
-    else:
-        data_dir = repo_root / "data" / "DirLab-4DCT"
-    patient_image_file = data_dir / "Case1Pack_T70.mha"
+    data_dir = HEART_CT_KCL.hold_out_directory(test_mode)
+    # The case Tutorial 6 leaves out of the model, so this fit is out of sample.
+    patient_image_file = data_dir / f"{HEART_CT_KCL.hold_out_case}_T70.mha"
+
+    # Distance-map weights finetuned by
+    # tutorial_02_duke_heart_distancemap_finetune_icon.py.  The heart has its own
+    # finetuning run rather than reusing the lung one's: the heart registration
+    # mask is far tighter, so heart distance maps saturate over a shorter radius
+    # and do not share an intensity distribution with lung ones.
+    icon_weights_path = (
+        tutorials_dir
+        / "network_weights"
+        / "icon_duke_heart_distancemap"
+        / "icon_duke_heart_distancemap_model"
+        / "checkpoints"
+        / "network_weights_final.trch"
+    )
 
     log_level = logging.INFO
 
@@ -118,7 +129,10 @@ if __name__ == "__main__":
         )
 
         contour_tools = ContourTools()
-        heart_surface = contour_tools.extract_contours(labelmap_image=heart_labelmap)
+        heart_surface = contour_tools.extract_contours(
+            labelmap_image=heart_labelmap,
+            surface_reduction_rate=HEART_CT_KCL.surface_reduction_rate,
+        )
         heart_surface.save(output_dir / f"{project_name}_heart_surface.vtp")
 
     else:
@@ -140,14 +154,32 @@ if __name__ == "__main__":
         patient_image=patient_image,
         patient_labelmap=heart_labelmap,
         log_level=log_level,
-        labelmap_interior_object_ids=[141, 142, 143, 144],
-        # These are the internal chambers of the heart when using TotalSegmentator.
+        # This patient is segmented with TotalSegmentator, so its chamber ids
+        # are the ones to keep out of the distance map.
+        labelmap_interior_object_ids=HEART_CT_KCL.interior_object_ids_totalsegmentator,
     )
+    workflow.set_mask_dilation_mm(HEART_CT_KCL.mask_dilation_mm)
+    workflow.set_distancemap_squared_max(HEART_CT_KCL.distancemap_squared_max)
     if pca_model is not None:
         workflow.set_use_pca_registration(
             use_pca_registration=True,
             pca_model=pca_model,
+            number_of_pca_components=HEART_CT_KCL.pca_components(test_mode),
             use_surface=False,
+        )
+
+    # The labelmap-to-labelmap stage registers distance maps, not intensities,
+    # so it uses the distance-map-finetuned weights when they exist; without
+    # them the tutorial still runs, on the stock uniGradICON weights.
+    if icon_weights_path.exists():
+        workflow.set_labelmap_to_labelmap_icon_weights_path(str(icon_weights_path))
+    else:
+        workflow.log_warning(
+            "Finetuned distance-map ICON weights not found at %s; fitting with "
+            "the stock uniGradICON weights. Run "
+            "tutorials/tutorial_02_duke_heart_distancemap_finetune_icon.py to "
+            "create them.",
+            icon_weights_path,
         )
 
     # Workflow execution
