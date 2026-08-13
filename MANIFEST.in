@@ -1,24 +1,21 @@
-# Include essential documentation
+# Include essential documentation. AGENTS.md is the cross-tool sibling of
+# CLAUDE.md; both describe repository conventions and ship together.
 include README.md
 include LICENSE
 include CLAUDE.md
-include CHANGELOG.md
+include AGENTS.md
 
-# Include configuration files
+# Include configuration files. The build is pure PEP 621, so there is no
+# setup.py to ship.
 include pyproject.toml
-include setup.py
-
-# Include example scripts (but not in the package itself)
-recursive-include scripts *.py
-recursive-include scripts *.md
 
 # Include all source code
 recursive-include src *.py
 
-# Include network weights and models
-recursive-include src/physiotwin4d/network_weights *
-
-# Include data files
+# Include data files. src/ currently holds no non-Python package data; these
+# rules are kept so that any future bundled config ships automatically. Network
+# weights are deliberately excluded - they are produced by running Tutorials 2
+# and 9, not distributed with the package.
 recursive-include src/physiotwin4d *.json
 recursive-include src/physiotwin4d *.yaml
 recursive-include src/physiotwin4d *.yml

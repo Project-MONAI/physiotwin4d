@@ -43,16 +43,23 @@ By Category
    * :class:`~physiotwin4d.WorkflowTrainPhysicsNeMo` - Train a mesh-stage model
    * :class:`~physiotwin4d.WorkflowInferPhysicsNeMo` - Predict per-point targets
    * :class:`~physiotwin4d.WorkflowInferMovement` - Turn predictions back into geometry
+   * :class:`~physiotwin4d.WorkflowEvaluateMovement` - Score predictions against the acquired frames
 
 **Segmentation**
    * :class:`~physiotwin4d.SegmentAnatomyBase` - Base segmentation class
    * :class:`~physiotwin4d.SegmentChestTotalSegmentator` - TotalSegmentator
+   * :class:`~physiotwin4d.SegmentChestTotalSegmentatorWithContrast` - TotalSegmentator for contrast-enhanced CT
    * :class:`~physiotwin4d.SegmentHeartSimpleware` - Simpleware cardiac segmentation
+   * :class:`~physiotwin4d.SegmentHeartSimplewareTrimmedBranches` - Simpleware with trimmed great vessels
+   * :class:`~physiotwin4d.SegmentNVSegmentCTMRI` - NV-Segment-CTMR, CT *and* MRI
 
 **Image Registration**
    * :class:`~physiotwin4d.RegisterImagesBase` - Base registration class
    * :class:`~physiotwin4d.RegisterImagesANTS` - ANTs registration
+   * :class:`~physiotwin4d.RegisterImagesGreedy` - Greedy classical deformable registration
    * :class:`~physiotwin4d.RegisterImagesICON` - Icon deep learning registration
+   * :class:`~physiotwin4d.RegisterImagesChain` - Run registrations back to back
+   * :class:`~physiotwin4d.RegisterImagesGreedyICON` - Greedy then ICON, as a preset chain
    * :class:`~physiotwin4d.RegisterTimeSeriesImages` - 4D time series registration
 
 **Model Registration**

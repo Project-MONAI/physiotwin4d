@@ -2,7 +2,8 @@
 Viewing USD Files
 ==================
 
-Every USD-producing workflow in PhysioTwin4D — Tutorials 1, 5 and 10, and the
+Every USD-producing workflow in PhysioTwin4D — Tutorials 1, 5, 10, 12 and 13,
+and the
 ``physiotwin4d-convert-image-to-usd`` and ``physiotwin4d-convert-vtk-to-usd``
 commands — writes an OpenUSD scene: anatomy split into per-organ prims, painted
 with OmniSurface materials, and time-sampled when the input was a series. To
@@ -83,8 +84,9 @@ coordinate and unit details.
 Before USD: viewing the meshes directly
 =======================================
 
-The intermediate ``.vtp`` and ``.vtu`` files that Tutorials 4, 6, 7, 8 and 9
-write need no USD tooling at all — PyVista, already a dependency, opens them:
+The intermediate ``.vtp`` and ``.vtu`` files that Tutorials 4, 6, 7, 8, 9, 10,
+11 and 12 write need no USD tooling at all — PyVista, already a dependency,
+opens them:
 
 .. code-block:: python
 

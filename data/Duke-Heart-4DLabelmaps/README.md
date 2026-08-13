@@ -4,9 +4,11 @@ Gated 4D cardiac labelmaps acquired at Duke University by Dr. Paul Segars.
 
 ## Availability
 
-This dataset is **not currently available**. It is being considered for public
-release; until that happens it cannot be downloaded, and it is not distributed
-with this repository.
+This dataset is **scheduled for public release soon**. It is not distributed
+with this repository and has no automatic downloader yet.
+
+In the meantime, contact Stephen Aylward (<saylward@nvidia.com>) to request
+access.
 
 ## Effect on the tutorials
 
@@ -15,9 +17,10 @@ their organ field, for example:
 
 - `tutorials/tutorial_02_duke_heart_distancemap_finetune_icon.py`
 
-These `duke_heart` tutorials will not run without the data. Every other
-tutorial uses a publicly available dataset and is unaffected — see
-[../README.md](../README.md) for download instructions.
+There are ten of them, forming their own chain: Tutorial 4 (duke heart) -> 5 ->
+6 -> 7 -> 8 -> 9 -> 10 -> 11 -> 12. They will not run until the data is
+available. The other 19 tutorial scripts use publicly available datasets and are
+unaffected — see [../README.md](../README.md) for download instructions.
 
 Downstream tutorials that consume `duke_heart` outputs (such as the finetuned
 distance-map ICON weights used by

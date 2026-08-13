@@ -87,10 +87,16 @@ Primary Workflows
    :mod:`physiotwin4d.vtk_to_usd` package exposes advanced file conversion
    primitives.
 
+``WorkflowEvaluateMovement``
+   Scores predicted motion per anatomic structure against the frames that were
+   actually acquired, reporting volume difference, Dice and surface RMSE on a
+   single isotropic evaluation grid. It wraps ``WorkflowInferMovement``, so it
+   measures whatever that produces.
+
 AI Surrogate Workflows (PhysicsNeMo)
 =====================================
 
-The final tier of tutorials (``tutorial_08`` through ``tutorial_10``) turns a
+The final tier of tutorials (``tutorial_08`` through ``tutorial_13``) turns a
 fitted statistical shape model into a trained AI physiological surrogate,
 replacing the explicit per-phase registration solve with a learned model at
 inference time:
@@ -120,6 +126,25 @@ inference time:
    exports it as USD — one forward pass in place of the registration solve that
    produced the training data, and able to predict stages that were never
    acquired.
+
+``tutorial_11_lung_evaluate_physicsnemo.py``
+   Scores the same prediction with ``WorkflowEvaluateMovement``, against the
+   *images* rather than against the registration Tutorial 10 compares to. It
+   carries the reference frame's labelmap into each gated time point through the
+   network's own deformation and compares it to the labelmap of the frame that
+   was acquired, reporting volume difference and surface RMSE per structure
+   (plus Dice per chamber in the ``duke_heart`` variant).
+
+``tutorial_12_lung_end_to_end_inference.py``
+   Collapses the chain into one script: segment the reference frame, fit the
+   shape model to that patient, and infer every stage — no registration
+   anywhere, and nothing read from Tutorial 8. This is the shape the deployed
+   pipeline takes, and why it runs in minutes where Tutorial 8 runs in hours.
+
+``tutorial_13_heart_and_lung_motion.py``
+   Drives *two* trained networks over a single static clinical CT, animating
+   respiratory and cardiac motion together on a scan that has no 4D acquisition
+   behind it at all.
 
 These tutorials are thin drivers over the ``WorkflowTrainPhysicsNeMo`` /
 ``WorkflowInferPhysicsNeMo`` workflow classes; each workflow owns the data side

@@ -80,6 +80,21 @@
        <h2>Predict Motion With the Surrogate</h2>
        <p>Replace the registration solve with one forward pass, then export to USD.</p>
      </a>
+     <a class="pt4d-card" href="tutorials.html#tutorial-11-score-the-surrogate-against-the-images">
+       <span class="pt4d-card__number">11</span>
+       <h2>Score the Surrogate Against the Images</h2>
+       <p>Volume and surface RMSE per lobe, plus Dice per chamber, on the held-out case.</p>
+     </a>
+     <a class="pt4d-card" href="tutorials.html#tutorial-12-the-whole-inference-pipeline-in-one-script">
+       <span class="pt4d-card__number">12</span>
+       <h2>The Whole Inference Pipeline in One Script</h2>
+       <p>Go from a gated series to an animated prediction without registering a single phase.</p>
+     </a>
+     <a class="pt4d-card" href="tutorials.html#tutorial-13-breathe-and-beat-a-static-clinical-ct">
+       <span class="pt4d-card__number">13</span>
+       <h2>Breathe and Beat a Static Clinical CT</h2>
+       <p>Animate one routine breath-hold scan with both rhythms, from two networks at once.</p>
+     </a>
    </section>
 
    <section class="pt4d-topic-section" aria-label="Documentation topics">

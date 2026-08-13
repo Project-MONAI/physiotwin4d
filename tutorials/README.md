@@ -29,16 +29,16 @@ current working directory.
 | 1 | [tutorial_01_lung_gated_ct_to_usd.py](tutorial_01_lung_gated_ct_to_usd.py) | `WorkflowConvertImageToUSD` | Lung gated 4D CT (prepare first) |
 | 2 | [tutorial_02_lung_finetune_icon.py](tutorial_02_lung_finetune_icon.py) | `WorkflowFinetuneICONRegistration` | DirLab-4DCT (manual) |
 | 2 | [lung distancemap variant](tutorial_02_lung_distancemap_finetune_icon.py) | `WorkflowFinetuneICONRegistration` on distance maps | DirLab-4DCT (manual) |
-| 2 | [heart distancemap variant](tutorial_02_duke_heart_distancemap_finetune_icon.py) | `WorkflowFinetuneICONRegistration` on distance maps | Duke-Heart-4DLabelmaps (not yet available) |
+| 2 | [heart distancemap variant](tutorial_02_duke_heart_distancemap_finetune_icon.py) | `WorkflowFinetuneICONRegistration` on distance maps | Duke-Heart-4DLabelmaps (releasing soon) |
 | 3 | [tutorial_03_heart_reconstruct_highres_4d_ct.py](tutorial_03_heart_reconstruct_highres_4d_ct.py) | `WorkflowReconstructHighres4DCT` | Slicer-Heart-CT (prepare first) |
 | 3 | [tutorial_03_lung_reconstruct_highres_4d_ct.py](tutorial_03_lung_reconstruct_highres_4d_ct.py) | `WorkflowReconstructHighres4DCT` | DirLab-4DCT (manual) |
 | 4 | [tutorial_04_heart_ct_to_vtk.py](tutorial_04_heart_ct_to_vtk.py) | `WorkflowConvertImageToVTK` | Slicer-Heart-CT (prepare first) |
 | 4 | [tutorial_04_lung_ct_to_vtk.py](tutorial_04_lung_ct_to_vtk.py) | `WorkflowConvertImageToVTK` | Lung gated 4D CT (prepare first) |
-| 4 | [duke heart labelmap variant](tutorial_04_duke_heart_labelmap_to_vtk.py) | `ContourTools.extract_label_surfaces`, `ContourTools.extract_tetrahedra` | Duke-Heart-4DLabelmaps (not yet available) |
+| 4 | [duke heart labelmap variant](tutorial_04_duke_heart_labelmap_to_vtk.py) | `ContourTools.extract_label_surfaces`, `ContourTools.extract_tetrahedra` | Duke-Heart-4DLabelmaps (releasing soon) |
 | 5 | [tutorial_05_heart_vtk_to_usd.py](tutorial_05_heart_vtk_to_usd.py) | `WorkflowConvertVTKToUSD` | Output of tutorial 4 |
 | 5 | [duke heart variant](tutorial_05_duke_heart_vtk_to_usd.py) | `ConvertVTKToUSD`, `USDAnatomyTools` | Output of tutorial 4 (duke heart labelmap) |
 | 6 | [tutorial_06_heart_create_statistical_model.py](tutorial_06_heart_create_statistical_model.py) | `WorkflowCreateStatisticalModel` | KCL-Heart-Model |
-| 6 | [tutorial_06_lung_create_statistical_model.py](tutorial_06_lung_create_statistical_model.py) | `WorkflowCreateStatisticalModel` | Lung surfaces from Tutorial 4 (lung) |
+| 6 | [tutorial_06_lung_create_statistical_model.py](tutorial_06_lung_create_statistical_model.py) | `WorkflowCreateMeanSurface`, `WorkflowCreateStatisticalModel` | DirLab-4DCT `Case*T70.mha`, which it segments itself |
 | 6 | [duke heart variant](tutorial_06_duke_heart_create_statistical_model.py) | `WorkflowCreateMeanSurface`, `WorkflowCreateStatisticalModel` | Reference-frame heart surfaces from Tutorial 4 (duke heart labelmap) |
 | 7 | [tutorial_07_heart_fit_statistical_model_to_patient.py](tutorial_07_heart_fit_statistical_model_to_patient.py) | `WorkflowFitStatisticalModelToPatient` | KCL-Heart-Model plus Tutorial 6 output |
 | 7 | [tutorial_07_lung_fit_statistical_model_to_patient.py](tutorial_07_lung_fit_statistical_model_to_patient.py) | `WorkflowFitStatisticalModelToPatient` | Chest-CT plus Tutorial 6 (lung) output |
@@ -48,7 +48,12 @@ current working directory.
 | 9 | [tutorial_09_lung_train_physicsnemo_mgn.py](tutorial_09_lung_train_physicsnemo_mgn.py) | `WorkflowTrainPhysicsNeMo`, `WorkflowInferPhysicsNeMo`, `WorkflowInferMovement` (requires `[physicsnemo]` extra + `torch-geometric`) | Tutorial 8 (lung) output |
 | 9 | [duke heart variant](tutorial_09_duke_heart_train_physicsnemo_mgn.py) | `WorkflowTrainPhysicsNeMo`, `WorkflowInferPhysicsNeMo`, `WorkflowInferMovement` (requires `[physicsnemo]` extra + `torch-geometric`) | Tutorial 8 (duke heart) output |
 | 10 | [tutorial_10_lung_infer_physicsnemo_mgn.py](tutorial_10_lung_infer_physicsnemo_mgn.py) | `WorkflowInferPhysicsNeMo`, `WorkflowInferMovement`, `WorkflowConvertVTKToUSD` (requires `[physicsnemo]` extra + `torch-geometric`) | Tutorial 8 and 9 (lung) output |
-| 10 | [duke heart variant](tutorial_10_duke_heart_infer_physicsnemo.py) | `WorkflowInferPhysicsNeMo`, `WorkflowInferMovement`, `WorkflowConvertVTKToUSD` (requires `[physicsnemo]` extra + `torch-geometric`) | Tutorial 8 and 9 (duke heart) output |
+| 10 | [duke heart variant](tutorial_10_duke_heart_infer_physicsnemo_mgn.py) | `WorkflowInferPhysicsNeMo`, `WorkflowInferMovement`, `WorkflowConvertVTKToUSD` (requires `[physicsnemo]` extra + `torch-geometric`) | Tutorial 8 and 9 (duke heart) output |
+| 11 | [tutorial_11_lung_evaluate_physicsnemo.py](tutorial_11_lung_evaluate_physicsnemo.py) | `WorkflowEvaluateMovement`, `SegmentNVSegmentCTMRI` (requires `[physicsnemo]` extra + `torch-geometric`) | DirLab-4DCT plus Tutorial 8 and 9 (lung) output |
+| 11 | [duke heart variant](tutorial_11_duke_heart_evaluate_physicsnemo.py) | `WorkflowEvaluateMovement` (requires `[physicsnemo]` extra + `torch-geometric`) | Duke-Heart-4DLabelmaps plus Tutorial 8 and 9 (duke heart) output |
+| 12 | [tutorial_12_lung_end_to_end_inference.py](tutorial_12_lung_end_to_end_inference.py) | `WorkflowConvertImageToVTK`, `WorkflowFitStatisticalModelToPatient`, `WorkflowInferMovement` (requires `[physicsnemo]` extra + `torch-geometric`) | DirLab-4DCT plus Tutorial 6 and 9 (lung) output |
+| 12 | [duke heart variant](tutorial_12_duke_heart_end_to_end_inference.py) | `ContourTools`, `WorkflowFitStatisticalModelToPatient`, `WorkflowInferMovement` (requires `[physicsnemo]` extra + `torch-geometric`) | Duke-Heart-4DLabelmaps plus Tutorial 6 and 9 (duke heart) output |
+| 13 | [tutorial_13_heart_and_lung_motion.py](tutorial_13_heart_and_lung_motion.py) | `WorkflowInferMovement`, `WorkflowFitStatisticalModelToPatient`, `ConvertVTKToUSD` (requires `[physicsnemo]` extra + `torch-geometric` + Simpleware Medical) | Chest-CT plus Tutorial 7 (lung) and Tutorial 9 (lung and duke heart) output |
 
 The [tutorials page](https://project-monai.github.io/physiotwin4d/tutorials.html)
 covers the same set with previews of what each one produces and per-tutorial
@@ -79,8 +84,11 @@ installed `physiotwin4d-*` CLI commands instead.
 
 ## Running as Pytest Tutorial Tests
 
-All tutorials are wired into the test suite under the `tutorial` marker.
-They run end-to-end and compare generated screenshots against baselines:
+Some tutorials are wired into the test suite under the `tutorial` marker —
+currently 9 of the 29 scripts, as one hand-written class each in
+`tests/test_tutorials.py` rather than a parametrized sweep, so adding a tutorial
+does not automatically add a test. Those that are covered run end-to-end and
+compare generated screenshots against baselines:
 
 ```bash
 # Run all tutorial tests (requires data download first)
@@ -107,18 +115,30 @@ its own anatomy's earlier tutorials, never the other's.
 6. **Tutorial 6** creates the PCA statistical model; the heart variant from KCL-Heart-Model, the lung variant from the DirLab-4DCT `Case*T70.mha` phases, which it segments itself. Both write `pca_model.json` and `pca_mean_surface.vtp` under their own output directory.
 7. **Tutorial 7** applies the statistical model, consuming its own anatomy's Tutorial 6 output; the heart variant fits the Tutorial 6 (heart) model, the lung variant fits the Tutorial 6 (lung) model to the routine clinical `Chest-CT` scan (`physiotwin4d-download-data Chest-CT`).
 
-The AI-surrogate pipeline (Tutorials 8 -> 9 -> 10) runs on DIR-Lab and the
-Tutorial 6 lung model, in order:
+The AI-surrogate pipeline (Tutorials 8 -> 9 -> 10 -> 11 -> 12) runs on DIR-Lab
+and the Tutorial 6 lung model, in order:
 
 8. **Tutorial 8** fits the lung PCA model to each case's reference phase and propagates the fitted SSM surface through every respiratory phase (output feeds Tutorial 9). It uses the Tutorial 2 ICON weights when they exist.
 9. **Tutorial 9** trains a PhysicsNeMo MeshGraphNet to predict the per-vertex motion at any stage. PhysicsNeMo is an optional extra: install with `pip install "physiotwin4d[physicsnemo]"` (requires Python >= 3.11); the MeshGraphNet also needs `torch-geometric`. A `TrainPhysicsNeMoMLP` method exists as a drop-in alternative, without its own tutorial.
-10. **Tutorial 10** loads that checkpoint and predicts one case's surface at a requested stage, scoring it against the acquired phase and exporting USD. The case, checkpoint epoch, and stage are constants near the top of the script; for command-line runs with path arguments, use the installed `physiotwin4d-infer-physicsnemo` CLI.
+10. **Tutorial 10** loads that checkpoint and predicts the held-out case's surface at every acquired stage, scoring each against its acquired phase, warping the reference-phase CT through the inferred deformation, and exporting one animated USD. The case and checkpoint epoch are constants near the top of the script; for command-line runs with path arguments, use the installed `physiotwin4d-infer-physicsnemo` CLI.
+11. **Tutorial 11** scores the same prediction against the images rather than against the registration: it segments every gated frame independently, then reports volume difference and surface RMSE per lung lobe (per heart chamber, with Dice, in the duke variant) as `evaluation_report.md` and `evaluation_metrics.csv`. The lung variant leaves Dice out: a lobe moves little compared to its own size, so the overlap fraction describes the lobe rather than the motion.
+12. **Tutorial 12** collapses the whole chain into one script: it segments the reference frame, fits the Tutorial 6 model to that patient itself, and infers every stage - so nothing is read from Tutorial 8 and no phase is ever registered. It needs only the gated series plus the Tutorial 6 model and the Tutorial 9 checkpoint, and it wipes its output directory on every run so the reported runtimes in `<case>_runtimes.csv` cover the entire pipeline.
+
+**Tutorial 13** is where the two chains meet. It animates the routine clinical
+`Chest-CT` scan of Tutorial 7 (lung) with both rhythms at once: respiratory
+motion from the Tutorial 9 (lung) network applied to that scan's lung fit, and
+cardiac motion from the Tutorial 9 (duke heart) network applied to a Duke heart
+model it fits to the same scan. Nothing in it registers anything or needs a 4D
+acquisition. Each model is fitted through the segmenter that built it, so the
+heart step calls Simpleware Medical.
 
 The `duke_heart` variants form their own chain on Duke-Heart-4DLabelmaps,
 which no step above shares: Tutorial 4 (duke heart) -> 5 -> 6 -> 7 -> 8 -> 9 ->
-10, each reading the previous one's output, with Tutorial 2 (heart distancemap
-variant) supplying optional finetuned weights to Tutorials 7 and 8. That
-dataset is not publicly available yet, so this chain cannot be run today.
+10 -> 11 -> 12, each reading the previous one's output, with Tutorial 2 (heart
+distancemap variant) supplying optional finetuned weights to Tutorials 7 and 8.
+That dataset is being released soon; until then this chain cannot be run, and
+access can be requested from Stephen Aylward (<saylward@nvidia.com>). See
+[../data/Duke-Heart-4DLabelmaps/README.md](../data/Duke-Heart-4DLabelmaps/README.md).
 
 ## For Contributors
 

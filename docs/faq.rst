@@ -68,7 +68,10 @@ torchvision, and torchaudio are sourced from
 What Python version is required?
 ---------------------------------
 
-Python 3.11 or 3.12 are supported.
+Python 3.10, 3.11 and 3.12 are supported.
+
+The one exception is the optional ``[physicsnemo]`` extra: ``nvidia-physicsnemo``
+requires Python >= 3.11, so the AI-surrogate tutorials need 3.11 or 3.12.
 
 Usage Questions
 ===============
@@ -97,8 +100,13 @@ See :doc:`api/segmentation/index` for comparison.
 Which registration method should I use?
 ----------------------------------------
 
-* **ICON**: Recommended for cardiac/lung (fast, GPU)
+* **Greedy**: CPU-capable classical deformable registration; what Tutorials 1
+  and 3 use by default
+* **ICON**: Recommended for cardiac/lung (fast, GPU), and finetunable on your
+  own cohort — see Tutorial 2
 * **ANTs**: Best for brain imaging and general purpose
+* **Greedy+ICON** (``RegisterImagesGreedyICON``, a ``RegisterImagesChain``
+  preset): Greedy for the coarse alignment, ICON for the refinement
 
 See :doc:`api/registration/index` for comparison.
 

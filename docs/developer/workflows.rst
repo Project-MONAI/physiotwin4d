@@ -26,6 +26,20 @@ Current Workflow Mapping
      - :class:`physiotwin4d.WorkflowFitStatisticalModelToPatient`
    * - ``physiotwin4d-reconstruct-highres-4d-ct``
      - :class:`physiotwin4d.WorkflowReconstructHighres4DCT`
+   * - ``physiotwin4d-train-physicsnemo``
+     - :class:`physiotwin4d.WorkflowTrainPhysicsNeMo`
+   * - ``physiotwin4d-infer-physicsnemo``
+     - :class:`physiotwin4d.WorkflowInferPhysicsNeMo`
+   * - ``physiotwin4d-convert-image-4d-to-3d``
+     - :class:`physiotwin4d.ConvertImage4DTo3D` (a converter, not a workflow)
+   * - ``physiotwin4d-download-data``
+     - :class:`physiotwin4d.DataDownloadTools` (a utility, not a workflow)
+   * - ``physiotwin4d-visualize-pca-modes``
+     - Reads a ``pca_model.json`` directly; no workflow class
+
+That is all eleven installed commands. Two workflow classes have no CLI
+wrapper: :class:`physiotwin4d.WorkflowFinetuneICONRegistration` and
+:class:`physiotwin4d.WorkflowEvaluateMovement`.
 
 Workflow Example
 ================

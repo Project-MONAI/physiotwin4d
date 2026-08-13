@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "physiotwin4d"
 version = "2026.07.3"
-description = "Methods, workflows, tutorials, and CLI for creating personalized physiological digital twins from 3D medical images"
+description = "Methods, workflows, tutorials, and CLI for creating personalized physiological digital twins from 3D/4D medical images"
 authors = [
     {name = "Stephen R. Aylward", email = "saylward@nvidia.com"}
 ]
@@ -50,7 +50,11 @@ keywords = [
     "ICON",
     "ANTS",
     "physiological-motion",
-    "4d-visualization"
+    "4d-visualization",
+    "digital-twin",
+    "statistical-shape-model",
+    "physicsnemo",
+    "meshgraphnet"
 ]
 dependencies = [
     # Core medical imaging
@@ -353,8 +357,13 @@ module = [
     "tutorial_08_lung_fit_model_to_4d_patients",
     "tutorial_09_duke_heart_train_physicsnemo_mgn",
     "tutorial_09_lung_train_physicsnemo_mgn",
-    "tutorial_10_duke_heart_infer_physicsnemo",
+    "tutorial_10_duke_heart_infer_physicsnemo_mgn",
     "tutorial_10_lung_infer_physicsnemo_mgn",
+    "tutorial_11_duke_heart_evaluate_physicsnemo",
+    "tutorial_11_lung_evaluate_physicsnemo",
+    "tutorial_12_duke_heart_end_to_end_inference",
+    "tutorial_12_lung_end_to_end_inference",
+    "tutorial_13_heart_and_lung_motion",
 ]
 disable_error_code = ["import-not-found", "import-untyped"]
 

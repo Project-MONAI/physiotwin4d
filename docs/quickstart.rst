@@ -84,19 +84,27 @@ Which dataset each tutorial needs:
      - Heart Tutorials 1, 3, 4
    * - ``DirLab-4DCT``
      - Manual
-     - Lung Tutorials 1, 2, 3, 4, 6, 8, and Heart Tutorial 7
+     - Lung Tutorials 1, 2, 3, 4, 6, 8, 10, 11, 12, and Heart Tutorial 7
    * - ``KCL-Heart-Model``
      - CLI
      - Heart Tutorial 6
    * - ``Chest-CT``
      - CLI
-     - Lung Tutorial 7
+     - Lung Tutorial 7, and Tutorial 13
+   * - ``Duke-Heart-4DLabelmaps``
+     - Releasing soon
+     - The ten ``duke_heart`` variants, Tutorials 2 and 4 through 12
    * - ``CHOP-Valve4D``
      - CLI
      - No tutorial - used by the valve experiments under ``experiments/``
 
-Tutorials 5, 9 and 10 need no dataset of their own: they consume the outputs of
-Tutorials 4, 8 and 9 respectively.
+Tutorials 5 and 9 need no dataset of their own: they consume the outputs of
+Tutorials 4 and 8 respectively.
+
+``Duke-Heart-4DLabelmaps`` is scheduled for public release soon. Until then the
+ten ``duke_heart`` variants cannot be run; contact Stephen Aylward
+(saylward@nvidia.com) to request access, and see
+``data/Duke-Heart-4DLabelmaps/README.md``.
 
 ``DirLab-4DCT`` is the one dataset with no automatic downloader: DIR-Lab
 distributes each case individually and may require registration, so download it
@@ -110,9 +118,9 @@ as a plain script:
 
    python tutorials/tutorial_01_heart_gated_ct_to_usd.py
 
-:doc:`tutorials` is the full guide — ten tutorials with previews of what each
-one produces, the run order, and per-tutorial notes on pointing them at your
-own data. The rest of this page is the same functionality as a CLI call and as
+:doc:`tutorials` is the full guide — thirteen numbered stages with previews of
+what each one produces, the run order, and per-tutorial notes on pointing them
+at your own data. The rest of this page is the same functionality as a CLI call and as
 a Python API call, for when you would rather not start from a script.
 
 Basic Workflow
@@ -301,7 +309,7 @@ layouts for every dataset.
 
 DirLab-4DCT data is manual-only; see ``data/DirLab-4DCT/README.md``. It drives
 the whole lung pipeline — Lung Tutorials 1, 2, 3, 4, 6 and 8, plus Heart
-Tutorial 7 — which then feeds the AI-surrogate Tutorials 9 and 10. Those two
+Tutorial 7 — which then feeds the AI-surrogate Tutorials 9 through 12. Those
 additionally require the optional
 ``physicsnemo`` extra (``pip install "physiotwin4d[physicsnemo]"``, plus
 ``torch-geometric`` for the MeshGraphNet); PhysicsNeMo itself requires

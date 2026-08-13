@@ -73,7 +73,7 @@ reports as ``model_directory``:
     - everything inference needs beside the weights
 
 Everything but the checkpoints is written before the first epoch, so
-``tutorial_10_duke_heart_infer_physicsnemo.py`` can be pointed at this
+``tutorial_10_duke_heart_infer_physicsnemo_mgn.py`` can be pointed at this
 directory with its ``epoch`` set to an intermittent checkpoint while training
 is still running.
 """

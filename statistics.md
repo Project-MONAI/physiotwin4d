@@ -1,24 +1,28 @@
 # PhysioTwin4D - Software Development Statistics
 
-**Report Generated:** August 5, 2026
+**Report Generated:** August 13, 2026
 **Project Version:** 2026.07.3
 **Status:** Beta (Development Status: 4 - Beta)
+
+Line counts below are total lines per file (`cat | wc -l`), including blanks and
+comments. Stating the method matters: the previous revision of this report used
+an unstated one, so its figures are not directly comparable to these.
 
 ---
 
 ## Executive Summary
 
 PhysioTwin4D is a collection of methods, workflows, tutorials, and CLI tools
-for creating personalized physiological digital twins from 3D medical images.
+for creating personalized physiological digital twins from 3D/4D medical images.
 This report summarizes development effort, code quality, and project maturity.
 
 ### Key Metrics at a Glance
 
 | Metric                         | Value                                          |
 | ------------------------------ | ---------------------------------------------- |
-| **Total Lines of Code**        | ~53,400                                        |
-| **Development Period**         | December 5, 2025 - August 5, 2026 (~8 months)  |
-| **Total Commits**              | 114                                            |
+| **Total Lines of Code**        | ~74,100                                        |
+| **Development Period**         | December 5, 2025 - August 13, 2026 (~8 months) |
+| **Total Commits**              | 122                                            |
 | **Primary Developer**          | 1 (Stephen Aylward), plus 1 outside contributor |
 
 ---
@@ -29,14 +33,19 @@ This report summarizes development effort, code quality, and project maturity.
 
 | Category                                | Files          | Lines of Code | Percentage |
 | ---------------------------------------- | -------------- | -------------- | ---------- |
-| **Core Python Source (`src/`)**          | 73 files       | 22,663         | 42.4%      |
-| **Test Suite (`tests/`)**                | 36 files       | 8,225          | 15.4%      |
-| **Experiment Scripts (`experiments/`)**  | 46 files       | 7,897          | 14.8%      |
-| **Tutorial Scripts (`tutorials/`)**      | 20 files       | 4,153          | 7.8%       |
-| **Utility Scripts (`utils/`)**           | 3 files        | 1,460          | 2.7%       |
-| **Documentation (`docs/*.rst`)**         | 85 files       | 6,069          | 11.4%      |
-| **Markdown (repo-wide READMEs, guides)** | 35 files       | 2,958          | 5.5%       |
-| **TOTAL**                                | **298 files**  | **~53,400**    | **100%**   |
+| **Core Python Source (`src/`)**          | 74 files       | 29,316         | 39.6%      |
+| **Test Suite (`tests/`)**                | 40 files       | 11,601         | 15.7%      |
+| **Experiment Scripts (`experiments/`)**  | 46 files       | 9,219          | 12.4%      |
+| **Tutorial Scripts (`tutorials/`)**      | 32 files       | 9,107          | 12.3%      |
+| **Utility Scripts (`utils/`)**           | 3 files        | 1,739          | 2.3%       |
+| **Documentation (`docs/*.rst`)**         | 85 files       | 8,871          | 12.0%      |
+| **Markdown (repo-wide READMEs, guides)** | 38 files       | 4,204          | 5.7%       |
+| **TOTAL**                                | **318 files**  | **~74,100**    | **100%**   |
+
+The 32 files under `tutorials/` are 29 numbered tutorial scripts plus 3
+per-organ parameter modules (`parameters_heart_ct_kcl.py`,
+`parameters_lung_ct_dirlab.py`, `parameters_duke_heart_labelmaps.py`) that
+carry the constants the tutorials share.
 
 All experiment and tutorial sources are plain `.py` files run with
 `python <script>.py`. Experiment scripts additionally carry `# %%` percent-cell
@@ -47,19 +56,21 @@ tutorials are straightforward top-to-bottom scripts.
 
 | Module                                          | Lines | Purpose                                         |
 | ------------------------------------------------ | ----- | ----------------------------------------------- |
-| `usd_tools.py`                                   | 1,290 | USD file manipulation and inspection            |
-| `usd_anatomy_tools.py`                           | 986   | OmniSurface materials for labeled anatomy       |
-| `convert_vtk_to_usd.py`                          | 893   | High-level VTK -> USD converter                 |
-| `workflow_fit_statistical_model_to_patient.py`   | 826   | Model-to-patient registration workflow          |
-| `transform_tools.py`                             | 724   | ITK transform utilities                         |
-| `register_models_pca.py`                         | 721   | PCA-based shape model registration              |
-| `register_images_ants.py`                        | 645   | ANTs-based image registration                   |
-| `segment_nv_segment_ct_mri.py`                   | 634   | NVIDIA CT/MRI segmentation bundle bridge        |
-| `vtk_to_usd/` subpackage                         | 2,193 | Low-level VTK -> USD building blocks (9 files)  |
-| `cli/` subpackage                                | 2,129 | CLI entry-point scripts (11 commands, 13 files) |
-| `register_images_greedy.py`                      | 556   | Greedy classical deformable registration        |
-| `register_time_series_images.py`                 | 511   | Time series registration for 4D CT              |
-| `contour_tools.py`                               | 502   | Mesh extraction and contour manipulation        |
+| `usd_tools.py`                                   | 1,523 | USD file manipulation and inspection            |
+| `contour_tools.py`                               | 1,419 | Mesh extraction and contour manipulation        |
+| `register_models_pca.py`                         | 1,117 | PCA-based shape model registration              |
+| `convert_vtk_to_usd.py`                          | 1,071 | High-level VTK -> USD converter                 |
+| `usd_anatomy_tools.py`                           | 1,053 | OmniSurface materials for labeled anatomy       |
+| `workflow_fit_statistical_model_to_patient.py`   | 1,049 | Model-to-patient registration workflow          |
+| `transform_tools.py`                             | 1,048 | ITK transform utilities                         |
+| `segment_nv_segment_ct_mri.py`                   | 695   | NVIDIA CT/MRI segmentation bundle bridge        |
+| `register_images_ants.py`                        | 691   | ANTs-based image registration                   |
+| `image_tools.py`                                 | 685   | Image I/O, resampling, preprocessing            |
+| `workflow_infer_movement.py`                     | 625   | Predicted displacements back into geometry      |
+| `register_images_greedy.py`                      | 593   | Greedy classical deformable registration        |
+| `workflow_evaluate_movement.py`                  | 550   | Per-structure scoring against acquired frames   |
+| `vtk_to_usd/` subpackage                         | 2,717 | Low-level VTK -> USD building blocks (9 files)  |
+| `cli/` subpackage                                | 2,454 | CLI entry-point scripts (11 commands, 13 files) |
 
 ---
 
@@ -72,7 +83,7 @@ tutorials are straightforward top-to-bottom scripts.
 | **CI/CD Pipeline**          | GitHub Actions (Ubuntu + Windows; Python 3.11/3.12), plus a self-hosted Windows GPU runner |
 | **Dependency Management**   | `pyproject.toml`, `uv`-friendly                       |
 | **Code Quality Tools**      | Ruff (lint + format), mypy                            |
-| **Example Scripts**         | 46 experiment scripts + 15 tutorial scripts           |
+| **Example Scripts**         | 46 experiment scripts + 29 tutorial scripts           |
 | **Version Management**      | Calendar versioning via bumpver                       |
 | **API Reference**           | Google-style docstrings + Sphinx API docs under `docs/api/` |
 | **Package Distribution**    | PyPI-ready                                            |
@@ -93,6 +104,7 @@ PhysioTwin4D operates across several technically demanding domains:
 | **Image Registration**   | Very High          | ANTs, Greedy, Icon, UniGradICON           |
 | **AI Segmentation**      | High               | TotalSegmentator, Simpleware bridge       |
 | **Geometric Processing** | High               | ICP, PCA, distance maps, statistical shape models |
+| **AI Surrogates**        | Very High          | PhysicsNeMo, MeshGraphNet, torch-geometric |
 
 ### Architectural Sophistication
 
@@ -101,8 +113,9 @@ PhysioTwin4D operates across several technically demanding domains:
 - Module coupling: medium (clear separation between segmentation,
   registration, USD conversion, and workflow layers)
 - Public API surface documented via Sphinx API docs under `docs/api/`
-- 23 required external dependencies (medical imaging, AI/ML, USD, registration),
-  plus optional extras for CUDA, PhysicsNeMo, docs and development
+- 24 required external dependencies (medical imaging, AI/ML, USD, registration),
+  plus six optional extras: `cuda13`, `physicsnemo`, `dev`, `docs`, `test`, and
+  `all`
 
 ---
 
@@ -114,6 +127,7 @@ PhysioTwin4D operates across several technically demanding domains:
 | ---------------------- | ----------------------------------------------------- |
 | **Medical Imaging**    | ITK, MONAI, nibabel, pydicom, pynrrd                 |
 | **Deep Learning**      | PyTorch, CuPy (CUDA 13), transformers                |
+| **AI Surrogates**      | PhysicsNeMo, torch-geometric, torch-scatter (optional `[physicsnemo]` extra) |
 | **Registration**       | ANTs (antspyx), picsl-greedy, icon-registration, UniGradICON |
 | **3D Graphics / USD**  | VTK, PyVista, USD-core, trimesh                       |
 | **AI Segmentation**    | TotalSegmentator                                      |
@@ -161,8 +175,8 @@ PhysioTwin4D operates across several technically demanding domains:
 
 | Type                  | Count                   | Lines |
 | ---------------------- | ------------------------ | ----- |
-| **Markdown files**    | 35 (repo-wide READMEs, guides) | 2,958 |
-| **reStructuredText**  | 85 files under `docs/`   | 6,069 |
+| **Markdown files**    | 38 (repo-wide READMEs, guides) | 4,204 |
+| **reStructuredText**  | 85 files under `docs/`   | 8,871 |
 | **Python docstrings** | All public modules       | embedded |
 | **Knowledge graph**   | `graphify-out/`, refreshed via `graphify update .` | n/a (not checked in) |
 
@@ -182,7 +196,7 @@ PhysioTwin4D operates across several technically demanding domains:
 ## Summary
 
 PhysioTwin4D is a beta-quality scientific toolkit for creating personalized
-physiological digital twins: it extracts anatomic models from 3D medical
+physiological digital twins: it extracts anatomic models from 3D/4D medical
 images and uses AI surrogates - together with statistical shape models for
 subject-specific characterization and cross-subject correspondence - to
 estimate a subject's physiological processes, currently cardiac and
@@ -193,4 +207,4 @@ unattended.
 
 ---
 
-**Last Updated:** August 5, 2026
+**Last Updated:** August 13, 2026

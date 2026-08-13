@@ -206,13 +206,17 @@ Expected output:
 Command-Line Tools
 ==================
 
-PhysioTwin4D provides command-line interfaces that should be available after installation:
+PhysioTwin4D installs eleven command-line tools, each prefixed
+``physiotwin4d-``. There is no bare ``physiotwin4d`` command; check the install
+with any one of them:
 
 .. code-block:: bash
 
    # Check CLI is available
-   physiotwin4d --help
+   physiotwin4d-download-data --help
    physiotwin4d-convert-image-to-usd --help
+
+See :doc:`cli_scripts/overview` for the full list.
 
 GPU Setup
 =========
@@ -228,6 +232,20 @@ extra:
 A plain ``pip install physiotwin4d`` installs a CPU-only build. It runs
 without error but emits a ``UserWarning`` at import time and will be
 significantly slower than a GPU-enabled install.
+
+Optional External Software
+--------------------------
+
+One segmentation backend is not a Python dependency and cannot be installed
+with pip:
+
+* **Synopsys Simpleware Medical** — required by
+  :class:`~physiotwin4d.SegmentHeartSimpleware` and
+  :class:`~physiotwin4d.SegmentHeartSimplewareTrimmedBranches`, and therefore by
+  Tutorial 13, which segments the heart it fits. It needs a local licensed
+  installation; see :doc:`api/segmentation/simpleware`. Everything else in the
+  toolkit runs without it, and the ``requires_simpleware`` tests skip cleanly
+  when it is absent.
 
 If CUDA is not yet installed, download the CUDA Toolkit from
 `NVIDIA's website <https://developer.nvidia.com/cuda-downloads>`_, then verify:

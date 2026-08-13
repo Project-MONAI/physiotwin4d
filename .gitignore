@@ -28,17 +28,15 @@ pr*review_summary.md
 docs/_build/
 docs/_static/.buildinfo
 
-# Tutorial videos (GIF versions are tracked in LFS instead)
+# Tutorial videos (GIF versions are tracked in LFS instead). The MP4 sources
+# are kept beside the GIFs in docs/assets/mp4/ and are never tracked.
 docs/assets/*.mp4
+docs/assets/mp4/
 
-# Network weights
+# Network weights. Weights are produced by running Tutorials 2 and 9, not
+# distributed with the repository, so nothing under network_weights is tracked.
 network_weights
-
-# Track the MGN heart and lung model weights (other network_weights stay ignored)
-!tutorials/network_weights/
-tutorials/network_weights/*
-!tutorials/network_weights/physicsnemo_mgn_heart/
-!tutorials/network_weights/physicsnemo_mgn_lung_motion/
+tutorials/network_weights/
 
 # Data files
 *.gz

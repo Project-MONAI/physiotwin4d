@@ -235,7 +235,7 @@ jobs:
     - name: Run USD conversion tests
       run: |
         xvfb-run -a --server-args="-screen 0 1024x768x24" \
-          pytest tests/test_convert_vtk_to_usd_polymesh.py -v --cov=physiotwin4d --cov-append --cov-report=xml
+          pytest tests/test_convert_vtk_to_usd.py -v --cov=physiotwin4d --cov-append --cov-report=xml
       continue-on-error: true
 
     - name: Run USD utility tests
@@ -408,13 +408,13 @@ jobs:
 # The following tests are excluded from CI and should be run locally:
 #
 # Slow/GPU-intensive tests:
-# - tests/test_register_images_ANTS.py (slow, computationally intensive)
-# - tests/test_register_images_ICON.py (requires CUDA for ICON)
+# - tests/test_register_images_ants.py (slow, computationally intensive)
+# - tests/test_register_images_icon.py (requires CUDA for ICON)
 # - tests/test_transform_tools.py (depends on slow registration tests)
 # - tests/test_segment_chest_total_segmentator.py (requires CUDA for TotalSegmentator)
 #
 # Tutorial tests (SLOW - hours to complete):
-# - tests/test_tutorials.py (runs every script in tutorials/ end-to-end)
+# - tests/test_tutorials.py (runs 9 of the 29 tutorial scripts end-to-end)
 #   These tests are NEVER run in the PR CI and must be opted into
 #   They execute end-to-end workflows that may take multiple hours
 #
@@ -422,7 +422,7 @@ jobs:
 #   pytest tests/ -v --run-slow                 # Run all slow tests
 #   pytest tests/ -v --run-gpu --run-slow       # GPU + slow (typical local dev profile)
 #   pytest tests/ -v --run-simpleware --run-gpu --run-slow  # Full Simpleware coverage
-#   pytest tests/test_register_images_ANTS.py -v --run-slow
+#   pytest tests/test_register_images_ants.py -v --run-slow
 #
 # Self-hosted GPU runner enables ALL buckets via --run-all
 # (--run-gpu --run-slow --run-simpleware --run-physicsnemo --run-tutorials).

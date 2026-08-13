@@ -12,7 +12,7 @@ are used to track anatomical motion over time.
 """
 
 import logging
-from typing import Type, Union, cast
+from typing import Optional, Type, Union, cast
 
 import itk
 import numpy as np
@@ -641,32 +641,147 @@ class TransformTools(PhysioTwin4DBase):
         return tfm_smooth
 
     def smooth_deformation_field_transform(
-        self, field: itk.Image, sigma: float
+        self,
+        field: itk.Image,
+        sigma: float,
+        weight_image: Optional[itk.Image] = None,
+        normal_image: Optional[itk.Image] = None,
+        interior_mask: Optional[itk.Image] = None,
     ) -> itk.DisplacementFieldTransform:
-        """Wrap a deformation field as a Gaussian-smoothed field transform.
+        """Spread a sparsely sampled deformation field into a continuous one.
 
-        The float vector ``field`` is converted to a double-precision vector
-        field, wrapped as a :class:`itk.DisplacementFieldTransform` and
-        Gaussian-smoothed by ``sigma`` (physical millimeters). Smoothing spreads
-        a thin surface-shell field into a continuous deformation (and attenuates
-        its peak magnitude).
+        ``field`` is treated as a weighted set of displacement *samples* rather
+        than as an image: the weighted samples and their weights are each
+        Gaussian-smoothed by ``sigma`` (physical millimeters) and then divided,
+        which is a Gaussian-weighted average of the nearby samples. A thin
+        surface shell therefore becomes a continuous deformation that keeps the
+        displacement magnitude the samples carried, instead of being diluted by
+        the empty voxels a plain blur would average in. Far from every sample
+        the smoothed weight vanishes and the field decays to zero.
+
+        That spread is otherwise isotropic, and carries the whole displacement
+        vector outward. Giving ``normal_image`` and ``interior_mask`` splits each
+        sample into the component along the surface normal, which expansion and
+        contraction live in, and the tangential remainder, which sliding lives
+        in, and spreads only the normal component outside the mask. Tissue
+        beyond an organ is then pushed and pulled by it without being dragged
+        along it, which is how a slip interface such as the pleura or the
+        pericardium behaves. Inside the mask the full vector is spread, so the
+        organ's own contents still follow its surface.
 
         Args:
-            field (itk.Image): Input vector deformation field.
+            field (itk.Image): Input vector deformation field, sampled where
+                ``weight_image`` is non-zero.
             sigma (float): Standard deviation of the Gaussian smoothing kernel
                 in physical units (millimeters).
+            weight_image (Optional[itk.Image]): Per-voxel sample weight, such as
+                the vertex count
+                :meth:`WorkflowInferMovement.create_deformation_field` returns.
+                Omit to weight every voxel holding a non-zero displacement
+                equally, which cannot tell an empty voxel from a genuinely
+                zero-displacement one.
+            normal_image (Optional[itk.Image]): Per-voxel unit surface normal on
+                ``field``'s grid, as
+                :meth:`WorkflowInferMovement.create_deformation_field` returns
+                alongside the field. Samples whose normal is zero are spread
+                whole, having no direction to project onto.
+            interior_mask (Optional[itk.Image]): Scalar image on ``field``'s
+                grid, 1 where the full displacement should be spread and 0 where
+                only its normal component should be. Soften its edge to set the
+                width of the band the tangential motion dies out over; a binary
+                mask makes the boundary a discontinuity.
 
         Returns:
             itk.DisplacementFieldTransform: Smoothed field transform.
+
+        Raises:
+            ValueError: If only one of ``normal_image`` and ``interior_mask`` is
+                given, if either does not lie on ``field``'s grid, or if the
+                field holds no non-zero samples to spread.
         """
-        field_double = ImageTools().convert_array_to_image_of_vectors(
-            itk.array_from_image(field), reference_image=field, ptype=itk.D
+        if (normal_image is None) != (interior_mask is None):
+            raise ValueError(
+                "normal_image and interior_mask must be given together: the "
+                "normals say what to project onto, the mask says where to."
+            )
+
+        field_arr = itk.array_from_image(field).astype(np.float64)
+        if weight_image is not None:
+            weights = itk.array_from_image(weight_image).astype(np.float64)
+        else:
+            weights = (np.linalg.norm(field_arr, axis=3) > 0.0).astype(np.float64)
+
+        # Outside the mask only the normal component of each sample is spread.
+        # Both component sets share one denominator, so the weights are smoothed
+        # once however many fields are being spread through them.
+        sample_sets = [field_arr]
+        mask: Optional[np.ndarray] = None
+        if normal_image is not None and interior_mask is not None:
+            normals = itk.array_from_image(normal_image).astype(np.float64)
+            mask = itk.array_from_image(interior_mask).astype(np.float64)
+            if normals.shape != field_arr.shape or mask.shape != field_arr.shape[:3]:
+                raise ValueError(
+                    f"normal_image {normals.shape} and interior_mask "
+                    f"{mask.shape} must lie on the field's grid "
+                    f"{field_arr.shape}."
+                )
+            projected = (field_arr * normals).sum(axis=3, keepdims=True) * normals
+            # A vertex interior to a volumetric template carries a zero normal.
+            # Projecting it would delete a sample the weights still count in the
+            # denominator, biasing the result toward zero rather than leaving the
+            # sample unprojected, so those keep their full displacement.
+            unoriented = np.linalg.norm(normals, axis=3) == 0.0
+            projected[unoriented] = field_arr[unoriented]
+            sample_sets.append(projected)
+
+        smoothed_sets = [np.zeros_like(field_arr) for _ in sample_sets]
+        for samples, into in zip(sample_sets, smoothed_sets):
+            for dim in range(field_arr.shape[3]):
+                into[:, :, :, dim] = self._smooth_scalar_array(
+                    samples[:, :, :, dim] * weights, sigma, field
+                )
+        smoothed = smoothed_sets[0]
+        smoothed_weights = self._smooth_scalar_array(weights, sigma, field)
+
+        # Add a floor to the denominator rather than clamping to it. ITK's
+        # recursive Gaussian is an IIR approximation, so far from every sample
+        # both smoothed arrays ring around zero; clamping a denominator that
+        # small turns that ringing into displacements several times larger than
+        # any the samples carried, while adding to it lets the quotient fall off
+        # to zero there, which is what a field with no nearby sample should do.
+        weight_floor = 1.0e-3 * float(smoothed_weights.max())
+        if weight_floor <= 0.0:
+            raise ValueError("Deformation field has no non-zero samples to spread.")
+        denominator = (np.maximum(smoothed_weights, 0.0) + weight_floor)[..., None]
+        for spread in smoothed_sets:
+            spread /= denominator
+
+        if mask is not None:
+            inside = np.clip(mask, 0.0, 1.0)[..., None]
+            smoothed = inside * smoothed_sets[0] + (1.0 - inside) * smoothed_sets[1]
+
+        smoothed_field = ImageTools().convert_array_to_image_of_vectors(
+            smoothed, reference_image=field, ptype=itk.D
         )
         field_transform = itk.DisplacementFieldTransform[itk.D, 3].New()
-        field_transform.SetDisplacementField(field_double)
-        return self.smooth_transform(
-            field_transform, sigma=sigma, reference_image=field
+        field_transform.SetDisplacementField(smoothed_field)
+        return field_transform
+
+    @staticmethod
+    def _smooth_scalar_array(
+        array: np.ndarray, sigma: float, reference_image: itk.Image
+    ) -> np.ndarray:
+        """Gaussian-smooth a scalar array on ``reference_image``'s grid.
+
+        The array is wrapped with the reference geometry before filtering, so
+        ``sigma`` is in millimeters rather than in voxels.
+        """
+        image = itk.image_from_array(np.ascontiguousarray(array))
+        image.CopyInformation(reference_image)
+        smoothed: np.ndarray = itk.array_from_image(
+            itk.smoothing_recursive_gaussian_image_filter(image, Sigma=sigma)
         )
+        return smoothed
 
     def combine_transforms_with_masks(
         self,

@@ -15,8 +15,9 @@ from __future__ import annotations
 
 import csv
 import logging
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Optional, cast
+from typing import Any, Literal, Optional, cast
 
 import itk
 import numpy as np
@@ -24,6 +25,8 @@ import pyvista as pv
 
 from . import physicsnemo_tools as pnt
 from .physiotwin4d_base import PhysioTwin4DBase
+from .transform_tools import TransformTools
+from .workflow_convert_vtk_to_usd import WorkflowConvertVTKToUSD
 from .workflow_infer_physicsnemo import WorkflowInferPhysicsNeMo
 
 
@@ -249,6 +252,178 @@ class WorkflowInferMovement(PhysioTwin4DBase):
             )
         return result
 
+    def process_time_series(
+        self,
+        shape_parameters: Path,
+        stages: Sequence[float],
+        output_directory: Path,
+        reference_mesh: Optional[Path] = None,
+        ground_truth: Optional[Sequence[Path]] = None,
+        reference_image: Optional[itk.Image] = None,
+        warp_interpolation: str = "linear",
+        warp_background_value: float = 0.0,
+        smoothing_sigma_mm: float = 10.0,
+        usd_project_name: Optional[str] = None,
+        anatomy_type: Optional[str] = None,
+        separate_by_connectivity: bool = False,
+    ) -> dict[str, Any]:
+        """Predict one subject across a whole time series and write its geometry.
+
+        One prediction per entry of ``stages``, each written as a mesh. When
+        ``reference_image`` is supplied, each stage also gets a deformation
+        field, which is Gaussian-smoothed into a continuous
+        :class:`itk.DisplacementFieldTransform` and used to carry
+        ``reference_image`` into that stage's frame. The smoothing spreads a
+        surface-shell field into the volume, so the warped image is an
+        interpolation of the surface motion, not an independent registration.
+
+        Args:
+            shape_parameters: JSON file with the subject PCA coefficient vector.
+            stages: Stages to predict, in the order they are to be animated.
+            output_directory: Directory every artifact is written to.
+            reference_mesh: The subject's reference mesh; omit to displace the
+                PCA reconstruction instead.
+            ground_truth: One mesh per stage whose points are the true stage
+                positions, for error reporting. Must align with ``stages``.
+            reference_image: Image carried through each stage's deformation, and
+                the grid the deformation field is rasterized on. Omit to write
+                meshes only.
+            warp_interpolation: Interpolation used to resample
+                ``reference_image``: ``"linear"`` for intensity images,
+                ``"nearest"`` for labelmaps and masks.
+            warp_background_value: Value written where a stage's grid samples
+                outside ``reference_image``. ``0.0`` suits labelmaps; CT needs
+                ``-1000.0``, which is air in Hounsfield units.
+            smoothing_sigma_mm: Gaussian sigma, in millimeters, that turns the
+                sparse surface-shell field into a continuous deformation.
+            usd_project_name: When given, the stage meshes are also written as
+                one animated USD under this name, one time sample per stage.
+            anatomy_type: Anatomy whose materials color that USD.
+            separate_by_connectivity: Whether that USD splits each frame into
+                separate objects by connectivity.
+
+        Returns:
+            Dict with ``stages``, ``predicted_surfaces``, ``warped_images``,
+            ``transforms``, ``usd_file``, ``statistics`` and
+            ``statistics_file``. Entries that were not requested are empty
+            lists or ``None``.
+
+        Raises:
+            ValueError: If ``stages`` is empty, or ``ground_truth`` is given
+                with a different length.
+        """
+        if not stages:
+            raise ValueError("process_time_series needs at least one stage.")
+        if ground_truth is not None and len(ground_truth) != len(stages):
+            raise ValueError(
+                f"ground_truth has {len(ground_truth)} entries but there are "
+                f"{len(stages)} stages."
+            )
+
+        workflow = self.inference_workflow
+        coeffs = pnt.load_pca_coefficients(shape_parameters)
+        ref_mesh = (
+            cast(pv.DataSet, pv.read(str(reference_mesh)))
+            if reference_mesh is not None
+            else None
+        )
+        ref_points = self._reference_points(coeffs, ref_mesh)
+        template = ref_mesh if ref_mesh is not None else workflow.template_mesh
+
+        out_dir = Path(output_directory)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        stem = Path(shape_parameters).stem
+        suffix = ".vtp" if isinstance(template, pv.PolyData) else ".vtu"
+        self.log_section("INFER MOVEMENT TIME SERIES [%s]", stem)
+
+        transform_tools = TransformTools(log_level=self.log_level)
+        stage_meshes: list[pv.DataSet] = []
+        surfaces: list[Path] = []
+        warped_images: list[Path] = []
+        transforms: list[itk.Transform] = []
+        stats: list[dict] = []
+
+        for index, stage in enumerate(stages):
+            tag = f"s{int(stage * 100):03d}"
+            pred_points = ref_points + workflow.predict(coeffs, stage)
+            pred_mesh = template.copy(deep=True)
+            pred_mesh.points = pred_points
+            surface_file = out_dir / f"{stem}_{tag}_pred{suffix}"
+            pred_mesh.save(str(surface_file))
+            stage_meshes.append(pred_mesh)
+            surfaces.append(surface_file)
+
+            if reference_image is not None:
+                field = self.create_deformation_field(
+                    shape_parameters=shape_parameters,
+                    stage=stage,
+                    reference_image=reference_image,
+                    reference_mesh=reference_mesh,
+                    direction="inverse",
+                )
+                transform = transform_tools.smooth_deformation_field_transform(
+                    field["deformation_field"],
+                    sigma=smoothing_sigma_mm,
+                    weight_image=field["weight_image"],
+                )
+                transforms.append(transform)
+                warped = transform_tools.transform_image(
+                    reference_image,
+                    transform,
+                    reference_image=reference_image,
+                    interpolation_method=warp_interpolation,
+                    background_value=warp_background_value,
+                )
+                warped_file = out_dir / f"{stem}_{tag}_warped.mha"
+                itk.imwrite(warped, str(warped_file), compression=True)
+                warped_images.append(warped_file)
+
+            if ground_truth is not None:
+                actual = np.asarray(
+                    pv.read(str(ground_truth[index])).points, dtype=np.float32
+                )
+                stats.append(self._error_row(stem, stage, pred_points, actual))
+                self.log_info(
+                    "stage %.3f: mean=%.3f mm  max=%.3f mm",
+                    stage,
+                    stats[-1]["mean_error_mm"],
+                    stats[-1]["max_error_mm"],
+                )
+            else:
+                self.log_info("stage %.3f -> %s", stage, surface_file.name)
+
+        statistics_file: Optional[Path] = None
+        if stats:
+            statistics_file = out_dir / "statistics_per_stage.csv"
+            with statistics_file.open("w", newline="", encoding="utf-8") as fh:
+                writer = csv.DictWriter(fh, fieldnames=list(stats[0].keys()))
+                writer.writeheader()
+                writer.writerows(stats)
+
+        usd_file: Optional[Path] = None
+        if usd_project_name is not None:
+            usd_workflow = WorkflowConvertVTKToUSD(
+                input_meshes=stage_meshes,
+                usd_project_name=usd_project_name,
+                output_directory=out_dir,
+                appearance="anatomy" if anatomy_type is not None else "solid",
+                anatomy_type=anatomy_type,
+                separate_by_connectivity=separate_by_connectivity,
+                frames_per_second=float(len(stage_meshes)),
+                log_level=self.log_level,
+            )
+            usd_file = Path(usd_workflow.process()["usd_file"])
+
+        return {
+            "stages": list(stages),
+            "predicted_surfaces": surfaces,
+            "warped_images": warped_images,
+            "transforms": transforms,
+            "usd_file": usd_file,
+            "statistics": stats,
+            "statistics_file": statistics_file,
+        }
+
     def create_deformation_field(
         self,
         shape_parameters: Path,
@@ -256,6 +431,7 @@ class WorkflowInferMovement(PhysioTwin4DBase):
         reference_image: itk.Image,
         output_directory: Optional[Path] = None,
         reference_mesh: Optional[Path] = None,
+        direction: Literal["forward", "inverse"] = "forward",
     ) -> dict[str, Any]:
         """Rasterize the inferred deformation onto a reference image grid.
 
@@ -265,6 +441,15 @@ class WorkflowInferMovement(PhysioTwin4DBase):
         vertices that fall in it; each voxel of the normal image holds the mean
         (renormalized) reference-surface normal of those vertices. Empty voxels
         are zero.
+
+        That is the ``"forward"`` field, which maps reference positions to stage
+        positions and is what transforming a *mesh* needs. Resampling an
+        *image*, though, maps each output point through the transform to find
+        where to sample the input, so carrying the reference image into the
+        stage frame needs the opposite mapping. ``direction="inverse"`` builds
+        it exactly rather than by negating the forward field: each vertex is
+        binned by its **deformed** position ``reference + displacement`` and
+        contributes ``-displacement``.
 
         The binning positions come from ``reference_mesh``, so a patient scan
         whose statistical-model fit applied a pose transform not captured by the
@@ -278,16 +463,23 @@ class WorkflowInferMovement(PhysioTwin4DBase):
             stage: Target stage for the deformation.
             reference_image: The frame's image; defines the output grid geometry
                 (size, spacing, origin, direction).
-            output_directory: If given, the two images are written there as
+            output_directory: If given, the three images are written there as
                 compressed ``.mha`` files.
             reference_mesh: Mesh whose points supply the binning positions and
                 normals; omit to use the PCA reconstruction. Must share the
                 template topology (same point count and ordering).
+            direction: ``"forward"`` for the reference-to-stage field that
+                deforms meshes, ``"inverse"`` for the stage-to-reference field
+                that resamples images into the stage frame.
 
         Returns:
             Dict with ``deformation_field`` and ``normal_image`` (ITK vector
-            images), ``deformed_surface`` (the stage mesh as ``pv.DataSet``)
-            and, when written, their paths.
+            images), ``weight_image`` (the vertex count per voxel, which
+            distinguishes an empty voxel from one whose displacement happens to
+            be zero and is what
+            :meth:`TransformTools.smooth_deformation_field_transform` normalizes
+            by), ``deformed_surface`` (the stage mesh as ``pv.DataSet``) and,
+            when written, their paths.
         """
         workflow = self.inference_workflow
         template = workflow.template_mesh
@@ -325,12 +517,19 @@ class WorkflowInferMovement(PhysioTwin4DBase):
         normal_sum = np.zeros((sz, sy, sx, 3), dtype=np.float64)
         count = np.zeros((sz, sy, sx), dtype=np.float64)
 
-        for i in range(ref_points.shape[0]):
-            point = [float(c) for c in ref_points[i]]
+        if direction == "inverse":
+            bin_points = ref_points + disps
+            bin_disps = -disps
+        else:
+            bin_points = ref_points
+            bin_disps = disps
+
+        for i in range(bin_points.shape[0]):
+            point = [float(c) for c in bin_points[i]]
             idx = reference_image.TransformPhysicalPointToIndex(point)
             ix, iy, iz = int(idx[0]), int(idx[1]), int(idx[2])
             if 0 <= ix < sx and 0 <= iy < sy and 0 <= iz < sz:
-                disp_sum[iz, iy, ix] += disps[i]
+                disp_sum[iz, iy, ix] += bin_disps[i]
                 normal_sum[iz, iy, ix] += normals[i]
                 count[iz, iy, ix] += 1.0
 
@@ -347,11 +546,14 @@ class WorkflowInferMovement(PhysioTwin4DBase):
 
         deformation_image = self._vector_image_like(disp_field, reference_image)
         normal_image = self._vector_image_like(normal_field, reference_image)
+        weight_image = self._scalar_image_like(
+            count.astype(np.float32), reference_image
+        )
         self.log_info(
             "Deformation field: %d/%d voxels populated by %d vertices",
             int(occupied.sum()),
             sx * sy * sz,
-            ref_points.shape[0],
+            bin_points.shape[0],
         )
 
         # Deformed (stage) mesh: reference positions displaced by the network,
@@ -362,6 +564,7 @@ class WorkflowInferMovement(PhysioTwin4DBase):
         result: dict[str, Any] = {
             "deformation_field": deformation_image,
             "normal_image": normal_image,
+            "weight_image": weight_image,
             "deformed_surface": deformed_surface,
         }
         if output_directory is not None:
@@ -370,12 +573,15 @@ class WorkflowInferMovement(PhysioTwin4DBase):
             suffix = ".vtp" if isinstance(template, pv.PolyData) else ".vtu"
             field_path = out_dir / "deformation_field.mha"
             normal_path = out_dir / "surface_normal_field.mha"
+            weight_path = out_dir / "deformation_weight.mha"
             surface_path = out_dir / f"deformed_surface{suffix}"
             itk.imwrite(deformation_image, str(field_path), compression=True)
             itk.imwrite(normal_image, str(normal_path), compression=True)
+            itk.imwrite(weight_image, str(weight_path), compression=True)
             deformed_surface.save(str(surface_path))
             result["deformation_field_file"] = field_path
             result["normal_image_file"] = normal_path
+            result["weight_image_file"] = weight_path
             result["deformed_surface_file"] = surface_path
         return result
 
@@ -383,6 +589,15 @@ class WorkflowInferMovement(PhysioTwin4DBase):
     def _vector_image_like(array: np.ndarray, reference_image: itk.Image) -> itk.Image:
         """Wrap a ``(z, y, x, 3)`` array as an ITK vector image on ``reference``'s grid."""
         image = itk.image_from_array(np.ascontiguousarray(array), is_vector=True)
+        image.SetSpacing(reference_image.GetSpacing())
+        image.SetOrigin(reference_image.GetOrigin())
+        image.SetDirection(reference_image.GetDirection())
+        return image
+
+    @staticmethod
+    def _scalar_image_like(array: np.ndarray, reference_image: itk.Image) -> itk.Image:
+        """Wrap a ``(z, y, x)`` array as an ITK scalar image on ``reference``'s grid."""
+        image = itk.image_from_array(np.ascontiguousarray(array))
         image.SetSpacing(reference_image.GetSpacing())
         image.SetOrigin(reference_image.GetOrigin())
         image.SetDirection(reference_image.GetDirection())

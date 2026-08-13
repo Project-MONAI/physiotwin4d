@@ -369,7 +369,11 @@ class ContourTools(PhysioTwin4DBase):
         merged_ids = np.asarray(merged.cell_data["LabelId"])
         surfaces: dict[int, pv.PolyData] = {}
         for label_id in label_ids:
-            cell_ids: list[int] = np.flatnonzero(merged_ids == label_id).tolist()
+            # Kept as an array rather than a list: a label with no cells gives an
+            # empty selection, and an empty list has no integer dtype for
+            # extract_cells to recognize it by.  Empty here means no surface,
+            # which is what the next branch reports.
+            cell_ids = np.flatnonzero(merged_ids == label_id)
             surface = self.extract_surface(merged.extract_cells(cell_ids)).triangulate()
             if surface.n_cells == 0:
                 # A label smaller than the isotropic grid loses its vote to its

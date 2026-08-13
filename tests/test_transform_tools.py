@@ -18,6 +18,119 @@ from physiotwin4d.image_tools import ImageTools
 from physiotwin4d.transform_tools import TransformTools
 
 
+def _sphere_shell_samples(
+    radius_mm: float = 12.0, size: int = 40
+) -> tuple[Any, Any, Any, Any, Any]:
+    """A one-voxel sphere shell of displacement samples on a 1 mm grid.
+
+    Returns the shell's unit normals, a purely radial (expanding) field, a
+    purely tangential (rotating) field, the per-voxel sample weights, and a
+    binary mask of the sphere's interior. The two fields are the extremes the
+    normal/tangential split has to separate: the radial one survives it whole,
+    the tangential one is entirely what it must stop at the boundary.
+    """
+    center = 0.5 * (size - 1)
+    grid = np.arange(size, dtype=np.float64) - center
+    # (z, y, x) index space; the vector components stay in (x, y, z) order.
+    dz, dy, dx = np.meshgrid(grid, grid, grid, indexing="ij")
+    offset = np.stack([dx, dy, dz], axis=3)
+    distance = np.linalg.norm(offset, axis=3)
+
+    shell = np.abs(distance - radius_mm) <= 0.5
+    normals = np.zeros_like(offset)
+    normals[shell] = offset[shell] / distance[shell][:, None]
+
+    radial = normals * 3.0
+    # A rotation about +z: perpendicular to the normal everywhere on a sphere.
+    tangential = np.zeros_like(offset)
+    tangential[shell] = (
+        np.stack([-dy, dx, np.zeros_like(dx)], axis=3)[shell] * 3.0 / radius_mm
+    )
+
+    weights = shell.astype(np.float32)
+    interior = (distance <= radius_mm).astype(np.float32)
+    return normals, radial, tangential, weights, interior
+
+
+def _as_field(array: Any) -> Any:
+    """Wrap a ``(z, y, x, 3)`` array as the vector image type ITK rasterizes to."""
+    return itk.image_from_array(
+        np.ascontiguousarray(array.astype(np.float32)), is_vector=True
+    )
+
+
+def test_smooth_deformation_field_transform_stops_sliding_outside_the_mask() -> None:
+    """Outside the mask only motion along the surface normal is propagated.
+
+    A radial field is entirely normal, so restricting it changes nothing. A
+    tangential field is entirely sliding, so outside the mask it must vanish
+    while staying untouched inside.
+    """
+    radius_mm, sigma_mm = 12.0, 4.0
+    normals, radial, tangential, weights, interior = _sphere_shell_samples(radius_mm)
+    normal_image = _as_field(normals)
+    weight_image = itk.image_from_array(weights)
+    mask_image = itk.image_from_array(interior)
+
+    tools = TransformTools()
+
+    def spread(samples: Any, restrict: bool) -> Any:
+        field = _as_field(samples)
+        transform = tools.smooth_deformation_field_transform(
+            field,
+            sigma_mm,
+            weight_image,
+            normal_image if restrict else None,
+            mask_image if restrict else None,
+        )
+        return itk.array_from_image(transform.GetDisplacementField())
+
+    # Well outside the shell but still within reach of the smoothing, and well
+    # inside it. Sampling on the shell itself would straddle the mask edge.
+    distance = np.linalg.norm(
+        np.stack(np.meshgrid(*(3 * [np.arange(40.0) - 19.5]), indexing="ij"), axis=3),
+        axis=3,
+    )
+    outside = (distance > radius_mm + 2.0) & (distance < radius_mm + 5.0)
+    inside = distance < radius_mm - 2.0
+
+    # Tolerances are set by the float32 the samples are rasterized in: the
+    # projection reconstructs a purely normal vector, and annihilates a purely
+    # tangential one, to about 1e-7 of the 3 mm they carry.
+    radial_free, radial_held = spread(radial, False), spread(radial, True)
+    np.testing.assert_allclose(radial_held, radial_free, atol=1e-5)
+
+    tangential_free, tangential_held = (
+        spread(tangential, False),
+        spread(tangential, True),
+    )
+    # The unrestricted spread really does drag the surroundings around, so the
+    # assertion below is not passing on an already-zero field.
+    assert np.abs(tangential_free[outside]).max() > 0.1
+    assert np.abs(tangential_held[outside]).max() < 1e-4
+    np.testing.assert_allclose(
+        tangential_held[inside], tangential_free[inside], atol=1e-5
+    )
+
+
+def test_smooth_deformation_field_transform_rejects_a_lone_normal_or_mask() -> None:
+    """The normals say what to project onto, the mask says where to."""
+    normals, radial, _, weights, interior = _sphere_shell_samples()
+    tools = TransformTools()
+
+    with pytest.raises(ValueError, match="must be given together"):
+        tools.smooth_deformation_field_transform(
+            _as_field(radial), 4.0, itk.image_from_array(weights), _as_field(normals)
+        )
+    with pytest.raises(ValueError, match="must be given together"):
+        tools.smooth_deformation_field_transform(
+            _as_field(radial),
+            4.0,
+            itk.image_from_array(weights),
+            interior_mask=itk.image_from_array(interior),
+        )
+
+
 def test_generate_grid_image_clamps_boundary_lines() -> None:
     """
     Grid image clamps boundary slices for an ITK image with axes (X, Y, Z).

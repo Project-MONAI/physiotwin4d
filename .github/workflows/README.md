@@ -11,7 +11,7 @@ Runs on every push and pull request to main branches. Includes:
 - **unit-tests**: Cross-platform unit tests
   - Runs on Ubuntu and Windows
   - Python 3.11 and 3.12
-  - Uses PyTorch CPU version to avoid GPU dependencies
+  - Installs `.[test]` only, so no CUDA toolchain is pulled in
   - Excludes slow tests and tests requiring external data
   - Generates coverage reports
 
@@ -35,7 +35,8 @@ Runs on every push and pull request to main branches. Includes:
 
 ### `test-slow.yml` - Long-Running Tests
 
-Runs nightly at 2 AM UTC or on manual trigger. Includes:
+Manual trigger only (`workflow_dispatch`); the nightly schedule lives in
+`nightly-health.yml`. Includes:
 
 - **test-slow-gpu**: Slow tests requiring GPU
   - Tests marked with `slow` marker
@@ -60,6 +61,23 @@ Two-job workflow for building and deploying Sphinx documentation:
 - No gh-pages branch needed (modern deployment workflow)
 
 This separation ensures PRs can build and validate docs without triggering environment protection rules.
+
+The `deploy` job also fetches `status.json` from the orphan `nightly-status`
+branch (via the GitHub contents API) and copies it into the Pages output, so the
+nightly-health badge in the top-level `README.md` resolves.
+
+### `nightly-health.yml` - Nightly Full-Suite Health Check
+
+Runs at 07:00 UTC daily, or on manual trigger with a `reason` input. On the
+self-hosted Windows GPU runner it installs
+`.[test,docs,cuda13,dev,physicsnemo]` and runs the entire suite with
+`--run-all`, which enables every opt-in bucket. The run itself is
+`continue-on-error`, so a failing test records a red status rather than
+failing the workflow.
+
+A second `build-dashboard` job turns the JUnit XML and coverage JSON into an
+HTML dashboard via `.github/scripts/build_dashboard.py`, then force-pushes
+`status.json` to the orphan `nightly-status` branch for `docs.yml` to pick up.
 
 ### `release.yml` - Build and Publish Distributions
 
