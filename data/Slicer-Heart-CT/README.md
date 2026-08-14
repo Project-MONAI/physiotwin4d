@@ -18,7 +18,7 @@ assert DataDownloadTools.VerifySlicerHeartCTData("data/Slicer-Heart-CT")
 ```
 
 This fetches a single ~1.2 GB file from
-[github.com/SlicerHeart/SlicerHeart](https://github.com/SlicerHeart/SlicerHeart/releases/download/TestingData/TruncalValve_4DCT.seq.nrrd),
+[the PhysioTwin4D release assets](https://github.com/Project-MONAI/physiotwin4d/releases/download/2026.07.1/TruncalValve_4DCT.seq.nrrd),
 then splits it into per-phase 3D `slice_???.mha` volumes in the same
 directory via `ConvertImage4DTo3D`. An existing non-empty `.seq.nrrd` is
 reused, and the split is skipped once the `slice_???.mha` files are present —

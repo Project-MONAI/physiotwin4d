@@ -31,8 +31,8 @@ class DataDownloadTools:
     """Download and verify optional PhysioTwin4D example datasets."""
 
     SLICER_HEART_CT_URL = (
-        "https://github.com/SlicerHeart/SlicerHeart/releases/download/"
-        "TestingData/TruncalValve_4DCT.seq.nrrd"
+        "https://github.com/Project-MONAI/physiotwin4d/releases/download/"
+        "2026.07.1/TruncalValve_4DCT.seq.nrrd"
     )
     SLICER_HEART_CT_FILENAME = "TruncalValve_4DCT.seq.nrrd"
 

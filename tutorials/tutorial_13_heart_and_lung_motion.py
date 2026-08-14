@@ -33,6 +33,14 @@ patient geometry the network sees is the geometry it was trained on:
   trained on. It calls Synopsys Simpleware Medical, so this tutorial needs a
   Simpleware installation, unlike the rest of the lung chain.
 
+``SegmentNVSegmentCTMRI`` resolves the heart as a single oversized blob on this
+scan, so before anything downstream reads the thorax labelmap its heart labels
+are demoted to one ``mediastinal_tissue`` id and the Simpleware heart is painted
+in over them. The Simpleware structures are written under the NV-Segment ids
+that name the same thing, which keeps one taxonomy naming every prim but
+stretches two of those names: ``ventricle_myocardium_left`` then holds the whole
+Simpleware myocardium, and ``heart`` its dilated whole-heart envelope.
+
 Forward and inverse deformations
 --------------------------------
 Warping a *mesh* moves each vertex by the reference-to-stage displacement, while
@@ -101,6 +109,8 @@ free: the hundred warped CT volumes are 40 GB of it)
 -------
 - ``chest_ct_labelmap.mha`` / ``chest_ct_heart_labelmap.mha`` - the two cached
   segmentations of the input scan.
+- ``chest_ct_merged_labelmap.mha`` - the thorax labelmap with the Simpleware
+  heart substituted in, the one everything downstream reads.
 - ``heart_fit/`` - this patient's Duke-heart-SSM coefficients and fitted mesh.
 - ``deformation_field_<rhythm>_s<sss>.mha`` /
   ``surface_normal_field_<rhythm>_s<sss>.mha`` /
@@ -298,19 +308,24 @@ if __name__ == "__main__":
     # ========================================================================
     # The whole-thorax labelmap: the surface every frame is a deformation of,
     # and the taxonomy the final USD is split by. This is also the segmenter
-    # the lung shape model was built with.
+    # the lung shape model was built with. Its heart is replaced below, but its
+    # taxonomy still names the lung labels the slip mask selects, the id the
+    # replaced heart is demoted to, and every id the animated surface carries
+    # when Stage 3 splits it into USD prims.
+    segmenter = SegmentNVSegmentCTMRI(log_level=log_level)
     chest_labelmap_file = output_dir / "chest_ct_labelmap.mha"
     if not chest_labelmap_file.exists():
-        chest_segmenter = SegmentNVSegmentCTMRI(log_level=log_level)
         itk.imwrite(
-            chest_segmenter.segment(patient_image)["labelmap"],
+            segmenter.segment(patient_image)["labelmap"],
             str(chest_labelmap_file),
             compression=True,
         )
     chest_labelmap = itk.imread(str(chest_labelmap_file))
 
     # The heart labelmap, from the segmenter that produced the labelmaps the
-    # cardiac shape model and network were trained on.
+    # cardiac shape model and network were trained on. It supplies the shape
+    # model's fit target, the cardiac slip mask, and the heart of the thorax
+    # labelmap above.
     heart_labelmap_file = output_dir / "chest_ct_heart_labelmap.mha"
     if not heart_labelmap_file.exists():
         heart_segmenter = SegmentHeartSimplewareTrimmedBranches(log_level=log_level)
@@ -320,6 +335,51 @@ if __name__ == "__main__":
             compression=True,
         )
     heart_labelmap = itk.imread(str(heart_labelmap_file))
+
+    # NV-Segment resolves this scan's heart as a single undifferentiated blob
+    # that is far larger than the organ, while the Simpleware heart above is
+    # the geometry the cardiac model was trained on. So every NV-Segment heart
+    # label is first demoted to NV-Segment's own mediastinal_tissue, then the
+    # Simpleware structures are painted in under the NV-Segment ids that name
+    # the same thing. Demoting rather than erasing keeps the tissue the blob
+    # covered in the labelmap -- as mediastinum, which is what it is -- so the
+    # warped volumes do not grow a hole around the heart, and the animated
+    # surface and USD prims take the heart's shape from Simpleware alone.
+    #
+    # Reusing NV-Segment's ids keeps one taxonomy naming every prim, at the
+    # cost of two stretched names: "ventricle_myocardium_left" then holds the
+    # whole Simpleware myocardium and "heart" its whole-heart envelope.
+    mediastinal_tissue_id = 159
+    heart_label_remap = {
+        1: 151,  # left_ventricle  -> ventricle_left
+        2: 152,  # right_ventricle -> ventricle_right
+        3: 149,  # left_atrium     -> atrium_left
+        4: 153,  # right_atrium    -> atrium_right
+        5: 154,  # myocardium      -> ventricle_myocardium_left
+        6: 115,  # heart           -> heart
+    }
+    # Both segmenters ran on patient_image and SegmentAnatomyBase.segment copies
+    # its geometry onto the result, so the two label arrays are voxelwise
+    # aligned. Simpleware labels do not overlap, so the write order is free.
+    # array_from_image copies, so the cached NV-Segment labelmap on disk stays
+    # the raw segmentation and re-runs stay idempotent.
+    merged_labels = itk.array_from_image(chest_labelmap)
+    heart_labels = itk.GetArrayViewFromImage(heart_labelmap)
+    assert merged_labels.shape == heart_labels.shape, (
+        "the two segmentations must share the input scan's grid"
+    )
+    merged_labels[
+        np.isin(merged_labels, list(segmenter.taxonomy.labels_in_group("heart")))
+    ] = mediastinal_tissue_id
+    for simpleware_id, chest_id in heart_label_remap.items():
+        merged_labels[heart_labels == simpleware_id] = chest_id
+    chest_labelmap = itk.GetImageFromArray(merged_labels)
+    chest_labelmap.CopyInformation(heart_labelmap)
+    itk.imwrite(
+        chest_labelmap,
+        str(output_dir / "chest_ct_merged_labelmap.mha"),
+        compression=True,
+    )
 
     # ========================================================================
     # Stage 1: fit the Duke heart shape model to this patient's heart.
@@ -405,11 +465,6 @@ if __name__ == "__main__":
     # ========================================================================
     # Interior masks: where sliding propagates, and where only expansion does.
     # ========================================================================
-    # The segmenter Stage 0 wrote the thorax labelmap with. Its taxonomy names
-    # the lung labels below, and the same instance names the ids the animated
-    # surface carries when Stage 3 splits it into per-organ USD prims.
-    segmenter = SegmentNVSegmentCTMRI(log_level=log_level)
-
     def interior_mask_on_grid(labelmap: itk.Image, label_ids: list[int]) -> itk.Image:
         """Ramp an organ's labels into the blend weight the spreading uses.
 
@@ -637,6 +692,7 @@ if __name__ == "__main__":
     # USDAnatomyTools.enhance_meshes can bind per-organ OmniSurface materials.
     # Contoured from a coarsened copy of the labelmap, so the animated surface
     # is sampled at surface_spacing_mm rather than at the scan's finest pitch.
+    # Its heart cells come from the Simpleware segmentation merged in at Stage 0.
     # The full-resolution labelmap is still what gets warped per frame below.
     surface_labelmap = image_tools.resample_image_by_scale(
         chest_labelmap,

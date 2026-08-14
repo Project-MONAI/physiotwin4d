@@ -31,6 +31,10 @@ This directory contains comprehensive test suites for the PhysioTwin4D package, 
 - **`test_usd_merge.py`** - USD file merging with material preservation
 - **`test_usd_time_preservation.py`** - Time-varying data validation
 
+### Workflow Tests
+- **`test_workflow_evaluate_movement.py`** - `WorkflowEvaluateMovement` metrics, CSV, and Markdown report
+- **`test_workflow_train_physicsnemo.py`** - `WorkflowTrainPhysicsNeMo` checkpoint plus the assets inference reads beside it (needs `[physicsnemo]`)
+
 ### Tutorial Tests (SLOW - Opt-in)
 - **`test_tutorials.py`** - End-to-end execution of each `tutorials/*.py` script,
   comparing the screenshots it writes against stored baselines
