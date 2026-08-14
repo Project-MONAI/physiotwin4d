@@ -20,7 +20,7 @@ Main Components:
     - PhysioTwin4DBase: Base class with standardized logging and debug settings
 """
 
-__version__ = "2026.07.3"
+__version__ = "2026.08.0"
 
 import importlib.util as _importlib_util
 import warnings as _warnings
