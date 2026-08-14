@@ -1,12 +1,11 @@
 # PhysioTwin4D - Software Development Statistics
 
-**Report Generated:** August 13, 2026
-**Project Version:** 2026.07.3
+**Report Generated:** August 14, 2026
+**Project Version:** 2026.08.0
 **Status:** Beta (Development Status: 4 - Beta)
 
-Line counts below are total lines per file (`cat | wc -l`), including blanks and
-comments. Stating the method matters: the previous revision of this report used
-an unstated one, so its figures are not directly comparable to these.
+Line counts below are total lines per file (`wc -l`), including blanks and
+comments, over Git-tracked files only (`git ls-files`).
 
 ---
 
@@ -20,9 +19,9 @@ This report summarizes development effort, code quality, and project maturity.
 
 | Metric                         | Value                                          |
 | ------------------------------ | ---------------------------------------------- |
-| **Total Lines of Code**        | ~74,100                                        |
-| **Development Period**         | December 5, 2025 - August 13, 2026 (~8 months) |
-| **Total Commits**              | 122                                            |
+| **Total Lines of Code**        | ~74,800                                        |
+| **Development Period**         | December 5, 2025 - August 14, 2026 (~8 months) |
+| **Total Commits**              | 123                                            |
 | **Primary Developer**          | 1 (Stephen Aylward), plus 1 outside contributor |
 
 ---
@@ -33,14 +32,14 @@ This report summarizes development effort, code quality, and project maturity.
 
 | Category                                | Files          | Lines of Code | Percentage |
 | ---------------------------------------- | -------------- | -------------- | ---------- |
-| **Core Python Source (`src/`)**          | 74 files       | 29,316         | 39.6%      |
-| **Test Suite (`tests/`)**                | 40 files       | 11,601         | 15.7%      |
-| **Experiment Scripts (`experiments/`)**  | 46 files       | 9,219          | 12.4%      |
-| **Tutorial Scripts (`tutorials/`)**      | 32 files       | 9,107          | 12.3%      |
+| **Core Python Source (`src/`)**          | 74 files       | 29,345         | 39.2%      |
+| **Test Suite (`tests/`)**                | 40 files       | 12,323         | 16.5%      |
+| **Experiment Scripts (`experiments/`)**  | 46 files       | 9,219          | 12.3%      |
+| **Tutorial Scripts (`tutorials/`)**      | 32 files       | 9,207          | 12.3%      |
 | **Utility Scripts (`utils/`)**           | 3 files        | 1,739          | 2.3%       |
-| **Documentation (`docs/*.rst`)**         | 85 files       | 8,871          | 12.0%      |
-| **Markdown (repo-wide READMEs, guides)** | 38 files       | 4,204          | 5.7%       |
-| **TOTAL**                                | **318 files**  | **~74,100**    | **100%**   |
+| **Documentation (`docs/*.rst`)**         | 85 files       | 8,892          | 11.9%      |
+| **Markdown (repo-wide READMEs, guides)** | 35 files       | 4,051          | 5.4%       |
+| **TOTAL**                                | **315 files**  | **~74,800**    | **100%**   |
 
 The 32 files under `tutorials/` are 29 numbered tutorial scripts plus 3
 per-organ parameter modules (`parameters_heart_ct_kcl.py`,
@@ -57,18 +56,19 @@ tutorials are straightforward top-to-bottom scripts.
 | Module                                          | Lines | Purpose                                         |
 | ------------------------------------------------ | ----- | ----------------------------------------------- |
 | `usd_tools.py`                                   | 1,523 | USD file manipulation and inspection            |
-| `contour_tools.py`                               | 1,419 | Mesh extraction and contour manipulation        |
+| `contour_tools.py`                               | 1,415 | Mesh extraction and contour manipulation        |
 | `register_models_pca.py`                         | 1,117 | PCA-based shape model registration              |
 | `convert_vtk_to_usd.py`                          | 1,071 | High-level VTK -> USD converter                 |
+| `transform_tools.py`                             | 1,065 | ITK transform utilities                         |
 | `usd_anatomy_tools.py`                           | 1,053 | OmniSurface materials for labeled anatomy       |
 | `workflow_fit_statistical_model_to_patient.py`   | 1,049 | Model-to-patient registration workflow          |
-| `transform_tools.py`                             | 1,048 | ITK transform utilities                         |
 | `segment_nv_segment_ct_mri.py`                   | 695   | NVIDIA CT/MRI segmentation bundle bridge        |
 | `register_images_ants.py`                        | 691   | ANTs-based image registration                   |
 | `image_tools.py`                                 | 685   | Image I/O, resampling, preprocessing            |
+| `register_images_base.py`                        | 685   | Shared registration base class                  |
 | `workflow_infer_movement.py`                     | 625   | Predicted displacements back into geometry      |
 | `register_images_greedy.py`                      | 593   | Greedy classical deformable registration        |
-| `workflow_evaluate_movement.py`                  | 550   | Per-structure scoring against acquired frames   |
+| `workflow_evaluate_movement.py`                  | 565   | Per-structure scoring against acquired frames   |
 | `vtk_to_usd/` subpackage                         | 2,717 | Low-level VTK -> USD building blocks (9 files)  |
 | `cli/` subpackage                                | 2,454 | CLI entry-point scripts (11 commands, 13 files) |
 
@@ -175,8 +175,8 @@ PhysioTwin4D operates across several technically demanding domains:
 
 | Type                  | Count                   | Lines |
 | ---------------------- | ------------------------ | ----- |
-| **Markdown files**    | 38 (repo-wide READMEs, guides) | 4,204 |
-| **reStructuredText**  | 85 files under `docs/`   | 8,871 |
+| **Markdown files**    | 35 (repo-wide READMEs, guides) | 4,051 |
+| **reStructuredText**  | 85 files under `docs/`   | 8,892 |
 | **Python docstrings** | All public modules       | embedded |
 | **Knowledge graph**   | `graphify-out/`, refreshed via `graphify update .` | n/a (not checked in) |
 
@@ -207,4 +207,4 @@ unattended.
 
 ---
 
-**Last Updated:** August 13, 2026
+**Last Updated:** August 14, 2026
