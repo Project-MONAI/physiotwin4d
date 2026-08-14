@@ -53,7 +53,8 @@ each case individually and may require registration.
 
 Tutorials 5 and 9 need no dataset of their own; they consume the outputs of
 Tutorials 4 and 8. ``Duke-Heart-4DLabelmaps`` drives the ten ``duke_heart``
-variants, which form their own chain from Tutorial 4 through Tutorial 12; it is
+variants: a nine-tutorial chain from Tutorial 4 through Tutorial 12, plus the
+separate, optional Tutorial 2 ICON finetuning variant; the dataset is
 being released soon, and until then access can be requested from Stephen Aylward
 (saylward@nvidia.com). See ``data/DirLab-4DCT/README.md``,
 ``data/Duke-Heart-4DLabelmaps/README.md``, and

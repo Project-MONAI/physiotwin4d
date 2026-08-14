@@ -414,7 +414,7 @@ jobs:
 # - tests/test_segment_chest_total_segmentator.py (requires CUDA for TotalSegmentator)
 #
 # Tutorial tests (SLOW - hours to complete):
-# - tests/test_tutorials.py (runs 9 of the 29 tutorial scripts end-to-end)
+# - tests/test_tutorials.py (runs all 29 tutorial scripts end-to-end)
 #   These tests are NEVER run in the PR CI and must be opted into
 #   They execute end-to-end workflows that may take multiple hours
 #

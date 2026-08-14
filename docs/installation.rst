@@ -242,10 +242,10 @@ with pip:
 * **Synopsys Simpleware Medical** — required by
   :class:`~physiotwin4d.SegmentHeartSimpleware` and
   :class:`~physiotwin4d.SegmentHeartSimplewareTrimmedBranches`, and therefore by
-  Tutorial 13, which segments the heart it fits. It needs a local licensed
-  installation; see :doc:`api/segmentation/simpleware`. Everything else in the
-  toolkit runs without it, and the ``requires_simpleware`` tests skip cleanly
-  when it is absent.
+  Tutorial 13, which uses Simpleware to segment the heart. It needs a local
+  licensed installation; see :doc:`api/segmentation/simpleware`. Everything
+  else in the toolkit runs without it, and the ``requires_simpleware`` tests
+  skip cleanly when it is absent.
 
 If CUDA is not yet installed, download the CUDA Toolkit from
 `NVIDIA's website <https://developer.nvidia.com/cuda-downloads>`_, then verify:

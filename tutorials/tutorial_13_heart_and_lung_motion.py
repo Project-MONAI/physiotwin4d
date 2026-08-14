@@ -837,6 +837,31 @@ if __name__ == "__main__":
     stage.Save()
     logger.info("Wrote 4D USD with anatomy materials: %s", usd_file)
 
+    # Testing: the first combined frame, as geometry and as the labelmap the
+    # same frame rasterizes to.
+    class_name = "tutorial_13_heart_and_lung_motion"
+    tt = TestTools(
+        class_name=class_name,
+        results_dir=output_dir,
+        baselines_dir=tutorials_dir.parent / "tests" / "baselines" / class_name,
+        log_level=log_level,
+    )
+    screenshots = [
+        tt.save_screenshot_mesh(
+            cast(pv.DataSet, pv.read(str(combined_files[0]))),
+            "combined_motion_surface.png",
+            camera_position="iso",
+            color="lightcoral",
+        ),
+        tt.save_screenshot_image_slice(
+            itk.imread(str(labelmap_files[0])),
+            "combined_labelmap.png",
+            axis=0,
+            slice_fraction=0.5,
+            colormap="viridis",
+        ),
+    ]
+
     tutorial_results = {
         "respiratory_stage_count": len(respiratory_stages),
         "cardiac_stage_count": len(cardiac_stages),
@@ -846,4 +871,5 @@ if __name__ == "__main__":
         "breathing_lungs_usd": str(output_dir / "breathing_lungs.usd"),
         "beating_heart_usd": str(output_dir / "beating_heart.usd"),
         "usd_file": str(usd_file),
+        "screenshots": screenshots,
     }

@@ -17,8 +17,10 @@ their organ field, for example:
 
 - `tutorials/tutorial_02_duke_heart_distancemap_finetune_icon.py`
 
-There are ten of them, forming their own chain: Tutorial 4 (duke heart) -> 5 ->
-6 -> 7 -> 8 -> 9 -> 10 -> 11 -> 12. They will not run until the data is
+There are ten of them. Nine form their own chain: Tutorial 4 (duke heart) -> 5
+-> 6 -> 7 -> 8 -> 9 -> 10 -> 11 -> 12. The tenth, Tutorial 2 (duke heart), is a
+separate optional ICON finetuning variant that the chain does not require.
+They will not run until the data is
 available. The other 19 tutorial scripts use publicly available datasets and are
 unaffected — see [../README.md](../README.md) for download instructions.
 

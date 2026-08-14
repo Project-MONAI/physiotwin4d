@@ -373,7 +373,7 @@ class ContourTools(PhysioTwin4DBase):
             # empty selection, and an empty list has no integer dtype for
             # extract_cells to recognize it by.  Empty here means no surface,
             # which is what the next branch reports.
-            cell_ids = np.flatnonzero(merged_ids == label_id)
+            cell_ids = cast(Sequence[int], np.flatnonzero(merged_ids == label_id))
             surface = self.extract_surface(merged.extract_cells(cell_ids)).triangulate()
             if surface.n_cells == 0:
                 # A label smaller than the isotropic grid loses its vote to its

@@ -121,8 +121,10 @@ class WorkflowEvaluateMovement(PhysioTwin4DBase):
             ``warped_labelmaps``.
 
         Raises:
-            ValueError: If ``ground_truth_labelmaps`` is empty, or none of the
-                requested labels are in the reference frame.
+            ValueError: If ``ground_truth_labelmaps`` is empty, none of the
+                requested labels are in the reference frame, or no label
+                survives scoring because the acquired frames contain none of
+                them.
         """
         if not ground_truth_labelmaps:
             raise ValueError("No ground-truth labelmaps to evaluate against.")
@@ -178,6 +180,12 @@ class WorkflowEvaluateMovement(PhysioTwin4DBase):
                     provenance,
                     include_dice,
                 )
+            )
+
+        if not rows:
+            raise ValueError(
+                "Nothing was scored: every label present in the reference frame is "
+                "absent from all of the acquired frames."
             )
 
         csv_file = self._write_csv(rows, out_dir)
@@ -282,7 +290,12 @@ class WorkflowEvaluateMovement(PhysioTwin4DBase):
             "case_id": case_id,
             "shape_parameters_file": str(shape_parameters),
             "network_weights_file": str(checkpoint),
-            "network_weights_created": self._timestamp(info.st_ctime),
+            # st_birthtime is the real creation time on Windows and macOS; on
+            # Linux it is absent, where st_ctime is inode-change time rather
+            # than creation, so fall back to the modification time.
+            "network_weights_created": self._timestamp(
+                getattr(info, "st_birthtime", info.st_mtime)
+            ),
             "network_weights_modified": self._timestamp(info.st_mtime),
             "network_epoch": "final" if inference.epoch is None else inference.epoch,
         }
@@ -399,7 +412,9 @@ class WorkflowEvaluateMovement(PhysioTwin4DBase):
                 predicted = [
                     float(row["volume_predicted_mm3"]) / 1000.0 for row in matching
                 ]
-                color = self._SERIES_COLORS[index]
+                # More structures than hues reuses them; the end labels, not the
+                # color, are what name each line.
+                color = self._SERIES_COLORS[index % len(self._SERIES_COLORS)]
                 ax.plot(stages, truth, color=color, linewidth=2.0, marker="o", ms=5)
                 ax.plot(stages, predicted, color=color, linewidth=2.0, linestyle="--")
                 ends.append((stages[-1], truth[-1], str(matching[0]["label_name"])))
