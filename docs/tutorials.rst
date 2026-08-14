@@ -106,7 +106,7 @@ second run is cheap and later tutorials pick up earlier results automatically.
      <a class="pt4d-card" href="#tutorial-7-fit-the-shape-model-to-a-patient">
        <span class="pt4d-card__number">07</span>
        <h2>Fit the Shape Model to a Patient</h2>
-       <p>Fit the shape model to one routine clinical scan, PCA coefficients and all.</p>
+       <p>Fit the shape model to one ungated clinical scan, PCA coefficients and all.</p>
        <span class="pt4d-card__meta">Chest-CT &middot; Tutorial 6 output</span>
      </a>
      <a class="pt4d-card" href="#tutorial-8-propagate-the-shape-model-through-4d">
@@ -142,7 +142,7 @@ second run is cheap and later tutorials pick up earlier results automatically.
      <a class="pt4d-card" href="#tutorial-13-breathe-and-beat-a-static-clinical-ct">
        <span class="pt4d-card__number">13</span>
        <h2>Breathe and Beat a Static Clinical CT</h2>
-       <p>Animate one routine breath-hold scan with both rhythms, from two networks at once.</p>
+       <p>Animate one ungated breath-hold scan with both rhythms, from two networks at once.</p>
        <span class="pt4d-card__meta">Chest-CT &middot; Tutorials 7 and 9 output</span>
      </a>
    </section>
@@ -648,8 +648,9 @@ Workflow
 
 Dataset
    Tutorial 6's model plus one patient scan. The lung variant fits to
-   ``Chest-CT`` — a routine, single-time-point clinical chest CT, which is the
-   scan most adopters actually have.
+   ``Chest-CT`` — an ungated, single-acquisition chest CT, the kind a
+   patient-specific model is normally fitted to. See
+   ``data/Chest-CT/README.md`` for the data source and required citation.
 
 Requirements
    One segmentation pass plus a PCA-constrained fit; GPU recommended for the
@@ -663,10 +664,10 @@ Preview
       The heart model fitted to a non-contrast scan.
 
    .. figure:: assets/tutorial_07_lung.gif
-      :alt: Fitted lung model on the routine clinical Chest-CT scan
+      :alt: Fitted lung model on the ungated Chest-CT scan
       :width: 90%
 
-      The lung model fitted to the routine clinical ``Chest-CT`` volume.
+      The lung model fitted to the ungated ``Chest-CT`` volume.
 
 Inner API usage
    .. code-block:: python
@@ -1144,9 +1145,10 @@ Workflow
    :class:`~physiotwin4d.USDAnatomyTools` for the animation.
 
 Dataset
-   ``data/Chest-CT/Chest-CT.mha``, one routine breath-hold scan, plus Tutorial 7
+   ``data/Chest-CT/Chest-CT.mha``, one ungated breath-hold scan, plus Tutorial 7
    (lung)'s fit of it and both Tutorial 9 checkpoints. No 4D acquisition is
    involved: every deformation comes from a network, none from a registration.
+   See ``data/Chest-CT/README.md`` for the data source and required citation.
 
 Requirements
    The ``[physicsnemo]`` extra, and Simpleware Medical for the heart
@@ -1155,13 +1157,20 @@ Requirements
    own warped CT and labelmap, come to roughly 43 GB.
 
 Preview
-   .. figure:: assets/tutorial_13_combined_motion.gif
-      :alt: Combined heart and lung motion on a static clinical CT
+   .. figure:: assets/tutorial_13_combined_motion_usd.gif
+      :alt: Combined heart and lung surface motion on a static clinical CT
       :width: 90%
 
-      ``heart_and_lung_motion.usd``: one routine breath-hold scan, breathing and
+      ``heart_and_lung_motion.usd``: one ungated breath-hold scan, breathing and
       beating at once, with every deformation coming from a network and none
       from a registration.
+
+   .. figure:: assets/tutorial_13_combined_motion_ct.gif
+      :alt: The static CT warped by the same combined heart and lung motion
+      :width: 90%
+
+      The same per-frame deformation applied to the CT itself — the voxels move
+      with the surfaces, so the scan breathes and beats along with them.
 
 Inner API usage
    .. code-block:: python

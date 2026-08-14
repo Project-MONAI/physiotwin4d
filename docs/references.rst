@@ -59,6 +59,16 @@ Cardiac CT examples from 3D Slicer:
 * Various pathologies
 * `3D Slicer Website <https://www.slicer.org/>`_
 
+Chest-CT
+--------
+
+Single-acquisition clinical chest CT:
+
+* One static 3D volume, no gating
+* From the AREN0534 trial on The Cancer Imaging Archive
+* `TCIA dataset <https://doi.org/10.7937/TCIA.5M9S-6Y97>`_
+* Citation: see ``data/Chest-CT/README.md``
+
 Technologies
 ============
 

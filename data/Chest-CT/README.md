@@ -31,18 +31,38 @@ data/Chest-CT/
 
 ## Overview
 
-A routine, clinical, 3D chest CT scan. Unlike the gated 4D datasets in this
-directory, it is a single static volume — one acquisition, no temporal
-phases — so it stands in for the everyday clinical scan a patient-specific
-model is fitted to.
+A single-acquisition 3D chest CT from the AREN0534 pediatric Wilms tumor
+trial. Unlike the gated 4D datasets in this directory, it is a single static
+volume — one acquisition, no temporal phases — so it stands in for the ungated
+clinical scan a patient-specific model is fitted to.
 
 ### Dataset Details
 
 - **Format**: `.mha` (compressed MetaImage)
 - **Dimensionality**: 3D, single time point
 - **Size**: ~200 MB
-- **Content**: Routine clinical chest CT
+- **Content**: Ungated chest CT
 - **Anatomy**: Lungs, heart, mediastinum, thoracic skeleton
+
+### Acknowledgement
+
+Data provided by The Cancer Imaging Archive (TCIA):
+https://www.cancerimagingarchive.net/
+
+Released under the NCTN Data Archive License; see the collection page linked
+from the DOI below for the terms.
+
+### Citation
+
+Dataset: https://doi.org/10.7937/TCIA.5M9S-6Y97
+
+If you use this dataset, please cite:
+
+> Ehrlich, P., Chi, Y. Y., Chintagumpala, M. M., Hoffer, F. A., Perlman, E. J., Kalapurakal, J. A., Warwick, A., Shamberger, R. C., Khanna, G., Hamilton, T. E., Gow, K. W., Paulino, A. C., Gratias, E. J., Mullen, E. A., Geller, J. I., Grundy, P. E., Fernandez, C. V., Ritchey, M. L., & Dome, J. S. (2021). Combination Chemotherapy and Surgery in Treating Young Patients With Wilms Tumor (AREN0534) [Data set]. The Cancer Imaging Archive. DOI: [10.7937/TCIA.5M9S-6Y97](https://doi.org/10.7937/TCIA.5M9S-6Y97)
+
+TCIA's data usage policy also asks that the archive itself be cited:
+
+> Clark, K., Vendt, B., Smith, K., Freymann, J., Kirby, J., Koppel, P., Moore, S., Phillips, S., Maffitt, D., Pringle, M., Tarbox, L., & Prior, F. (2013). The Cancer Imaging Archive (TCIA): Maintaining and Operating a Public Information Repository. *Journal of Digital Imaging*, 26(6), 1045-1057. DOI: [10.1007/s10278-013-9622-7](https://doi.org/10.1007/s10278-013-9622-7)
 
 ## Using This Dataset
 

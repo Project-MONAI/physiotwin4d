@@ -3,7 +3,7 @@ Tutorial 13: Combined Heart and Lung Motion on a Static Clinical CT
 
 Purpose
 -------
-Animate one routine breath-hold chest CT (``data/Chest-CT/Chest-CT.mha``) with
+Animate one ungated breath-hold chest CT (``data/Chest-CT/Chest-CT.mha``) with
 both of its rhythms, taking every deformation from a trained MeshGraphNet rather
 than from a registration. Nothing here needs a 4D acquisition: the input is a
 single 3D scan.
@@ -99,6 +99,7 @@ both anatomies. Requires the ``[physicsnemo]`` extra and Simpleware Medical.
 Data Required
 -------------
   * ``data/Chest-CT/Chest-CT.mha`` -- ``physiotwin4d-download-data Chest-CT``
+    (see ``data/Chest-CT/README.md`` for the data source and required citation)
   * ``output/tutorial_07_lung/`` -- lung fit of that scan
   * ``output/tutorial_06_duke_heart/`` -- Duke heart shape model
   * ``network_weights/physicsnemo_mgn_lung_motion/``,
@@ -130,7 +131,7 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import Any, Literal, cast
+from typing import Any, Literal, Optional, cast
 
 import itk
 import numpy as np
@@ -169,7 +170,7 @@ if __name__ == "__main__":
     # ---- Inputs ------------------------------------------------------------
     test_mode = TestTools.running_as_test()
 
-    # The routine clinical scan every rhythm is inferred onto.
+    # The ungated clinical scan every rhythm is inferred onto.
     patient_image_file = (
         LUNG_CT_DIRLAB.hold_out_directory(test_mode) / LUNG_CT_DIRLAB.hold_out_case
     )
@@ -222,6 +223,15 @@ if __name__ == "__main__":
     # to the thorax it has to fill, so it is spread further than the heart.
     respiratory_sigma_mm = 15.0
     cardiac_sigma_mm = 10.0
+    # How far each rhythm's push and pull carries *beyond* its own organ, as a
+    # separate sigma for the normal component spread outside the interior mask.
+    # The lungs drive the whole thorax, so they keep their full reach. The heart
+    # sits in tissue that barely moves with it, so its influence is confined to
+    # a quarter of that distance: the pericardial neighborhood still follows the
+    # myocardium at full strength, while the mediastinum and chest wall further
+    # out stop being pumped by it. Only the reach changes -- the displacement at
+    # the heart surface, and everything inside it, is untouched.
+    cardiac_exterior_sigma_mm = 0.25 * cardiac_sigma_mm
     # How wide a band (mm) the sliding motion dies out over at the pleura and
     # the pericardium. Zero would make each slip boundary a step, and shear the
     # voxels either side of it in opposite directions.
@@ -540,6 +550,7 @@ if __name__ == "__main__":
         sigma_mm: float,
         tag: str,
         interior_mask: itk.Image,
+        exterior_sigma_mm: Optional[float] = None,
     ) -> tuple[list[itk.Transform], list[itk.Transform], list[pv.DataSet]]:
         """Infer one rhythm across ``stages`` as smoothed deformations.
 
@@ -553,10 +564,12 @@ if __name__ == "__main__":
         The spreading is given ``interior_mask`` and the surface normals the
         rasterization reports, so beyond the organ it carries only the motion
         along those normals: surrounding tissue is pushed and pulled by the
-        organ without being dragged along it. The mask arrives in the reference
-        frame, which is the frame the forward field is indexed in; the inverse
-        field is indexed in the stage's own frame, so the mask is resampled into
-        it first through the unrestricted inverse deformation.
+        organ without being dragged along it. ``exterior_sigma_mm`` spreads that
+        outward motion by its own sigma, which is how far into the surrounding
+        tissue the organ reaches; it defaults to ``sigma_mm``. The mask arrives
+        in the reference frame, which is the frame the forward field is indexed
+        in; the inverse field is indexed in the stage's own frame, so the mask is
+        resampled into it first through the unrestricted inverse deformation.
         """
         infer = WorkflowInferMovement(
             WorkflowInferPhysicsNeMo(
@@ -605,6 +618,7 @@ if __name__ == "__main__":
                     fields["forward"]["weight_image"],
                     fields["forward"]["normal_image"],
                     interior_mask,
+                    exterior_sigma_mm,
                 )
             )
 
@@ -626,6 +640,7 @@ if __name__ == "__main__":
                     transform_tools.transform_image(
                         interior_mask, unrestricted_inverse, deformation_grid
                     ),
+                    exterior_sigma_mm,
                 )
             )
 
@@ -666,6 +681,7 @@ if __name__ == "__main__":
         cardiac_sigma_mm,
         "cardiac",
         heart_interior_mask,
+        cardiac_exterior_sigma_mm,
     )
 
     # Each rhythm on its own, as a reference for the combined animation below.

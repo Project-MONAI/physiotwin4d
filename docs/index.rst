@@ -63,7 +63,7 @@
      <a class="pt4d-card" href="tutorials.html#tutorial-7-fit-the-shape-model-to-a-patient">
        <span class="pt4d-card__number">07</span>
        <h2>Fit the Shape Model to a Patient</h2>
-       <p>Fit the shape model to one routine clinical scan, PCA coefficients and all.</p>
+       <p>Fit the shape model to one ungated clinical scan, PCA coefficients and all.</p>
      </a>
      <a class="pt4d-card" href="tutorials.html#tutorial-8-propagate-the-shape-model-through-4d">
        <span class="pt4d-card__number">08</span>
@@ -93,7 +93,7 @@
      <a class="pt4d-card" href="tutorials.html#tutorial-13-breathe-and-beat-a-static-clinical-ct">
        <span class="pt4d-card__number">13</span>
        <h2>Breathe and Beat a Static Clinical CT</h2>
-       <p>Animate one routine breath-hold scan with both rhythms, from two networks at once.</p>
+       <p>Animate one ungated breath-hold scan with both rhythms, from two networks at once.</p>
      </a>
    </section>
 

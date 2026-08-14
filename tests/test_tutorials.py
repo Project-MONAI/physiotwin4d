@@ -625,7 +625,7 @@ class TestTutorial07LungFitStatisticalModelToPatient:
     _class_name = "tutorial_07_lung"  # the script's project_name
 
     def test_run(self, test_directories: dict[str, Path]) -> None:
-        # The lung variant fits the routine clinical Chest-CT scan, which the
+        # The lung variant fits the ungated Chest-CT scan, which the
         # download CLI provides, rather than a gated DIR-Lab phase.
         _require_files(
             test_directories["data"] / "Chest-CT",
@@ -1075,7 +1075,7 @@ class TestTutorial13HeartAndLungMotion:
 
     def test_run(self, test_directories: dict[str, Path]) -> None:
         _require_physicsnemo()
-        # The routine clinical scan both rhythms are inferred onto.
+        # The ungated clinical scan both rhythms are inferred onto.
         _require_files(
             test_directories["data"] / "Chest-CT",
             "Chest-CT.mha",

@@ -326,9 +326,10 @@ class DataDownloadTools:
     def DownloadChestCTData(dirname: Union[str, Path]) -> Path:  # noqa: N802
         """Download the Chest-CT sample volume into ``dirname``.
 
-        Fetches ``Chest-CT.mha`` — a routine clinical 3-D chest CT — from the
+        Fetches ``Chest-CT.mha`` — an ungated 3-D chest CT — from the
         PhysioTwin4D 2026.07.1 GitHub release. An existing non-empty file is
-        reused, so re-running resumes an interrupted download.
+        reused, so re-running resumes an interrupted download. See
+        ``data/Chest-CT/README.md`` for the data source and required citation.
 
         Args:
             dirname: Directory where ``Chest-CT.mha`` should live.

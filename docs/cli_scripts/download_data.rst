@@ -25,8 +25,9 @@ Supported Datasets
        from the PhysioTwin4D GitHub release. See
        ``data/CHOP-Valve4D/README.md``.
    * - ``Chest-CT``
-     - Routine clinical 3D chest CT scan, a single static volume, from the
-       PhysioTwin4D GitHub release. See ``data/Chest-CT/README.md``.
+     - Ungated 3D chest CT, a single static volume, from the PhysioTwin4D
+       GitHub release. See ``data/Chest-CT/README.md`` for the data source
+       and required citation.
 
 Basic Usage
 ===========

@@ -647,6 +647,7 @@ class TransformTools(PhysioTwin4DBase):
         weight_image: Optional[itk.Image] = None,
         normal_image: Optional[itk.Image] = None,
         interior_mask: Optional[itk.Image] = None,
+        exterior_sigma: Optional[float] = None,
     ) -> itk.DisplacementFieldTransform:
         """Spread a sparsely sampled deformation field into a continuous one.
 
@@ -667,7 +668,11 @@ class TransformTools(PhysioTwin4DBase):
         beyond an organ is then pushed and pulled by it without being dragged
         along it, which is how a slip interface such as the pleura or the
         pericardium behaves. Inside the mask the full vector is spread, so the
-        organ's own contents still follow its surface.
+        organ's own contents still follow its surface. ``exterior_sigma`` sets
+        how far that outward push and pull carries, independently of the sigma
+        filling the organ itself.
+        ``exterior_normal_scale`` sets how much of that normal component the
+        surrounding tissue actually receives.
 
         Args:
             field (itk.Image): Input vector deformation field, sampled where
@@ -690,6 +695,13 @@ class TransformTools(PhysioTwin4DBase):
                 only its normal component should be. Soften its edge to set the
                 width of the band the tangential motion dies out over; a binary
                 mask makes the boundary a discontinuity.
+            exterior_sigma (Optional[float]): Smoothing sigma (millimeters) for
+                the normal component spread outside ``interior_mask``, in place
+                of ``sigma``. This is how far the organ reaches into the tissue
+                around it: a smaller value confines its push and pull to a
+                narrower shell without weakening the displacement at the
+                surface, and without touching the spread inside the mask.
+                Defaults to ``sigma``. Ignored when no mask is given.
 
         Returns:
             itk.DisplacementFieldTransform: Smoothed field transform.
@@ -711,10 +723,12 @@ class TransformTools(PhysioTwin4DBase):
         else:
             weights = (np.linalg.norm(field_arr, axis=3) > 0.0).astype(np.float64)
 
-        # Outside the mask only the normal component of each sample is spread.
-        # Both component sets share one denominator, so the weights are smoothed
-        # once however many fields are being spread through them.
-        sample_sets = [field_arr]
+        # Outside the mask only the normal component of each sample is spread,
+        # and it may be spread by a sigma of its own. Each set therefore carries
+        # the sigma that both its samples and the weights normalizing them are
+        # smoothed by, so a narrower exterior spread stays normalized against
+        # the weight that reached the same distance.
+        sample_sets = [(field_arr, sigma)]
         mask: Optional[np.ndarray] = None
         if normal_image is not None and interior_mask is not None:
             normals = itk.array_from_image(normal_image).astype(np.float64)
@@ -732,30 +746,33 @@ class TransformTools(PhysioTwin4DBase):
             # sample unprojected, so those keep their full displacement.
             unoriented = np.linalg.norm(normals, axis=3) == 0.0
             projected[unoriented] = field_arr[unoriented]
-            sample_sets.append(projected)
+            sample_sets.append(
+                (projected, sigma if exterior_sigma is None else exterior_sigma)
+            )
 
-        smoothed_sets = [np.zeros_like(field_arr) for _ in sample_sets]
-        for samples, into in zip(sample_sets, smoothed_sets):
+        smoothed_sets: list[np.ndarray] = []
+        for samples, set_sigma in sample_sets:
+            spread = np.zeros_like(field_arr)
             for dim in range(field_arr.shape[3]):
-                into[:, :, :, dim] = self._smooth_scalar_array(
-                    samples[:, :, :, dim] * weights, sigma, field
+                spread[:, :, :, dim] = self._smooth_scalar_array(
+                    samples[:, :, :, dim] * weights, set_sigma, field
                 )
+            smoothed_weights = self._smooth_scalar_array(weights, set_sigma, field)
+
+            # Add a floor to the denominator rather than clamping to it. ITK's
+            # recursive Gaussian is an IIR approximation, so far from every
+            # sample both smoothed arrays ring around zero; clamping a
+            # denominator that small turns that ringing into displacements
+            # several times larger than any the samples carried, while adding to
+            # it lets the quotient fall off to zero there, which is what a field
+            # with no nearby sample should do.
+            weight_floor = 1.0e-3 * float(smoothed_weights.max())
+            if weight_floor <= 0.0:
+                raise ValueError("Deformation field has no non-zero samples to spread.")
+            spread /= (np.maximum(smoothed_weights, 0.0) + weight_floor)[..., None]
+            smoothed_sets.append(spread)
+
         smoothed = smoothed_sets[0]
-        smoothed_weights = self._smooth_scalar_array(weights, sigma, field)
-
-        # Add a floor to the denominator rather than clamping to it. ITK's
-        # recursive Gaussian is an IIR approximation, so far from every sample
-        # both smoothed arrays ring around zero; clamping a denominator that
-        # small turns that ringing into displacements several times larger than
-        # any the samples carried, while adding to it lets the quotient fall off
-        # to zero there, which is what a field with no nearby sample should do.
-        weight_floor = 1.0e-3 * float(smoothed_weights.max())
-        if weight_floor <= 0.0:
-            raise ValueError("Deformation field has no non-zero samples to spread.")
-        denominator = (np.maximum(smoothed_weights, 0.0) + weight_floor)[..., None]
-        for spread in smoothed_sets:
-            spread /= denominator
-
         if mask is not None:
             inside = np.clip(mask, 0.0, 1.0)[..., None]
             smoothed = inside * smoothed_sets[0] + (1.0 - inside) * smoothed_sets[1]

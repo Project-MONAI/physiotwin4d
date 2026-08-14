@@ -113,7 +113,7 @@ its own anatomy's earlier tutorials, never the other's.
 4. **Tutorial 4** segments a CT into VTK surfaces; the heart variant uses Slicer-Heart-CT, the lung variant DirLab-4DCT.
 5. **Tutorial 5** (heart only) uses the VTK surfaces produced by Tutorial 4 (heart) - run Tutorial 4 first.
 6. **Tutorial 6** creates the PCA statistical model; the heart variant from KCL-Heart-Model, the lung variant from the DirLab-4DCT `Case*T70.mha` phases, which it segments itself. Both write `pca_model.json` and `pca_mean_surface.vtp` under their own output directory.
-7. **Tutorial 7** applies the statistical model, consuming its own anatomy's Tutorial 6 output; the heart variant fits the Tutorial 6 (heart) model, the lung variant fits the Tutorial 6 (lung) model to the routine clinical `Chest-CT` scan (`physiotwin4d-download-data Chest-CT`).
+7. **Tutorial 7** applies the statistical model, consuming its own anatomy's Tutorial 6 output; the heart variant fits the Tutorial 6 (heart) model, the lung variant fits the Tutorial 6 (lung) model to the ungated `Chest-CT` scan (`physiotwin4d-download-data Chest-CT`; see `data/Chest-CT/README.md` for the data source and required citation).
 
 The AI-surrogate pipeline (Tutorials 8 -> 9 -> 10 -> 11 -> 12) runs on DIR-Lab
 and the Tutorial 6 lung model, in order:
@@ -124,7 +124,7 @@ and the Tutorial 6 lung model, in order:
 11. **Tutorial 11** scores the same prediction against the images rather than against the registration: it segments every gated frame independently, then reports volume difference and surface RMSE per lung lobe (per heart chamber, with Dice, in the duke variant) as `evaluation_report.md` and `evaluation_metrics.csv`. The lung variant leaves Dice out: a lobe moves little compared to its own size, so the overlap fraction describes the lobe rather than the motion.
 12. **Tutorial 12** collapses the whole chain into one script: it segments the reference frame, fits the Tutorial 6 model to that patient itself, and infers every stage - so nothing is read from Tutorial 8 and no phase is ever registered. It needs only the gated series plus the Tutorial 6 model and the Tutorial 9 checkpoint, and it wipes its output directory on every run so the reported runtimes in `<case>_runtimes.csv` cover the entire pipeline.
 
-**Tutorial 13** is where the two chains meet. It animates the routine clinical
+**Tutorial 13** is where the two chains meet. It animates the ungated
 `Chest-CT` scan of Tutorial 7 (lung) with both rhythms at once: respiratory
 motion from the Tutorial 9 (lung) network applied to that scan's lung fit, and
 cardiac motion from the Tutorial 9 (duke heart) network applied to a Duke heart
