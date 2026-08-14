@@ -31,8 +31,8 @@ class DataDownloadTools:
     """Download and verify optional PhysioTwin4D example datasets."""
 
     SLICER_HEART_CT_URL = (
-        "https://github.com/SlicerHeart/SlicerHeart/releases/download/"
-        "TestingData/TruncalValve_4DCT.seq.nrrd"
+        "https://github.com/Project-MONAI/physiotwin4d/releases/download/"
+        "2026.07.1/TruncalValve_4DCT.seq.nrrd"
     )
     SLICER_HEART_CT_FILENAME = "TruncalValve_4DCT.seq.nrrd"
 
@@ -326,9 +326,10 @@ class DataDownloadTools:
     def DownloadChestCTData(dirname: Union[str, Path]) -> Path:  # noqa: N802
         """Download the Chest-CT sample volume into ``dirname``.
 
-        Fetches ``Chest-CT.mha`` — a routine clinical 3-D chest CT — from the
+        Fetches ``Chest-CT.mha`` — an ungated 3-D chest CT — from the
         PhysioTwin4D 2026.07.1 GitHub release. An existing non-empty file is
-        reused, so re-running resumes an interrupted download.
+        reused, so re-running resumes an interrupted download. See
+        ``data/Chest-CT/README.md`` for the data source and required citation.
 
         Args:
             dirname: Directory where ``Chest-CT.mha`` should live.

@@ -25,8 +25,9 @@ Supported Datasets
        from the PhysioTwin4D GitHub release. See
        ``data/CHOP-Valve4D/README.md``.
    * - ``Chest-CT``
-     - Routine clinical 3D chest CT scan, a single static volume, from the
-       PhysioTwin4D GitHub release. See ``data/Chest-CT/README.md``.
+     - Ungated 3D chest CT, a single static volume, from the PhysioTwin4D
+       GitHub release. See ``data/Chest-CT/README.md`` for the data source
+       and required citation.
 
 Basic Usage
 ===========
@@ -113,10 +114,13 @@ existing non-empty file, so re-running resumes an interrupted download.
 See Also
 ========
 
-* :doc:`../tutorials` — Tutorials 1 and 4-7 use ``Slicer-Heart-CT``,
-  ``KCL-Heart-Model``, and ``Chest-CT`` (the lung variant of Tutorial 7);
-  ``DirLab-4DCT`` (Tutorials 2 and 3) is manual-only, see
-  ``data/DirLab-4DCT/README.md``.
+* :doc:`../tutorials` — ``Slicer-Heart-CT`` drives Heart Tutorials 1, 3 and 4;
+  ``KCL-Heart-Model`` drives Heart Tutorial 6; ``Chest-CT`` drives Lung
+  Tutorial 7 and Tutorial 13. ``DirLab-4DCT`` — Lung Tutorials 1, 2, 3, 4, 6, 8
+  and 10-12, plus Heart Tutorial 7 — is manual-only, see
+  ``data/DirLab-4DCT/README.md``. ``Duke-Heart-4DLabelmaps``, which drives the
+  ten ``duke_heart`` variants, is being released soon; see
+  ``data/Duke-Heart-4DLabelmaps/README.md``.
 * :doc:`byod_tutorials`
 * :doc:`heart_gated_ct`
 * :doc:`overview`

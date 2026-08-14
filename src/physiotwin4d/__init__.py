@@ -93,6 +93,7 @@ from .workflow_fit_statistical_model_to_patient import (
 )
 from .workflow_infer_physicsnemo import WorkflowInferPhysicsNeMo
 from .workflow_infer_movement import WorkflowInferMovement
+from .workflow_evaluate_movement import WorkflowEvaluateMovement
 from .infer_physicsnemo_base import InferPhysicsNeMoBase
 from .infer_physicsnemo_mgn import InferPhysicsNeMoMGN
 from .infer_physicsnemo_mlp import InferPhysicsNeMoMLP
@@ -114,6 +115,7 @@ __all__ = [
     "WorkflowTrainPhysicsNeMo",
     "WorkflowInferPhysicsNeMo",
     "WorkflowInferMovement",
+    "WorkflowEvaluateMovement",
     # Training method classes
     "TrainPhysicsNeMoBase",
     "TrainPhysicsNeMoMGN",

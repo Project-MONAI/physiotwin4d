@@ -63,7 +63,7 @@
      <a class="pt4d-card" href="tutorials.html#tutorial-7-fit-the-shape-model-to-a-patient">
        <span class="pt4d-card__number">07</span>
        <h2>Fit the Shape Model to a Patient</h2>
-       <p>Fit the shape model to one routine clinical scan, PCA coefficients and all.</p>
+       <p>Fit the shape model to one ungated clinical scan, PCA coefficients and all.</p>
      </a>
      <a class="pt4d-card" href="tutorials.html#tutorial-8-propagate-the-shape-model-through-4d">
        <span class="pt4d-card__number">08</span>
@@ -79,6 +79,21 @@
        <span class="pt4d-card__number">10</span>
        <h2>Predict Motion With the Surrogate</h2>
        <p>Replace the registration solve with one forward pass, then export to USD.</p>
+     </a>
+     <a class="pt4d-card" href="tutorials.html#tutorial-11-score-the-surrogate-against-the-images">
+       <span class="pt4d-card__number">11</span>
+       <h2>Score the Surrogate Against the Images</h2>
+       <p>Volume and surface RMSE per lobe, plus Dice per chamber, on the held-out case.</p>
+     </a>
+     <a class="pt4d-card" href="tutorials.html#tutorial-12-the-whole-inference-pipeline-in-one-script">
+       <span class="pt4d-card__number">12</span>
+       <h2>The Whole Inference Pipeline in One Script</h2>
+       <p>Go from a gated series to an animated prediction without registering a single phase.</p>
+     </a>
+     <a class="pt4d-card" href="tutorials.html#tutorial-13-breathe-and-beat-a-static-clinical-ct">
+       <span class="pt4d-card__number">13</span>
+       <h2>Breathe and Beat a Static Clinical CT</h2>
+       <p>Animate one ungated breath-hold scan with both rhythms, from two networks at once.</p>
      </a>
    </section>
 

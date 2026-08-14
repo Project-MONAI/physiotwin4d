@@ -14,18 +14,17 @@ Usage (called from nightly-health.yml):
         --timestamp "2026-03-31T07:05:42Z" \\
         --health-outcome "success"
 
-Artifact publishing:
-    ``status.json`` is uploaded by ``nightly-health.yml`` as a standalone
-    artifact named ``nightly-status-json`` (90-day retention).  ``docs.yml``
-    downloads that artifact during its ``deploy`` job and copies
-    ``status.json`` into the Pages output directory so that the file is
-    served at the live URL:
+Status publishing:
+    ``nightly-health.yml`` uploads the whole output directory as a
+    ``health-dashboard`` artifact, then force-pushes ``status.json`` alone to
+    the orphan ``nightly-status`` branch.  ``docs.yml`` fetches it from that
+    branch through the GitHub contents API during its ``deploy`` job and copies
+    it into the Pages output, so the file is served at the live URL:
 
         https://<pages-root>/status.json
 
-    The copy step uses ``continue-on-error: true`` so the first docs deploy
-    (before any nightly run has produced the artifact) succeeds without
-    ``status.json`` being present.
+    The fetch tolerates a missing branch, so the first docs deploy (before any
+    nightly run has pushed ``status.json``) succeeds without it.
 """
 
 from __future__ import annotations

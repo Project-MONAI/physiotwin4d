@@ -45,6 +45,13 @@ decides which domain the model lives on.
 Reference
 =========
 
+These live in :mod:`physiotwin4d.physicsnemo_tools`, which is not re-exported
+from the top-level package — import it by module:
+
+.. code-block:: python
+
+   from physiotwin4d.physicsnemo_tools import SubjectManifest, parse_manifest
+
 .. autoclass:: SubjectManifest
    :exclude-members: subject_id, reference_mesh, pca_coefficients, target_array, phases
 

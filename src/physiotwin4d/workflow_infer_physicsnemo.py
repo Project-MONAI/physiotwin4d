@@ -95,6 +95,8 @@ class WorkflowInferPhysicsNeMo(PhysioTwin4DBase):
             checkpoint_file = self.model_directory / f"{tag}_stage_model.pt"
         if not checkpoint_file.exists():
             raise FileNotFoundError(f"Model checkpoint not found: {checkpoint_file}")
+        self.epoch = epoch
+        self.checkpoint_file = checkpoint_file
 
         self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.log_info("Loading %s model from %s", tag.upper(), checkpoint_file)

@@ -12,9 +12,13 @@ Overview
 Utility modules provide low-level operations:
 
 * **Image Tools**: Image I/O, preprocessing, manipulation
+* **Labelmap Tools**: Labelmap to registration-mask conversion
 * **Transform Tools**: Coordinate transforms and warping
+* **Landmark Tools**: Landmark-based registration validation metrics
 * **Contour Tools**: Contour extraction and processing
 * **4D Image Conversion**: 4D image to 3D time-series conversion utilities
+* **Test Tools**: Baseline and result comparison helpers
+* **Data Download Tools**: Optional dataset download helpers
 
 Quick Links
 ===========
@@ -23,6 +27,7 @@ Quick Links
    * :doc:`image_tools` - Image processing utilities
    * :doc:`labelmap_tools` - Labelmap to registration-mask conversion
    * :doc:`transform_tools` - Transform operations
+   * :doc:`landmark_tools` - Landmark-based registration validation
    * :doc:`contour_tools` - Contour processing
    * :doc:`image_conversion` - 4D image to 3D time-series utilities
    * :doc:`test_tools` - Baseline / result comparison helpers

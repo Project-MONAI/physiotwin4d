@@ -14,7 +14,7 @@ the source of truth.
 | `DirLab-4DCT/` | 4D lung CT respiratory motion benchmark | DIR-Lab, MD Anderson Cancer Center / Emory University | Manual | [DirLab-4DCT/README.md](DirLab-4DCT/README.md) |
 | `KCL-Heart-Model/` | Statistical shape model of the heart | King's College London (KCL) | Automatic | [KCL-Heart-Model/README.md](KCL-Heart-Model/README.md) |
 | `CHOP-Valve4D/` | 4D valve reconstruction models | Jolley Lab, CHOP (original FEBio model) | Automatic | [CHOP-Valve4D/README.md](CHOP-Valve4D/README.md) |
-| `Chest-CT/` | Routine clinical 3D chest CT scan | PhysioTwin4D GitHub release | Automatic | [Chest-CT/README.md](Chest-CT/README.md) |
+| `Chest-CT/` | Ungated 3D chest CT, single static volume | AREN0534 trial, The Cancer Imaging Archive (TCIA) | Automatic | [Chest-CT/README.md](Chest-CT/README.md) |
 | `test/` | pytest-managed cache; not a downloadable dataset | — | N/A | [test/README.md](test/README.md) |
 
 ## Automatic Download

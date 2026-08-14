@@ -11,9 +11,10 @@ Data Required
 -------------
 PCA model: Tutorial 6 output (``output/tutorial_06_lung/pca_model.json``,
 ``pca_mean_surface.vtp``)
-Patient image: a routine clinical 3D chest CT,
+Patient image: an ungated 3D chest CT,
 ``data/Chest-CT/Chest-CT.mha``, downloaded with
 ``physiotwin4d-download-data Chest-CT --directory data/Chest-CT``
+(see ``data/Chest-CT/README.md`` for the data source and required citation)
 ICON weights: ``tutorial_02_lung_distancemap_finetune_icon.py`` output
 (``network_weights/icon_dirlab_4dct_distancemap/
 icon_dirlab_4dct_distancemap_model/checkpoints/network_weights_final.trch``),

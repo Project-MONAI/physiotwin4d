@@ -6,7 +6,7 @@ PhysioTwin4D trains and runs PhysicsNeMo mesh-stage models: given a subject's
 shape parameters and a stage (a point in the cardiac or respiratory cycle),
 predict a per-vertex target on the shared template mesh. When that target is a
 displacement, the prediction replaces a per-phase registration solve with one
-forward pass — see Tutorials 9 and 10 in :doc:`../../tutorials`.
+forward pass — see Tutorials 9 through 13 in :doc:`../../tutorials`.
 
 The layer follows the same has-a shape as the rest of the workflow tier: a
 workflow owns the data and the artifacts, and a *method* object owns the
@@ -24,7 +24,10 @@ network.
      - Loads a trained model and predicts raw per-point targets
    * - :class:`~physiotwin4d.WorkflowInferMovement`
      - Interprets 3-component targets as displacements: deformed meshes, mm
-       error statistics, rasterized deformation fields
+       error statistics, rasterized deformation fields, warped images and USD
+   * - :class:`~physiotwin4d.WorkflowEvaluateMovement`
+     - Scores those predictions per structure against the acquired frames:
+       volume difference, Dice and surface RMSE
    * - :class:`~physiotwin4d.TrainPhysicsNeMoMGN` /
        :class:`~physiotwin4d.TrainPhysicsNeMoMLP`
      - The networks to train: MeshGraphNet or fully connected
@@ -46,3 +49,4 @@ imports happen lazily inside the methods that need them.
    manifest
    train
    infer
+   evaluate

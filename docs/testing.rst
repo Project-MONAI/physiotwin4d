@@ -39,6 +39,16 @@ once. The self-hosted CI GPU runner uses it (after installing
 
    pytest tests/ -v --run-all
 
+Three further markers are declared but not gated by a flag: ``unit`` and
+``integration`` are descriptive, and ``xdist_group`` is a ``pytest-xdist``
+builtin used to keep related tests on one worker. Tests carrying only these
+markers always run.
+
+``tests/test_tutorials.py`` holds the ``tutorial`` bucket. It is not
+parametrized over the tutorials directory — it is one hand-written class per
+covered script, currently all 29 tutorial scripts, so adding a tutorial does
+not automatically add a test.
+
 Test Categories
 ===============
 
@@ -60,6 +70,8 @@ Specific Areas
    pytest tests/test_contour_tools.py -v
    pytest tests/test_transform_tools.py -v
    pytest tests/test_image_tools.py -v
+   pytest tests/test_workflow_train_physicsnemo.py -v
+   pytest tests/test_workflow_evaluate_movement.py -v
 
 Real Data and GPU Tests
 =======================

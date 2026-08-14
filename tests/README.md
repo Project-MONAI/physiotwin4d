@@ -25,11 +25,15 @@ This directory contains comprehensive test suites for the PhysioTwin4D package, 
 ### Geometry & Visualization Tests
 - **`test_contour_tools.py`** - PyVista mesh extraction and manipulation
 - **`test_transform_tools.py`** - ITK transform operations and visualization
-- **`test_convert_vtk_to_usd_polymesh.py`** - VTK to USD conversion
+- **`test_convert_vtk_to_usd.py`** - VTK to USD conversion
 
 ### USD Utility Tests
 - **`test_usd_merge.py`** - USD file merging with material preservation
 - **`test_usd_time_preservation.py`** - Time-varying data validation
+
+### Workflow Tests
+- **`test_workflow_evaluate_movement.py`** - `WorkflowEvaluateMovement` metrics, CSV, and Markdown report
+- **`test_workflow_train_physicsnemo.py`** - `WorkflowTrainPhysicsNeMo` checkpoint plus the assets inference reads beside it (needs `[physicsnemo]`)
 
 ### Tutorial Tests (SLOW - Opt-in)
 - **`test_tutorials.py`** - End-to-end execution of each `tutorials/*.py` script,
@@ -186,7 +190,7 @@ test_convert_image_4d_to_3d
     ↓                    ↓
 test_segment_chest_total_segmentator ────→ test_contour_tools
                                                 ↓
-                                           test_convert_vtk_to_usd_polymesh
+                                           test_convert_vtk_to_usd
 ```
 
 Fixtures in `conftest.py` automatically manage these dependencies.
